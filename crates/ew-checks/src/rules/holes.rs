@@ -295,6 +295,46 @@ impl Rule for HolesNotKnown {
             .with_fix(edit_part(&part, "front"));
             out.push(shown(f, q, Some(surface)));
         }
+        // A hole moved or left out whose part no longer has that hole (its holes edited, its copy replaced): the
+        // choice applies to none, and the person decides again.
+        for (id, pl) in table
+            .iter()
+            .filter(|(_, pl)| pl.hole_choices.iter().any(|c| c.hole.is_some()))
+        {
+            let lost = ew_derive::layout::lost_choices(q, id);
+            if lost.is_empty() {
+                continue;
+            }
+            let surface = q
+                .get::<ew_derive::layout::PlacementGeometry>(id)
+                .as_ref()
+                .as_ref()
+                .map(|g| g.surface);
+            let part = realised_part(q, pl);
+            let f = Finding::new(
+                &HOLES_NOT_KNOWN,
+                [Target::new(Kind::Device, pl.device)],
+                format!("lost:{}", id.as_uuid()),
+                device_name(q, pl.device),
+            )
+            .arg("form", "lost")
+            .arg("device", device_name(q, pl.device))
+            .arg(
+                "part",
+                part.as_ref()
+                    .map_or_else(|| TextArg::Plain(String::new()), |p| part_name(q, p).into()),
+            )
+            .arg(
+                "n",
+                TextArg::Number(i64::try_from(lost.len()).unwrap_or(i64::MAX)),
+            )
+            .with_fix(QuickFix {
+                label: text!("fix-drop-lost-choices"),
+                command: "layout.hole_choice".to_owned(),
+                params: serde_json::json!({"placement": id.as_uuid().to_string(), "index": 0, "lost": true}),
+            });
+            out.push(shown(f, q, surface));
+        }
         out
     }
 }
@@ -344,18 +384,27 @@ impl Rule for CableGland {
         let mut out = Vec::new();
         let features = q.table::<SurfaceFeature>();
         let hole_text = |h: &ew_schema::Hole| TextArg::Text(ew_derive::text::hole_what(h));
-        for (space, _) in q.table::<ew_schema::LayoutSpace>().iter() {
-            for g in q.get::<ew_derive::layout::CableGlands>(space).iter() {
+        // The cables each cabinet's glands are for: a hole made for a cable that no longer leaves its cabinet serves
+        // none.
+        let mut leaving: BTreeMap<Id<ew_schema::LayoutSpace>, Vec<Id<ew_schema::Device>>> = BTreeMap::new();
+        for (space, s) in q.table::<ew_schema::LayoutSpace>().iter() {
+            let glands = q.get::<ew_derive::layout::CableGlands>(space);
+            leaving.insert(space, glands.iter().map(|g| g.cable).collect());
+            let path = q.get::<ew_derive::StructurePath>(s.location);
+            let cabinet = format!("+{}", path.codes.join("+"));
+            for g in glands.iter() {
                 let cable = device_name(q, g.cable);
+                // One finding per cable and cabinet: a cable that leaves two cabinets has a gland in each.
                 let base = |form: &str, key: String| {
                     Finding::new(
                         &CABLE_GLAND,
                         [Target::new(Kind::Device, g.cable)],
-                        key,
+                        format!("{key}:{}", space.as_uuid()),
                         cable.clone(),
                     )
                     .arg("form", form)
                     .arg("cable", cable.clone())
+                    .arg("cabinet", cabinet.clone())
                 };
                 let section = match &g.part {
                     Err(ew_derive::layout::NoGland::NoDiameter) => {
@@ -422,6 +471,35 @@ impl Rule for CableGland {
                 }
             }
         }
+        let space_of = |s: Id<MountingSurface>| {
+            let s = q.table::<MountingSurface>().get(s)?;
+            q.table::<ew_schema::Enclosure>()
+                .get(s.enclosure)
+                .map(|e| e.space)
+        };
+        // A hole made for a cable whose cable now runs inside its cabinet only: its gland is gone from the parts list
+        // while the hole would still be drilled.
+        for (id, f) in features.iter().filter(|(_, f)| f.for_cable) {
+            let Some(cable) = f.cable else { continue };
+            let leaves = space_of(f.surface)
+                .and_then(|s| leaving.get(&s))
+                .is_some_and(|c| c.contains(&cable));
+            if leaves {
+                continue;
+            }
+            let finding = Finding::new(
+                &CABLE_GLAND,
+                [Target::new(Kind::SurfaceFeature, id)],
+                "inside",
+                hole_text(&f.hole),
+            )
+            .arg("form", "inside")
+            .arg("cable", device_name(q, cable))
+            .arg("hole", hole_text(&f.hole))
+            .arg("surface", surface_words(q, Some(f.surface)))
+            .with_fix(remove_hole(id));
+            out.push(shown(finding, q, Some(f.surface)));
+        }
         for (id, f) in features.iter().filter(|(_, f)| f.for_cable && f.cable.is_none()) {
             let finding = Finding::new(
                 &CABLE_GLAND,
@@ -432,13 +510,19 @@ impl Rule for CableGland {
             .arg("form", "no_cable")
             .arg("hole", hole_text(&f.hole))
             .arg("surface", surface_words(q, Some(f.surface)))
-            .with_fix(QuickFix {
-                label: text!("fix-remove-hole"),
-                command: "edit.delete".to_owned(),
-                params: serde_json::json!({"targets": [{"kind": "surface_feature", "id": id.as_uuid().to_string()}]}),
-            });
+            .with_fix(remove_hole(id));
             out.push(shown(finding, q, Some(f.surface)));
         }
         out
+    }
+}
+
+/// The quick fix Remove the hole of a gland hole that serves no cable; Keep it as a hole is the hole's own context
+/// menu entry (a finding carries one quick fix, the record's menu the other offers, as a valve's does).
+fn remove_hole(id: Id<SurfaceFeature>) -> QuickFix {
+    QuickFix {
+        label: text!("fix-remove-hole"),
+        command: "edit.delete".to_owned(),
+        params: serde_json::json!({"targets": [{"kind": "surface_feature", "id": id.as_uuid().to_string()}]}),
     }
 }

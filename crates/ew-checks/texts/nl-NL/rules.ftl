@@ -584,6 +584,10 @@ rule-ew-lay-012 = { $form ->
     .hint = Verschuif een gat, of houd de ruimte tussen gaten aan die de werkplaats nodig heeft.
 rule-ew-lay-017 = { $form ->
         [part] Het artikel { $part } van { $devices } gaat in een uitsparing of wordt vastgeschroefd, maar heeft geen gaten, dus de gatentabel en de tekeningen van { $surface } missen ze: geef het artikel zijn gaten in de artikeleditor (Vooraanzicht en gaten)
+        [lost] { $device }: { $n ->
+            [one] een verplaatst of weggelaten gat zit
+           *[other] { $n } verplaatste of weggelaten gaten zitten
+        } niet meer in zijn artikel { $part }, dus de keuze geldt voor geen gat: laat haar vallen en kies opnieuw
        *[device] { $device } heeft geen artikel, dus zijn gaten op { $surface } zijn niet bekend: kies zijn artikel
     }
     .title = Gaten niet bekend
@@ -593,7 +597,8 @@ rule-ew-lay-018 = { $form ->
         [none_seals] geen wartel van de werkplaatsvoorraad dicht { $cable } af, { DECIMAL($od) } mm dik: voeg er een toe aan de voorraad, of kies de wartel in de eigenschappen van de kabel
         [differs] het wartelgat van { $cable } in { $surface } is { $hole }; zijn wartel is nu { $gland }
         [no_cable] het gat { $hole } in { $surface } is gemaakt voor een kabel die weg is: verwijder het gat, of houd het als gat
-       *[unplaced] de kabelwartel van { $cable } is niet geplaatst: plaats hem in de onderkant, de bovenkant of een zijwand van zijn kast
+        [inside] het wartelgat { $hole } van { $cable } in { $surface } dient een kabel die zijn kast niet meer verlaat: verwijder het gat, of houd het als gat
+       *[unplaced] de kabelwartel van { $cable } in { $cabinet } is niet geplaatst: plaats hem in de onderkant, de bovenkant of een zijwand van die kast
     }
     .title = Kabelwartel
     .hint = Plaats de wartel van elke kabel waar de kabel zijn kast binnenkomt, en houd zijn gat op de maat van zijn wartel.
@@ -1324,6 +1329,7 @@ fix-place-gland-bottom = Op de onderkant plaatsen
 fix-choose-gland = Wartel kiezen…
 fix-take-gland = { $p0 } nemen
 fix-remove-hole = Het gat verwijderen
+fix-drop-lost-choices = De keuzes zonder gat laten vallen
 fix-draw-valves = De ventielen in het ventieleiland tekenen
 fix-plug-open-ports = Blindstoppen op de open poorten zetten
 fix-text-style-minimum = Op 1,2 mm zetten

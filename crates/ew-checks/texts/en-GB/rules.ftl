@@ -584,6 +584,10 @@ rule-ew-lay-012 = { $form ->
     .hint = Move a hole, or keep the web between holes the workshop needs.
 rule-ew-lay-017 = { $form ->
         [part] The part { $part } of { $devices } goes in a cut-out or is screwed on, but has no holes, so the hole table and the drawings of { $surface } lack them: give the part its holes in the part editor (Front view and holes)
+        [lost] { $device }: { $n ->
+            [one] a hole moved or left out is
+           *[other] { $n } holes moved or left out are
+        } no longer in its part { $part }, so the choice applies to no hole: drop it and choose again
        *[device] { $device } has no part, so its holes on { $surface } are not known: choose its part
     }
     .title = Holes not known
@@ -593,7 +597,8 @@ rule-ew-lay-018 = { $form ->
         [none_seals] no gland of the workshop stock seals { $cable }, { DECIMAL($od) } mm across: add one to the stock, or choose the gland in the cable's Properties
         [differs] the gland hole of { $cable } on { $surface } is { $hole }; its gland is now { $gland }
         [no_cable] the hole { $hole } on { $surface } was made for a cable that is gone: remove the hole, or keep it as a hole
-       *[unplaced] the cable gland of { $cable } is not placed: place it on the bottom, the top or a side of its cabinet
+        [inside] the gland hole { $hole } of { $cable } on { $surface } serves a cable that no longer leaves its cabinet: remove the hole, or keep it as a hole
+       *[unplaced] the cable gland of { $cable } in { $cabinet } is not placed: place it on the bottom, the top or a side of that cabinet
     }
     .title = Cable gland
     .hint = Place each cable's gland where the cable enters its cabinet, and keep its hole the size of its gland.
@@ -1344,6 +1349,7 @@ fix-place-gland-bottom = Place on the bottom
 fix-choose-gland = Choose gland…
 fix-take-gland = Take { $p0 }
 fix-remove-hole = Remove the hole
+fix-drop-lost-choices = Drop the choices that find no hole
 fix-draw-valves = Draw its valves in the valve terminal
 fix-plug-open-ports = Plug the open ports
 fix-text-style-minimum = Set to 1.2 mm

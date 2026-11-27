@@ -397,3 +397,4 @@ drilling-none-ticked = Vink ten minste één vlak aan.
 reason-no-holes = Geen vlak van dit project heeft al gaten.
 choice-a4 = A4
 choice-a3 = A3
+canvas-keep-as-hole = Als gat houden

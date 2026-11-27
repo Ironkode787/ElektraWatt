@@ -398,3 +398,4 @@ drilling-none-ticked = Tick at least one surface.
 reason-no-holes = No surface of this project has holes yet.
 choice-a4 = A4
 choice-a3 = A3
+canvas-keep-as-hole = Keep it as a hole

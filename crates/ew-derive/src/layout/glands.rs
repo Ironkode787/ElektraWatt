@@ -80,8 +80,9 @@ pub fn gland_section(q: &Q, part: &PartRef) -> Option<GlandSection> {
 }
 
 /// `cable_glands(space)` (memo): every cable with an end in the space's location and an end elsewhere (another
-/// location, or a device without one), in natural order of its tag, with its gland (doc 12 §3.9). A cable that runs
-/// inside the cabinet only, and a field wire in no cable, get none.
+/// location, or a device without one), in natural order of its tag, with its gland in this cabinet (doc 12 §3.9): a
+/// cable between two cabinets has one in each, and `placed` is the hole made for it on a surface of this space. A cable
+/// that runs inside the cabinet only, and a field wire in no cable, get none.
 #[derive(Debug)]
 pub struct CableGlands;
 
@@ -111,6 +112,14 @@ fn cable_glands(q: &Q, space: Id<LayoutSpace>) -> Vec<CableGland> {
     cables.sort();
     let stock = &q.project().settings.workshop.stock;
     let features = q.table::<SurfaceFeature>();
+    let surfaces = q.table::<ew_schema::MountingSurface>();
+    let enclosures = q.table::<ew_schema::Enclosure>();
+    let in_space = |s: Id<ew_schema::MountingSurface>| {
+        surfaces
+            .get(s)
+            .and_then(|s| enclosures.get(s.enclosure))
+            .is_some_and(|e| e.space == space)
+    };
     for (_, cable) in cables {
         let cores: BTreeSet<_> = q.idx().conductors_of_cable(cable).collect();
         let ends: BTreeSet<Option<Id<StructureNode>>> = records
@@ -141,9 +150,11 @@ fn cable_glands(q: &Q, space: Id<LayoutSpace>) -> Vec<CableGland> {
             Some(g) => (Ok(g.clone()), true),
             None => (propose(q, stock, od), false),
         };
+        // Its gland in this cabinet: a hole made for it on a surface of this space. A cable that leaves two cabinets
+        // has a gland in each, and placing one says nothing about the other.
         let placed = features
             .iter()
-            .filter(|(_, f)| f.cable == Some(cable))
+            .filter(|(_, f)| f.cable == Some(cable) && in_space(f.surface))
             .map(|(id, _)| id)
             .min();
         out.push(CableGland {

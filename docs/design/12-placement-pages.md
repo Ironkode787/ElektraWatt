@@ -129,7 +129,7 @@ the bottom-left corner of its front: -102S1 at (255, 465) mm is `"carrier":{"sur
 | `pose` | relative to the carrier | per carrier kind (below) |
 | `locked` | left alone by push, swap and auto-fill | — |
 | `label_at?` | where a person moved its label (§5.3) | — |
-| `hole_choices` | the holes of its part moved or left out ([12-3d](12-3d-routing-thermal.md) §10.4) | an index the part no longer has is dropped by the command that changes the part |
+| `hole_choices` | the holes of its part moved or left out ([12-3d](12-3d-routing-thermal.md) §10.4), each naming the part's hole (`hole`: its centre in the part frame and its kind and size) | a choice stays on its hole when the part's holes are edited or its copy replaced; one whose hole the part no longer has applies to none, and EW-LAY-017 says so with Drop the choices that find no hole |
 
 `segment` (a strip placed in pieces) and `variant` (a mounting variant) are kept verbatim; neither is built.
 
@@ -471,7 +471,8 @@ layout only.
 
 ### 3.9 Cable glands
 
-**Every cable that leaves the cabinet goes through a gland**, and the gland is a part he orders and mounts, so it is a
+**Every cable that leaves the cabinet goes through a gland**, one in each cabinet it leaves (a cable between two
+cabinets has two, and placing one says nothing of the other), and the gland is a part he orders and mounts, so it is a
 part of the project: the parts list counts it on its cable's line and the legend of the surface it sits in lists it.
 It is no accessory of the cable's part, since which gland a cable takes follows from the cable's diameter and the
 shop's stock, not from the cable's maker; and it is no device of its own, since it has no tag, no function and no
@@ -542,7 +543,7 @@ show their revision stamp.
 | EW-LAY-015 | Wire in a duct whose class set excludes its segregation class (manual or pinned paths) | warning / error by policy | online | 1.0 | FR-LAY-048 | re-route |
 | EW-LAY-016 | Assembly or rack members not contiguous or not in physical order on their carrier (FR-LAY-061) | warning | online | MVP | `carrier_order` vs `Device.position` | reorder by position |
 | EW-LAY-017 | Holes not known: a part placed in a cut-out or screwed to a surface has no holes, or the device placed there has no part; one finding per part, naming its devices ([12-3d](12-3d-routing-thermal.md) §10.5) | warning | online, release | — | `surface_features` | Edit part… (Parts at the part's Holes); for a device without a part, Choose part… |
-| EW-LAY-018 | Cable gland: a cable that leaves the cabinet has no gland placed (error at release); its gland is not known (no outer diameter, no stock gland seals it); a placed gland's hole differs from its gland's; a gland hole serves no cable (its cable gone or no longer leaving) | warning; error at release for one not placed | online, release | — | `cable_glands` | one per finding: Place on the bottom (not placed); Edit part… (no outer diameter); Choose gland… (none seals it: the cable's Gland row); Take M32 (differs); Remove the hole (serves no cable; Keep it as a hole is `layout.feature.edit {for_cable: false}`) |
+| EW-LAY-018 | Cable gland: a cable that leaves the cabinet has no gland placed (error at release); its gland is not known (no outer diameter, no stock gland seals it); a placed gland's hole differs from its gland's; a gland hole serves no cable (its cable gone, or no longer leaving the hole's cabinet); one finding per cable and cabinet | warning; error at release for one not placed | online, release | — | `cable_glands` | one per finding: Place on the bottom (not placed); Edit part… (no outer diameter); Choose gland… (none seals it: the cable's Gland row); Take M32 (differs); Remove the hole (serves no cable); Keep it as a hole is the selected gland hole's context menu entry (`layout.feature.edit {for_cable: false}`), as a valve's other offers are its own menu's |
 | EW-LAY-021 … 026 | Placement rules (FR-LAY-033/034): thermal zoning, EMC segregation distance, operator height, door mass, cable-entry zone, handle-axis alignment; EW-LAY-020 (depth containment) is retired, the closed door being EW-LAY-006's ([12-3d](12-3d-routing-thermal.md) §7) | warning | online | 1.0 (Could) | rhai/Rust rules with constants as data, `verified` flag | — |
 
 Rule constants (fill limits, clearances, heights, segregation distances) ship with a `verified` flag; an
@@ -606,7 +607,7 @@ never `frame` or `tables`.
 
 | Layer | Content |
 |---|---|
-| `surface` | the plate's page: the enclosure outline, the plate outline and the usable polygon thin dashed; any other surface's page: its sheet's outline and its edge margin thin dashed; a door's hinge as a row of short ticks outside its hinge edge with the word "Hinge"; the datum mark at the datum corner (two short arrows along the edges, "0"); and under the drawing the caption, the surface seen from its side: "Mounting plate, seen from the front", "Door, seen from outside", "Bottom, seen from below; the door's edge at the top"; on the top's and the bottom's page "Door's edge" outside the edge that meets the door |
+| `surface` | the plate's page: the enclosure outline, the plate outline and the usable polygon thin dashed; any other surface's page: its sheet's outline and its edge margin thin dashed; a door's hinge as a row of short ticks outside its hinge edge with the word "Hinge"; the datum mark at the datum corner (two short arrows along the edges, "0"); and, on every page but the plate's (a plate is always seen from the front), under the drawing the caption, the surface seen from its side: "Door, seen from outside", "Bottom, seen from below; the door's edge at the top"; on the top's and the bottom's page "Door's edge" outside the edge that meets the door |
 | `carriers` | per carrier by ID its outline rectangles, a rail's axis as a chain line and a duct's "W×H" label in millimetres |
 | `placements` | per placement by ID its `front_2d` outline, else its front shape (a rectangle, or a circle for `round`), else its footprint rectangle (an unknown footprint dashed); a screwed part on a door's or a wall's page dashed, since it sits inside |
 | `labels` | the labels (§5.3) |
@@ -615,6 +616,11 @@ never `frame` or `tables`.
 | `tables` | an embedded legend |
 | `frame` | frame and title block |
 | `highlights` | selection, findings; screen only, never exported; on a door's page also the plate's rails, ducts and footprints behind the door in the tertiary text colour, so a handle is put in front of its switch |
+
+**The plate's page** has no caption: a plate is always seen from the front, and the hole table's heading names the side
+and the corner. It draws the zero corner and the holes as every surface's page does, and so does the plate's page of a
+project made before 0.4.0: its rails' and ducts' fixing holes, its parts' holes and the "0" appear on it, and nothing on
+it moves (owner, 2026-11-27).
 
 Carrier outlines and duct labels carry the carrier's entity, footprints and labels the placement's; the surface
 outlines and a rail's axis carry none, so a click on a footprint selects the placement. **Labels knock out the

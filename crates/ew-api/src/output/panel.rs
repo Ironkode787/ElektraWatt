@@ -175,8 +175,9 @@ fn bounds(pts: &[Pt2]) -> Option<Rect> {
 
 /// The surface's outlines (doc 12 §5.2). The plate's page: the enclosure's outer rectangle (its part's enclosure
 /// section, placed by the plate frame), the plate (its device's mounting-plate section, else the usable polygon's
-/// bounds) and the usable polygon. Any other surface's page: its sheet, its edge margin, a door's hinge. Both: the
-/// datum mark at the corner the holes are measured from and the caption, in the project's language.
+/// bounds) and the usable polygon. Any other surface's page: its sheet, its edge margin, a door's hinge and the caption
+/// in the project's language (a plate is always seen from the front: its page has none). Both: the datum mark at the
+/// corner the holes are measured from.
 fn surface_outline(q: &Q, s: &MountingSurface) -> SurfaceOutline {
     let lang = ew_derive::print_language(q);
     let words = |t: &crate::Text| super::print::in_print_language(t, lang.as_ref());
@@ -257,7 +258,7 @@ fn surface_outline(q: &Q, s: &MountingSurface) -> SurfaceOutline {
         margin: None,
         hinge: None,
         datum: plate.map(corner_of),
-        caption,
+        caption: None,
         door_edge: None,
     }
 }

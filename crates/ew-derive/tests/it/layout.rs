@@ -251,6 +251,27 @@ fn unplaced_lists_the_mountable_devices_without_a_placement_in_tag_order() {
     );
 }
 
+/// A device placed only through its further part (its placement names the second rail part) stays placed, as it was
+/// before part uses were told apart; its further part use counts as placed by that placement too.
+#[test]
+fn a_device_placed_through_its_further_part_is_not_unplaced() {
+    const D_TWO: u128 = 0xdc;
+    const PL_TWO: u128 = 0xfc;
+    let mut fx = fixture(false);
+    device(&mut fx, D_TWO, "F", 12, LOC_A, &[P_MCB, P_SCREW], Some(FN_MCB));
+    fx.push(
+        json!({"$k": "placement", "id": uid(PL_TWO), "device": uid(D_TWO), "part": {"copy": uid(P_SCREW)},
+        "carrier": {"surface": uid(SURFACE)}, "pose": pose([mm(400), mm(300)], 0)}),
+    );
+    let m = fx.build();
+    let q = Q::new(&m);
+    assert!(
+        q.get::<Unplaced>(id(SPACE)).iter().all(|(d, _)| *d != id(D_TWO)),
+        "{:?}",
+        q.get::<Unplaced>(id(SPACE))
+    );
+}
+
 #[test]
 fn footprints_on_rails_on_the_surface_unknown_and_on_a_duct() {
     let m = fixture(false).build();

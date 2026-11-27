@@ -295,8 +295,8 @@ pub struct Feature {
 }
 
 /// The hole of a pattern at `index` after its owner's choice: moved by its offset, `None` where it is left out.
-pub fn chosen(at: Pt2, index: usize, choices: &[HoleChoice]) -> Option<Pt2> {
-    let Some(c) = choices.iter().find(|c| usize::from(c.index) == index) else {
+pub fn chosen(at: Pt2, c: Option<&HoleChoice>) -> Option<Pt2> {
+    let Some(c) = c else {
         return Some(at);
     };
     if c.omit {
@@ -309,6 +309,53 @@ pub fn chosen(at: Pt2, index: usize, choices: &[HoleChoice]) -> Option<Pt2> {
         )),
         None => Some(at),
     }
+}
+
+/// The choice of `choices` that applies to the hole at `index` of its owner's pattern, `named` the part's hole there (a
+/// placement's): the choice that names that hole, else one without a name at that index (a carrier's).
+pub fn choice_for<'c>(
+    choices: &'c [HoleChoice],
+    index: usize,
+    named: Option<&ew_schema::PartHole>,
+) -> Option<&'c HoleChoice> {
+    named
+        .and_then(|h| choices.iter().find(|c| c.hole.as_ref() == Some(h)))
+        .or_else(|| {
+            choices
+                .iter()
+                .find(|c| c.hole.is_none() && usize::from(c.index) == index)
+        })
+}
+
+/// The holes of a placement's part in the part frame, in its pattern's order: what a placement's hole choice names.
+/// Empty where the pattern is (a part of no known size).
+pub fn part_holes(q: &Q, p: Id<Placement>) -> Vec<ew_schema::PartHole> {
+    let geom = q.get::<PlacementGeometry>(p);
+    let Some(g) = geom.as_ref() else {
+        return Vec::new();
+    };
+    if g.holes.is_empty() {
+        return Vec::new();
+    }
+    g.part
+        .as_ref()
+        .and_then(|r| q.table::<ew_schema::LibCopy<ew_schema::Part>>().get(r.copy))
+        .and_then(|c| c.item.mech.as_ref().map(|m| m.holes.clone()))
+        .unwrap_or_default()
+}
+
+/// The choices of placement `p` that name a hole its part no longer has: they apply to no hole (EW-LAY-017).
+pub fn lost_choices(q: &Q, p: Id<Placement>) -> Vec<HoleChoice> {
+    let Some(placement) = q.table::<Placement>().get(p).cloned() else {
+        return Vec::new();
+    };
+    let holes = part_holes(q, p);
+    placement
+        .hole_choices
+        .iter()
+        .filter(|c| c.hole.as_ref().is_some_and(|h| !holes.contains(h)))
+        .cloned()
+        .collect()
 }
 
 /// The holes of a placement's pattern at their places, before its choices: the part's `mech.holes` turned with the
@@ -373,8 +420,10 @@ fn surface_features(q: &Q, surface: Id<MountingSurface>) -> Vec<Feature> {
             .get(p)
             .map(|x| x.hole_choices.as_slice())
             .unwrap_or_default();
+        let named = part_holes(q, p);
         for (i, (at, hole)) in placement_holes(q, p).into_iter().enumerate() {
-            if let (Some(at), Ok(index)) = (chosen(at, i, choices), u16::try_from(i)) {
+            let choice = choice_for(choices, i, named.get(i));
+            if let (Some(at), Ok(index)) = (chosen(at, choice), u16::try_from(i)) {
                 raw.push((at, hole, Owner::Placement { p, index }));
             }
         }
@@ -385,7 +434,8 @@ fn surface_features(q: &Q, surface: Id<MountingSurface>) -> Vec<Feature> {
             continue;
         };
         for (i, (at, hole)) in carrier_fixings(carrier, workshop).into_iter().enumerate() {
-            if let (Some(at), Ok(index)) = (chosen(at, i, &carrier.hole_choices), u16::try_from(i)) {
+            let choice = choice_for(&carrier.hole_choices, i, None);
+            if let (Some(at), Ok(index)) = (chosen(at, choice), u16::try_from(i)) {
                 raw.push((at, hole, Owner::Carrier { c, index }));
             }
         }

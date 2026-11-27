@@ -354,7 +354,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/normalise/revision_ensure_open.rs` |  | Normaliser #18, the automatic open revision (`revision.ensure_open`; doc 15 §5.3, FR-REV-009). |
 | `src/normalise/solenoid_binding.rs` |  | Normaliser #13, solenoid binding (N2 = N-FL-3; doc 06 §3.2 row 13, doc 10 §3.3, doc 11 §4.2; FR-PLC-051). |
 | `src/normalise/stale_choices.rs` |  | Normaliser `stale_choices` (doc 07 §3.3 rule 8): a device's accessory choices answer the accessories its parts declare, so a choice whose accessory no part names any more goes, whichever command changed the parts. |
-| `src/normalise/stale_hole_choices.rs` |  | Normaliser `stale_hole_choices` (doc 12 §2.2, doc 12-3d §10.6): a placement's and a carrier's hole choices answer the holes of its pattern by index, so they go when the pattern changes, whichever command changed it. |
+| `src/normalise/stale_hole_choices.rs` |  | Normaliser `stale_hole_choices` (doc 12 §2.2, doc 12-3d §10.6): the hole choices that answer their owner's pattern by index go when the pattern changes, whichever command changed it. |
 | `src/normalise/tube_tags.rs` |  | Normaliser N-FL-5 `tube_tags` (doc 11 §4.2, FR-FLU-011): the line tags of fluid lines. |
 | `src/normalise/valve_functions.rs` |  | Normaliser N-FL-1 `valve_functions` (doc 06 §3.2 row 1, doc 11 §4.2, FR-FLU-003): a valve's functions follow its valve part. |
 | `src/normalise/wire_numbering.rs` |  | Normaliser #12, online wire numbering (doc 06 §3.2, FR-NUM-019, FR-NUM-021), v0 subset. |

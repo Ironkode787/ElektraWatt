@@ -898,6 +898,10 @@ fn hole_rows(
 ) -> Vec<PropRow> {
     use ew_derive::layout::Owner;
     let features = q.get::<ew_derive::layout::SurfaceFeatures>(s.id);
+    let named = match owner {
+        HoleOwner::Placement(p) => ew_derive::layout::part_holes(q, p),
+        HoleOwner::Carrier(_) => Vec::new(),
+    };
     let cmd = Some("layout.hole_choice");
     let mut rows = Vec::new();
     for (i, (at, _)) in pattern.iter().enumerate() {
@@ -906,7 +910,7 @@ fn hole_rows(
             HoleOwner::Placement(p) => Owner::Placement { p, index },
             HoleOwner::Carrier(c) => Owner::Carrier { c, index },
         };
-        let choice = choices.iter().find(|c| c.index == index);
+        let choice = ew_derive::layout::choice_for(choices, i, named.get(i));
         let omitted = choice.is_some_and(|c| c.omit);
         let feature = features.iter().find(|f| f.owners.contains(&me));
         let name = format!("holes[{i}]");
@@ -2303,6 +2307,15 @@ impl Session {
             }
         }
         best.map_or(at, |(_, place)| place)
+    }
+
+    /// Whether `feature` is a hole made for a cable's gland (`SurfaceFeature.for_cable`): what Keep it as a hole
+    /// turns into a hole by hand.
+    pub fn feature_for_cable(&self, feature: Uuid) -> bool {
+        self.query()
+            .table::<ew_schema::SurfaceFeature>()
+            .get(Id::from_uuid(feature))
+            .is_some_and(|f| f.for_cable)
     }
 
     /// A surface after its cabinet's tag, in words ("-UC1 door"), as the page's Surface row names it.

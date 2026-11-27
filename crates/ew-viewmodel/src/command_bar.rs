@@ -824,6 +824,22 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
         .map(|meta| actions::item_of(meta, model))
         .collect();
     }
+    // Over a gland hole: Keep it as a hole (the hole stays, made by hand, its cable forgotten: EW-LAY-018's other
+    // offer beside its quick fix Remove the hole) and Delete.
+    if let Some(feature) = model.selected_gland_hole() {
+        let keep = serde_json::json!({"cmd": "layout.feature.edit",
+            "params": {"feature": feature.to_string(), "for_cable": false}});
+        let mut items: Vec<ActionItem> = model
+            .aimed(
+                "command.run",
+                keep,
+                strings::text(key!("canvas-keep-as-hole")).to_owned(),
+            )
+            .into_iter()
+            .collect();
+        items.extend(actions::find("edit.delete_selection").map(|m| actions::item_of(m, model)));
+        return items;
+    }
     let bar = command_bar_of(model, Tab::Draw);
     let mut items = model.menu_fits(at);
     // Rotate, Mirror and Renumber devices… act on symbols: a selection without one (wires, a junction, a text) is

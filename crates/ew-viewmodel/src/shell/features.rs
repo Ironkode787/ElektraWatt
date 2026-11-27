@@ -186,6 +186,18 @@ impl ShellModel {
         })
     }
 
+    /// The gland hole selected alone on the panel page shown (a hole made for a cable): what its context menu offers
+    /// Keep it as a hole for.
+    pub fn selected_gland_hole(&self) -> Option<ew_api::output::Uuid> {
+        let page = self.canvas()?.page();
+        let panel = page.panel.as_ref()?;
+        let [one] = self.tools.selection.items.as_slice() else {
+            return None;
+        };
+        let session = &self.project.as_ref()?.session;
+        (panel.features.contains(&one.0) && session.feature_for_cable(one.0)).then_some(one.0)
+    }
+
     /// The title of Add hole here…: "Add a hole to -UC1 door".
     pub fn feature_form_title(&self) -> String {
         let words = self

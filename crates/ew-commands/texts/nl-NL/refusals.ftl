@@ -775,6 +775,7 @@ refusal-layout-hole-index = Er is geen gat { $p0 }: het patroon heeft er { $p1 }
 refusal-layout-gland-face = Een wartel gaat in een zijwand, de bovenkant of de onderkant van de kast, niet in een deur of de montageplaat.
 refusal-layout-gland-stays = { $p0 } heeft geen eind buiten de kast, dus heeft geen wartel nodig.
 refusal-layout-gland-placed = De wartel van { $p0 } is al geplaatst.
+refusal-layout-gland-twice = { $p0 } staat er twee keer in: een kabel heeft één wartel in elke kast die hij verlaat.
 refusal-layout-gland-unknown = De wartel van { $p0 } is niet bekend: geef zijn kabelartikel een buitendiameter, of kies zijn wartel in zijn eigenschappen.
 refusal-layout-enclosure-turn = de stand van een kast is in deze versie een verschuiving; geef haar zonder draaiing
 refusal-layout-part-copy-missing = artikelkopie { $p0 } staat niet in het project

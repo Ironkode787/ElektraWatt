@@ -196,8 +196,10 @@ impl Command for EditFeature {
 }
 
 /// `layout.hole_choice` (`HoleChoiceEdit`, a hole's row in Properties): moves the hole at `index` of a placement's or a
-/// carrier's pattern by `offset` (in the surface's frame) or leaves it out (`omit`); neither puts it back. Exactly one
-/// of `placement` and `carrier`. Rejected in words: an owner that does not exist, an index its pattern has no hole at.
+/// carrier's pattern by `offset` (in the surface's frame) or leaves it out (`omit`); neither puts it back. A placement's
+/// choice names the part's hole there, so that it stays on that hole when the part's holes change. `lost` drops a
+/// placement's choices whose hole its part no longer has (EW-LAY-017's fix; `index` is then not read). Exactly one of
+/// `placement` and `carrier`. Rejected in words: an owner that does not exist, an index its pattern has no hole at.
 /// Interactive. Outcome: the owner.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -219,6 +221,9 @@ pub struct HoleChoiceEdit {
     /// The hole left out.
     #[serde(default)]
     pub omit: bool,
+    /// Drop the placement's choices whose hole its part no longer has.
+    #[serde(default)]
+    pub lost: bool,
 }
 
 impl Command for HoleChoiceEdit {
@@ -231,12 +236,26 @@ impl Command for HoleChoiceEdit {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let q = Q::new(tx.base_model());
         let gone = || CmdError::invalid_params(Self::NAME, "/placement", text!("refusal-layout-hole-owner"));
-        let (count, choices) = match (self.placement, self.carrier) {
+        let (count, choices, named) = match (self.placement, self.carrier) {
             (Some(p), None) => {
                 let placement = tx.get::<Placement>(p).ok_or_else(gone)?;
+                if self.lost {
+                    let named = ew_derive::layout::part_holes(&q, p);
+                    let kept: Vec<HoleChoice> = placement
+                        .hole_choices
+                        .iter()
+                        .filter(|c| c.hole.as_ref().is_none_or(|h| named.contains(h)))
+                        .cloned()
+                        .collect();
+                    tx.update::<Placement>(p, |x| x.hole_choices = kept)?;
+                    return Ok(Outcome::primary((Kind::Placement, p.cast())));
+                }
                 (
                     ew_derive::layout::placement_holes(&q, p).len(),
                     placement.hole_choices.clone(),
+                    ew_derive::layout::part_holes(&q, p)
+                        .get(usize::from(self.index))
+                        .cloned(),
                 )
             }
             (None, Some(c)) => {
@@ -244,6 +263,7 @@ impl Command for HoleChoiceEdit {
                 (
                     ew_derive::layout::carrier_fixings(&carrier, &q.project().settings.workshop).len(),
                     carrier.hole_choices.clone(),
+                    None,
                 )
             }
             _ => return Err(gone()),
@@ -259,10 +279,16 @@ impl Command for HoleChoiceEdit {
                 ),
             ));
         }
-        let mut choices: Vec<HoleChoice> = choices.into_iter().filter(|c| c.index != self.index).collect();
+        // The hole's choice made before: the one naming it, else (a carrier's) the one at its index.
+        let same = |c: &HoleChoice| match &named {
+            Some(h) => c.hole.as_ref() == Some(h) || (c.hole.is_none() && c.index == self.index),
+            None => c.index == self.index,
+        };
+        let mut choices: Vec<HoleChoice> = choices.into_iter().filter(|c| !same(c)).collect();
         if self.omit || self.offset.is_some() {
             choices.push(HoleChoice {
                 index: self.index,
+                hole: named.clone(),
                 offset: self.offset.filter(|_| !self.omit),
                 omit: self.omit,
                 extra: Default::default(),
@@ -335,8 +361,11 @@ impl Command for PlaceGlands {
         let mut at = self.at;
         let mut before: Option<ew_schema::GlandSection> = None;
         let mut first = None;
-        for cable in &self.cables {
+        for (i, cable) in self.cables.iter().enumerate() {
             let tag = ew_derive::short_tag(&q, *cable);
+            if self.cables[..i].contains(cable) {
+                return tx.reject(text!("refusal-layout-gland-twice", tag));
+            }
             let Some(g) = glands.iter().find(|g| g.cable == *cable) else {
                 return tx.reject(text!("refusal-layout-gland-stays", tag));
             };

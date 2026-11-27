@@ -314,10 +314,11 @@ fn mountability_of_kind(q: &Q, dev: Id<Device>, device: &Device) -> Mountability
 /// §2.7 rule 5). A strip and a device without parts are one entry without a part.
 ///
 /// A device belongs to the space when its own location node is the space's location and the space is that location's
-/// layout space ([`space_of_location`]); a device of another location is never listed. A part use counts as placed
-/// when a placement of the device realises it, wherever it sits (a placement in another location's space is
-/// EW-LAY-004's): a placement that names its part, or one that names none for the primary part. A missing space lists
-/// nothing.
+/// layout space ([`space_of_location`]); a device of another location is never listed. A device's primary part use
+/// counts as placed when any placement names the device, wherever it sits (a placement in another location's space is
+/// EW-LAY-004's), whatever part it names: so a device placed before part uses were told apart is placed as it was. A
+/// further part use (a main switch's door handle) counts as placed when a placement names its part. A missing space
+/// lists nothing.
 #[derive(Debug)]
 pub struct Unplaced;
 
@@ -368,9 +369,14 @@ impl Query for Unplaced {
                 }
                 continue;
             }
+            let primary = primary.as_ref().map(|p| p.copy);
             out.extend(
                 uses.iter()
-                    .filter(|u| !placed.contains(&Some(u.copy)))
+                    .filter(|u| {
+                        let realised = placed.contains(&Some(u.copy));
+                        let device_placed = !placed.is_empty() && Some(u.copy) == primary;
+                        !realised && !device_placed
+                    })
                     .map(|u| (d, Some(u.clone()))),
             );
         }

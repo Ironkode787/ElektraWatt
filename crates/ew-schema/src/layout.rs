@@ -214,12 +214,18 @@ impl Corner {
     ];
 }
 
-/// One hole of a placement's or a carrier's pattern moved or left out (doc 12 §2.2): the hole at `index` (a part's
-/// `mech.holes` in its order; a carrier's fixings counted from the start of its path).
+/// One hole of a placement's or a carrier's pattern moved or left out (doc 12 §2.2). A placement's choice names the
+/// part's hole itself (`hole`, as the part gave it when the choice was made): it stays on that hole when the part's
+/// holes are edited or its copy is replaced, and applies to none when the part no longer has it (EW-LAY-017 says so).
+/// A carrier's fixing, which no part names, is the one at `index` counted from the start of its path; so is a
+/// placement's choice without `hole`.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct HoleChoice {
-    /// The hole's index in its owner's pattern.
+    /// The hole's index in its owner's pattern when the choice was made.
     pub index: u16,
+    /// A placement's: the part's hole it is for (its centre in the part frame and how it is named).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub hole: Option<crate::PartHole>,
     /// The hole moved by this offset (`u`, `v` in the surface frame); absent: at its place.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<SurfacePt2S>")]

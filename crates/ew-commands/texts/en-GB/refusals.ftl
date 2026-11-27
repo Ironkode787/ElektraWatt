@@ -774,6 +774,7 @@ refusal-layout-hole-index = There is no hole { $p0 }: its pattern has { $p1 }.
 refusal-layout-gland-face = A gland goes in a side, the top or the bottom of the cabinet, not in a door or the mounting plate.
 refusal-layout-gland-stays = { $p0 } has no end outside the cabinet, so it needs no gland.
 refusal-layout-gland-placed = The gland of { $p0 } is placed already.
+refusal-layout-gland-twice = { $p0 } is named twice: a cable has one gland in each cabinet it leaves.
 refusal-layout-gland-unknown = The gland of { $p0 } is not known: give its cable part an outer diameter, or choose its gland in its Properties.
 refusal-layout-enclosure-turn = an enclosure's pose is a translation at this version; give it without a turn
 refusal-layout-part-copy-missing = part copy { $p0 } is not held by the project

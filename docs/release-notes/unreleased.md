@@ -378,9 +378,12 @@ change here.
   one undo step, the face from the enclosure part, a panel layout page after the plate's page with the face drawn as
   it is seen from its side (a door from outside, its hinge ticked, its edge margin dashed) and its legend page; on a
   door's page the plate's devices show faint behind it on the screen (doc 12 §2.8, §3.8, FT-1843)
-- behaviour-change: a panel layout page writes its caption under the drawing ("Mounting plate, seen from the front")
-  and marks the corner its holes are measured from with "0"; a surface's Properties show its Width, Height, a door's
-  Hinge, its Edge margin and Measured from (its own corner or the project's) (doc 12 §2.8, §5.2)
+- behaviour-change: a panel layout page of a door, a side, the top or the bottom writes its caption under the drawing
+  ("Door, seen from outside"; the plate's page has none), every panel layout page marks the corner its holes are
+  measured from with "0"; a surface's Properties show its Width, Height, a door's Hinge, its Edge margin and Measured
+  from (its own corner or the project's) (doc 12 §2.8, §5.2)
+- behaviour-change: the panel page of a project made before this version now shows the fixing holes of its rails and
+  ducts, the holes of its parts and the "0" at the corner its holes are measured from; nothing on it moves (doc 12 §5.2)
 - text-change: the page's Surface row names a surface by its cabinet's tag and its face, "-UC1 mounting plate" (it was
   "-UC1 plate"), in the window's language
 - api-add: `layout.surface.add {enclosure, kind, door?, width?, height?}` makes a face of a cabinet from its part, and
@@ -476,5 +479,12 @@ change here.
   [--no-template]` and the action `drilling.export {surfaces?, template?, dxf?, paper?, dir?}`
 - behaviour-change: Surface… lists the cabinet's faces as a table, each with its size and its page, one chosen with
   a radio button (it was a drop-down list)
+- behaviour-change: a cable between two cabinets has a gland in each: placing it in one leaves the other waiting,
+  EW-LAY-018 says so per cabinet, and `layout.glands_place` refuses a cable named twice. A gland hole whose cable no
+  longer leaves its cabinet is EW-LAY-018's (Remove the hole; the hole's context menu: Keep it as a hole)
+- behaviour-change: a hole moved or left out names its part's hole: it stays on that hole when the part's holes are
+  edited or a library update replaces the copy; one whose hole is gone applies to none, and EW-LAY-017 says so with
+  Drop the choices that find no hole (`layout.hole_choice` takes `lost`)
+- format-variant: placement `hole_choices[].hole` (the part's hole a choice names; doc 12 §2.2)
 - api-add: `fields.set` takes a device's `gland`; `layout.glands_place` takes the sheet point `x_mm`, `y_mm`; `part.edit`
   takes `section`

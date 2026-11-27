@@ -8,7 +8,7 @@
 use crate::common;
 
 use common::{Tmp, at, done};
-use ew_viewmodel::command_bar::hud;
+use ew_viewmodel::command_bar::{MenuSpot, canvas_menu, hud};
 use ew_viewmodel::shell::Mode;
 use serde_json::json;
 
@@ -25,6 +25,16 @@ fn the_hud_counts_the_glands_that_wait_and_offers_their_page_or_their_placing() 
         h.prompt
     );
     assert!(h.buttons.is_empty(), "{:?}", h.buttons);
+
+    // A gland hole selected alone: its context menu offers Keep it as a hole beside Delete.
+    let one = s.panel_tables().expect("905's tables").features[0];
+    done(&mut s, "select.set", json!({"ids": [one.to_string()]}));
+    let menu: Vec<String> = canvas_menu(&s, MenuSpot::Object, None)
+        .into_iter()
+        .map(|i| i.label)
+        .collect();
+    assert!(menu.iter().any(|l| l == "Keep it as a hole"), "{menu:?}");
+    done(&mut s, "select.set", json!({"ids": []}));
 
     // The two glands taken off the bottom wait again: a band around the row at 80 and 115 mm, 125 mm up (the bottom's
     // datum is its frame's corner), then Delete.

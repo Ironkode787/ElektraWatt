@@ -69,8 +69,9 @@ pub use glands::{
     CableGland, CableGlands, NoGland, cable_outer_diameter, gland_nut, gland_pitch, gland_section,
 };
 pub use holes::{
-    Feature, HOLE_SIZES, HoleSizes, Made, Owner, SizeFamily, SurfaceFeatures, carrier_fixings, chosen,
-    duct_fixing_default, fixings, hole_size, made, placement_holes, rail_fixing_default,
+    Feature, HOLE_SIZES, HoleSizes, Made, Owner, SizeFamily, SurfaceFeatures, carrier_fixings, choice_for,
+    chosen, duct_fixing_default, fixings, hole_size, lost_choices, made, part_holes, placement_holes,
+    rail_fixing_default,
 };
 pub use legend::{
     CarrierLabel, CarrierLabelKind, CarrierOrder, LegendItem, LegendRow, carrier_label, carrier_labels,

@@ -46,6 +46,26 @@
         }
       ]
     },
+    "Cutout": {
+      "description": "The class of a round cut-out (an operator's mounting hole).",
+      "oneOf": [
+        {
+          "const": "d16",
+          "description": "16 mm.",
+          "type": "string"
+        },
+        {
+          "const": "d22",
+          "description": "22 mm.",
+          "type": "string"
+        },
+        {
+          "const": "d30",
+          "description": "30 mm.",
+          "type": "string"
+        }
+      ]
+    },
     "DuctParams": {
       "additionalProperties": true,
       "description": "A duct's parameters (doc 12 §2.4): the nominal size, from which the label \"W×H\" (\"40×60\") is generated.",
@@ -83,12 +103,172 @@
       ],
       "type": "object"
     },
+    "Gland": {
+      "description": "The thread of a metric cable gland.",
+      "oneOf": [
+        {
+          "const": "m12",
+          "description": "M12.",
+          "type": "string"
+        },
+        {
+          "const": "m16",
+          "description": "M16.",
+          "type": "string"
+        },
+        {
+          "const": "m20",
+          "description": "M20.",
+          "type": "string"
+        },
+        {
+          "const": "m25",
+          "description": "M25.",
+          "type": "string"
+        },
+        {
+          "const": "m32",
+          "description": "M32.",
+          "type": "string"
+        },
+        {
+          "const": "m40",
+          "description": "M40.",
+          "type": "string"
+        },
+        {
+          "const": "m50",
+          "description": "M50.",
+          "type": "string"
+        },
+        {
+          "const": "m63",
+          "description": "M63.",
+          "type": "string"
+        }
+      ]
+    },
+    "Hole": {
+      "description": "A hole (doc 12 §2.5), tagged by its kind: `{\"round\": {\"d\": …}}`, `{\"fixing\": \"m5\"}`, `{\"cutout\": \"d22\"}`,\n`{\"gland\": \"m20\"}` or `{\"rect\": {\"w\": …, \"h\": …, \"r\": …}}`.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A plain hole of a diameter.",
+          "properties": {
+            "round": {
+              "properties": {
+                "d": {
+                  "$ref": "#/$defs/Nm",
+                  "description": "The diameter."
+                }
+              },
+              "required": [
+                "d"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "round"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A hole for a screw that fixes the part: the shop's setting and the surface decide how it is made.",
+          "properties": {
+            "fixing": {
+              "$ref": "#/$defs/Screw"
+            }
+          },
+          "required": [
+            "fixing"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The round cut-out of an operator of a class.",
+          "properties": {
+            "cutout": {
+              "$ref": "#/$defs/Cutout"
+            }
+          },
+          "required": [
+            "cutout"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The hole of a metric cable gland.",
+          "properties": {
+            "gland": {
+              "$ref": "#/$defs/Gland"
+            }
+          },
+          "required": [
+            "gland"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A rectangular cut-out, with a corner radius.",
+          "properties": {
+            "rect": {
+              "properties": {
+                "h": {
+                  "$ref": "#/$defs/Nm",
+                  "description": "The height."
+                },
+                "r": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Nm"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The corner radius; absent: square corners."
+                },
+                "w": {
+                  "$ref": "#/$defs/Nm",
+                  "description": "The width."
+                }
+              },
+              "required": [
+                "w",
+                "h"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "rect"
+          ],
+          "type": "object"
+        }
+      ]
+    },
     "HoleChoice": {
       "additionalProperties": true,
-      "description": "One hole of a placement's or a carrier's pattern moved or left out (doc 12 §2.2): the hole at `index` (a part's\n`mech.holes` in its order; a carrier's fixings counted from the start of its path).",
+      "description": "One hole of a placement's or a carrier's pattern moved or left out (doc 12 §2.2). A placement's choice names the\npart's hole itself (`hole`, as the part gave it when the choice was made): it stays on that hole when the part's\nholes are edited or its copy is replaced, and applies to none when the part no longer has it (EW-LAY-017 says so).\nA carrier's fixing, which no part names, is the one at `index` counted from the start of its path; so is a\nplacement's choice without `hole`.",
       "properties": {
+        "hole": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PartHole"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A placement's: the part's hole it is for (its centre in the part frame and how it is named)."
+        },
         "index": {
-          "description": "The hole's index in its owner's pattern.",
+          "description": "The hole's index in its owner's pattern when the choice was made.",
           "format": "uint16",
           "maximum": 65535,
           "minimum": 0,
@@ -177,6 +357,30 @@
       "minimum": -9007199254740991,
       "type": "integer"
     },
+    "PartHole": {
+      "additionalProperties": true,
+      "description": "One hole of a part's drilling pattern ([`MechData::holes`]): its centre in the part frame (`x` right, `y` up, from\nthe front's bottom-left corner).",
+      "properties": {
+        "hole": {
+          "$ref": "#/$defs/Hole",
+          "description": "The hole."
+        },
+        "x": {
+          "$ref": "#/$defs/Nm",
+          "description": "The centre's `x`."
+        },
+        "y": {
+          "$ref": "#/$defs/Nm",
+          "description": "The centre's `y`."
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "hole"
+      ],
+      "type": "object"
+    },
     "PartRef": {
       "additionalProperties": true,
       "description": "A part on a device (doc 03 §7): the embedded copy and an optional part variant (FR-PRT-003).",
@@ -215,6 +419,36 @@
         "profile"
       ],
       "type": "object"
+    },
+    "Screw": {
+      "description": "The screw of a fixing hole.",
+      "oneOf": [
+        {
+          "const": "m3",
+          "description": "M3.",
+          "type": "string"
+        },
+        {
+          "const": "m4",
+          "description": "M4.",
+          "type": "string"
+        },
+        {
+          "const": "m5",
+          "description": "M5.",
+          "type": "string"
+        },
+        {
+          "const": "m6",
+          "description": "M6.",
+          "type": "string"
+        },
+        {
+          "const": "m8",
+          "description": "M8.",
+          "type": "string"
+        }
+      ]
     },
     "SurfacePt2": {
       "description": "A point [u, v] in nanometres in the frame of a mounting surface, u to the right, v up (doc 03 §16): not a sheet point.",
