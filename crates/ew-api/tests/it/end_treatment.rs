@@ -692,3 +692,29 @@ fn a_marker_names_an_external_far_end_as_the_list_does() {
         ["ext. L1", "-X1011:L1", "", "ext. L1"]
     );
 }
+
+/// A cable's shield has the size and the colour its cable's part states for it, and the sample's part states none: its
+/// row prints neither, and its ends take no ferrule, so its cable's earth core on the same clamp keeps a ferrule of its
+/// own rather than a twin ferrule with a braid.
+#[test]
+fn a_shield_has_no_size_colour_or_ferrule_that_nothing_states() {
+    let s = common::sample();
+    let keys = [
+        "colour",
+        "cross_section",
+        "from_end",
+        "to_end",
+        "from_part",
+        "to_part",
+    ];
+    let shield = cells(&s, "-103W1 SHIELD", &keys);
+    assert!(
+        shield[..2]
+            .iter()
+            .all(|c| !c.contains("2.5") && !c.contains("GNYE")),
+        "{shield:?}"
+    );
+    assert_eq!(shield[2..4], ["bare", "bare"], "{shield:?}");
+    assert!(shield[4..].iter().all(String::is_empty), "{shield:?}");
+    assert_eq!(cells(&s, "-103W1 GNYE", &["to_end"]), ["ferrule 2.5 BU"]);
+}

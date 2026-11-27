@@ -109,6 +109,8 @@ pub enum ConductorMatch {
     Fine,
     /// Solid or stranded: class 1 or 2.
     SolidOrStranded,
+    /// A cable's shield.
+    Shield,
 }
 
 /// What a row of the rule table gives.
@@ -146,7 +148,7 @@ pub struct TreatmentRule {
 }
 
 /// The rule table (doc 13 §4.2): the first row that matches an end gives its treatment.
-pub const TREATMENT_RULES: [TreatmentRule; 7] = [
+pub const TREATMENT_RULES: [TreatmentRule; 8] = [
     TreatmentRule {
         row: 1,
         clamp: ClampMatch::Plug,
@@ -185,6 +187,16 @@ pub const TREATMENT_RULES: [TreatmentRule; 7] = [
     },
     TreatmentRule {
         row: 5,
+        clamp: ClampMatch::Other,
+        conductor: ConductorMatch::Shield,
+        not_into_spring_clamps: false,
+        gives: RuleGives::Bare,
+        source: "this program's shop rule: a shield's end is bare, under its clamp or twisted and sleeved by hand; no \
+                 ferrule is counted for it",
+        verified: false,
+    },
+    TreatmentRule {
+        row: 6,
         clamp: ClampMatch::SpringOrPushIn,
         conductor: ConductorMatch::Fine,
         not_into_spring_clamps: true,
@@ -193,7 +205,7 @@ pub const TREATMENT_RULES: [TreatmentRule; 7] = [
         verified: false,
     },
     TreatmentRule {
-        row: 6,
+        row: 7,
         clamp: ClampMatch::Other,
         conductor: ConductorMatch::Fine,
         not_into_spring_clamps: false,
@@ -202,7 +214,7 @@ pub const TREATMENT_RULES: [TreatmentRule; 7] = [
         verified: false,
     },
     TreatmentRule {
-        row: 7,
+        row: 8,
         clamp: ClampMatch::Other,
         conductor: ConductorMatch::SolidOrStranded,
         not_into_spring_clamps: false,
@@ -213,10 +225,12 @@ pub const TREATMENT_RULES: [TreatmentRule; 7] = [
 ];
 
 /// The row of the rule table that decides an end on a clamp of `clamp` (its part's data, `None` where it names
-/// none) for a wire of conductor class `class` (`None`: none named), under the shop's ferrule rule.
+/// none) for a wire of conductor class `class` (`None`: none named), a cable's shield where `shield`, under the shop's
+/// ferrule rule.
 pub fn rule_for(
     clamp: Option<&ClampData>,
     class: Option<u8>,
+    shield: bool,
     ferrules: &FerruleRule,
 ) -> (&'static TreatmentRule, Assumed) {
     let kind = clamp.and_then(|c| c.kind.as_ref());
@@ -236,12 +250,13 @@ pub fn rule_for(
                 ConductorMatch::Any => true,
                 ConductorMatch::Fine => !solid,
                 ConductorMatch::SolidOrStranded => solid,
+                ConductorMatch::Shield => shield,
             };
             clamp_ok && conductor_ok && (!r.not_into_spring_clamps || not_into_spring)
         })
         .unwrap_or(&TREATMENT_RULES[TREATMENT_RULES.len() - 1]);
     let assumed = Assumed {
-        class: class.is_none() && rule.conductor != ConductorMatch::Any,
+        class: class.is_none() && !matches!(rule.conductor, ConductorMatch::Any | ConductorMatch::Shield),
         clamp: kind.is_none() && rule.clamp == ClampMatch::Other,
     };
     (rule, assumed)
@@ -303,7 +318,12 @@ pub(crate) fn treat(q: &Q, records: &mut [WireRecord]) {
                 (t, TreatedBy::Hand)
             } else if end.kind == EndKind::Device {
                 let clamp = clamps.entry(end.cp).or_insert_with(|| clamp_of(q, end.cp));
-                let (rule, assumed) = rule_for(clamp.as_ref(), class, &workshop.ferrules);
+                let shield = r
+                    .wire
+                    .core
+                    .and_then(|c| q.conductors().get(c))
+                    .is_some_and(|c| c.shield);
+                let (rule, assumed) = rule_for(clamp.as_ref(), class, shield, &workshop.ferrules);
                 let treatment = match rule.gives {
                     RuleGives::Connector => EndTreatment::Connector,
                     RuleGives::RingLug => EndTreatment::RingLug,
@@ -625,21 +645,21 @@ mod tests {
                 Some(clamp(ClampType::PushIn)),
                 Some(6),
                 &spring,
-                5,
+                6,
                 Assumed::default(),
             ),
             (
                 Some(clamp(ClampType::PushIn)),
                 Some(6),
                 &every,
-                6,
+                7,
                 Assumed::default(),
             ),
             (
                 Some(clamp(ClampType::Screw)),
                 None,
                 &every,
-                6,
+                7,
                 Assumed {
                     class: true,
                     clamp: false,
@@ -649,7 +669,7 @@ mod tests {
                 None,
                 Some(2),
                 &every,
-                7,
+                8,
                 Assumed {
                     class: false,
                     clamp: true,
@@ -659,7 +679,7 @@ mod tests {
                 None,
                 None,
                 &spring,
-                6,
+                7,
                 Assumed {
                     class: true,
                     clamp: true,
@@ -667,8 +687,20 @@ mod tests {
             ),
         ];
         for (clamp, class, rule, row, assumed) in cases {
-            let (r, a) = rule_for(clamp.as_ref(), class, rule);
+            let (r, a) = rule_for(clamp.as_ref(), class, false, rule);
             assert_eq!((r.row, a), (row, assumed), "{clamp:?} class {class:?} {rule:?}");
+        }
+        // A cable's shield takes no ferrule on any clamp that would give a fine-stranded core one; a connector's pin and
+        // a ring stud decide it as they decide a core.
+        for (clamp, row) in [
+            (Some(clamp(ClampType::Screw)), 5),
+            (Some(clamp(ClampType::Spring)), 5),
+            (None, 5),
+            (Some(clamp(ClampType::Plug)), 1),
+            (Some(clamp(ClampType::RingStud)), 2),
+        ] {
+            let (r, _) = rule_for(clamp.as_ref(), None, true, &every);
+            assert_eq!(r.row, row, "{clamp:?}");
         }
         assert!(
             TREATMENT_RULES
@@ -679,12 +711,14 @@ mod tests {
         // screw clamp it takes a ferrule.
         let default = FerruleRule::default();
         for (kind, row) in [
-            (ClampType::Spring, 5),
-            (ClampType::PushIn, 5),
-            (ClampType::Screw, 6),
+            (ClampType::Spring, 6),
+            (ClampType::PushIn, 6),
+            (ClampType::Screw, 7),
         ] {
             assert_eq!(
-                rule_for(Some(&clamp(kind.clone())), Some(5), &default).0.row,
+                rule_for(Some(&clamp(kind.clone())), Some(5), false, &default)
+                    .0
+                    .row,
                 row,
                 "{kind:?}"
             );

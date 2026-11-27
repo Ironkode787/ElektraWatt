@@ -204,7 +204,8 @@ pub struct WirePropsMap {
 /// - **Class.** [`EffectiveProps::class`] is the class the size rule resolved for the wire, set whenever
 ///   the wire has a potential, whichever level then supplied the cross-section.
 /// - **Cores.** The profile never recolours a core; a core without a conductor colour takes the level-1
-///   or built-in colour. Its cross-section comes from the conductor first, then the rules.
+///   or built-in colour. Its cross-section comes from the conductor first, then the rules. A shield takes its
+///   cross-section and its colour from its conductor (or an override) only: none where the cable's part states none.
 /// - **No row.** A colour row that no potential attribute matches, or a class without a size row, leaves
 ///   level 2 unset and the value falls to level 1 or the built-in default.
 #[derive(Debug)]
@@ -769,9 +770,20 @@ impl Ctx<'_> {
         });
         let below = raised.or(below);
 
+        // A cable's shield has the size and the colour its conductor states (a person's own override aside), none
+        // that a rule, a default or the built-ins would give a core (doc 08 §7.4).
+        let shield = conductor.is_some_and(|(_, r)| r.shield);
+        let (csa, colour) = if shield {
+            (pick([l6_csa, l7.csa]), pick([l6_colour, l7.colour]))
+        } else {
+            (
+                pick([l6_csa, l7.csa, l3.csa, below]),
+                pick([l6_colour, l7.colour, l3.colour, colour2, l1.colour, colour0]),
+            )
+        };
         EffectiveProps {
-            csa: pick([l6_csa, l7.csa, l3.csa, below]),
-            colour: pick([l6_colour, l7.colour, l3.colour, colour2, l1.colour, colour0]),
+            csa,
+            colour,
             wire_part: pick([l7.wire_part, l3.wire_part, l1.wire_part]),
             insulation: pick([l7.insulation, l3.insulation, l1.insulation]),
             function: pick([l7.function, l3.function, l1.function]),

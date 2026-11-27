@@ -329,7 +329,9 @@ To marker are editable there (§12).
 - **A door end** (a device placed in the door, [12](12-panel-layout.md)) prints `(door)` after its tag, so that the
   fitter takes the wire through the hinge loop.
 - **A core** is a row of the wire list: the fitter treats, lands and (where the shop does) marks its ends. It is cut
-  with its cable, which the cable list and the cut list carry; its Length cell says `cable`.
+  with its cable, which the cable list and the cut list carry; its Length cell says `cable`. **A cable's shield**
+  prints the colour and the cross-section its cable's part states for it, as the cable overview does, and nothing
+  where the part states none: no rule, default or built-in gives it one; its ends take no ferrule (§4.2, row 5).
 
 ### 3.3 Lengths
 
@@ -425,9 +427,10 @@ The rows are data in `ew-derive`, each with its source; the first row that match
 | 2 | ring stud | any | `ring lug` | a stud takes a closed lug (DIN 46234 ring lugs, verify) |
 | 3 | insulation displacement | fine-stranded | `Unknown`: the clamp does not take it (EW-MFG-008) | IDC clamps take solid and stranded conductors only |
 | 4 | insulation displacement | solid, stranded | `bare` | |
-| 5 | spring, push-in | fine-stranded, when the shop sets "not into spring or push-in clamps" | `bare` | the clamp holds fine strands itself (its maker's data) |
-| 6 | screw, spring, push-in, or not known | fine-stranded (IEC 60228 class 5 or 6) | `ferrule` of its size, or a twin ferrule by §4.3 | DIN 46228 ferrules; EN 60204-1 13.1.1 (verify the clause): the strands held together |
-| 7 | screw, spring, push-in, or not known | solid or stranded (class 1 or 2) | `bare` | a clamp takes them without a sleeve (IEC 60999-1, verify) |
+| 5 | screw, spring, push-in, or not known | a cable's shield | `bare` | this program's shop rule: a shield's end is bare, under its clamp or twisted and sleeved by hand; no ferrule is counted for it |
+| 6 | spring, push-in | fine-stranded, when the shop sets "not into spring or push-in clamps" | `bare` | the clamp holds fine strands itself (its maker's data) |
+| 7 | screw, spring, push-in, or not known | fine-stranded (IEC 60228 class 5 or 6) | `ferrule` of its size, or a twin ferrule by §4.3 | DIN 46228 ferrules; EN 60204-1 13.1.1 (verify the clause): the strands held together |
+| 8 | screw, spring, push-in, or not known | solid or stranded (class 1 or 2) | `bare` | a clamp takes them without a sleeve (IEC 60999-1, verify) |
 
 **Assumptions, said where they are made.** A clamp whose part has no clamp data is taken as a screw or spring clamp; a
 wire whose class nothing names is taken as fine-stranded, the common panel wire. An end decided under an assumption
@@ -435,7 +438,7 @@ says so in Properties ("rule: fine-stranded wire, clamp kind not known") and in 
 treatment only.
 
 **What the shop sets** (`WorkshopSettings`, §2.3): `ferrules`, by default no ferrule into a spring or push-in clamp
-(row 5: the end stays bare) and a ferrule on every other fine-stranded end, a screw clamp's (row 6), or else a
+(row 6: the end stays bare) and a ferrule on every other fine-stranded end, a screw clamp's (row 7), or else a
 ferrule on every fine-stranded end; `two_wires` (§4.3: two wires of one size on one clamp, a screw clamp by default,
 share a twin ferrule) and the order of its stock (§4.4). The default is the owner's shop rule (2026-11-26). Fork and pin lugs are not made by this design: no
 part section describes them yet.

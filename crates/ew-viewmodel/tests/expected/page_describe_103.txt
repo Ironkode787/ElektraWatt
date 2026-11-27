@@ -61,4 +61,4 @@ page "103" "Motor" reps 14 connections 17 junctions 1 items 1 boxes 0
   wire "PE" -> junction 1 route stored bends 1 via 85.467,25.447 mm at 85.467 69.809 mm
   wire junction 1 -> "-X1031:PE/a" route stored bends 0 at 85.467 120.695 mm
   junction 1 cell "103-E4" at 85.467 114.172 mm style bevel wiring chain sequence "PE" "-X1031:PE/a" "-X1031:SH/a"
-  item marker cell "103-G2" at 80.970 149.784 mm "2.5 BN BK GY GNYE GNYE"
+  item marker cell "103-G2" at 80.970 149.784 mm "2.5 BN BK GY GNYE"

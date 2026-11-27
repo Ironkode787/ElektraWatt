@@ -41,9 +41,9 @@ data,103.5,-102Q1,4,-X1031:V,a,1L2/102Q1:4,BK,2.5,rule,,,103,475,routed,ferrule 
 data,103.6,-102Q1,6,-X1031:W,a,1L3/102Q1:6,BK,2.5,rule,,,103,475,routed,ferrule 2.5 BU,ferrule 2.5 BU,EW-GEN-FER-2.5,EW-GEN-FER-2.5,10,10,-X1031:W,-102Q1:6
 data,-103W1 BK,+CAB-X1031:V,b,+FLD-103M1,V1,1L2/102Q1:4,BK,2.5,core,,,103,cable,cable,ferrule 2.5 BU,ferrule 2.5 BU,EW-GEN-FER-2.5,EW-GEN-FER-2.5,10,10,,
 data,-103W1 GY,+CAB-X1031:W,b,+FLD-103M1,W1,1L3/102Q1:6,GY,2.5,core,,,103,cable,cable,ferrule 2.5 BU,ferrule 2.5 BU,EW-GEN-FER-2.5,EW-GEN-FER-2.5,10,10,,
-data,-103W1 GNYE,+CAB-X1031:PE,b,+FLD-103M1,PE,PE,GNYE,2.5,core,chain on -103M1:PE,,103,cable,cable,ferrule 2.5 BU,twin 2.5 BU · -103W1 SHIELD,EW-GEN-FER-2.5,EW-GEN-FER-2X2.5,10,10,,
+data,-103W1 GNYE,+CAB-X1031:PE,b,+FLD-103M1,PE,PE,GNYE,2.5,core,chain on -103M1:PE,,103,cable,cable,ferrule 2.5 BU,ferrule 2.5 BU,EW-GEN-FER-2.5,EW-GEN-FER-2.5,10,10,,
 data,103.7,-X1031:PE,a,-X1031:SH,a,PE,GNYE,2.5,rule,103-E4 chain on -X1031:PE/a,,103,110,routed,twin 2.5 BU · 101.6,ferrule 2.5 BU,EW-GEN-FER-2X2.5,EW-GEN-FER-2.5,10,10,-X1031:SH,-X1031:PE
-data,-103W1 SHIELD,+CAB-X1031:SH,b,+FLD-103M1,PE,PE,GNYE,2.5,rule/built-in,chain on -103M1:PE,,103,cable,cable,ferrule 2.5 BU,twin 2.5 BU · -103W1 GNYE,EW-GEN-FER-2.5,EW-GEN-FER-2X2.5,10,10,,
+data,-103W1 SHIELD,+CAB-X1031:SH,b,+FLD-103M1,PE,PE,,,,chain on -103M1:PE,,103,cable,cable,bare,bare,,,,,,
 data,104.1,-104A1-A1,M,-104A1-A2,M,0V,BU,0.75,rule/built-in,104-D1 chain on -104A1-A1:M,,104,140,routed,twin 0.75 GY · 104.3,ferrule 0.75 GY,EW-GEN-FER-2X0.75,EW-GEN-FER-0.75,8,8,-104A1-A2:M,-104A1-A1:M
 data,104.2,-104A1-A2,2,-104E1 (door),X1,-104A1-A2:2,BK,0.75,rule/built-in,,,104,1190,routed,ferrule 0.75 GY,ferrule 0.75 GY,EW-GEN-FER-0.75,EW-GEN-FER-0.75,8,8,-104E1:X1,-104A1-A2:2
 data,104.3,-104E1 (door),X2,-104A1-A1,M,0V,BU,0.75,rule/built-in,104-D2 chain on -104E1:X2,,104,1175,routed,twin 0.75 GY · 104.7,twin 0.75 GY · 104.1,EW-GEN-FER-2X0.75,EW-GEN-FER-2X0.75,8,8,-104A1-A1:M,-104E1:X2

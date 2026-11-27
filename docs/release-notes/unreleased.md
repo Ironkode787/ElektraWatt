@@ -945,3 +945,10 @@ change here.
   open); it printed the English "Node 3"
 - text-change: a module attached to a PLC station by itself names the station by the tag its page prints ("Attached to
   -104A1 as module 2"); it named its letter and counter ("-A1")
+- behaviour-change: a cable's shield has the colour and the cross-section its cable's part states for it and no other:
+  no rule, default or built-in gives it one. Its ends are bare by this program's shop rule (a new row 5 of the end
+  treatments' table: a shield goes under its clamp or is twisted and sleeved by hand, and no ferrule is counted for it;
+  the rows after it count one on). An existing project's wire list, consumables and the cable's marker on its page
+  change for its shields: the shield's row loses the size, the colour and the ferrules it was given and its ends print
+  bare, a core that shared a twin ferrule with the shield gets a ferrule of its own, the consumables count the
+  shield's ferrules no more, and the cable's marker no longer names the shield's colour
