@@ -1,16 +1,16 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A new part made in the window (`part.new`): [`Session::new_part_draft`] opens Parts on an empty
+//! A new part made in the window (`parts.new`): [`Session::new_part_draft`] opens Parts on an empty
 //! draft; [`Session::new_part_command`] turns the draft into the part and the one command that brings it into the
 //! project.
 //!
 //! **Where it is saved.** With [`PartSheet::to_library`] and a user library folder, the part goes into the person's
 //! own parts library ("My parts", [`crate::eplan::USER_PARTS_KEY`], where the EPLAN import adds parts too) and the
-//! project embeds that library copy (`library.embed`): the next project finds it there, and an edit in a project forks
-//! it as any library part. Otherwise it is a project-local part (`parts.import`). A new part never overwrites another:
-//! its item ID is new, and a part of the same number and manufacturer in the project or in My parts refuses the save
-//! at the part number.
+//! project embeds that library copy (`library.embed`): the next project finds it there, and a change of it in
+//! Parts gives My parts its next version ([`Session::own_part_update`]). Otherwise it is a project-local part
+//! (`parts.import`). A new part never overwrites another: its item ID is new, and a part of the same number and
+//! manufacturer in the project or in My parts refuses the save at the part number.
 //!
 //! **What it holds.** The identity, the technical values and the bus section the form gives. Its function template
 //! is the one a placement needs: a part without pins whose first interface has a starter port function is drawn by
@@ -81,7 +81,7 @@ fn port_fndef(bus: &ew_schema::BusSystem) -> Option<LibCopy<ew_schema::FnDef>> {
 }
 
 impl Session {
-    /// The draft of a new part (`part.new`): no manufacturer or number yet, kind device, unit piece, no bus interface,
+    /// The draft of a new part (`parts.new`): no manufacturer or number yet, kind device, unit piece, no bus interface,
     /// saved to My parts too.
     ///
     /// # Errors
@@ -579,7 +579,7 @@ impl Session {
             .flatten()
     }
 
-    /// Takes part `item` out of My parts, the person's own library `library` (`part.remove_own`, doc 07
+    /// Takes part `item` out of My parts, the person's own library `library` (`parts.remove`, doc 07
     /// §2.5): the next projects no longer offer it. A project that holds a copy of it keeps the copy, and its devices
     /// keep their part: each project embeds the parts it uses, so no project loses a part this way. The devices of
     /// this project that use its copy are named in the answer.

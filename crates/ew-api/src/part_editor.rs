@@ -25,7 +25,7 @@ use crate::output::{RowExport, row_export};
 use crate::part_offers::{PartPick, kind_word, lib_ref, text_of};
 use crate::{AnyCommand, BomMode, Session};
 
-/// The identity fields of a draft in the sheet's order (`part.field`'s `field`): the declaration's fields of
+/// The identity fields of a draft in the sheet's order (`parts.field`'s `field`): the declaration's fields of
 /// Identity that a person types or chooses ([`ew_derive::part_fields::PART_FIELDS`]); `tech:<key>` names a technical
 /// value.
 pub fn identity_fields() -> impl Iterator<Item = &'static str> {
@@ -104,7 +104,7 @@ pub struct PartSheet {
     pub outputs: Vec<u16>,
     /// Whether a device of the part is drawn as a box: its main function is a black box.
     pub box_part: bool,
-    /// Whether the draft is a new part (`part.new`): its bus section is edited here, and Save creates the part.
+    /// Whether the draft is a new part (`parts.new`): its bus section is edited here, and Save creates the part.
     pub new: bool,
     /// Whether the part is the person's own (a project-local copy, or a copy of My parts): its bus and PLC sections
     /// are edited as a new part's are, and Save corrects the part itself (in place, or as My parts' next version).
@@ -141,7 +141,7 @@ pub struct PartSheet {
     pub(crate) manufacturer: (LibRef, Vec<Value>),
 }
 
-/// The members of a bus interface row, in the form's order (`part.field`'s `bus.<row>.<member>`): the declaration's
+/// The members of a bus interface row, in the form's order (`parts.field`'s `bus.<row>.<member>`): the declaration's
 /// members of a network port that the ports' form writes.
 pub fn bus_members() -> impl Iterator<Item = &'static str> {
     use ew_derive::part_fields::{Entry, Form, PART_FIELDS};

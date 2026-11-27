@@ -24,7 +24,7 @@ use crate::Session;
 use crate::part_editor::{DraftMessage, message};
 use crate::window::TypeCore;
 
-/// The members of the cable section, in the form's order (`part.field`'s `cable.<member>`; the own marking's table is
+/// The members of the cable section, in the form's order (`parts.field`'s `cable.<member>`; the own marking's table is
 /// `cable.core.<row>` and `cable.colour.<row>`).
 pub const CABLE_MEMBERS: [&str; 7] = ["bus", "cores", "csa", "pe", "marking", "shield", "diameter"];
 

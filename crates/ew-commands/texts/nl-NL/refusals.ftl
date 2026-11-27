@@ -893,7 +893,7 @@ refusal-merge-file-line = regel { $p0 } van het bestand dat de samenvoeging niet
 refusal-merge-chosen-twice = een eerdere keuze noemt dit conflict al
 refusal-merge-no-conflict-record = noemt geen conflictrecord van het project
 refusal-merge-none-chosen = geen conflict gekozen; noem er ten minste één
-# part.edit.
+# part.edit_copy.
 refusal-part-edit-unchanged = het artikel is ongewijzigd
 refusal-part-edit-blocked = de verbetering neemt pennen weg waarop iets is aangesloten; sluit het eerst ergens anders aan: { $p0 }
 refusal-part-edit-tech-value = geen technische waarde: { $p0 }

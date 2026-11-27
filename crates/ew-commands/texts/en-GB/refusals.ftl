@@ -892,7 +892,7 @@ refusal-merge-file-line = line { $p0 } of the file the merge could not read is n
 refusal-merge-chosen-twice = an earlier choice names this conflict already
 refusal-merge-no-conflict-record = names no conflict record of the project
 refusal-merge-none-chosen = no conflict chosen; name at least one
-# part.edit.
+# part.edit_copy.
 refusal-part-edit-unchanged = the part is unchanged
 refusal-part-edit-blocked = the correction takes away pins that something is connected to; connect it elsewhere first: { $p0 }
 refusal-part-edit-tech-value = not a technical value: { $p0 }

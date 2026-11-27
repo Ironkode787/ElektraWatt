@@ -22,7 +22,7 @@ use serde_json::Value;
 
 use crate::part_editor::{DraftMessage, enum_words, message, stored_word};
 
-/// The members of the PLC form, in its order (`part.field`'s `plc.<member>`).
+/// The members of the PLC form, in its order (`parts.field`'s `plc.<member>`).
 pub const PLC_MEMBERS: [&str; 12] = [
     "role",
     "kind",

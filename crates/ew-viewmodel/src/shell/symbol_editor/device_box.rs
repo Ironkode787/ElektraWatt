@@ -444,7 +444,7 @@ impl ShellModel {
 
     /// `part.box {part?, new?}` (Pins and box… in Parts, Edit this device's box… on a placed box, Device
     /// box for a part… on the start card): the device box editor on the sheet's draft when it is open, on the
-    /// part named (`id:<copy>`, or a part number as `part.edit` reads it), on a new part with `new`, else on the part
+    /// part named (`id:<copy>`, or a part number as `parts.open` reads it), on a new part with `new`, else on the part
     /// of the selected device. A box with unsaved changes is refused unless `discard` (the window asks first).
     pub(crate) fn act_part_box(&mut self, p: &Map<String, Value>) -> Outcome {
         let discard = p.get("discard") == Some(&Value::Bool(true));
