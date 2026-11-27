@@ -220,6 +220,10 @@ pub(crate) fn place_box(d: &mut Driver, number: &str, a: (i64, i64), b: (i64, i6
     d.input(&key("Enter"));
     d.settle();
     for k in [a, b] {
+        // A device on a bus page is placed with one click: a station's view may open after it.
+        if d.shell_mut().canvas().is_none() {
+            break;
+        }
         cursor_k(d, k);
         let _ = d.shell_mut().dispatch("canvas.activate", &json!({}));
         d.settle();
@@ -406,12 +410,9 @@ fn a_managed_switch_and_a_drive_made_in_the_window_are_nodes_of_one_net() {
         .map(|r| r.key.clone())
         .collect();
     assert_eq!(nodes.len(), 3, "the CPU, the switch and the drive are its nodes");
-    // The boxes print their address as the port symbol does: open, it is TBD (the CPU's DP too).
-    let open = page_texts(&mut d).into_iter().filter(|t| t == "Node TBD").count();
-    assert_eq!(
-        open, 4,
-        "the CPU's X1 and DP, the switch and the drive print Node TBD"
-    );
+    // Each compartment prints its address: open, it is TBD (the CPU's DP too).
+    let open = page_texts(&mut d).into_iter().filter(|t| t == "TBD").count();
+    assert_eq!(open, 4, "the CPU's X1 and DP, the switch and the drive print TBD");
     let _ = d
         .shell_mut()
         .dispatch("navigator.table", &json!({"kind": "bus", "on": true}));
@@ -421,15 +422,12 @@ fn a_managed_switch_and_a_drive_made_in_the_window_are_nodes_of_one_net() {
         assert_eq!(d.shell_mut().dispatch("table.set", &set), Outcome::Done, "{row}");
         d.settle();
     }
-    // Each box prints the name it was given, and the switch prints its one name.
+    // Each symbol prints the name it was given in its compartment, and the switch prints its one name.
     let texts = page_texts(&mut d);
     for name in ["plc-1", "switch-1", "drive-1"] {
-        assert!(
-            texts.iter().any(|t| t == &format!("Node {name}")),
-            "{name}: {texts:?}"
-        );
+        assert!(texts.iter().any(|t| t == name), "{name}: {texts:?}");
     }
-    let open = texts.iter().filter(|t| *t == "Node TBD").count();
+    let open = texts.iter().filter(|t| *t == "TBD").count();
     assert_eq!(open, 1, "no address of the net stays open, only the CPU's DP");
     assert_eq!(
         findings(&mut d, "EW-BUS"),

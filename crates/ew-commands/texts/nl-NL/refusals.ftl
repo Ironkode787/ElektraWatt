@@ -438,6 +438,7 @@ refusal-ip-arrange-too-far = de schikking verplaatst een aansluitpunt te ver
 refusal-move-what-arrangement = de schikking
 refusal-move-what-reshape = de vormwijziging
 refusal-move-what-update = het bijwerken uit de bibliotheek
+refusal-move-what-bus-symbol = het tekenen van het bussymbool
 refusal-move-route-out-of-range = { $p0 } verplaatst het verloop van { $p1 } buiten het tekenbereik; verplaats minder ver
 refusal-arrange-few-ips = schik ten minste twee onderbrekingspunten
 # device.place, box.black and a device from a part.
@@ -462,13 +463,11 @@ refusal-new-terminal-part = artikel { $p0 } is geen klem van de functiedefinitie
 refusal-box-black-terminal = een black box is geen klem; plaats een klem met `device.place`
 refusal-box-black-few-points = een omtrek heeft ten minste drie punten
 # bus.place_ports.
-refusal-ports-no-box = noem ten minste één interface om te tekenen
+refusal-ports-not-bus-symbol = { $p0 } is niet het bussymbool; teken een busapparaat met het bussymbool `ew.gen.bus`
 refusal-ports-no-bus-part = { $p0 } heeft geen artikel met bus-interfaces; geef het eerst zo'n artikel
-refusal-ports-no-interface = het artikel van { $p0 } heeft geen interface { $p1 }
-refusal-ports-newer = interface { $p0 } is van een nieuwer formaat; deze versie tekent hem niet
-refusal-ports-fndef-needed = geen functie van het apparaat kan interface { $p0 } dragen; noem de poortfunctie die gemaakt moet worden (`fndef`)
-refusal-ports-fndef-not-port = de functiedefinitie is geen buspoort; noem de functiedefinitie van een buspoort
+refusal-ports-fndef-needed = geen functie van het apparaat kan interface { $p0 } dragen, en het project bevat geen functiedefinitie van een buspoort om er een te maken; neem er eerst een op uit de bibliotheek (`library.embed`)
 refusal-ports-drawn = { $p0 } { $p1 } staat al op deze pagina
+refusal-ports-replace = { $p0 } is geen tekening van { $p1 } op deze pagina; het bussymbool vervangt alleen die van het apparaat zelf
 # part.assign.
 refusal-assign-held-other-hash = het project bevat { $p0 } in versie { $p1 } met een andere hash; werk eerst bij vanuit de bibliotheek (library.update)
 refusal-assign-part-unused = { $p0 } gebruikt het te vervangen artikel niet

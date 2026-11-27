@@ -56,6 +56,58 @@ pub(crate) fn follow_part_boxes(
     Ok(())
 }
 
+/// The bus symbols of the devices that use part copy `part`, after the part changed in this transaction (doc 10
+/// §2.7): a symbol is derived from the part at every draw, so nothing of it is stored; a bus line on its page whose
+/// socket stands elsewhere now than in the base (the part's ports gained or lost a socket) keeps its end there, and its
+/// route's last segment follows the socket, as a moved symbol's wires do. A socket the part no longer has leaves its
+/// line ending where it was.
+pub(crate) fn follow_bus_symbols(tx: &mut TxBuilder<'_>, part: Id<Part>) -> Result<(), CmdError> {
+    let base = ew_derive::Q::new(tx.base_model());
+    let devices: Vec<Id<Device>> = tx
+        .iter::<Device>()
+        .into_iter()
+        .filter(|d| d.parts.iter().any(|u| u.part.copy == part))
+        .map(|d| d.id)
+        .collect();
+    let mut reps: BTreeSet<Id<Representation>> = BTreeSet::new();
+    for d in devices {
+        for f in tx.functions_of_device(d) {
+            reps.extend(tx.reps_of_function(f));
+        }
+    }
+    for rid in reps {
+        let (Some(rep), Some(old)) = (tx.get::<Representation>(rid), base.reps().get(rid)) else {
+            continue;
+        };
+        let bus = tx
+            .get::<LibCopy<SymbolDef>>(rep.symbol)
+            .is_some_and(|s| ew_derive::is_bus_copy(&s.item));
+        let Some((symbol, drawn)) = bus.then(|| ew_derive::drawn(&base, old)).flatten() else {
+            continue;
+        };
+        let grid = tx.require::<Page>(rep.page)?.grid;
+        let before: BTreeMap<(Id<Function>, u16), Pt2> = ew_derive::rep_drawn_cps(&drawn, &symbol)
+            .into_iter()
+            .filter_map(|c| {
+                let at = drawn.pos.checked_add(drawn.orient.checked_apply(c.local)?)?;
+                Some(((c.function, c.idx), grid.settle_point(at)))
+            })
+            .collect();
+        let moves: BTreeMap<(Id<Function>, u16), Pt2> = crate::geometry::rep_cps(tx, &rep)
+            .into_iter()
+            .filter_map(|c| {
+                let from = before.get(&(c.function, c.idx))?;
+                let d = crate::geometry::sub(c.pos, *from).ok()?;
+                (d != Pt2::ORIGIN).then_some(((c.function, c.idx), d))
+            })
+            .collect();
+        if !moves.is_empty() {
+            follow_moved_cps(tx, rep.page, grid, &moves, text!("refusal-move-what-update"))?;
+        }
+    }
+    Ok(())
+}
+
 /// One box of [`follow_part_boxes`]: the box `rep` of function `f`, whose CPs are `cps` now.
 fn follow_box(
     tx: &mut TxBuilder<'_>,

@@ -463,16 +463,14 @@ fn aux_targets(
             TargetRole::Aux
         };
         for r in q.idx().reps_of_function(g) {
-            if Some(r) == main_rep || !seen.insert(r) {
-                continue;
-            }
             let Some(rec) = reps.get(r) else { continue };
-            if matches!(rec.rep_type, RepType::ContactImage | RepType::StripSegment) {
+            // Only a representation whose first function is `g` refers back; another one draws `g` as a
+            // secondary function and keeps its own relation (a bus symbol drawing several port functions is a target
+            // once, by its first, whatever order the device's functions come in).
+            if Some(r) == main_rep || rec.functions.first() != Some(&g) || !seen.insert(r) {
                 continue;
             }
-            // Only a representation whose first function is `g` refers back; another one draws `g` as a
-            // secondary function and keeps its own relation.
-            if rec.functions.first() != Some(&g) {
+            if matches!(rec.rep_type, RepType::ContactImage | RepType::StripSegment) {
                 continue;
             }
             if role == TargetRole::Aux && inside_any(q, r, rec, &boxes) {

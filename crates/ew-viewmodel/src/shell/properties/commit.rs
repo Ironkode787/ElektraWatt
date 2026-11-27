@@ -303,7 +303,7 @@ impl ShellModel {
             return Outcome::refused(key!("reason-read-only"));
         };
         // The member's value on every target as the sheet shows it (the base of the edit).
-        let member_key = format!("{}/{member}", section.kind);
+        let member_key = format!("{}/{member}", section.key());
         let base = if member_key == row.key && !is_derived(&row) {
             match &row.value {
                 RowValue::One { json, .. } => Some(json.clone()),

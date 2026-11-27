@@ -336,7 +336,7 @@ fn the_devices_navigator_describes_a_window_and_counts_its_table_calls() {
 }
 
 /// FR-UI-007: with folio 102 shown, marking -104A1 in Devices selects nothing on 102 but
-/// the device's record (the property grid shows -104A1) and shows the chips 104-B13, 105-C2 and 105-C4; Enter opens
+/// the device's record (the property grid shows -104A1) and shows the chips 104-B13 and 105-C2; Enter opens
 /// 104 with its representation selected (one back-history entry); a selection made elsewhere marks and reveals its
 /// row, the focus stays where it is, and no change is applied twice.
 #[test]
@@ -365,11 +365,11 @@ fn devices_and_the_canvas_keep_the_selection_in_step() {
         "nothing of -104A1 is drawn on 102: the selection is its record"
     );
     let chips: Vec<String> = shell.chips().iter().map(|c| c.text()).collect();
-    assert_eq!(chips, ["104-B13", "105-C2", "105-C4"]);
+    assert_eq!(chips, ["104-B13", "105-C2"]);
     assert!(
         shell
             .describe()
-            .contains("\n  elsewhere \"104-B13\" \"105-C2\" \"105-C4\"\n"),
+            .contains("\n  elsewhere \"104-B13\" \"105-C2\"\n"),
         "the canvas section's chip line"
     );
     assert_eq!(state(&shell)["properties"]["title"], "-104A1");
@@ -415,9 +415,14 @@ fn devices_and_the_canvas_keep_the_selection_in_step() {
     done(&mut shell, "ui.focus", json!({"area": "canvas"}));
     done(&mut shell, "select.set", json!({"ids": [rep_id.to_string()]}));
     let nav = shell.nav(NavKind::Devices).unwrap();
-    assert_eq!(
-        nav.marked().iter().cloned().collect::<Vec<_>>(),
-        std::slice::from_ref(&port_row)
+    // The bus symbol draws both of the controller's ports: its row under each port function is marked.
+    let marked: Vec<String> = nav.marked().iter().cloned().collect();
+    assert!(
+        marked.contains(&port_row)
+            && marked
+                .iter()
+                .all(|k| k.ends_with(&format!("representation:{rep_id}"))),
+        "{marked:?}"
     );
     assert_eq!(
         shell.nav_cursor(NavKind::Devices).as_deref(),
@@ -435,7 +440,7 @@ fn devices_and_the_canvas_keep_the_selection_in_step() {
     let g = shell.selection().generation;
     done(&mut shell, "ui.describe", json!({}));
     assert_eq!(shell.selection().generation, g);
-    assert_eq!(shell.nav(NavKind::Devices).unwrap().marked().len(), 1);
+    assert_eq!(shell.nav(NavKind::Devices).unwrap().marked().len(), marked.len());
     shell.shutdown();
 }
 

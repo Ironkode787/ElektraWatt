@@ -584,20 +584,32 @@ impl Session {
             let Some(rep) = q.reps().get(rid).cloned() else {
                 continue;
             };
-            let shape = shapes
-                .entry(rep.symbol)
-                .or_insert_with(|| {
-                    q.symbols()
-                        .get(rep.symbol)
-                        .map(|s| shape_of(&q, rep.symbol.as_uuid(), &s.item))
-                })
-                .clone();
+            // A bus symbol is drawn from its device's part (doc 10 §2.7): its shape and body are its own, not its copy's.
+            let bus = ew_derive::drawn(&q, &rep)
+                .map(|(s, _)| s.into_owned())
+                .filter(ew_derive::is_bus_symbol);
             let o = orient_index(rep.orient);
             let pos = pt(rep.pos);
-            let body = *bodies.entry((rep.symbol, o)).or_insert_with(|| {
-                let s = q.symbols().get(rep.symbol)?;
-                super::shape::body_of(&ew_scene::symbol::lower(&s.item, rep.orient))
-            });
+            let (shape, body) = match &bus {
+                Some(s) => (
+                    Some(shape_of(&q, rep.symbol.as_uuid(), s)),
+                    super::shape::body_of(&ew_scene::symbol::lower(s, rep.orient)),
+                ),
+                None => (
+                    shapes
+                        .entry(rep.symbol)
+                        .or_insert_with(|| {
+                            q.symbols()
+                                .get(rep.symbol)
+                                .map(|s| shape_of(&q, rep.symbol.as_uuid(), &s.item))
+                        })
+                        .clone(),
+                    *bodies.entry((rep.symbol, o)).or_insert_with(|| {
+                        let s = q.symbols().get(rep.symbol)?;
+                        super::shape::body_of(&ew_scene::symbol::lower(&s.item, rep.orient))
+                    }),
+                ),
+            };
             let first = rep.functions.first().and_then(|f| q.functions().get(*f).cloned());
             let ip = first.as_ref().and_then(|f| match &f.kind {
                 FunctionKind::Ip(ip) => Some(TableIp {
@@ -651,11 +663,12 @@ impl Session {
                 b
             });
             let tag_at = (first.as_ref().is_some_and(|f| f.device.is_some() && ip.is_none()))
-                .then(|| {
-                    q.symbols().get(rep.symbol).and_then(|s| {
+                .then(|| match &bus {
+                    Some(s) => ew_scene::page::tag_anchor(&rep, s, false, &styles),
+                    None => q.symbols().get(rep.symbol).and_then(|s| {
                         let terminal = ew_derive::terminal_symbol(&q, &s.item);
                         ew_scene::page::tag_anchor(&rep, &s.item, terminal, &styles)
-                    })
+                    }),
                 })
                 .flatten()
                 .map(|(p, em)| {

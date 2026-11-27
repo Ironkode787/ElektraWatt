@@ -336,7 +336,7 @@ fn put_it_on_a_bus_page_makes_the_page_or_asks_which() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The topology boxes of `device` on the page shown.
+/// The representations of `device` on the page shown: its bus symbol, one.
 fn topology_boxes(h: &egui_kittest::Harness<'static, ew_ui::app::App>, device: Uuid) -> usize {
     h.state().shell().canvas().map_or(0, |c| {
         c.page()
@@ -349,8 +349,8 @@ fn topology_boxes(h: &egui_kittest::Harness<'static, ew_ui::app::App>, device: U
 }
 
 /// A station of kind `kind` with head part `head` made in the new-station dialog and put on a bus page from its rack
-/// (a new one, else the first one listed) with two corners of its first box, the first on grid row `row` (a box never
-/// lands on another device): the station.
+/// (a new one, else the first one listed) with one click for its bus symbol on grid row `row` (it never lands on another
+/// device): the station.
 fn station_on_bus_page(
     h: &mut egui_kittest::Harness<'static, ew_ui::app::App>,
     kind: &str,
@@ -383,7 +383,7 @@ fn station_on_bus_page(
 }
 
 /// A valve terminal with a PROFINET bus node goes onto a bus page from its rack as the CPU
-/// does, and a CPU with a PROFIBUS and a PROFINET interface stands there as both boxes, which the toast says.
+/// does, and a CPU with a PROFIBUS and a PROFINET interface stands there as one bus symbol with both.
 #[test]
 fn every_station_kind_goes_onto_a_bus_page_with_all_its_interfaces() {
     let tmp = Tmp::new();
@@ -392,19 +392,12 @@ fn every_station_kind_goes_onto_a_bus_page_with_all_its_interfaces() {
     assert_eq!(topology_boxes(&h, terminal), 1, "the terminal's bus node");
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));
     let cpu = station_on_bus_page(&mut h, "cpu", "EW-GEN-CPU-2", 24);
-    assert_eq!(topology_boxes(&h, cpu), 2, "DP and X1");
-    let toast = h
-        .state()
-        .shell()
-        .toast()
-        .map(|t| t.text.clone())
-        .unwrap_or_default();
-    assert_eq!(toast, "Placed as 2 boxes, one for each bus interface.");
+    assert_eq!(topology_boxes(&h, cpu), 1, "one symbol with DP and X1");
     h.state_mut().shell_mut().shutdown();
 }
 
 /// An empty bus-topology page says its three steps
-/// where the pointer's hint stands, and a CPU's box on it shows its addresses in Main, named as its bus names them.
+/// where the pointer's hint stands, and a CPU's symbol on it shows its addresses in Main, named as its bus names them.
 #[test]
 fn a_bus_page_says_its_steps_and_a_box_its_addresses() {
     use ew_viewmodel::properties::{RowGroup, group_of, row_label};
@@ -867,7 +860,8 @@ fn put_station_form(h: &egui_kittest::Harness<'static, ew_ui::app::App>) -> (Vec
     }
 }
 
-/// Two corners of a box on the page shown, then the name of the tool in front.
+/// A click on the page shown and a second one beside it (two corners of a box; a bus symbol takes the first alone and
+/// the second selects), then the name of the tool in front.
 fn two_corners(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>) -> String {
     crate::navigators::cursor_k(h, (10, 10));
     dispatch(h, "canvas.activate", json!({}));
@@ -879,7 +873,7 @@ fn two_corners(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>) -> Strin
 
 /// A CPU stands on a schematic page and is wanted on the bus page. Placing its part
 /// from the device browser there asks first, "Put <station> here" chosen, or "A new station"; Put here draws the station
-/// the project has, a box for each interface, and the tool gives way instead of taking it again. The Black box tool on
+/// the project has, its bus symbol with every interface, and the tool gives way instead of taking it again. The Black box tool on
 /// the bus page then offers the station still missing there, not the one placed last.
 #[test]
 fn a_station_the_project_has_is_put_on_the_bus_page_not_made_again() {
@@ -922,7 +916,11 @@ fn a_station_the_project_has_is_put_on_the_bus_page_not_made_again() {
     support::menu_node(&h, "Put here").click();
     settle(&mut h);
     let tool = two_corners(&mut h);
-    assert_eq!(topology_boxes(&h, cpu), 2, "the CPU the project has, DP and X1");
+    assert_eq!(
+        topology_boxes(&h, cpu),
+        1,
+        "the CPU the project has, one symbol with DP and X1"
+    );
     assert_eq!(tool, "select", "the tool does not take the CPU again");
 
     // The Black box tool on the bus page offers what is not on it yet: the terminal, not the CPU.
@@ -987,7 +985,7 @@ fn a_bus_page_offers_to_put_a_station_on_it() {
     support::menu_node(&h, "Put here").click();
     settle(&mut h);
     two_corners(&mut h);
-    assert_eq!(topology_boxes(&h, cpu), 2, "DP and X1");
+    assert_eq!(topology_boxes(&h, cpu), 1, "one symbol with DP and X1");
 
     let put = entry(&h);
     assert!(!put.enabled);
@@ -1005,7 +1003,7 @@ fn a_bus_page_offers_to_put_a_station_on_it() {
 }
 
 /// A CPU's row dragged from the PLC panel onto the bus page must do something. The drop puts
-/// the station there at the drop point, a box per interface, and the tool gives way; a drop that cannot be taken says
+/// the station there at the drop point, its bus symbol, and the tool gives way; a drop that cannot be taken says
 /// why: the station is there already, or the page takes no stations.
 #[test]
 fn a_station_row_dropped_on_the_bus_page_puts_it_there() {
@@ -1046,7 +1044,11 @@ fn a_station_row_dropped_on_the_bus_page_puts_it_there() {
         crate::navigators::drag(h, from, to);
     };
     drop_row(&mut h);
-    assert_eq!(topology_boxes(&h, cpu), 2, "DP and X1 at the drop point");
+    assert_eq!(
+        topology_boxes(&h, cpu),
+        1,
+        "one symbol with DP and X1 at the drop point"
+    );
     assert_eq!(h.state().shell().tool().name(), "select");
     assert!(
         h.state().shell().dialog().is_none(),
@@ -1116,7 +1118,7 @@ fn the_chip_says_where_it_goes_and_puts_a_station_here() {
     settle(&mut h);
     two_corners(&mut h);
     let cpu: Uuid = cpu.parse().expect("the station's ID");
-    assert_eq!(topology_boxes(&h, cpu), 2, "DP and X1");
+    assert_eq!(topology_boxes(&h, cpu), 1, "one symbol with DP and X1");
     h.state_mut().shell_mut().shutdown();
 }
 

@@ -31,7 +31,7 @@ command-assembly-attach = Attach assembly
 command-bond-create = Bond potentials
 command-bus-logical_net-create = Create logical bus network
 command-bus-physical_net-create = Create physical bus network
-command-bus-place_ports = Draw a device's bus ports
+command-bus-place_ports = Draw a device with its bus symbol
 command-bus-cable-set = Set the cable and plugs of a bus line
 command-box-black = Draw black box
 command-box-reshape = Reshape box
@@ -833,6 +833,9 @@ action-cable-from-wires = Cable…
 
 # F20: Cable… on a bus line: its cable and the plug at each end.
 action-bus-cable = Bus cable…
+
+# A box of a device on a bus page, drawn by an earlier version: the device's bus symbol in its boxes' place.
+action-bus-one-symbol = Draw as one symbol
 
 # Output ▸ Reports ▸ Report block….
 action-report-block-new = Report block…

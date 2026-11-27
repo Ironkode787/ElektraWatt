@@ -437,6 +437,7 @@ refusal-ip-arrange-too-far = the arrangement moves a connection point too far
 refusal-move-what-arrangement = the arrangement
 refusal-move-what-reshape = the reshape
 refusal-move-what-update = the library update
+refusal-move-what-bus-symbol = drawing the bus symbol
 refusal-move-route-out-of-range = { $p0 } moves the route of { $p1 } outside the drawable range; move it less far
 refusal-arrange-few-ips = arrange at least two interruption points
 # device.place, box.black and a device from a part.
@@ -461,13 +462,11 @@ refusal-new-terminal-part = part { $p0 } is no terminal of the symbol's function
 refusal-box-black-terminal = a black box is no terminal; place a terminal with `device.place`
 refusal-box-black-few-points = an outline has at least three points
 # bus.place_ports.
-refusal-ports-no-box = name at least one interface to draw
+refusal-ports-not-bus-symbol = { $p0 } is not the bus symbol; draw a bus device with the bus symbol `ew.gen.bus`
 refusal-ports-no-bus-part = { $p0 } has no part with bus interfaces; give it such a part first
-refusal-ports-no-interface = the part of { $p0 } has no interface { $p1 }
-refusal-ports-newer = interface { $p0 } is of a newer format; this build does not draw it
-refusal-ports-fndef-needed = no function of the device can carry interface { $p0 }; name the port function to make (`fndef`)
-refusal-ports-fndef-not-port = the function definition is no bus port; name a bus port's function definition
+refusal-ports-fndef-needed = no function of the device can carry interface { $p0 }, and the project holds no bus port's function definition to make one; embed one first (`library.embed`)
 refusal-ports-drawn = { $p0 } { $p1 } is drawn on this page already
+refusal-ports-replace = { $p0 } is no drawing of { $p1 } on this page; the bus symbol replaces only the device's own
 # part.assign.
 refusal-assign-held-other-hash = the project holds { $p0 } at version { $p1 } with another hash; update from library first (library.update)
 refusal-assign-part-unused = { $p0 } does not use the part to replace

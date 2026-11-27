@@ -179,11 +179,13 @@ impl ShellModel {
             let Ok(id) = d.to_string().parse() else {
                 continue;
             };
+            // Its representations, each once (a bus symbol draws several of its functions).
             let all = q
                 .idx()
                 .functions_of_device(id)
                 .flat_map(|f| q.idx().reps_of_function(f).collect::<Vec<_>>())
-                .count();
+                .collect::<std::collections::BTreeSet<_>>()
+                .len();
             let fresh = now
                 .reps
                 .iter()

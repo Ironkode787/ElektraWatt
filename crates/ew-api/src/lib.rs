@@ -175,8 +175,8 @@ pub use macros::{InsertAt, MacroConflict, MacroError, MacroScope, MacroSpec, Mac
 pub use page_copy::{CopyFolios, PageCopyPlan, PageCopySpec};
 pub use part_cable::{CABLE_MARKINGS, CABLE_MEMBERS, CableRows};
 pub use part_editor::{
-    BusRow, MAX_PORTS, PartDraftError, PartSheet, RedrawnBox, bus_members, bus_words, identity_fields,
-    mount_words, part_kinds, role_words,
+    BusRow, MAX_PORTS, PartDraftError, PartSheet, RedrawnBox, RedrawnSymbol, bus_members, bus_words,
+    identity_fields, mount_words, part_kinds, role_words,
 };
 pub use part_new::{NewPart, RemovedPart};
 pub use part_offers::{Fit, OfferMisfit, OfferView, PartOffer, PartOfferQuery, PartPick, PartTarget};

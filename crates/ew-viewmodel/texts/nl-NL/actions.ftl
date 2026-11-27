@@ -80,7 +80,7 @@ command-assembly-attach = Samenstelling koppelen
 command-bond-create = Potentialen verbinden
 command-bus-logical_net-create = Logisch busnetwerk maken
 command-bus-physical_net-create = Fysiek busnetwerk maken
-command-bus-place_ports = Buspoorten van een apparaat tekenen
+command-bus-place_ports = Een apparaat met zijn bussymbool tekenen
 command-bus-cable-set = Kabel en stekkers van een buslijn instellen
 command-box-black = Black box tekenen
 command-box-reshape = Kader van vorm veranderen
@@ -803,6 +803,7 @@ action-cable-from-wires = Kabel…
 
 # F20: Kabel… op een buslijn: de kabel en de stekker aan elk eind.
 action-bus-cable = Buskabel…
+action-bus-one-symbol = Als één symbool tekenen
 
 # Uitvoer ▸ Rapporten ▸ Rapportblok….
 action-report-block-new = Rapportblok…

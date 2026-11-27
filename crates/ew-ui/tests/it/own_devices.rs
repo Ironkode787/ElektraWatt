@@ -37,7 +37,8 @@ fn bus_group(d: &mut Driver, group: &str) -> Vec<(String, String)> {
 
 /// Item 2: the Bus panel lists what is not drawn yet. The starter CPU drawn on a schematic page has its DP and X1 in
 /// its part and on no page: the group Ports not drawn yet lists both, each row's menu offers Place port; Enter on the
-/// DP row on a bus-topology page draws its box, after which the row is gone and the port is listed without a net.
+/// DP row on a bus-topology page draws the CPU's bus symbol with one click, DP and X1 in it, after which no row is
+/// left and both ports are listed without a net.
 #[test]
 fn the_bus_panel_lists_the_ports_not_drawn_yet_and_places_them() {
     let tmp = Tmp::new();
@@ -65,29 +66,32 @@ fn the_bus_panel_lists_the_ports_not_drawn_yet_and_places_them() {
     bus_page(&mut d);
     let open = json!({"kind": "bus", "key": undrawn[0].0});
     assert_eq!(d.shell_mut().dispatch("navigator.open", &open), Outcome::Done);
-    for k in [(10, 10), (18, 16)] {
-        cursor_k(&mut d, k);
-        let _ = d.shell_mut().dispatch("canvas.activate", &json!({}));
-        d.settle();
-    }
+    cursor_k(&mut d, (10, 10));
+    let _ = d.shell_mut().dispatch("canvas.activate", &json!({}));
+    d.settle();
     d.input(&key("Escape"));
     d.settle();
     let left: Vec<String> = bus_group(&mut d, "ports:undrawn")
         .into_iter()
         .map(|(_, l)| l)
         .collect();
-    assert_eq!(left, [format!("{tag} X1")], "the DP is drawn");
+    assert!(left.is_empty(), "the CPU is drawn with DP and X1: {left:?}");
     let loose: Vec<String> = bus_group(&mut d, "ports:none")
         .into_iter()
         .map(|(_, l)| l)
         .collect();
-    assert_eq!(loose, [format!("{tag} DP")], "and listed without a net");
+    assert_eq!(
+        loose,
+        [format!("{tag} DP"), format!("{tag} X1")],
+        "and listed without a net"
+    );
 }
 
 /// Item 4: the address is typed where a person looks, with its form said. The Bus table's Address cell of the CPU's
 /// X1 says under its editor that a PROFINET address is a name and an IP address, with an example, and its Termination
-/// cell what it takes; typed so, the box prints it. The X1 box selected on the page shows its function first in
-/// Properties, with the port's Address as a row whose editor says the same form.
+/// cell what it takes; typed so, the symbol prints it in X1's compartment, the name above the IP address. The symbol
+/// selected on the page shows its ports' sections first in Properties, X1's Address a row whose editor says the same
+/// form.
 #[test]
 fn the_address_of_a_port_says_its_form_in_the_table_and_in_properties() {
     let tmp = Tmp::new();
@@ -128,8 +132,12 @@ fn the_address_of_a_port_says_its_form_in_the_table_and_in_properties() {
     let set = json!({"kind": "bus", "column": "Address", "value": "plc1 192.168.0.1", "rows": [row]});
     assert_eq!(d.shell_mut().dispatch("table.set", &set), Outcome::Done);
     d.settle();
-    assert!(page_texts(&mut d).iter().any(|t| t == "Node plc1 192.168.0.1"));
-    // The X1 box, selected: its function's section comes first, with the Address row and its form.
+    let texts = page_texts(&mut d);
+    assert!(
+        texts.iter().any(|t| t == "plc1") && texts.iter().any(|t| t == "192.168.0.1"),
+        "{texts:?}"
+    );
+    // The symbol, selected: its ports' sections come first, X1's with the Address row and its form.
     let all = records(&mut d);
     let port = all
         .iter()
@@ -139,9 +147,13 @@ fn the_address_of_a_port_says_its_form_in_the_table_and_in_properties() {
         .to_owned();
     let rep = all
         .iter()
-        .find(|v| v["functions"][0] == port.as_str())
+        .find(|v| {
+            v["functions"]
+                .as_array()
+                .is_some_and(|f| f.iter().any(|f| f == port.as_str()))
+        })
         .and_then(|v| v["id"].as_str())
-        .expect("the X1 box")
+        .expect("the CPU's symbol")
         .to_owned();
     assert_eq!(
         d.shell_mut().dispatch("select.set", &json!({"ids": [rep]})),
@@ -154,7 +166,7 @@ fn the_address_of_a_port_says_its_form_in_the_table_and_in_properties() {
         .sheet()
         .and_then(|s| s.sections.first().map(|s| s.kind.clone()));
     assert_eq!(first.as_deref(), Some("function"), "the port's section first");
-    let row = json!({"row": "function/bus_port.address"});
+    let row = json!({"row": "function@X1/bus_port.address"});
     assert_eq!(d.shell_mut().dispatch("props.edit", &row), Outcome::Done);
     d.settle();
     let hint = d.shell_mut().property_edit_hint().unwrap_or_default();
@@ -451,9 +463,9 @@ fn a_card_goes_behind_the_station_it_is_placed_beside_or_dragged_onto() {
 }
 
 /// Item 1: the starter CPU and a head station of one's own (such as an IM 152), each placed from the device browser on
-/// a bus-topology page, stand there with their bus ports and without their supply pins: the CPU as its interfaces DP
-/// and X1, the head station as its DP, each socket named by its interface. A Wire between the two DP ports makes one
-/// PROFIBUS net of both.
+/// a bus-topology page, stand there with their bus ports and without their supply pins: the CPU as one bus symbol with
+/// its interfaces DP and X1, the head station with its DP, each compartment named by its interface. A Wire between the
+/// two DP ports makes one PROFIBUS net of both.
 #[test]
 fn a_station_placed_on_a_bus_page_stands_with_its_bus_ports() {
     let tmp = Tmp::new();
@@ -462,9 +474,6 @@ fn a_station_placed_on_a_bus_page_stands_with_its_bus_ports() {
     bus_page(&mut d);
     let cpu = place_box(&mut d, "EW-GEN-CPU-2", (10, 10), (20, 16));
     assert_eq!(cpu.len(), 2, "the CPU's DP and X1, a socket each: {cpu:?}");
-    // Two boxes with one tag: the toast says why.
-    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
-    assert_eq!(toast, "Placed as 2 boxes, one for each bus interface.");
     let head = place_box(&mut d, "HEAD-DP", (50, 10), (60, 16));
     assert_eq!(head.len(), 1, "the head station's DP: {head:?}");
     let supply = cp_labels(&mut d)

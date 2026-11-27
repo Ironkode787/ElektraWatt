@@ -29,13 +29,16 @@ fn a_station_s_box_on_a_schematic_page_says_its_new_tag() {
     done(&mut s, "page.goto", json!({"folio": "102"}));
     done(&mut s, "tool.place", json!({}));
     done(&mut s, "place.pick", json!({"part": "EW-GEN-CPU-2"}));
-    two_corners(&mut s, (10, 10), (18, 16));
+    // On the bus page the station is its bus symbol: one click (its rack then opens in a tab).
+    let p = grid_point(&s, (10, 10));
+    cursor(&mut s, p);
+    done(&mut s, "canvas.activate", json!({}));
     done(&mut s, "page.goto", json!({"folio": "102"}));
     let station = tables(&s)
         .reps
         .iter()
         .find_map(|r| r.device.filter(|_| r.rep_type == "topology"))
-        .expect("the station's interface boxes");
+        .expect("the station's bus symbol");
     done(&mut s, "page.goto", json!({"folio": "101"}));
     done(&mut s, "plc.module_place", json!({"device": station.to_string()}));
     two_corners(&mut s, (10, 10), (24, 22));

@@ -40,6 +40,13 @@ pub struct PlaceCatalogue {
 }
 
 impl PlaceCatalogue {
+    /// The row of the bus symbol `ew.gen.bus` the page draws a device with (doc 10 §2.7), on the page's grid.
+    pub fn bus_symbol(&self) -> Option<&CatalogueSymbol> {
+        self.symbols
+            .iter()
+            .find(|s| ew_schema::starter::edition_of(&s.key) == ew_schema::starter::GEN_BUS && s.allowed)
+    }
+
     /// Whether choosing function `f` of part `p` draws it as a device box by the Black box tool: a black-box entry
     /// whose symbol row is the frame's (or whose FnDef is the generic black box). A symbol of its own drawn for the
     /// entry's FnDef (a power supply the user drew) draws it as any symbol does.
@@ -181,9 +188,11 @@ pub struct CataloguePart {
     /// The first level of the part's own category, else of its main function's FnDef category (the browser's tree
     /// node); empty when it has neither.
     pub category: String,
-    /// On a bus-topology page, the part's interfaces ([`part_interfaces`]): a device of it is placed there as a box
-    /// per interface (`bus.place_ports`, doc 10 §2.7); empty on another page and for a part without them.
+    /// On a bus-topology page, the part's interfaces ([`part_interfaces`]): a device of it is placed there with its
+    /// bus symbol (`bus.place_ports`, doc 10 §2.7); empty on another page and for a part without them.
     pub interfaces: Vec<CatalogueInterface>,
+    /// On a bus-topology page, the bus symbol of a part with interfaces as the page's grid draws it; `None` otherwise.
+    pub bus_symbol: Option<BusSymbolShape>,
     /// Whether the part is a valve for a valve terminal (`ew_derive::fits_terminal`, no PLC section): the parts a
     /// terminal's empty position offers.
     pub terminal_valve: bool,
@@ -422,7 +431,7 @@ pub fn bus_port_symbol_key(bus: &ew_schema::BusSystem) -> Option<String> {
     })
 }
 
-/// One interface of a part drawn as a box on a bus-topology page (doc 10 §2.7, `bus.place_ports`).
+/// One interface of a part drawn on a bus-topology page (doc 10 §2.7, `bus.place_ports`).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CatalogueInterface {
     /// The interface ("DP", "X1").
@@ -431,56 +440,66 @@ pub struct CatalogueInterface {
     pub port_label: Option<String>,
     /// The interface in words: the interface, then the port label after a space ("X1", "X1 P1R").
     pub label: String,
-    /// The box's sockets: each function CP index with its label, `P1` … `Pn` for an interface that counts n ports,
-    /// else one socket (the port function's first CP) named by the interface.
-    pub sockets: Vec<(u16, String)>,
     /// The copy ID of the starter FnDef a new port function of the interface takes: its bus's port (the DP port's,
     /// the PROFINET port's), the PROFINET port's for a bus without a starter port of its own.
     pub fndef: Uuid,
 }
 
-/// The interfaces of a part's bus section in list order, the first of each (interface, port label) pair; an interface
-/// whose bus or role is of a newer format is left out (normaliser N5 gives it to no function).
+/// The interfaces of a part's bus section that its bus symbol draws (`ew_derive::bus_interfaces`: in list order, the
+/// first of each (interface, port label) pair, one whose bus or role is of a newer format left out).
 pub fn part_interfaces(part: &Part) -> Vec<CatalogueInterface> {
     let Some(bus) = &part.sections.bus else {
         return Vec::new();
     };
-    let mut out: Vec<CatalogueInterface> = Vec::new();
-    for p in &bus.ports {
-        let interface = p.interface.as_str().to_owned();
-        let port_label = p.port_label.as_ref().map(|l| l.as_str().to_owned());
-        if out
-            .iter()
-            .any(|i| i.interface == interface && i.port_label == port_label)
-            || matches!(p.bus, ew_schema::BusSystem::Unknown(_))
-            || matches!(p.role, ew_schema::PortRole::Unknown(_))
-        {
-            continue;
-        }
-        let Some(fndef) = bus_port_symbol_key(&p.bus)
-            .or_else(|| bus_port_symbol_key(&ew_schema::BusSystem::Profinet))
-            .and_then(|k| starter_symbol(&k))
-            .map(|s| fndef_copy(&s.item.fndef).as_uuid())
-        else {
-            continue;
-        };
-        let label = match &port_label {
-            Some(l) => format!("{interface} {l}"),
-            None => interface.clone(),
-        };
-        let sockets = match p.ports.filter(|n| *n > 0) {
-            Some(n) => (0..n).map(|i| (i, format!("P{}", u32::from(i) + 1))).collect(),
-            None => vec![(0, label.clone())],
-        };
-        out.push(CatalogueInterface {
-            interface,
-            port_label,
-            label,
-            sockets,
-            fndef,
-        });
+    ew_derive::bus_interfaces(part)
+        .into_iter()
+        .filter_map(|i| {
+            let p = bus
+                .ports
+                .iter()
+                .find(|p| p.interface == i.interface && p.port_label == i.port_label)?;
+            let fndef = bus_port_symbol_key(&p.bus)
+                .or_else(|| bus_port_symbol_key(&ew_schema::BusSystem::Profinet))
+                .and_then(|k| starter_symbol(&k))
+                .map(|s| fndef_copy(&s.item.fndef).as_uuid())?;
+            Some(CatalogueInterface {
+                interface: i.interface.as_str().to_owned(),
+                port_label: i.port_label.as_ref().map(|l| l.as_str().to_owned()),
+                label: i.words(),
+                fndef,
+            })
+        })
+        .collect()
+}
+
+/// A part's bus symbol as a page of `grid` draws it, for the tool that places it: its body and its sockets, relative to
+/// its insertion point (doc 10 §2.7).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct BusSymbolShape {
+    /// The body `[x0, y0, x1, y1]`, in nm.
+    pub body: [i64; 4],
+    /// Each socket's point, in nm, outside the body.
+    pub sockets: Vec<(i64, i64)>,
+}
+
+/// The bus symbol `part` draws on a page of `grid` (`ew_derive::bus_symbol`).
+pub fn bus_symbol_shape(part: &Part, grid: ew_units::Grid) -> BusSymbolShape {
+    let s = ew_derive::bus_symbol(part, grid);
+    let body = s
+        .graphics
+        .iter()
+        .find_map(|p| match p {
+            ew_schema::Primitive::Rect(r) => {
+                let (lo, hi) = (r.rect.0.min(), r.rect.0.max());
+                Some([lo.x.0, lo.y.0, hi.x.0, hi.y.0])
+            }
+            _ => None,
+        })
+        .unwrap_or_default();
+    BusSymbolShape {
+        body,
+        sockets: s.cps.iter().map(|c| (c.pos.x.0, c.pos.y.0)).collect(),
     }
-    out
 }
 
 /// The copy ID that the address `library:<library>:<item>` of an installed library's symbol (its catalogue key until it
@@ -795,6 +814,8 @@ fn catalogue_part(
         } else {
             Vec::new()
         },
+        bus_symbol: (page.kind == PageType::BusTopology && !part_interfaces(part).is_empty())
+            .then(|| bus_symbol_shape(part, page.grid)),
         terminal_valve,
         cell_symbol: terminal_valve && fits_cell(q, part),
         plc_bus: part.sections.plc.as_ref().is_none_or(|p| p.positions.is_none())

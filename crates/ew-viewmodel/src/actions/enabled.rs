@@ -914,6 +914,16 @@ pub(super) fn one_box(m: &ShellModel) -> Result<(), Text> {
     m.selected_box().map(|_| ()).map_err(Into::into)
 }
 
+/// An editable page with a box selected that draws a port function, as earlier versions drew a bus device (Draw as
+/// one symbol, doc 10 §2.7).
+pub(super) fn bus_box(m: &ShellModel) -> Result<(), Text> {
+    editable_page(m)?;
+    if m.selected_bus_devices().is_empty() {
+        return Err(key!("reason-not-bus-box").into());
+    }
+    Ok(())
+}
+
 /// An editable page with one box of a PLC card in the older form selected (Draw the card in one row).
 pub(super) fn older_card(m: &ShellModel) -> Result<(), Text> {
     editable_page(m)?;

@@ -190,6 +190,8 @@ pub struct UpdatePlan {
     pub lost: Vec<String>,
     /// The drawn boxes the update draws anew.
     pub boxes: Vec<crate::RedrawnBox>,
+    /// The bus symbols whose sockets the update changes.
+    pub symbols: Vec<crate::RedrawnSymbol>,
     /// The printed tags and cross-reference texts that change.
     pub derived: DerivedDiff,
 }
@@ -1002,6 +1004,7 @@ impl Session {
         let (bom_removed, bom_added, bom_changed) = crate::part_editor::bom_changes(q, &after);
         let lost = crate::part_editor::lost_sockets(q, &after);
         let boxes = crate::part_editor::redrawn_boxes(q, &after);
+        let symbols = crate::part_editor::redrawn_symbols(q, &after);
         Ok(UpdatePlan {
             command,
             copies: plan_copies,
@@ -1012,6 +1015,7 @@ impl Session {
             bom_changed,
             lost,
             boxes,
+            symbols,
             derived,
         })
     }

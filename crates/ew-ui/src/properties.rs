@@ -265,7 +265,7 @@ impl PropertiesPane {
                 let mut need = 0.0_f32;
                 for section in &sheet.sections {
                     for (group, rows) in groups(section, advanced) {
-                        if ew_viewmodel::properties::group_shut(&collapsed, &section.kind, group, &filter) {
+                        if ew_viewmodel::properties::group_shut(&collapsed, &section.key(), group, &filter) {
                             continue;
                         }
                         let rows: Vec<&PropRow> = filtered(section, rows, &filter);
@@ -307,7 +307,7 @@ impl PropertiesPane {
                             );
                         }
                         for (group, rows) in groups(section, advanced) {
-                            let key = group_key(&section.kind, group);
+                            let key = group_key(&section.key(), group);
                             let shut = ew_viewmodel::properties::group_shut(
                                 &collapsed,
                                 &section.kind,

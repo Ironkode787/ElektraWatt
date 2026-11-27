@@ -1681,7 +1681,7 @@ impl ShellModel {
                     removed: plan.bom_removed,
                     added: plan.bom_added,
                     changed: plan.bom_changed,
-                    boxes: self.box_words(&plan.boxes),
+                    boxes: [self.box_words(&plan.boxes), self.symbol_words(&plan.symbols)].concat(),
                     lost: plan.lost,
                     fork: false,
                 };
@@ -1722,7 +1722,7 @@ impl ShellModel {
             added: plan.bom_added.clone(),
             changed: plan.bom_changed.clone(),
             lost: plan.lost.clone(),
-            boxes: self.box_words(&plan.boxes),
+            boxes: [self.box_words(&plan.boxes), self.symbol_words(&plan.symbols)].concat(),
             fork: plan.fork.is_some(),
         };
         if let Some(open) = self.open_mut() {

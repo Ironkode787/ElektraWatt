@@ -369,6 +369,31 @@ impl ShellModel {
             .collect()
     }
 
+    /// The bus symbols a part's change draws anew, each in words ("Drawn anew: -105A1 on page 105, its bus symbol with X1
+    /// P3 added"): a line for the sockets it gains, one for those it loses, one when they only stand elsewhere.
+    pub(crate) fn symbol_words(&self, symbols: &[ew_api::RedrawnSymbol]) -> Vec<String> {
+        let mut out = Vec::new();
+        for s in symbols {
+            let (tag, folio) = (self.tag_of(s.device.as_uuid()), &s.folio);
+            if !s.added.is_empty() {
+                out.push(strings::format(
+                    key!("part-card-symbol-added"),
+                    &[&tag, folio, &s.added.join(", ")],
+                ));
+            }
+            if !s.removed.is_empty() {
+                out.push(strings::format(
+                    key!("part-card-symbol-removed"),
+                    &[&tag, folio, &s.removed.join(", ")],
+                ));
+            }
+            if s.added.is_empty() && s.removed.is_empty() {
+                out.push(strings::format(key!("part-card-symbol"), &[&tag, folio]));
+            }
+        }
+        out
+    }
+
     /// `part.choose {target?, use?, add?, strip?}`: opens the part dialog for its target; `strip` (its ID), for
     /// the strip's terminals without a part.
     pub(crate) fn act_part_choose(&mut self, p: &Map<String, Value>) -> Outcome {

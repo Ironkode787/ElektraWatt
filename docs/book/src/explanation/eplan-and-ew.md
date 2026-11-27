@@ -158,7 +158,7 @@ cross-reference**.
 **EW term:** [Bus topology](../reference/glossary.md#bus-topology)
 
 **The same:** a network page shows the devices with their bus ports and the bus lines between them, and the ports
-carry the station addresses. **What differs:** a device placed on a bus-topology page stands there as a box per
-interface with its sockets, and a bus line drawn between two ports makes the network, named for its bus, without a
-separate step. **In the window:** **New page…** with the type **Bus topology**, and **Bus** on the rail. See [Work in
+carry the station addresses. **What differs:** a device placed on a bus-topology page stands there as one symbol with
+a compartment per interface, its sockets and its address, and a bus line drawn between two ports makes the network,
+named for its bus, without a separate step. **In the window:** **New page…** with the type **Bus topology**, and **Bus** on the rail. See [Work in
 the PLC workspace](../how-to/plc-workspace.md).

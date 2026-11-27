@@ -1239,7 +1239,7 @@ pub fn visible_rows<'s>(
     let mut out = Vec::new();
     for s in &sheet.sections {
         for (g, rows) in groups(s, advanced) {
-            if group_shut(collapsed, &s.kind, g, filter) {
+            if group_shut(collapsed, &s.key(), g, filter) {
                 continue;
             }
             out.extend(

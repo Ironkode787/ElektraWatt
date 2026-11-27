@@ -29,10 +29,10 @@
 //! terminal's plug** ([`BlackBoxTool::with_pins`]) is placed the same way, sized by its pins down its two sides
 //! ([`pin_layout`]). Such a one-click box stands inside the frame's drawing area, moved there by whole grid steps where
 //! it would leave it, and is refused with its size where it is larger than the area (`reason-box-too-large`) and on
-//! another box (`reason-box-occupied`); the host ends the tool once it is placed (one click, one box). **A device's
-//! interfaces on a bus page** ([`BoxTarget::Ports`], a box each in a row) stand inside the drawing area the
-//! same way, the whole row moved; the row is refused with its size where it is larger than the area, and where a box
-//! of it would cover a device drawn on the page (`reason-ports-occupied`).
+//! another box (`reason-box-occupied`); the host ends the tool once it is placed (one click, one box). **A device on a
+//! bus page** ([`BoxTarget::Ports`], doc 10 §2.7) is placed the same way with its bus symbol, sized by its part
+//! (`bus.place_ports`): inside the drawing area with its sockets, and refused where its body would cover a device
+//! drawn on the page (`reason-ports-occupied`).
 //!
 //! **Grips** ([`grip_points`], [`reshape_by_grip`]): for an outline of `n` vertices in stored order, grips `0 … n−1`
 //! are the vertices and grips `n … 2n−1` the midpoints of the edges `v0v1, …, v(n−1)v0`. On a rectangle a vertex grip
@@ -118,55 +118,15 @@ pub enum BoxTarget {
         /// A PLC card's pins by kind, for a part without a device box: its box is a card's (doc 10 §3.6).
         card: Option<ew_api::output::CardPins>,
     },
-    /// The interfaces of a device on a bus-topology page, a box each (`bus.place_ports`, doc 10 §2.7).
+    /// A device on a bus-topology page, drawn with its bus symbol (`bus.place_ports`, doc 10 §2.7).
     Ports {
         /// The command's `target`: `{"device": {"device": id}}` or `{"from_part": {"part": id, "letter": l}}`.
         target: Value,
         /// What the label names (`part EW-GEN-CPU-2`, `-3A1`).
         label: String,
-        /// The interfaces, in box order from left to right.
-        interfaces: Vec<PortTarget>,
+        /// The symbol its part draws on the page: its body and sockets.
+        shape: ew_api::output::BusSymbolShape,
     },
-}
-
-/// One interface a [`BoxTarget::Ports`] draws.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct PortTarget {
-    /// The interface ("X1").
-    pub interface: String,
-    /// The port label of an interface listed port by port.
-    pub port_label: Option<String>,
-    /// The FnDef copy ID text a new port function takes.
-    pub fndef: String,
-    /// The box's sockets: (function CP index, label).
-    pub sockets: Vec<(u16, String)>,
-}
-
-/// The boxes of a [`BoxTarget::Ports`] for the rectangle with corners `a` and `b` (page nm, grid points): the first
-/// interface's box is the rectangle (grown to fit its sockets), each next one as wide and as high, two grid steps to
-/// the right of the one before; `None` for a rectangle without height.
-pub fn port_layouts(
-    grid: PageGridMap,
-    a: (i64, i64),
-    b: (i64, i64),
-    interfaces: &[PortTarget],
-) -> Option<Vec<BoxLayout>> {
-    let width = (grid.index(b.0) - grid.index(a.0)).abs();
-    let mut x = grid.index(a.0.min(b.0));
-    let mut out = Vec::with_capacity(interfaces.len());
-    for i in interfaces {
-        let l = layout(
-            grid,
-            (grid.coord(x), a.1),
-            (grid.coord(x + width), b.1),
-            &i.sockets,
-            &[],
-        )?;
-        let right = l.0.0 + l.1.get(1).map_or(0, |p| p.0);
-        x = grid.index(right) + 2;
-        out.push(l);
-    }
-    Some(out)
 }
 
 /// A box CP on the page: its function CP index, its point and its direction.
@@ -403,7 +363,10 @@ impl BlackBoxTool {
     /// Whether one click places the box, sized by what it draws (a terminal's positions, a plug's pins, a part's
     /// device box); the host then ends the tool.
     pub fn one_click(&self) -> bool {
-        self.slots.is_some() || self.pins || self.part_layout().is_some()
+        self.slots.is_some()
+            || self.pins
+            || self.part_layout().is_some()
+            || matches!(self.target, BoxTarget::Ports { .. })
     }
 
     /// The box one click places at the armed point: its layout, and the cell width of a terminal drawn as its positions.
@@ -426,6 +389,17 @@ impl BlackBoxTool {
     /// The box one click places with its top-left corner at the grid point nearest `at`, and the cell width of a
     /// terminal drawn as its positions.
     fn box_at(&self, cx: &ToolCx<'_>, grid: PageGridMap, at: (i64, i64)) -> Option<(BoxLayout, Option<i64>)> {
+        // A bus symbol: its body and its sockets, the outline round them both, its top-left corner at the pointer.
+        if let BoxTarget::Ports { shape, .. } = &self.target {
+            let cps: Vec<BoxCpAt> = (0u16..)
+                .zip(&shape.sockets)
+                .map(|(i, p)| (i, *p, if p.1 < 0 { Dir::Up } else { Dir::Down }))
+                .collect();
+            let corners = [(shape.body[0], shape.body[1]), (shape.body[2], shape.body[3])];
+            let b = bounds(shape.sockets.iter().copied().chain(corners))?;
+            let outline = vec![(b[0], b[1]), (b[2], b[1]), (b[2], b[3]), (b[0], b[3])];
+            return Some(((at, outline, cps), None));
+        }
         Some(match self.slots {
             Some(n) => {
                 let (pos, outline, pitch) = ew_api::geometry::slot_box(cx.page.tables.grid, at, n)?;
@@ -506,8 +480,7 @@ impl BlackBoxTool {
             BoxTarget::Part { cps, .. }
             | BoxTarget::Function { cps, .. }
             | BoxTarget::Station { cps, .. } => cps,
-            BoxTarget::Ports { interfaces, .. } => interfaces.first().map_or(&[], |i| i.sockets.as_slice()),
-            BoxTarget::NewDevice { .. } | BoxTarget::Device { .. } => &[],
+            BoxTarget::NewDevice { .. } | BoxTarget::Device { .. } | BoxTarget::Ports { .. } => &[],
         }
     }
 
@@ -535,79 +508,48 @@ impl BlackBoxTool {
         }
     }
 
-    /// The layouts of the current rectangle: its box, or a box per interface of a ports target, the row of boxes moved
-    /// by whole grid steps into the frame's drawing area where it would leave it (the boxes after the first ran
-    /// past the page's edge) and laid out afresh there.
+    /// The layout of the current rectangle: its box.
     fn current(&self, cx: &ToolCx<'_>) -> Option<Vec<BoxLayout>> {
         let State::Outline { first, at } = self.state else {
             return None;
         };
         let grid = PageGridMap::new(cx.page.tables.grid);
-        let BoxTarget::Ports { interfaces, .. } = &self.target else {
-            // A card: its box as Draw on a page lays it (doc 10 §3.6), its top-left corner at the rectangle's, in the
-            // size its row needs; a row wider than the drawing area from there is its first box, the rest drawn later.
-            if let Some(card) = self.card() {
-                let corner = (first.0.min(at.0), first.1.min(at.1));
-                let right = super::ip::drawing_area(cx.page).map_or(i64::MAX, |a| a[2]);
-                let room = grid.index(right).saturating_sub(grid.index(corner.0));
-                let steps = card.boxes(room).into_iter().next()?;
-                return card_on_grid(&steps, cx.page.tables.grid, corner).map(|l| vec![l]);
-            }
-            return layout(grid, first, at, self.cps(), self.outputs()).map(|l| vec![l]);
-        };
-        let boxes = port_layouts(grid, first, at, interfaces)?;
-        let (pos, outline, _) = row_of(&boxes)?;
-        match fit_in_area(super::ip::drawing_area(cx.page), grid, pos, &outline) {
-            Ok(inside) if inside != pos => {
-                let (kx, ky) = (
-                    grid.index(inside.0) - grid.index(pos.0),
-                    grid.index(inside.1) - grid.index(pos.1),
-                );
-                let shift =
-                    |p: (i64, i64)| (grid.coord(grid.index(p.0) + kx), grid.coord(grid.index(p.1) + ky));
-                port_layouts(grid, shift(first), shift(at), interfaces)
-            }
-            _ => Some(boxes),
+        // A card: its box as Draw on a page lays it (doc 10 §3.6), its top-left corner at the rectangle's, in the size
+        // its row needs; a row wider than the drawing area from there is its first box, the rest drawn later.
+        if let Some(card) = self.card() {
+            let corner = (first.0.min(at.0), first.1.min(at.1));
+            let right = super::ip::drawing_area(cx.page).map_or(i64::MAX, |a| a[2]);
+            let room = grid.index(right).saturating_sub(grid.index(corner.0));
+            let steps = card.boxes(room).into_iter().next()?;
+            return card_on_grid(&steps, cx.page.tables.grid, corner).map(|l| vec![l]);
         }
+        layout(grid, first, at, self.cps(), self.outputs()).map(|l| vec![l])
     }
 
-    /// Why the boxes of a ports target cannot be drawn where they are: a row larger than the drawing area,
-    /// with its size, or one that covers a device drawn on the page; `None` where they can.
-    fn ports_refusal(&self, cx: &ToolCx<'_>) -> Option<ToolOutput> {
-        if !matches!(self.target, BoxTarget::Ports { .. }) {
-            return None;
-        }
-        let boxes = self.current(cx)?;
-        let (pos, outline, _) = row_of(&boxes)?;
-        let (area, grid) = (
-            super::ip::drawing_area(cx.page),
-            PageGridMap::new(cx.page.tables.grid),
-        );
-        if let Err(sizes) = fit_in_area(area, grid, pos, &outline) {
-            let mm = |nm: i64| ((nm + 500_000) / 1_000_000).to_string();
-            let [w, h, aw, ah] = sizes.map(mm);
-            let words = crate::strings::format(key!("reason-box-too-large"), &[&w, &h, &aw, &ah]);
-            return Some(ToolOutput::RefusedWith(key!("reason-box-too-large"), words));
-        }
-        let covers = boxes.iter().any(|(pos, outline, _)| {
-            let Some(a) = bounds(outline.iter().map(|p| (pos.0 + p.0, pos.1 + p.1))) else {
-                return false;
-            };
-            cx.page
-                .tables
-                .reps
-                .iter()
-                .filter(|r| r.device.is_some())
-                .any(|r| {
-                    let o = r
-                        .black_box
-                        .as_ref()
-                        .and_then(|b| bounds(b.outline.iter().copied()))
-                        .unwrap_or(r.body);
-                    a[0] < o[2] && o[0] < a[2] && a[1] < o[3] && o[1] < a[3]
-                })
-        });
-        covers.then_some(ToolOutput::Refused(key!("reason-ports-occupied")))
+    /// Whether the body of a bus symbol at `pos` would cover a device drawn on the page shown (its box, else its body).
+    fn covers_a_device(&self, cx: &ToolCx<'_>, pos: (i64, i64)) -> bool {
+        let BoxTarget::Ports { shape, .. } = &self.target else {
+            return false;
+        };
+        let a = [
+            pos.0 + shape.body[0],
+            pos.1 + shape.body[1],
+            pos.0 + shape.body[2],
+            pos.1 + shape.body[3],
+        ];
+        cx.page
+            .tables
+            .reps
+            .iter()
+            .filter(|r| r.device.is_some())
+            .any(|r| {
+                let o = r
+                    .black_box
+                    .as_ref()
+                    .and_then(|b| bounds(b.outline.iter().copied()))
+                    .unwrap_or(r.body);
+                a[0] < o[2] && o[0] < a[2] && a[1] < o[3] && o[1] < a[3]
+            })
     }
 
     /// The `box.black` of the current rectangle, or the `bus.place_ports` of a ports target.
@@ -617,34 +559,13 @@ impl BlackBoxTool {
             Some((layout, _)) => vec![layout.clone()],
             None => self.current(cx)?,
         };
-        if let BoxTarget::Ports {
-            target, interfaces, ..
-        } = &self.target
-        {
-            let boxes: Vec<Value> = layouts
-                .iter()
-                .zip(interfaces)
-                .map(|((pos, outline, cps), i)| {
-                    let mut b = json!({
-                        "interface": i.interface,
-                        "fndef": i.fndef,
-                        "pos": [pos.0, pos.1],
-                        "box": {
-                            "outline": outline.iter().map(|p| vec![p.0, p.1]).collect::<Vec<_>>(),
-                            "cps": cps.iter().map(|(c, p, d)| cp_json(*c, *p, *d)).collect::<Vec<_>>(),
-                        },
-                    });
-                    if let Some(l) = &i.port_label {
-                        b["port_label"] = Value::String(l.clone());
-                    }
-                    b
-                })
-                .collect();
+        if let BoxTarget::Ports { target, .. } = &self.target {
+            let (pos, _, _) = layouts.first()?;
             let mut params = json!({
                 "page": cx.page.tables.page.to_string(),
                 "symbol": self.symbol,
                 "target": target,
-                "boxes": boxes,
+                "pos": [pos.0, pos.1],
             });
             if !self.copies.is_empty() {
                 params["copies"] = Value::Array(self.copies.clone());
@@ -827,6 +748,10 @@ impl BlackBoxTool {
                     let words = crate::strings::format(key!("reason-box-too-large"), &[&w, &h, &aw, &ah]);
                     return ToolOutput::RefusedWith(key!("reason-box-too-large"), words);
                 }
+                // A bus symbol never covers a device drawn on the page.
+                if self.covers_a_device(cx, pos) {
+                    return ToolOutput::Refused(key!("reason-ports-occupied"));
+                }
                 // A box never lands on another box (two terminals never stand on one spot).
                 if overlaps_a_box(cx, pos, &outline) {
                     return ToolOutput::Refused(key!("reason-box-occupied"));
@@ -843,19 +768,13 @@ impl BlackBoxTool {
                 self.state = State::Outline { first: at, at };
                 ToolOutput::Transient(self.overlay(cx))
             }
-            State::Outline { at, .. } => {
-                // The boxes of a device's interfaces never run past the page's edge or land on another device.
-                if let Some(refused) = self.ports_refusal(cx) {
-                    return refused;
+            State::Outline { at, .. } => match self.command(cx) {
+                Some(cmd) => {
+                    self.state = State::Armed { at: Some(at) };
+                    ToolOutput::Commit(cmd)
                 }
-                match self.command(cx) {
-                    Some(cmd) => {
-                        self.state = State::Armed { at: Some(at) };
-                        ToolOutput::Commit(cmd)
-                    }
-                    None => ToolOutput::None,
-                }
-            }
+                None => ToolOutput::None,
+            },
         }
     }
 }
@@ -891,18 +810,6 @@ fn bounds(pts: impl Iterator<Item = (i64, i64)>) -> Option<[i64; 4]> {
             [r[0].min(x), r[1].min(y), r[2].max(x), r[3].max(y)]
         }))
     })
-}
-
-/// The row of boxes `boxes` as one box without CPs: the top-left corner of their bounds and the bounds' outline
-/// relative to it.
-fn row_of(boxes: &[BoxLayout]) -> Option<BoxLayout> {
-    let b = bounds(
-        boxes
-            .iter()
-            .flat_map(|(pos, outline, _)| outline.iter().map(move |p| (pos.0 + p.0, pos.1 + p.1))),
-    )?;
-    let (w, h) = (b[2] - b[0], b[3] - b[1]);
-    Some(((b[0], b[1]), vec![(0, 0), (w, 0), (w, h), (0, h)], Vec::new()))
 }
 
 impl Tool for BlackBoxTool {
@@ -957,13 +864,6 @@ impl Tool for BlackBoxTool {
             // says.
             retag: true,
             drew_existing: ports && json.as_ref().is_some_and(|j| j["target"].get("device").is_some()),
-            // A device placed on a bus page as several boxes, one for each bus interface, says so: two boxes with
-            // one tag appeared "unexplained".
-            boxes: json
-                .as_ref()
-                .filter(|_| ports)
-                .and_then(|j| j["boxes"].as_array().map(Vec::len))
-                .filter(|n| *n > 1),
             // A box one click places (a valve terminal's positions, a plug's pins) is one box: the tool gives way to
             // Select (a second click placed a second terminal on the first). So does a station put on a bus page: its
             // interfaces are all drawn there now, and the tool kept taking it ("-3A1 DP is drawn on this page
@@ -1008,7 +908,7 @@ impl Tool for BlackBoxTool {
             State::Armed { .. } => 0,
         };
         let cps = match &self.target {
-            BoxTarget::Ports { interfaces, .. } => interfaces.iter().map(|i| i.sockets.len()).sum(),
+            BoxTarget::Ports { shape, .. } => shape.sockets.len(),
             _ => self.cps().len(),
         };
         Some(Ghost::Box { outline, cps })

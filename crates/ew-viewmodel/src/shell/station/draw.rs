@@ -850,7 +850,7 @@ impl ShellModel {
                     return self
                         .rack_refuse(cursor, strings::text(key!("reason-rack-no-bus-page")).to_owned());
                 };
-                // Every interface not drawn there, a box each (the CPU stood there with its DP alone).
+                // The station with its bus symbol, every interface of it (doc 10 §2.7).
                 let interfaces = self
                     .project_session()
                     .map(|s| s.undrawn_interfaces(station, &folio))

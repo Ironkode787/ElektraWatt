@@ -68,7 +68,7 @@ impl ShellModel {
                 continue;
             };
             let row = |key: String, label: String, value: RowValue| PropRow {
-                key: format!("{}/{OWN}{key}", section.kind),
+                key: format!("{}/{OWN}{key}", section.key()),
                 path: format!("{OWN}{key}"),
                 depth: 0,
                 ty: FieldType::Text,

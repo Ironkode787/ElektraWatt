@@ -92,19 +92,21 @@ impl ShellModel {
         }
     }
 
-    /// Arms the black box tool with the interfaces of a device on a bus-topology page, a box each (`bus.place_ports`,
-    /// doc 10 §2.7): `target` the command's target, `label` what the tool's label names, `part` the part copy of a new
-    /// device (whose closure travels in the placement).
+    /// Arms the black box tool with a device on a bus-topology page drawn with its bus symbol `shape`, one click
+    /// (`bus.place_ports`, doc 10 §2.7): `target` the command's target, `label` what the tool's label names,
+    /// `interfaces` its part's interfaces (whose port functions' definitions travel in the placement), `part` the part
+    /// copy of a new device (whose closure travels in it).
     pub(in crate::shell) fn arm_ports(
         &mut self,
         cat: &PlaceCatalogue,
         target: Value,
         label: String,
         interfaces: &[ew_api::output::CatalogueInterface],
+        shape: ew_api::output::BusSymbolShape,
         part: Option<ew_api::output::Uuid>,
     ) -> Outcome {
         let project = or_return!(crate::shell::gated(&self.project));
-        let Some(row) = cat.symbols.iter().find(|r| r.black_box && r.allowed) else {
+        let Some(row) = cat.bus_symbol() else {
             return Outcome::refused(key!("reason-unknown-symbol"));
         };
         let Some(copy) = row.copy.or_else(|| project.session.starter_symbol_copy(&row.key)) else {
@@ -120,32 +122,16 @@ impl ShellModel {
                 copies.push(doc);
             }
         }
-        let interfaces = interfaces
-            .iter()
-            .map(|i| crate::tools::PortTarget {
-                interface: i.interface.clone(),
-                port_label: i.port_label.clone(),
-                fndef: i.fndef.to_string(),
-                sockets: i.sockets.clone(),
-            })
-            .collect();
         self.tools.picker = None;
         self.activate_tool(Box::new(
-            BlackBoxTool::new(
-                copy.to_string(),
-                BoxTarget::Ports {
-                    target,
-                    label,
-                    interfaces,
-                },
-            )
-            .with_copies(copies),
+            BlackBoxTool::new(copy.to_string(), BoxTarget::Ports { target, label, shape })
+                .with_copies(copies),
         ));
         Outcome::Done
     }
 
-    /// Arms the black box tool with every interface of part `pi` of `cat`, a box each, for a new device of it with the
-    /// letter `letter` (else the part's, else the black-box symbol's).
+    /// Arms the black box tool with the bus symbol of part `pi` of `cat`, for a new device of it with the letter
+    /// `letter` (else the part's, else the black-box symbol's).
     pub(in crate::shell) fn arm_part_ports(
         &mut self,
         cat: &PlaceCatalogue,
@@ -165,7 +151,10 @@ impl ShellModel {
         let label = strings::format(key!("place-target-part"), &[&part.part_number]);
         let interfaces = part.interfaces.clone();
         let copy = part.copy;
-        self.arm_ports(cat, target, label, &interfaces, Some(copy))
+        let Some(shape) = part.bus_symbol.clone() else {
+            return Outcome::refused(key!("reason-unknown-symbol"));
+        };
+        self.arm_ports(cat, target, label, &interfaces, shape, Some(copy))
     }
 
     pub(in crate::shell) fn arm(
@@ -184,8 +173,9 @@ impl ShellModel {
             Pick::PartFn(pi, _) | Pick::PartSymbol(pi, _) => cat.parts[*pi].variants.clone(),
             _ => Vec::new(),
         };
-        // On a bus-topology page a part with bus interfaces is placed as its interfaces, a box each, with every port
-        // (doc 10 §2.7): a station as a switch or a drive, its supply pins left to its place on a schematic page.
+        // On a bus-topology page a part with bus interfaces is placed with its bus symbol, every interface with its
+        // sockets (doc 10 §2.7): a station as a switch or a drive, its supply pins left to its place on a schematic
+        // page.
         if let Pick::PartFn(pi, _) | Pick::PartSymbol(pi, _) = &pick
             && !cat.parts[*pi].interfaces.is_empty()
         {
@@ -434,12 +424,25 @@ impl ShellModel {
         // A multipin terminal's main function elsewhere is its plug: its pins down its two sides, one click.
         let pins = !fluid && terminal.is_some_and(|t| project.session.terminal_plug(t).is_some());
         // Drawn as its positions, its valves and its supply stand in it with their symbols.
-        let copies = match (slots, self.canvas()) {
+        let mut copies = match (slots, self.canvas()) {
             (Some(_), Some(c)) => project
                 .session
                 .cell_copies(terminal, &[], Some(c.page().tables.page)),
             _ => Vec::new(),
         };
+        // The frame, where the project holds none yet (a station drawn so far only with its bus symbol).
+        if row.copy.is_none() {
+            match embedding(&project.session, &row.key, None) {
+                Ok(frame) => {
+                    for f in frame {
+                        if !copies.iter().any(|c| c["id"] == f["id"]) {
+                            copies.push(f);
+                        }
+                    }
+                }
+                Err(out) => return out,
+            }
+        }
         // Placed by Place, not by the Black box tool, it says at once that it is drawn as a box and how.
         let drawn_as_box = !self.tools.black_box_pick
             && self

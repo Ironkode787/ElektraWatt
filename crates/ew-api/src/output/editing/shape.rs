@@ -504,7 +504,7 @@ impl Session {
             d.parts.iter().find_map(|u| {
                 q.parts()
                     .get(u.part.copy)
-                    .filter(|c| c.item.sections.bus.as_ref().is_some_and(|b| !b.ports.is_empty()))
+                    .filter(|c| ew_derive::has_bus_ports(&c.item))
             })
         }) else {
             return Vec::new();
@@ -524,6 +524,48 @@ impl Session {
             .into_iter()
             .filter(|i| !drawn.contains(&(i.interface.clone(), i.port_label.clone())))
             .collect()
+    }
+
+    /// The boxes on the drawn page `folio` that draw a port function, as earlier versions drew a bus device (a box per
+    /// interface, doc 10 §2.7): each box's representation with its device, in representation ID order. What Draw as
+    /// one symbol replaces.
+    pub fn bus_boxes(&self, folio: &str) -> Vec<(Uuid, Uuid)> {
+        let q = self.query();
+        let Some((_, page)) = drawn_page(&q, folio) else {
+            return Vec::new();
+        };
+        let mut out: Vec<(Uuid, Uuid)> = q
+            .idx()
+            .reps_by_page(page)
+            .filter_map(|r| {
+                let rep = q.reps().get(r)?;
+                rep.box_.as_ref()?;
+                let f = q.functions().get(*rep.functions.first()?)?;
+                f.bus_port.as_ref()?;
+                Some((r.as_uuid(), f.device?.as_uuid()))
+            })
+            .collect();
+        out.sort();
+        out
+    }
+
+    /// The bus symbol device `device` is drawn with on the drawn page `folio` (its bus part's, on the page's grid);
+    /// `None` for a device without a bus part or an unknown page.
+    pub fn device_bus_symbol(&self, device: Uuid, folio: &str) -> Option<super::BusSymbolShape> {
+        let q = self.query();
+        let (_, page) = drawn_page(&q, folio)?;
+        let grid = q.pages().get(page)?.grid;
+        let part = q
+            .devices()
+            .get(Id::<Device>::from_uuid(device))?
+            .parts
+            .iter()
+            .find_map(|u| {
+                q.parts()
+                    .get(u.part.copy)
+                    .filter(|c| ew_derive::has_bus_ports(&c.item))
+            })?;
+        Some(super::bus_symbol_shape(&part.item, grid))
     }
 
     /// The CPs of function `function` as it derives them (`FunctionCps`): each CP index with its designation, in index

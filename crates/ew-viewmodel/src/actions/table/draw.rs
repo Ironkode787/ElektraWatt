@@ -1580,6 +1580,17 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         )),
     ),
+    // Draw as one symbol (doc 10 §2.7): the selected boxes of a device on a bus page, drawn by an earlier version, become
+    // its bus symbol.
+    keeps_banner(hidden(in_canvas(act(
+        "bus.one_symbol",
+        Command,
+        Menu::Draw,
+        &[],
+        bus_box,
+        None,
+        |s, _| s.act_one_symbol(),
+    )))),
     // The Cable form of a bus line (doc 10 §2.7): Cable… on a selected bus line opens it.
     with_params(
         "tag?:text, part?:text, length?:text, plug_a?:text, termination_a?:bool, plug_b?:text, termination_b?:bool",

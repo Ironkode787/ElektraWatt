@@ -36,8 +36,12 @@ use ew_units::{Angle2, Grid, Nm, Pt2};
 
 use crate::Q;
 
-/// The room between a text and the body's lines: a quarter millimetre, so a text's box never touches a line.
+/// The room between a text and the body's lines above and below it: a quarter millimetre, so a text's box never touches
+/// a line.
 const PAD: i64 = 250_000;
+/// The room between a text and the body's left or right line, or a divider: three quarters of a millimetre, so a text
+/// reads as inside its compartment, as on a drawn data sheet.
+const INSET: i64 = 750_000;
 /// The room between two texts on one line: three quarters of a millimetre.
 const GAP: i64 = 750_000;
 /// One line of text as a share of its style's em height: the shipped faces' ascent and descent (Noto Sans: 1069 + 293
@@ -328,12 +332,12 @@ fn body(interfaces: &[BusInterface], grid: Grid) -> SymbolDef {
         .zip(&names)
         .map(|((_, (t, b)), name)| {
             let m = i64::try_from(t.len().max(b.len())).unwrap_or(i64::MAX / 4);
-            let text = 2 * PAD + advance(data_em, chars(name)) + GAP + advance(data_em, IPV4_CHARS);
+            let text = 2 * INSET + advance(data_em, chars(name)) + GAP + advance(data_em, IPV4_CHARS);
             steps(text).max(m.saturating_add(1).saturating_mul(pitch))
         })
         .collect();
     let tag_room = advance(tag_em, TAG_CHARS);
-    let header = steps(2 * PAD + tag_room + GAP + advance(data_em, PART_CHARS));
+    let header = steps(2 * INSET + tag_room + GAP + advance(data_em, PART_CHARS));
     let sum: i64 = widths.iter().fold(0, |a, w| a.saturating_add(*w));
     if sum < header {
         match widths.last_mut() {
@@ -393,12 +397,18 @@ fn body(interfaces: &[BusInterface], grid: Grid) -> SymbolDef {
     graphics.push(line_prim(p(0, y_line), p(w, y_line)));
     let header_y = at(top_band) + at(head) / 2;
     let mut text_slots = vec![
-        slot(SlotKind::Tag, p(PAD, header_y), Align::MiddleLeft, tag_room, None),
+        slot(
+            SlotKind::Tag,
+            p(INSET, header_y),
+            Align::MiddleLeft,
+            tag_room,
+            None,
+        ),
         slot(
             SlotKind::PartNumber,
-            p(PAD + tag_room + GAP, header_y),
+            p(INSET + tag_room + GAP, header_y),
             Align::MiddleLeft,
-            w - 2 * PAD - tag_room - GAP,
+            w - 2 * INSET - tag_room - GAP,
             None,
         ),
     ];
@@ -412,7 +422,7 @@ fn body(interfaces: &[BusInterface], grid: Grid) -> SymbolDef {
         }
         let top_text = y_line + PAD;
         graphics.push(text_prim(
-            p(x0 + PAD, top_text),
+            p(x0 + INSET, top_text),
             name,
             DATA_STYLE,
             Angle2::ZERO,
@@ -421,9 +431,9 @@ fn body(interfaces: &[BusInterface], grid: Grid) -> SymbolDef {
         let name_room = advance(data_em, chars(name)) + GAP;
         text_slots.push(slot(
             SlotKind::BusAddress,
-            p(x0 + PAD + name_room, top_text),
+            p(x0 + INSET + name_room, top_text),
             Align::TopLeft,
-            at(*width) - 2 * PAD - name_room,
+            at(*width) - 2 * INSET - name_room,
             Some(interface),
         ));
         for (edge, on_top) in [(top, true), (bottom, false)] {

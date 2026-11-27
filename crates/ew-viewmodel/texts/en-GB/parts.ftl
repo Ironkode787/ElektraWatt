@@ -88,6 +88,9 @@ part-card-changed = Parts list row changed: { $p0 }
 part-card-lost = A bus line ends at a socket the part no longer has: { $p0 }. It keeps its end there; draw it to another socket.
 part-card-box = Drawn anew: { $p0 } on page { $p1 }, its pins as the part has them now
 part-card-box-moved = Drawn anew: { $p0 } on page { $p1 }, moved back inside the drawing area
+part-card-symbol = Drawn anew: { $p0 } on page { $p1 }, its bus symbol's sockets as the part's ports give them now
+part-card-symbol-added = Drawn anew: { $p0 } on page { $p1 }, its bus symbol with { $p2 } added
+part-card-symbol-removed = Drawn anew: { $p0 } on page { $p1 }, its bus symbol without { $p2 }
 part-change-interface = Interface { $p0 }
 part-change-ports = { $p0 ->
         [one] 1 port

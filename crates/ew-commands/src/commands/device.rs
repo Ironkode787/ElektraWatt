@@ -1765,8 +1765,8 @@ fn pivot(grid: Grid, pos: Pt2, from: Orient2, to: Orient2, local: &[Pt2]) -> Res
 #[cfg(test)]
 mod box_pivot_tests;
 
-mod port_boxes;
-pub use port_boxes::{PlacePortBoxes, PortBox, PortsTarget};
+mod bus_symbol;
+pub use bus_symbol::{PlaceBusSymbol, PortsTarget};
 
 /// `rep.text_set` (`SetRepText`, doc 06 §2.5): moves, turns or hides one text of a representation's symbol on its page:
 /// sets the members given of the representation's override of slot `slot` and keeps the others. `pos` is a point of

@@ -795,6 +795,7 @@ impl<'a> TxBuilder<'a> {
         if keys.is_empty() {
             return Ok(());
         }
+        self.release_bus_symbols(keys)?;
         // A record a forbid link still names, in words.
         let planned = self.planning_snapshot()?.delete_plan_many(keys);
         let plan = match planned {
@@ -809,6 +810,36 @@ impl<'a> TxBuilder<'a> {
             }
             self.stale.insert(k);
             self.pending.insert(k, op.after().cloned());
+        }
+        Ok(())
+    }
+
+    /// A bus symbol drawing a function among `keys` and others besides (doc 10 §2.7) lets it go before the delete plan
+    /// cascades: the function leaves the representation's `functions`, and the symbol draws the others.
+    fn release_bus_symbols(&mut self, keys: &[AnyKey]) -> Result<(), CmdError> {
+        let gone: std::collections::BTreeSet<Id<Function>> = keys
+            .iter()
+            .filter(|k| k.0 == Kind::Function)
+            .map(|k| k.1.cast())
+            .collect();
+        for f in &gone {
+            for r in self.reps_of_function(*f) {
+                let Some(rep) = self.get::<Representation>(r) else {
+                    continue;
+                };
+                let bus = self
+                    .get::<ew_schema::LibCopy<ew_schema::SymbolDef>>(rep.symbol)
+                    .is_some_and(|s| ew_derive::is_bus_copy(&s.item));
+                let kept: Vec<Id<Function>> = rep
+                    .functions
+                    .iter()
+                    .copied()
+                    .filter(|g| !gone.contains(g))
+                    .collect();
+                if bus && !kept.is_empty() && kept.len() < rep.functions.len() {
+                    self.update::<Representation>(r, |x| x.functions = kept)?;
+                }
+            }
         }
         Ok(())
     }

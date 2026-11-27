@@ -208,10 +208,9 @@ impl ShellModel {
     /// selected); `None` for another row.
     pub fn property_edit_hint(&self) -> Option<String> {
         let edit = self.props.edit()?;
-        let field = edit.row.strip_prefix("function/")?;
-        let (section, _) = crate::properties::find_row(self.props.sheet()?, &edit.row)?;
+        let (section, row) = crate::properties::find_row(self.props.sheet()?, &edit.row)?;
         match section.targets.as_slice() {
-            [function] => self.port_field_hint(*function, field),
+            [function] if section.kind == "function" => self.port_field_hint(*function, &row.path),
             _ => None,
         }
     }
@@ -261,7 +260,7 @@ impl ShellModel {
             .cloned()
             .collect();
         for s in self.props.sheet.iter().flat_map(|sheet| &sheet.sections) {
-            let more = crate::properties::group_key(&s.kind, crate::properties::RowGroup::More);
+            let more = crate::properties::group_key(&s.key(), crate::properties::RowGroup::More);
             if !stored.contains(&more) {
                 out.insert(more);
             }
@@ -929,7 +928,7 @@ impl ShellModel {
             },
             Ok(None) => crate::properties::group_of(section, row),
         };
-        let key = crate::properties::group_key(&section.kind, group);
+        let key = crate::properties::group_key(&section.key(), group);
         let collapsed = self.properties_collapsed().contains(&key);
         let expand = p.get("expanded").and_then(Value::as_bool).unwrap_or(collapsed);
         if self.set_group_open(key, expand) {

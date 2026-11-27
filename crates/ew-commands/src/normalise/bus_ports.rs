@@ -63,18 +63,22 @@ pub(crate) fn is_bus_port_function(tx: &TxBuilder<'_>, f: &Function) -> bool {
 /// Whether the FnDef of function `f` is filed under bus system `bus`: one of its category words begins the bus's
 /// stored name, case aside (`Profibus` for `profibus_dp`, `Profinet` for `profinet`).
 pub(crate) fn suits(tx: &TxBuilder<'_>, f: Id<Function>, bus: &BusSystem) -> bool {
-    let name = stored_name(bus);
     tx.get::<Function>(f)
-        .and_then(|func| tx.get::<LibCopy<FnDef>>(func.def))
-        .is_some_and(|d| {
-            serde_json::to_value(&d.item.category)
-                .ok()
-                .and_then(|v| v.as_array().cloned())
-                .unwrap_or_default()
-                .iter()
-                .filter_map(|w| w.as_str())
-                .any(|w| !w.is_empty() && name.starts_with(&w.to_lowercase()))
-        })
+        .is_some_and(|func| filed_under(tx, func.def, bus))
+}
+
+/// Whether the FnDef copy `def` is filed under bus system `bus` ([`suits`]' rule).
+pub(crate) fn filed_under(tx: &TxBuilder<'_>, def: Id<FnDef>, bus: &BusSystem) -> bool {
+    let name = stored_name(bus);
+    tx.get::<LibCopy<FnDef>>(def).is_some_and(|d| {
+        serde_json::to_value(&d.item.category)
+            .ok()
+            .and_then(|v| v.as_array().cloned())
+            .unwrap_or_default()
+            .iter()
+            .filter_map(|w| w.as_str())
+            .any(|w| !w.is_empty() && name.starts_with(&w.to_lowercase()))
+    })
 }
 
 /// A port's key: its interface and port label.

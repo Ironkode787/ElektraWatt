@@ -1316,7 +1316,12 @@ fn a_symbols_own_text_prints_in_the_projects_language() {
         for doc in &mut lib {
             if let ew_schema::LibDocument::Symbol(s) = doc {
                 let mut v = serde_json::to_value(&*s).expect("a symbol");
-                for g in v["graphics"].as_array_mut().into_iter().flatten() {
+                for g in v
+                    .get_mut("graphics")
+                    .and_then(|g| g.as_array_mut())
+                    .into_iter()
+                    .flatten()
+                {
                     if g["text"]["text"] == "3~" {
                         g["text"]["text"] = json!({"en": "3-phase", "nl": "3-fasen"});
                     }

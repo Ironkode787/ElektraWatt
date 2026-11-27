@@ -46,6 +46,31 @@ impl ShellModel {
             .ok_or(key!("reason-one-black-box"))
     }
 
+    /// The devices of the selected boxes on the page shown that draw a port function, as earlier versions drew a bus
+    /// device (doc 10 §2.7), in the order of their first selected box, each with every such box of it on the page:
+    /// what Draw as one symbol replaces.
+    pub(crate) fn selected_bus_devices(&self) -> Vec<(Uuid, Vec<Uuid>)> {
+        let (Some(folio), Some(session)) = (self.current_folio(), self.project_session()) else {
+            return Vec::new();
+        };
+        let boxes = session.bus_boxes(folio);
+        let mut out: Vec<(Uuid, Vec<Uuid>)> = Vec::new();
+        for item in &self.selection().items {
+            let Some((_, device)) = boxes.iter().find(|(r, _)| *r == item.0) else {
+                continue;
+            };
+            if !out.iter().any(|(d, _)| d == device) {
+                let own = boxes
+                    .iter()
+                    .filter(|(_, d)| d == device)
+                    .map(|(r, _)| *r)
+                    .collect();
+                out.push((*device, own));
+            }
+        }
+        out
+    }
+
     /// Exactly one junction is selected on the focused page (`junction.open`'s condition).
     pub fn one_junction_selected(&self) -> bool {
         self.canvas().is_some_and(|c| {

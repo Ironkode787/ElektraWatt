@@ -85,7 +85,7 @@ pub mod text;
 pub mod transform;
 pub mod wire;
 
-pub use black_box::{BlackBoxTool, BoxTarget, PortTarget};
+pub use black_box::{BlackBoxTool, BoxTarget};
 pub use chooser::{Chooser, ChooserRow, ChooserValue};
 pub use duct_draw::DuctDrawTool;
 pub use exchange::ExchangeTool;
@@ -532,8 +532,6 @@ pub struct Follows {
     pub line_tip: bool,
     /// A box placement on a bus page that draws a device which exists already.
     pub drew_existing: bool,
-    /// The boxes a device placed on a bus page got, said when it got more than one.
-    pub boxes: Option<usize>,
     /// The Place tool's: what the placement made becomes the selection at the end of the dispatch.
     pub select_placed: bool,
     /// A command of the layout.

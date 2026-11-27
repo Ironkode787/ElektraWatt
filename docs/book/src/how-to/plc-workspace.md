@@ -184,29 +184,34 @@ A switch or a plug takes no part in a PLC; its menu says why. A station's menu s
 
 ## Bus ports and nets
 
-A bus-topology page is the network view: each device stands as one box per bus interface (PROFINET X1, PROFIBUS DP),
-with a connection point per socket, and the bus lines run between the sockets. The device's power and I/O pins stay
-on the schematic pages.
+A bus-topology page is the network view: each device stands as its bus symbol, one body with a compartment per bus
+interface (PROFINET X1, PROFIBUS DP) that names the interface and prints its address, and a socket per port; the bus
+lines run between the sockets. Every text of a device stands inside its body, so none lies on a line. The device's
+power and I/O pins stay on the schematic pages.
 
 1. Choose **New bus page** on the PLC tab: the new-page form opens with the type **Bus topology**.
-2. Place a station or another bus device from the device browser (**Draw ▸ Place ▸ Device from part…**) with two clicks
-   for its box: it stands there as a box per interface, and a station's rack opens in a tab (`Esc` goes back to the
-   page).
+2. Place a station or another bus device from the device browser (**Draw ▸ Place ▸ Device from part…**) with one
+   click: it stands there with its bus symbol, sized by its part, and a station's rack opens in a tab (`Esc` goes back
+   to the page).
 3. A station or bus device the project has already (drawn on a schematic page, or made with **New station**) goes onto
    the bus page with **Put a station on this page…**: right-click an empty spot of the page, or open the list of
-   **Place port** on the PLC tab, and choose it. It stands there as a box per interface. Dragging its row from the
+   **Place port** on the PLC tab, and choose it. It stands there with its bus symbol. Dragging its row from the
    PLC panel, the Bus panel or the Devices panel onto the page does the same at the drop point. Placing its part from the
    device browser, or choosing the Black box tool, on the bus page asks first: **Put -1A1 here** or **A new station**.
-   One port box comes from **Place port DP** (or **Place port X1**) on the station's row in the PLC panel; **Ports not
-   drawn yet** in the Bus panel lists every interface no page draws yet.
+   **Place port DP** (or **Place port X1**) on the station's row in the PLC panel draws it the same way, every
+   interface at once; **Ports not drawn yet** in the Bus panel lists every interface no page draws yet.
 4. Draw the bus lines with **Draw ▸ Wire**: the ports become one network, named for its bus, with the CPU's
    port as its controller or master.
 5. Choose **Bus panel** on the PLC tab and switch it to its table. Type each node's address into its **Address** cell
    as the cell says: a PROFIBUS DP station address such as `3`, a PROFINET device name with its IP address such as
-   `plc1 192.168.0.1`. The box prints it. An unmanaged switch passes the net through and takes none.
+   `plc1 192.168.0.1`. Its compartment prints it. An unmanaged switch passes the net through and takes none.
 6. Select a bus line and choose **Cable** on the Draw tab: choose the cable (the ones made for that bus first), its
    length and the plug at each end with its termination, and **Apply**. The line prints the cable's tag; the cable and
    the plugs go into the parts list.
+
+A page drawn by an earlier version shows a bus device as a box per interface, and stays so. Right-click one of its
+boxes and choose **Draw as one symbol**: the device's symbol stands where its first box stood, its bus lines keeping
+their sockets, in one Undo step.
 
 The starter parts hold a CPU with PROFINET and PROFIBUS DP, a remote I/O head, an unmanaged and a managed switch, a
 PROFINET device, PROFIBUS and Ethernet cables and their plugs. Your own devices with their ports are made in

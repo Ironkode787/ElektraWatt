@@ -5,23 +5,17 @@
 {"action":"place.pick","params":{"part":"EW-GEN-CPU-2"}}
 {"action":"cursor.set","params":{"x_mm":49.241,"y_mm":49.241}}
 {"action":"canvas.activate"}
-{"action":"cursor.set","params":{"x_mm":88.693,"y_mm":78.83}}
-{"action":"canvas.activate"}
 {"action":"ui.describe"}
 {"action":"ui.dismiss"}
 {"action":"tool.place_part"}
 {"action":"place.pick","params":{"part":"EW-GEN-RIO-1"}}
 {"action":"cursor.set","params":{"x_mm":85.734,"y_mm":142.938}}
 {"action":"canvas.activate"}
-{"action":"cursor.set","params":{"x_mm":125.185,"y_mm":172.527}}
-{"action":"canvas.activate"}
 {"action":"plc.rack_add","params":{"part":"EW-GEN-DI-1"}}
 {"action":"ui.dismiss"}
 {"action":"tool.place_part"}
 {"action":"place.pick","params":{"part":"EW-GEN-ESW-5"}}
 {"action":"cursor.set","params":{"x_mm":128.144,"y_mm":103.487}}
-{"action":"canvas.activate"}
-{"action":"cursor.set","params":{"x_mm":187.321,"y_mm":133.075}}
 {"action":"canvas.activate"}
 {"action":"ui.dismiss"}
 {"action":"tool.select"}
@@ -47,8 +41,8 @@
 {"action":"table.edit","params":{"kind":"bus"}}
 {"action":"table.input","params":{"kind":"bus","text":"rio1 192.168.0.2"}}
 {"action":"table.commit","params":{"kind":"bus"}}
-{"action":"canvas.press","params":{"x_mm":133.075,"y_mm":46.324}}
-{"action":"canvas.release","params":{"x_mm":133.075,"y_mm":46.324}}
+{"action":"canvas.press","params":{"x_mm":137.657,"y_mm":80.0}}
+{"action":"canvas.release","params":{"x_mm":137.657,"y_mm":80.0}}
 {"action":"bus.cable","params":{"part":"EW-GEN-CBL-3 · Industrial Ethernet cable, 4 cores, shielded (PROFINET)","length":"5"}}
 {"action":"ui.describe"}
 {"action":"parts.new","params":{"start":"box"}}
@@ -62,8 +56,6 @@
 {"action":"tool.place_part"}
 {"action":"place.pick","params":{"part":"FC-PN-2"}}
 {"action":"cursor.set","params":{"x_mm":207.047,"y_mm":142.938}}
-{"action":"canvas.activate"}
-{"action":"cursor.set","params":{"x_mm":246.498,"y_mm":172.527}}
 {"action":"canvas.activate"}
 {"action":"ui.dismiss"}
 {"action":"tool.select"}

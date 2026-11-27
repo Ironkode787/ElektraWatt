@@ -583,11 +583,12 @@ pub fn used_text_styles(q: &Q) -> BTreeSet<String> {
     {
         mark(Some("tag.main"));
     }
-    let symbols = q.symbols();
     for (_, rep) in q.reps().iter() {
-        let Some(def) = symbols.get(rep.symbol).map(|s| &s.item) else {
+        // The symbol the page draws it with (a bus symbol's body is derived, doc 10 §2.7).
+        let Some((def, _)) = ew_derive::drawn(q, rep) else {
             continue;
         };
+        let def = &*def;
         for prim in &def.graphics {
             if let Primitive::Text(t) = prim {
                 mark(t.style.as_ref().map(|s| s.as_str()));

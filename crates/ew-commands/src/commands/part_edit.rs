@@ -405,6 +405,7 @@ impl Command for EditPartCopy {
         // The drawn boxes of its devices take the pins and sockets the part has now, each kept pin under its new
         // index.
         crate::commands::box_follow::follow_part_boxes(tx, primary, &remap)?;
+        crate::commands::box_follow::follow_bus_symbols(tx, primary)?;
         for b in &self.redraw {
             b.run(tx)?;
         }

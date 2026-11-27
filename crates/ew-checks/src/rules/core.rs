@@ -583,10 +583,11 @@ fn graphics_cells(
         b[2] = b[2].max(x);
         b[3] = b[3].max(y);
     };
-    let symbol = q.symbols().get(r.symbol);
+    // The symbol the page draws it with (a bus symbol's body is derived, doc 10 §2.7).
+    let symbol = ew_derive::drawn(q, r).map(|(s, _)| s);
     let mut graphics: Vec<&Primitive> = Vec::new();
     if let Some(s) = &symbol {
-        graphics.extend(s.item.graphics.iter());
+        graphics.extend(s.graphics.iter());
     }
     if let Some(b) = &r.box_ {
         for p in &b.outline {

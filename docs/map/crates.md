@@ -288,7 +288,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/commands/connection.rs` | large | Connectivity commands (ADR-0007, doc 06 §3.5): `connection.draw`, `connection.route`, `connection.delete`, `junction.edit`, `ip.place`, `ip.continue`, `potential.define`, `bond.create`. |
 | `src/commands/device.rs` | large | Device and representation commands: `device.create`, `device.place`, `rep.move`, `rep.transform`, `rep.set_anchor_policy`, `box.black`. |
 | `src/commands/device/box_pivot_tests.rs` |  | The pivot of a black box's turns (finding 1): every box of 1 to 8 by 1 to 8 grid steps, at positive and negative grid positions and away from the origin, from a plain and from a mirrored orientation, on the rational QET grid and on a metric one. |
-| `src/commands/device/port_boxes.rs` |  | `bus.place_ports` (`PlacePortBoxes`, doc 10 §2.7): a device drawn on a bus-topology page as its interfaces. |
+| `src/commands/device/bus_symbol.rs` |  | `bus.place_ports` (`PlaceBusSymbol`, doc 10 §2.7): a device drawn on a bus-topology page with its bus symbol. |
 | `src/commands/drafting.rs` |  | `layout.apply` (docs/design/06a-drafting.md §2.6): a drafting plan stored in one transaction. |
 | `src/commands/drawing.rs` |  | The member `drawing` of `project.settings.set` (FR-CON-031): the project's drawing settings, the member `drawing` of the project settings' `extra` (doc 03 §5.1): `crossings`, `marker_mode`, `wire_numbers`, `wire_numbering` and `plc_address_at_terminals`. |
 | `src/commands/edit.rs` |  | `edit.delete`: deletes a selection (doc 06 §3.4, §3.6). |
@@ -1336,7 +1336,7 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 | `src/shell/drawing_import.rs` |  | File ▸ Import… of a drawing (doc 14 §13): a DXF or a DWG becomes a new graphic page or an underlay of the shown page; a PDF page becomes an underlay. |
 | `src/shell/drilling.rs` |  | Output ▸ Workshop ▸ Drilling… (doc 13 §9): the form "Export the drawings for drilling", one ticked row per surface with holes (its words, its page, its holes, the sheets its template takes), Template to print at full size (PDF), DXF for a machine, the paper and the folder (Drilling, beside the project); Export writes the files, each whole, and a toast names the folder with Show in folder. |
 | `src/shell/editing.rs` |  | The tool host's duties: the picker popup and its choices, the host commits (the starter embedding), arming the Place and change-symbol tools, the transform keys, the keyboard move, and the selection after a commit. |
-| `src/shell/editing/actions.rs` |  | The editing actions of the canvas: the picker, placing, the place tool's options and its announcements. |
+| `src/shell/editing/actions.rs` | large | The editing actions of the canvas: the picker, placing, the place tool's options and its announcements. |
 | `src/shell/editing/arming.rs` |  | Arming the canvas tools: a catalogue row, a strip, a part or a black box the next click places. |
 | `src/shell/eplan_import.rs` |  | File ▸ Import… of EPLAN data (doc 14 §5, §13): an EDZ or a parts XML, and a report spreadsheet. |
 | `src/shell/external.rs` |  | The driver status: the window's half of collaboration. |

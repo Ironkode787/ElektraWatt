@@ -148,6 +148,17 @@ pub struct SheetSection {
     pub port: Option<String>,
 }
 
+impl SheetSection {
+    /// The section's key, the part of its rows' keys before the `/`: its kind, or `<kind>@<interface>` for the section
+    /// of one network port of a bus symbol ([`SheetSection::port`]).
+    pub fn key(&self) -> String {
+        match &self.port {
+            Some(port) => format!("{}@{port}", self.kind),
+            None => self.kind.clone(),
+        }
+    }
+}
+
 /// The row a wire's cross-section or colour that its cable core gives goes to: the cable's Parts row, whose part gives
 /// its cores ("Change it at cable -W1").
 pub const CABLE_SOURCE_ROW: &str = "device/parts";
@@ -158,7 +169,9 @@ pub const UNNUMBERED_WIRE: &str = "wire without a number";
 /// One row (doc 16 §6.2).
 #[derive(Clone, PartialEq, Debug)]
 pub struct PropRow {
-    /// `<kind>/<row path>` (`device/parts[0].qty`) or `<kind>/derived.<name>`.
+    /// `<kind>/<row path>` (`device/parts[0].qty`) or `<kind>/derived.<name>`; in the section of one network port of a
+    /// bus symbol ([`SheetSection::port`]) `<kind>@<interface>/…` (`function@X1/bus_port.address`), so each port's rows
+    /// have keys of their own.
     pub key: String,
     /// The row's path with list indices; for a derived row the authored partner's path (`tag.frozen`,
     /// `overrides.csa`), or `derived.<name>` when it has none.
@@ -1001,6 +1014,12 @@ impl Session {
                         .get(Id::from_uuid(f))
                         .and_then(|x| x.bus_port.clone())
                         .map(|p| ew_derive::interface_words(&p.interface, p.port_label.as_ref()));
+                    let key = section.key();
+                    for row in &mut section.rows {
+                        if let Some(rest) = row.key.strip_prefix(&format!("{}/", section.kind)) {
+                            row.key = format!("{key}/{rest}");
+                        }
+                    }
                     sections.push(section);
                 }
                 continue;

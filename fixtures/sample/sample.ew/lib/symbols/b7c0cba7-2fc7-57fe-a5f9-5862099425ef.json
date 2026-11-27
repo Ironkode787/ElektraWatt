@@ -1,0 +1,20 @@
+{
+  "$k": "symbol",
+  "id": "b7c0cba7-2fc7-57fe-a5f9-5862099425ef",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "315812b6-a73b-5fdd-a288-b18855cb674e",
+  "version": "0.1.0",
+  "sha256": "sha256:1a4cb6993ea21537ad3ae8bfd5d88888070c7306e8df944e107e0c6ce8d5d1b8",
+  "meta": {"key": "ew.gen.bus@qet10", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
+  "name": {"en": "Bus symbol", "nl": "Bussymbool"},
+  "keywords": ["bus", "network"],
+  "rep_type": "topology",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "eb4253e4-0648-5c66-ab0f-50c288facffb",
+    "version_req": "^0.1",
+    "key": "ew.fn.graphic"
+  },
+  "grid": {"num": 7937500, "den": 3},
+  "ew.note": "No graphics and no connection points: a page draws a device's bus symbol from its part's network ports (doc 10 section 2.7)."
+}

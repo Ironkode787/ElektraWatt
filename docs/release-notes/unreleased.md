@@ -17,6 +17,13 @@ change here.
 
 - format-variant: `SymbolCp` gains `interface` and `port_label`, `TextSlot` gains `interface` and `port_label`, each
   absent unless set; the starter library gains the bus symbol `ew.gen.bus` (ADR-0011 amendment 8, entry 2)
+- behaviour-change: a device placed on a bus-topology page stands as one bus symbol drawn from its part's network ports,
+  with one click: its tag and part in a header, a compartment per interface with its name and address, a socket per
+  port; every text stays inside the symbol, so none lies on a bus line. A part's changed ports redraw it, and its bus
+  lines follow their sockets; the Save's card names it. A page drawn by an earlier version keeps its boxes until
+  **Draw as one symbol** in a box's menu puts the device's symbol in their place, in one undo step
+- api-break: `bus.place_ports` draws the device's bus symbol: it takes `pos` and `replace` (the device's boxes it takes
+  the place of) instead of `boxes`, and finds the port functions' definition among the project's bus ports
 - behaviour-change: the sheet of Parts lists a part's groups (Identity, On the schematic,
   In the cabinet, Connections, the kind's own group, Technical data, Goes with it), each with the fields one declaration
   of a part's fields gives (doc 07 §2.5); an enclosure, a mounting plate and a rail of one's own now have their

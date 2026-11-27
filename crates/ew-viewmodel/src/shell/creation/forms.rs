@@ -251,17 +251,18 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// Arms the black box tool with every interface of `device` that the bus-topology page in front does not draw yet,
-    /// a box each; a device without a bus interface, or with all of them drawn there, is refused in words.
+    /// Arms the black box tool with `device` drawn with its bus symbol on the bus-topology page in front, one click; a
+    /// device without a bus interface, or drawn there already, is refused in words.
     pub(in crate::shell) fn put_station_here(&mut self, device: ew_api::output::Uuid) -> Outcome {
         let Some(folio) = self.current_folio().map(str::to_owned) else {
             return Outcome::refused(key!("reason-no-page"));
         };
-        let Some((tag, bus, interfaces)) = self.project_session().map(|s| {
+        let Some((tag, bus, interfaces, shape)) = self.project_session().map(|s| {
             (
                 s.device_tag(device).unwrap_or_default(),
                 s.has_bus_interfaces(device),
                 s.undrawn_interfaces(device, &folio),
+                s.device_bus_symbol(device, &folio),
             )
         }) else {
             return Outcome::refused(key!("reason-no-project"));
@@ -271,18 +272,16 @@ impl ShellModel {
                 message: strings::format(key!("rack-no-bus-interface"), &[&tag]),
             };
         }
-        if interfaces.is_empty() {
+        let Some(shape) = shape.filter(|_| !interfaces.is_empty()) else {
             return Outcome::Failed {
                 message: strings::format(key!("rack-bus-drawn"), &[&tag, &folio]),
             };
-        }
+        };
         let Some(cat) = self.catalogue() else {
             return Outcome::refused(key!("reason-no-catalogue"));
         };
-        let labels: Vec<&str> = interfaces.iter().map(|i| i.label.as_str()).collect();
-        let label = format!("{tag} {}", labels.join(", "));
         let target = json!({"device": {"device": device.to_string()}});
-        self.arm_ports(&cat, target, label, &interfaces, None)
+        self.arm_ports(&cat, target, tag, &interfaces, shape, None)
     }
 
     /// The form Put a station on this page: "Put -1A1 here" for each station or bus device the bus page does not draw

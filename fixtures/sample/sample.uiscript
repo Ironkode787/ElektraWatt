@@ -730,32 +730,28 @@
 {"action":"plc.module_place","params":{"device":"tag:-104A1"}}
 {"action":"nav.goto","params":{"text":"105-C2"}}
 {"action":"canvas.activate","params":{}}
-{"action":"nav.goto","params":{"text":"105-D4"}}
-{"action":"canvas.activate","params":{}}
 {"action":"ui.dismiss","params":{}}
 {"action":"plc.module_place","params":{"device":"tag:-201K1"}}
 {"action":"nav.goto","params":{"text":"105-C9"}}
 {"action":"canvas.activate","params":{}}
-{"action":"nav.goto","params":{"text":"105-D11"}}
-{"action":"canvas.activate","params":{}}
 {"action":"ui.dismiss","params":{}}
 {"action":"tool.wire","params":{}}
-{"action":"cursor.set","params":{"x_mm":69.809,"y_mm":67.2}}
+{"action":"cursor.set","params":{"pin":"-104A1:A"}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":179.41,"y_mm":67.2}}
+{"action":"cursor.set","params":{"pin":"-201K1:A"}}
 {"action":"canvas.activate","params":{}}
 {"action":"ui.dismiss","params":{}}
 {"action":"select.set","params":{"refs":["wire:-104A1:A -> -201K1:A"]}}
 {"action":"bus.cable","params":{"part":"EW-GEN-CBL-2 · PROFIBUS cable, 2 cores green and red, shielded","length":"8"}}
 {"action":"navigator.show","params":{"kind":"bus"}}
 {"action":"navigator.select","params":{"kind":"bus","keys":["-104A1 DP"]}}
-{"action":"props.set","params":{"row":"function/bus_port.address","value":"2"}}
-{"action":"props.set","params":{"row":"function/bus_port.termination","value":"on"}}
+{"action":"props.set","params":{"row":"function@DP/bus_port.address","value":"2"}}
+{"action":"props.set","params":{"row":"function@DP/bus_port.termination","value":"on"}}
 {"action":"navigator.select","params":{"kind":"bus","keys":["-201K1 DP"]}}
 {"action":"props.set","params":{"row":"function/bus_port.address","value":"3"}}
 {"action":"props.set","params":{"row":"function/bus_port.termination","value":"on"}}
 {"action":"navigator.select","params":{"kind":"bus","keys":["-104A1 X1"]}}
-{"action":"props.set","params":{"row":"function/bus_port.address","value":"192.168.0.10"}}
+{"action":"props.set","params":{"row":"function@X1/bus_port.address","value":"192.168.0.10"}}
 {"action":"page.new","params":{"folio":"902","title":"Panel layout","type":"panel_layout","section":"9"}}
 {"action":"page.goto","params":{"folio":"902"}}
 {"action":"select.set","params":{"refs":["folio:902"]}}

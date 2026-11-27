@@ -7,10 +7,10 @@
 //! field diff, the devices that use the copy and the component BOM rows that change, read from a preview on a fork of
 //! the current snapshot.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use ew_commands::commands::{EditPartCopy, FieldChange, classify_update};
-use ew_derive::Q;
+use ew_derive::{FunctionCps, Q};
 use ew_ids::{Id, Uuid};
 use ew_mltext::Ident;
 use ew_schema::{
@@ -535,6 +535,8 @@ pub struct PartEditPlan {
     pub lost: Vec<String>,
     /// The drawn boxes the correction draws anew ([`redrawn_boxes`]).
     pub boxes: Vec<RedrawnBox>,
+    /// The bus symbols whose sockets the correction changes ([`redrawn_symbols`]).
+    pub symbols: Vec<RedrawnSymbol>,
 }
 
 /// A drawn box of a device that a part's change draws anew (doc 10 §2.6, FT-2208): its pins follow the part's.
@@ -570,6 +572,81 @@ pub(crate) fn redrawn_boxes(before: &Q, after: &Q) -> Vec<RedrawnBox> {
                     .map(|p| ew_derive::folio_label(p))
                     .unwrap_or_default(),
                 moved: old.pos != rep.pos,
+            })
+        })
+        .collect()
+}
+
+/// A device's bus symbol that a part's change draws anew (doc 10 §2.7): it is derived from the part, so its sockets
+/// follow the part's network ports, and the bus lines at a socket that moved follow it.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct RedrawnSymbol {
+    /// The device.
+    pub device: Id<Device>,
+    /// The folio of the page the symbol stands on.
+    pub folio: String,
+    /// The sockets it gains, in words ("X1 P3").
+    pub added: Vec<String>,
+    /// The sockets it loses, in words.
+    pub removed: Vec<String>,
+}
+
+/// The bus symbols that a change from `before` to `after` draws anew: each representation drawn with a bus symbol whose
+/// sockets differ (one gained, one lost, or one standing elsewhere), by its first function's device, in representation
+/// ID order.
+pub(crate) fn redrawn_symbols(before: &Q, after: &Q) -> Vec<RedrawnSymbol> {
+    // Each socket the representation draws, by its words (its interface, and its port where the interface has
+    // several), with its place on the page.
+    let sockets = |q: &Q, rep: &ew_schema::Representation| -> Option<BTreeMap<String, ew_units::Pt2>> {
+        let (symbol, drawn) = ew_derive::drawn(q, rep)?;
+        if !ew_derive::is_bus_symbol(&symbol) {
+            return None;
+        }
+        let interface_of = |cp: u16| {
+            symbol
+                .cps
+                .iter()
+                .find(|c| c.idx == cp)
+                .and_then(|c| c.interface.clone())
+        };
+        let mut out = BTreeMap::new();
+        let drawn_cps = ew_derive::rep_drawn_cps(&drawn, &symbol);
+        for c in &drawn_cps {
+            let interface = interface_of(c.symbol_cp)?;
+            let several = drawn_cps
+                .iter()
+                .filter(|d| interface_of(d.symbol_cp).as_ref() == Some(&interface))
+                .count()
+                > 1;
+            let words = match q.get::<FunctionCps>(c.function).iter().find(|p| p.idx == c.idx) {
+                Some(p) if several => format!("{} {}", interface.as_str(), p.designation),
+                _ => interface.as_str().to_owned(),
+            };
+            let at = drawn.pos.checked_add(drawn.orient.checked_apply(c.local)?)?;
+            out.insert(words, at);
+        }
+        Some(out)
+    };
+    let reps = before.table::<ew_schema::Representation>();
+    let functions = after.functions();
+    let pages = after.table::<ew_schema::Page>();
+    after
+        .table::<ew_schema::Representation>()
+        .iter()
+        .filter_map(|(id, rep)| {
+            let old = reps.get(id)?;
+            let (now, was) = (sockets(after, rep)?, sockets(before, old)?);
+            if now == was {
+                return None;
+            }
+            Some(RedrawnSymbol {
+                device: functions.get(*rep.functions.first()?)?.device?,
+                folio: pages
+                    .get(rep.page)
+                    .map(|p| ew_derive::folio_label(p))
+                    .unwrap_or_default(),
+                added: now.keys().filter(|k| !was.contains_key(*k)).cloned().collect(),
+                removed: was.keys().filter(|k| !now.contains_key(*k)).cloned().collect(),
             })
         })
         .collect()
@@ -1209,6 +1286,7 @@ impl Session {
         let (bom_removed, bom_added, bom_changed) = bom_changes(&q, &after);
         let lost = lost_sockets(&q, &after);
         let boxes = redrawn_boxes(&q, &after);
+        let symbols = redrawn_symbols(&q, &after);
         Ok(PartEditPlan {
             fork: command
                 .params
@@ -1223,6 +1301,7 @@ impl Session {
             bom_changed,
             lost,
             boxes,
+            symbols,
         })
     }
 }

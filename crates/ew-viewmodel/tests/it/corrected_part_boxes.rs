@@ -1,10 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A drawn box follows its corrected part (doc 10 §2.6): a switch of one's own drawn on a bus page with its
-//! six sockets, corrected to eight, shows the two new sockets on its box at once, after the last one of their edge;
-//! corrected to four, its box keeps no mark of the sockets it lost. A box that would grow past the drawing area goes
-//! back inside it, and the Save's card says so (FT-2208).
+//! A drawn box follows its corrected part (doc 10 §2.6): a switch of one's own drawn as a box with its six sockets,
+//! corrected to eight, shows the two new sockets on its box at once, after the last one of their edge; corrected to
+//! four, its box keeps no mark of the sockets it lost. A box that would grow past the drawing area goes back inside it,
+//! and the Save's card says so (FT-2208). The same switch on a bus page is its bus symbol, which the part draws anew:
+//! the card names the sockets it gains (doc 10 §2.7).
 
 use crate::common::{Tmp, cursor, done, grid_point, new_project, tables};
 use ew_viewmodel::ew_api::output::TableBox;
@@ -12,13 +13,12 @@ use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::ShellModel;
 use serde_json::json;
 
-/// The one interface box on the page shown, its sockets (index, point, direction) by index.
+/// The switch's box on the page shown, its sockets (index, point, direction) by index.
 fn sockets(s: &ShellModel) -> TableBox {
     let t = tables(s);
     let mut b = t
         .reps
         .iter()
-        .filter(|r| r.rep_type == "topology")
         .find_map(|r| r.black_box.clone())
         .expect("the switch's box");
     b.cps.sort_by_key(|c| c.0);
@@ -40,10 +40,11 @@ fn save_corrected(s: &mut ShellModel, ports: &str) -> Vec<String> {
 fn correct(s: &mut ShellModel, ports: &str) {
     save_corrected(s, ports);
     done(s, "preview.apply", json!({}));
-    done(s, "page.goto", json!({"folio": "102"}));
+    done(s, "page.goto", json!({"folio": "101"}));
 }
 
-/// A new project with a switch of one's own, SW-6 (one PROFINET interface of six sockets), drawn on bus page 102.
+/// A new project with a switch of one's own, SW-6 (one PROFINET interface of six sockets), and a bus page 102; the
+/// switch drawn as a box by two corners on page 101 (a part without a symbol of its own on a schematic page).
 fn switch_drawn(tmp: &Tmp) -> ShellModel {
     let mut s = new_project(tmp);
     done(
@@ -65,7 +66,7 @@ fn switch_drawn(tmp: &Tmp) -> ShellModel {
         done(&mut s, "parts.field", json!({"field": field, "value": value}));
     }
     done(&mut s, "parts.save", json!({}));
-    done(&mut s, "page.goto", json!({"folio": "102"}));
+    done(&mut s, "page.goto", json!({"folio": "101"}));
     done(&mut s, "tool.place", json!({}));
     done(&mut s, "place.pick", json!({"part": "SW-6"}));
     for k in [(10, 10), (22, 16)] {
@@ -73,7 +74,7 @@ fn switch_drawn(tmp: &Tmp) -> ShellModel {
         cursor(&mut s, p);
         done(&mut s, "canvas.activate", json!({}));
     }
-    done(&mut s, "page.goto", json!({"folio": "102"}));
+    done(&mut s, "page.goto", json!({"folio": "101"}));
     s
 }
 
@@ -126,7 +127,7 @@ fn a_box_that_would_grow_past_the_drawing_area_goes_back_inside() {
         let t = tables(&s);
         t.reps
             .iter()
-            .find(|r| r.rep_type == "topology" && r.black_box.is_some())
+            .find(|r| r.black_box.is_some())
             .expect("the switch's box")
             .clone()
     };
@@ -143,7 +144,7 @@ fn a_box_that_would_grow_past_the_drawing_area_goes_back_inside() {
         "{card:?}"
     );
     done(&mut s, "preview.apply", json!({}));
-    done(&mut s, "page.goto", json!({"folio": "102"}));
+    done(&mut s, "page.goto", json!({"folio": "101"}));
     let after = sockets(&s);
     assert_eq!(after.cps.len(), 16);
     assert!(right(&after) <= area[2], "{} past {}", right(&after), area[2]);
@@ -154,4 +155,29 @@ fn a_box_that_would_grow_past_the_drawing_area_goes_back_inside() {
         (0..6).all(|i| after.cps[i].1 == (before.cps[i].1.0 + shift, before.cps[i].1.1)),
         "the six keep their places on the box"
     );
+}
+
+/// The switch placed on bus page 102 stands as its bus symbol; corrected to eight sockets, the Save's card names the two
+/// it gains, and after Apply the symbol draws all eight.
+#[test]
+fn a_corrected_part_s_bus_symbol_gains_its_sockets_and_the_card_says_so() {
+    let tmp = Tmp::new("corrected-part-symbol");
+    let mut s = switch_drawn(&tmp);
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    done(&mut s, "tool.place", json!({}));
+    done(&mut s, "place.pick", json!({"part": "SW-6"}));
+    let p = grid_point(&s, (10, 10));
+    cursor(&mut s, p);
+    done(&mut s, "canvas.activate", json!({}));
+    let drawn = |s: &ShellModel| tables(s).cps.iter().filter(|c| c.label.contains(":P")).count();
+    assert_eq!(drawn(&s), 6, "its six sockets");
+    let card = save_corrected(&mut s, "8");
+    assert!(
+        card.iter()
+            .any(|l| l.ends_with("on page 102, its bus symbol with X1 P7, X1 P8 added")),
+        "{card:?}"
+    );
+    done(&mut s, "preview.apply", json!({}));
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    assert_eq!(drawn(&s), 8, "its eight sockets");
 }

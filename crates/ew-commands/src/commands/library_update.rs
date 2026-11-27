@@ -702,6 +702,7 @@ impl Command for UpdateLibraryCopies {
         // The drawn boxes of an updated part's devices take its pins and sockets, each kept pin under its new index.
         for part in parts {
             crate::commands::box_follow::follow_part_boxes(tx, part, &remap)?;
+            crate::commands::box_follow::follow_bus_symbols(tx, part)?;
         }
         follow_drawn_cps(tx, drawn, &remap)?;
         for b in &self.redraw {

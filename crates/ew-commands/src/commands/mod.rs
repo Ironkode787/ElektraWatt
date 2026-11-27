@@ -78,7 +78,7 @@ pub use assign::AssignModeParam;
 pub use bus::{BusLineField, PlugParam};
 pub use common::{EndpointParam, KindName, TargetRef};
 pub use connection::{IpAtEnd, WiringChoice, next_in_series};
-pub use device::{ConnectHint, PlaceTarget, PortBox, PortsTarget, allowed_rep_types};
+pub use device::{ConnectHint, PlaceTarget, PortsTarget, allowed_rep_types};
 pub use drafting::{JunctionPlace, MarkerPlace};
 pub use edit::BULK_ABOVE;
 pub use exchange::{ExchangePin, derive_pin_map};
@@ -160,7 +160,7 @@ commands! {
     device::SetRepText,
     device::ResetRepTexts,
     device::PlaceBlackBox,
-    device::PlacePortBoxes,
+    device::PlaceBusSymbol,
     connection::Connect,
     connection::RouteConnection,
     connection::DeleteConnections,

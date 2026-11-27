@@ -16,8 +16,8 @@ use ew_api::AnyCommand;
 use ew_api::output::table_edit::compose;
 use serde_json::{Map, Value, json};
 
-/// The row whose menu offers Next free address: a bus port's Address.
-const NEXT_FREE_ADDRESS_ROW: &str = "function/bus_port.address";
+/// The row whose menu offers Next free address: a bus port's Address (a function's row of this path).
+const NEXT_FREE_ADDRESS_ROW: &str = "bus_port.address";
 
 impl ShellModel {
     /// The entries of the actions menu of the row `key`: the row's actions, then Make variable
@@ -74,7 +74,7 @@ impl ShellModel {
         // A bus port's Address row: Next free address, where its bus numbers its stations and its range has one free.
         if let ([port], true) = (
             section.targets.as_slice(),
-            writable && row.key == NEXT_FREE_ADDRESS_ROW,
+            writable && section.kind == "function" && row.path == NEXT_FREE_ADDRESS_ROW,
         ) && self
             .project
             .as_ref()
@@ -148,7 +148,7 @@ impl ShellModel {
         let Some((section, found)) = find_row(&sheet, &to) else {
             return failed(key!("error-no-row"), &[&to]);
         };
-        let group = crate::properties::group_key(&section.kind, crate::properties::group_of(section, found));
+        let group = crate::properties::group_key(&section.key(), crate::properties::group_of(section, found));
         if self.set_group_open(group, true) {
             self.save_settings();
         }

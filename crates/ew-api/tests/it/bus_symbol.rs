@@ -320,3 +320,78 @@ fn properties_of_a_bus_symbol_has_a_section_per_network_port() {
     let one = s.property_sheet(&[id::<()>(SWITCHED).as_uuid()]);
     assert!(one.sections.iter().all(|x| x.port.is_none()));
 }
+
+/// A starter station of two interfaces (EW-GEN-CPU-2: DP, X1) placed on a bus page by `bus.place_ports` as the tool
+/// sends it: one symbol, and a port function per interface, each typed for its bus and made of its bus's port function
+/// definition (an X1 address takes a PROFINET name).
+#[test]
+fn a_station_placed_on_a_bus_page_gets_a_port_function_per_interface() {
+    use ew_api::{AnyCommand, NewProjectKind, ProjectTemplate, Session, SessionOptions};
+    let options = SessionOptions {
+        ids: Some(ew_testids::seeded_ids(5)),
+        ..SessionOptions::default()
+    };
+    let mut s = Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Schematic, options)
+        .expect("a project");
+    let first = {
+        let q = s.query();
+        let mut pages: Vec<Uuid> = q.pages().iter().map(|(id, _)| id.as_uuid()).collect();
+        pages.sort();
+        pages[0]
+    };
+    let page = s
+        .execute(&AnyCommand {
+            name: "page.create".into(),
+            params: json!({"kind": "bus_topology", "after": first.to_string()}),
+        })
+        .expect("a bus page")
+        .outcome
+        .primary
+        .expect("the page")
+        .1
+        .as_uuid();
+    let part = s
+        .library_parts()
+        .iter()
+        .find(|c| c.item.part_number.as_str() == "EW-GEN-CPU-2")
+        .expect("the starter CPU")
+        .clone();
+    let key = "ew.gen.bus@qet10";
+    let mut copies: Vec<Value> = s
+        .starter_embed_part(part.id.as_uuid(), key)
+        .expect("the closure")
+        .map(|c| c["copies"].as_array().cloned().unwrap_or_default())
+        .unwrap_or_default();
+    let fndefs: Vec<Uuid> = ew_api::output::part_interfaces(&part.item)
+        .iter()
+        .map(|i| i.fndef)
+        .collect();
+    copies.extend(s.port_fndef_copies(&fndefs));
+    let symbol = s.starter_symbol_copy(key).expect("the bus symbol");
+    s.execute(&AnyCommand {
+        name: "bus.place_ports".into(),
+        params: json!({
+            "page": page.to_string(), "symbol": symbol.to_string(), "pos": [20 * STEP, 20 * STEP],
+            "target": {"from_part": {"part": part.id.as_uuid().to_string(), "letter": "A"}}, "copies": copies,
+        }),
+    })
+    .expect("bus.place_ports");
+    let q = s.query();
+    let mut ports: Vec<(String, String)> = q
+        .functions()
+        .iter()
+        .filter_map(|(_, f)| {
+            let p = f.bus_port.as_ref()?;
+            let def = q.fndefs().get(f.def)?.item.meta.key.as_ref()?.as_str().to_owned();
+            Some((p.interface.as_str().to_owned(), def))
+        })
+        .collect();
+    ports.sort();
+    assert_eq!(
+        ports,
+        [
+            ("DP".to_owned(), "ew.fn.dp-port".to_owned()),
+            ("X1".to_owned(), "ew.fn.pn-port".to_owned())
+        ]
+    );
+}

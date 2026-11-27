@@ -298,14 +298,14 @@ fn the_sample_prints_the_addresses_of_its_bound_devices() {
         }
         for (rep, values, _) in slots.iter() {
             let rep = q.reps().get(*rep).unwrap();
-            let symbol = q.symbols().get(rep.symbol).unwrap();
+            let (symbol, _) = ew_derive::drawn(&q, rep).unwrap();
             let device = rep
                 .functions
                 .first()
                 .and_then(|f| q.functions().get(*f))
                 .and_then(|f| f.device);
             for v in values {
-                if symbol.item.text_slots[usize::from(v.slot)].kind == ew_schema::SlotKind::PlcAddress {
+                if symbol.text_slots[usize::from(v.slot)].kind == ew_schema::SlotKind::PlcAddress {
                     printed.push((device.expect("a bound function has a device"), v.text.clone()));
                     folios.push(p.folio.number);
                 }

@@ -810,11 +810,10 @@ fn tutorial_a_bus_network_runs_as_its_page_says() {
     let tmp = Tmp::new();
     let transcript = all_done(&run_tutorial(&tmp, "bus-network"));
     let [cpu, stations, cable, end] = <[String; 4]>::try_from(describes(&transcript)).unwrap();
-    // Step 3: the CPU as a box per interface, and its rack in a tab beside the page.
+    // Step 3: the CPU as its bus symbol, and its rack in a tab beside the page.
     assert_eq!(
         lines_of(&cpu, &["toast", "tab station", "station \""]),
         [
-            "toast \"Placed as 2 boxes, one for each bus interface.\" undo",
             "tab station \"-2A1 · rack\" selected history back 0 forward 0",
             "station \"-2A1\" \"EW-GEN-CPU-2 · PLC CPU with PROFINET and PROFIBUS DP interfaces, without on-board I/O\"",
         ]

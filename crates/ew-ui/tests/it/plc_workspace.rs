@@ -1682,13 +1682,11 @@ fn two_stations_and_a_bus_are_built_from_nothing() {
     wait_for_page(&mut h);
     dispatch(&mut h, "navigator.show", json!({"kind": "plc"}));
     settle(&mut h);
-    // On a bus-topology page the port is a box with its socket: two corners.
-    for (tag, x) in [(&cpu, 20), (&head, 50)] {
+    // On a bus-topology page Place port DP draws the station with its bus symbol, every interface of it: one click.
+    for (tag, x) in [(&cpu, 10), (&head, 50)] {
         station_menu(&mut h, tag, "Place port DP");
-        for corner in [(x, 30), (x + 8, 36)] {
-            crate::navigators::cursor_k(&mut h, corner);
-            dispatch(&mut h, "canvas.activate", json!({}));
-        }
+        crate::navigators::cursor_k(&mut h, (x, 30));
+        dispatch(&mut h, "canvas.activate", json!({}));
         dispatch(&mut h, "tool.select", json!({}));
         settle(&mut h);
     }
@@ -1734,13 +1732,18 @@ fn two_stations_and_a_bus_are_built_from_nothing() {
     }
     dispatch(&mut h, "navigator.table", json!({"kind": "bus", "on": true}));
     settle(&mut h);
+    // The address cell of a DP port's row: the X1 ports, drawn with their stations, wait in their own rows.
+    let dp_cell = |h: &egui_kittest::Harness<'static, ew_ui::app::App>| {
+        let rows: Vec<f32> = h
+            .get_all_by_label_contains(" DP")
+            .map(|n| n.rect().center().y)
+            .collect();
+        h.get_all_by_label_contains("Address TBD")
+            .map(|n| n.rect().center())
+            .find(|c| rows.iter().any(|y| (y - c.y).abs() < 4.0))
+    };
     for address in ["2", "3"] {
-        let at = h
-            .get_all_by_label_contains("Address TBD")
-            .next()
-            .expect("a port's address cell")
-            .rect()
-            .center();
+        let at = dp_cell(&h).expect("a DP port's address cell");
         crate::bus_navigator::double_click(&mut h, at);
         h.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
         h.event(egui::Event::Text(address.to_owned()));
@@ -1748,11 +1751,7 @@ fn two_stations_and_a_bus_are_built_from_nothing() {
         h.key_press(egui::Key::Enter);
         settle(&mut h);
     }
-    assert_eq!(
-        h.query_all_by_label_contains("Address TBD").count(),
-        0,
-        "both ports have an address"
-    );
+    assert!(dp_cell(&h).is_none(), "both DP ports have an address");
     // Report on the Output tab: the network address list as a page.
     h.get_by_role_and_label(egui::Role::Tab, "Output").click();
     settle(&mut h);

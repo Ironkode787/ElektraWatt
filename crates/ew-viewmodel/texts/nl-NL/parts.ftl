@@ -83,6 +83,9 @@ part-card-changed = Stuklijstregel gewijzigd: { $p0 }
 part-card-lost = Een buslijn eindigt op een aansluiting die het artikel niet meer heeft: { $p0 }. Hij houdt zijn eind daar; teken hem naar een andere aansluiting.
 part-card-box = Opnieuw getekend: { $p0 } op pagina { $p1 }, met de pennen die het artikel nu heeft
 part-card-box-moved = Opnieuw getekend: { $p0 } op pagina { $p1 }, teruggezet binnen het tekengebied
+part-card-symbol = Opnieuw getekend: { $p0 } op pagina { $p1 }, de aansluitingen van het bussymbool zoals de poorten van het artikel ze nu geven
+part-card-symbol-added = Opnieuw getekend: { $p0 } op pagina { $p1 }, het bussymbool met { $p2 } erbij
+part-card-symbol-removed = Opnieuw getekend: { $p0 } op pagina { $p1 }, het bussymbool zonder { $p2 }
 part-change-interface = Interface { $p0 }
 part-change-ports = { $p0 ->
         [one] 1 poort

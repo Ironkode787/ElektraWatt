@@ -126,6 +126,10 @@ impl ShellModel {
             if kinds.iter().any(|(_, k)| *k == EntityKind::Rep) {
                 out.extend(self.menu_item("layout.arrange"));
             }
+            // The boxes of bus devices, drawn by an earlier version: Draw as one symbol.
+            if !self.selected_bus_devices().is_empty() {
+                out.extend(self.menu_item("bus.one_symbol"));
+            }
             return out;
         };
         match kind {
@@ -144,6 +148,10 @@ impl ShellModel {
                     }
                     // A drawn box: Add pin or Remove pin, and Centre the pins.
                     if rep.black_box.is_some() {
+                        // A box of a bus device, drawn by an earlier version: Draw as one symbol.
+                        if !self.selected_bus_devices().is_empty() {
+                            out.extend(self.menu_item("bus.one_symbol"));
+                        }
                         self.box_pin_entries(rep, at, &mut out);
                         out.extend(self.menu_item("box.centre_pins"));
                         // A card of the older two-row form: Draw the card in one row.

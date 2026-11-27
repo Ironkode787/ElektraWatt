@@ -806,10 +806,6 @@ impl ShellModel {
         if done && let (Some(placed), Some(json)) = (follows.placed, &json) {
             self.note_placement(json, placed, connects, into, far);
         }
-        if done && let Some(boxes) = follows.boxes {
-            let text = strings::format(key!("toast-placed-boxes"), &[&boxes.to_string()]);
-            self.notify(text, true);
-        }
         if let Some(ip) = follows.ip.clone() {
             self.note_ip(done, ip, json.as_ref());
         }
