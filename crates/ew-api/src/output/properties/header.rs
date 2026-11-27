@@ -268,6 +268,12 @@ impl Session {
                 .and_then(|c| connection_filter(q, Id::from_uuid(*c))),
             _ => None,
         };
+        // A wire's every stretch is one wire: one item of its kind, as the window counts and titles it.
+        let (items, kinds) = if one_wire_of(q, picked).is_some() {
+            (1, BTreeMap::from([(Kind::Connection, 1)]))
+        } else {
+            (items, kinds)
+        };
         SheetHeader {
             title,
             items,

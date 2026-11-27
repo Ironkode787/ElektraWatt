@@ -232,3 +232,14 @@ fn a_wire_selected_in_the_table_shows_its_way_on_902() {
     assert!(shell.canvas().unwrap().region().is_none());
     assert_eq!(shell.canvas().unwrap().viewport(), before);
 }
+
+/// The same row's Properties in the window are headed by the wire, not by its count of stretches.
+#[test]
+fn a_wire_selected_in_the_table_is_headed_by_its_number_and_ends() {
+    let tmp = Tmp::new("vm-cabinet-route-v2-title");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "902");
+    done(&mut shell, "navigator.show", json!({"kind": "connections"}));
+    done(&mut shell, "navigator.select", json!({"kind": "connections", "keys": ["104.3"]}));
+    let title = shell.properties().sheet().map(|s| s.header.title.clone()).unwrap_or_default();
+    assert_eq!(title, "104.3 · -104E1:X2 → -104A1-A1:M");
+}
