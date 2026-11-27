@@ -110,6 +110,8 @@ fn an_edz_s_parts_come_into_parts_as_a_set_and_save_writes_my_parts() {
     done(&mut s, "parts.import", json!({"path": EDZ, "terms": true}));
     s.wait_jobs();
     let set = s.import_set().and_then(|i| i.set.clone()).expect("the set");
+    // The terms notice it was read past is logged first in its report (EW-IMP-201, doc 14 §5).
+    assert_eq!(set.import.report.entries.first().map(|e| e.code.number()), Some(201));
     let (new, changed, _, _) = set.counts();
     assert!(new > 0 && changed == 0, "{:#?}", set.rows);
     assert!(

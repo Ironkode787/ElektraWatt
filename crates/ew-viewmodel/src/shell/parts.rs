@@ -687,7 +687,11 @@ impl ShellModel {
                 }) as Finish);
             }
             let read = eplan::fndef_map(config_dir.as_deref()).and_then(|fndefs| {
-                let set = at.read_eplan(&input, &fndefs).map_err(|e| e.to_string())?;
+                let mut set = at.read_eplan(&input, &fndefs).map_err(|e| e.to_string())?;
+                // An EDZ is read only past the terms notice, which its report logs first (EW-IMP-201, doc 14 §5).
+                if edz {
+                    set.report.entries.insert(0, eplan::terms_entry(input.name()));
+                }
                 let held = project.and_then(|p| p.run(&input, &fndefs).ok());
                 Ok(EplanRead { set, held, fndefs })
             });
