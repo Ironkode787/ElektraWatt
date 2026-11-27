@@ -94,7 +94,10 @@ pub fn wire_od(q: &Q, r: &WireRecord) -> Option<(Nm, bool)> {
 pub fn wire_area(q: &Q, r: &WireRecord) -> Option<(i128, bool)> {
     let (d, default) = wire_od(q, r)?;
     let d = i128::from(d.0);
-    Some((d * d * QUARTER_PI_E9 / 1_000_000_000, default))
+    // π/4 · d² taken by the billions of d² and the rest: d² of any `i64` fits an `i128`, d² · 785,398,163 does not
+    // (a diameter of 466 m, within the format's ±(2^53 − 1) nm, overflowed it).
+    let (whole, rest) = (d * d / 1_000_000_000, d * d % 1_000_000_000);
+    Some((whole * QUARTER_PI_E9 + rest * QUARTER_PI_E9 / 1_000_000_000, default))
 }
 
 /// One piece of a duct between two points where ways enter or leave it.

@@ -634,6 +634,35 @@ fn a_duct_fill_counts_the_stored_ways_along_its_pieces() {
     );
 }
 
+/// Sizes at the format's edge (±(2^53 − 1) nm): a duct as wide and a wire part as thick are planned, filled and judged
+/// against the limit, the wire's area `π/4 · OD²` exact to the square nanometre and no product overflowing.
+#[test]
+fn a_fill_of_sizes_at_the_formats_edge_is_exact_and_does_not_overflow() {
+    let mut fx = cabinet(false);
+    let edge: i64 = 9_007_199_254_740_991;
+    fx.record(D1)["params"] = json!({"duct": {"width": edge, "height": mm(60)}});
+    fx.lib_item(
+        "part",
+        PART_WIRE,
+        json!({"meta": {"key": "WIRE"}, "part_number": "WIRE", "kind": "wire",
+               "manufacturer": {"library": uid(LIBRARY), "item": uid(0x9000), "version_req": "^1"},
+               "sections": {"wire": {"csa": "1.5", "outer_diameter": edge}}}),
+    );
+    fx.record(W1)["overrides"] = json!({"wire_part": {"copy": uid(PART_WIRE)}});
+    let base = routed(fx);
+    let m = base.build();
+    let q = Q::new(&m);
+    assert!(matches!(planned(&plan(&q, &RouteScope::All), W1), Planned::Way(_)));
+    let fill = q.get::<DuctFill>(id(D1)).as_ref().clone().expect("a fill");
+    let full = fill.pieces[fill.fullest.unwrap()];
+    // W1 of the part, and W4 beside it by the table's 3.3 mm for 1.5 mm².
+    let d = i128::from(edge);
+    let own = d * d / 1_000_000_000 * 785_398_163 + d * d % 1_000_000_000 * 785_398_163 / 1_000_000_000;
+    let table = 3_300_000i128 * 3_300_000 * 785_398_163 / 1_000_000_000;
+    assert_eq!((full.area, full.wires), (own + table, 2));
+    assert!(fill.over(), "a wire 9,007 km thick in a duct 60 mm high");
+}
+
 /// A stored way of the space whose wire is no longer a wire of the cabinet is the plan's to remove.
 #[test]
 fn a_way_whose_wire_is_gone_is_removed_by_the_next_route() {
