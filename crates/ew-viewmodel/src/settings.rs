@@ -1171,6 +1171,10 @@ mod tests {
             tips_seen: vec!["wheel".to_owned()],
             terminal_spacing: Some(4),
             symbols_recent: vec!["library:l:s".to_owned()],
+            symbol_last_kind: Some("coil".to_owned()),
+            symbol_drawing_grid: Some(1),
+            symbol_snap: Some(false),
+            symbols_scope: Some("mine".to_owned()),
             extra: toml::Table::new(),
         };
         let written = full.to_toml();
@@ -1179,7 +1183,8 @@ mod tests {
             "author_name = \"A. Engineer\"\nbasic_project = \"/w/t.ew\"\ncanvas_backend = \"cpu\"\n\
             comes_from = \"eplan\"\ndensity = \"compact\"\ndwg_converter = \"/opt/oda\"\nfirst_run_done = true\n\
             keymap = \"kicad\"\nlanguage = \"nl\"\nmin_font_pt = 14\nrecent_projects = [\"/w/a.ew\"]\n\
-            reduce_motion = false\nsymbols_recent = [\"library:l:s\"]\nterminal_spacing = 4\ntheme = \"dark\"\n\
+            reduce_motion = false\nsymbol_drawing_grid = 1\nsymbol_last_kind = \"coil\"\nsymbol_snap = false\n\
+            symbols_recent = [\"library:l:s\"]\nsymbols_scope = \"mine\"\nterminal_spacing = 4\ntheme = \"dark\"\n\
             tips = false\ntips_seen = [\"wheel\"]\nui_scale = 1.25\nupdate_check = true\nversion = 1\n\
             wheel_scrolls = true\nworkspace = \"PLC\"\n\n[parts]\nfavourites = [\"a/1\"]\nrecent = [\"b/2\"]\n\n\
             [properties]\ncollapsed = [\"device/identity\"]\nshow_advanced = true\n\n[[templates]]\n\

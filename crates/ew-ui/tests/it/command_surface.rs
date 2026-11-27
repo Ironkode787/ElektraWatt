@@ -105,11 +105,11 @@ fn the_tabs_and_the_draw_row_dispatch_their_actions() {
                 continue;
             }
             node.click();
-            // The symbol editor takes the place of the page and its docks; Close editor returns to them.
-            if b.id == "symbol.new" {
+            // New symbol opens Parts on a drawing in place of the page and its docks; Back without it returns to them.
+            if b.id == "parts.new_symbol" {
                 h.run_ok();
                 assert_eq!(h.state().dispatched().last().copied(), Some(b.id));
-                let _ = h.state_mut().shell_mut().dispatch("symbol.close", &json!({}));
+                let _ = h.state_mut().shell_mut().dispatch("parts.back", &json!({}));
                 settle(&mut h);
                 clicked += 1;
                 continue;

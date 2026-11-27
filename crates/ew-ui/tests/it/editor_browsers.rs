@@ -60,13 +60,25 @@ fn new_project(tmp: &Tmp) -> Driver {
     crate::support::driver_on_new_project(tmp, tmp.config())
 }
 
-/// A driver with the symbol editor open on a new draft named "Drawn".
+/// A driver with Parts open on a new drawing named `name`.
+fn drawing(d: &mut Driver, name: &str) {
+    if d.shell_mut().parts_place().is_none() {
+        assert_eq!(d.shell_mut().dispatch("parts.open", &json!({})), Outcome::Done);
+    }
+    for (action, params) in [
+        ("parts.new_symbol", json!({"discard": true})),
+        ("parts.field", json!({"field": "symbol.name", "value": name})),
+    ] {
+        assert_eq!(d.shell_mut().dispatch(action, &params), Outcome::Done, "{action}");
+    }
+    d.settle();
+}
+
+/// A driver with Parts open on a new drawing named "Drawn".
 fn editor(tmp: &Tmp) -> Driver {
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
-    let new = json!({"key": "example.drawn", "name": "Drawn"});
-    assert_eq!(d.shell_mut().dispatch("symbol.new", &new), Outcome::Done);
-    d.settle();
+    drawing(&mut d, "Drawn");
     d
 }
 
@@ -128,8 +140,8 @@ fn the_symbol_editor_snaps_to_the_drawing_grid_chosen_and_pins_to_the_connection
     d.settle();
     let free = ends(&mut d, 1);
     assert!(free.iter().any(|v| v % 500_000 != 0), "off the grid: {free:?}");
-    // A connection point lands on the connection grid with snapping off.
-    press(&mut d, "Connection point");
+    // A pin lands on the connection grid with snapping off.
+    press(&mut d, "Pin");
     d.input(&click((canvas.0 - 113, canvas.1 - 71)));
     d.settle();
     let cp = d
@@ -144,11 +156,9 @@ fn the_symbol_editor_snaps_to_the_drawing_grid_chosen_and_pins_to_the_connection
         .unwrap()
         .pos;
     assert!(cp.x.0 % 4_000_000 == 0 && cp.y.0 % 4_000_000 == 0, "{cp:?}");
-    // The grid is the session's, not the draft's: a new draft keeps 4 mm with snapping back on.
+    // The grid is his, not the drawing's: a new drawing keeps 4 mm, and Snap as he left it (on again).
     press(&mut d, "Snap to grid");
-    let new = json!({"key": "example.next", "name": "Next", "discard": true});
-    assert_eq!(d.shell_mut().dispatch("symbol.new", &new), Outcome::Done);
-    d.settle();
+    drawing(&mut d, "Next");
     press(&mut d, "Line");
     let canvas = d.find("Drawing of Next").unwrap();
     d.input(&drag(
@@ -161,14 +171,17 @@ fn the_symbol_editor_snaps_to_the_drawing_grid_chosen_and_pins_to_the_connection
     d.shell_mut().shutdown();
 }
 
-/// A symbol drawn in the editor takes the category chosen there, in the browser's words, and the symbol
-/// browser lists it under that category once saved.
+/// A symbol drawn in Parts is listed where what it is says, chosen in a panel builder's words, and the symbol browser
+/// lists it there once saved.
 #[test]
-fn a_drawn_symbol_is_listed_under_the_category_chosen_in_the_editor() {
+fn a_drawn_symbol_is_listed_under_what_it_is() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
-    press(&mut d, "Symbol editor");
-    press(&mut d, "New symbol");
+    assert_eq!(
+        d.shell_mut().dispatch("parts.new_symbol", &json!({})),
+        Outcome::Done
+    );
+    d.settle();
     for (action, params) in [
         (
             "symbol.draw",
@@ -187,22 +200,10 @@ fn a_drawn_symbol_is_listed_under_the_category_chosen_in_the_editor() {
         Outcome::Done
     );
     d.settle();
-    press(&mut d, "Listed under of New symbol");
-    // The list scrolls to its R.
-    let list = d.find("Connectors").unwrap();
-    for _ in 0..8 {
-        if d.find("Relays").is_some_and(|r| r.1 < list.1 + 150) {
-            break;
-        }
-        d.input(&Input::Scroll {
-            at: list,
-            dx: 0,
-            dy: 4,
-            mods: Modifiers::NONE,
-        });
-        d.settle();
-    }
-    press(&mut d, "Relays");
+    d.input(&Input::Wait { ms: 50 });
+    press(&mut d, "What it is of New symbol");
+    press(&mut d, "Coil of a relay or contactor");
+    assert!(d.texts().iter().any(|t| t == "Relays"), "Listed under follows");
     assert_eq!(
         d.shell_mut()
             .symbol_editor()
@@ -214,11 +215,11 @@ fn a_drawn_symbol_is_listed_under_the_category_chosen_in_the_editor() {
             .as_str(),
         "Relay"
     );
-    press(&mut d, "Save");
-    assert_eq!(d.shell_mut().symbol_editor().unwrap().error, None);
-    // The save's message stands over the header's corner until it goes.
-    d.input(&Input::Wait { ms: 15_000 });
-    press(&mut d, "Close editor");
+    // Save and place on the page it was drawn for; Esc puts the symbol under the pointer down.
+    press_starting(&mut d, "Save and place on ");
+    assert!(d.shell_mut().parts_place().is_none(), "back on the page");
+    d.input(&key("escape"));
+    d.settle();
     press(&mut d, "Symbol");
     // The symbol browser's groups stand under their trade.
     press_starting(&mut d, "Electrical, ");
@@ -275,10 +276,11 @@ fn the_symbol_and_the_device_browser_say_what_they_list_and_share_no_row() {
     d.shell_mut().shutdown();
 }
 
-/// A starter symbol offers Copy and edit alone and says why; the copy opens in the editor and saves to the
-/// user's library; that copy then offers Edit symbol, which opens it under its own key, saving to its library.
+//// A starter symbol opens in Parts from the symbol browser (Open in Parts) as it is, with a line that says why it
+/// cannot be changed and Make my own from it; his own copy saves into My parts, and opened again from the browser
+/// it is changed where it lives, under its own key.
 #[test]
-fn the_browser_edits_a_library_symbol_and_copies_a_read_only_one() {
+fn the_browser_opens_a_starter_symbol_in_parts_and_his_copy_is_changed_where_it_lives() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     press(&mut d, "Symbol");
@@ -286,32 +288,32 @@ fn the_browser_edits_a_library_symbol_and_copies_a_read_only_one() {
         text: "coil, rect".to_owned(),
     });
     d.settle();
-    let why = d
-        .texts()
-        .into_iter()
-        .find(|t| t.contains("is read-only. Copy and edit makes a copy"));
-    assert!(why.is_some(), "{:?}", d.texts());
-    press(&mut d, "Edit symbol");
-    assert!(
-        d.shell_mut().symbol_editor().is_none(),
-        "a greyed Edit symbol opens nothing"
-    );
-    press(&mut d, "Copy and edit");
+    press(&mut d, "Open in Parts");
     {
-        let editor = d.shell_mut().symbol_editor().expect("the editor on the copy");
-        assert!(editor.draft.identity.is_none(), "a copy is a new item");
-        assert!(editor.draft.key.starts_with("user."), "{}", editor.draft.key);
-        assert!(!editor.dirty());
+        let editor = d.shell_mut().symbol_editor().expect("the starter symbol in Parts");
+        assert!(editor.locked.is_some(), "a starter symbol is not changed");
     }
-    assert!(d.shell_mut().picker().is_none(), "the browser closed");
+    assert!(
+        d.texts().iter().any(|t| t.starts_with("A starter symbol.")),
+        "{:?}",
+        d.texts()
+    );
+    press(&mut d, "Make my own from it");
+    let key = {
+        let editor = d.shell_mut().symbol_editor().expect("his copy");
+        assert!(editor.locked.is_none() && editor.draft.identity.is_none());
+        assert!(editor.draft.key.starts_with("user."), "{}", editor.draft.key);
+        editor.draft.key.clone()
+    };
     press(&mut d, "Save");
     assert_eq!(d.shell_mut().symbol_editor().unwrap().error, None);
-    let key = d.shell_mut().symbol_editor().unwrap().draft.key.clone();
-    let folder = d.shell_mut().symbol_editor().unwrap().directory.clone();
     // The save's message stands over the header's corner until it goes.
     d.input(&Input::Wait { ms: 15_000 });
-    press(&mut d, "Close editor");
-    // The copy, in the user's library, is edited in place.
+    for _ in 0..2 {
+        assert_eq!(d.shell_mut().dispatch("parts.back", &json!({})), Outcome::Done);
+    }
+    d.input(&Input::Wait { ms: 50 });
+    // The copy, in My parts, is changed where it lives.
     press(&mut d, "Symbol");
     d.input(&Input::Type {
         text: "coil, rect".to_owned(),
@@ -335,15 +337,15 @@ fn the_browser_edits_a_library_symbol_and_copies_a_read_only_one() {
     );
     d.settle();
     d.input(&Input::Wait { ms: 300 });
-    press(&mut d, "Edit symbol");
-    let editor = d.shell_mut().symbol_editor().expect("the editor on the symbol");
+    press(&mut d, "Open in Parts");
+    let editor = d.shell_mut().symbol_editor().expect("his symbol in Parts");
     assert_eq!(editor.draft.key, key);
     assert!(editor.draft.identity.is_some(), "the same item");
-    assert_eq!(editor.directory, folder);
+    assert!(editor.locked.is_none(), "his own");
     d.shell_mut().shutdown();
 }
 
-/// Terminal… asks for the strip (a new one here), the kind, how many and from which number; Place floats
+// Terminal… asks for the strip (a new one here), the kind, how many and from which number; Place floats
 /// the first terminal and one click lays the row.
 #[test]
 fn terminal_asks_its_strip_kind_and_count_and_one_click_lays_the_row() {

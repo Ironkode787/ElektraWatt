@@ -1168,6 +1168,7 @@ impl Session {
             part: serde_json::to_value(&part).expect("a part has a JSON form"),
             fork: draft.fork.then(|| Id::from_uuid(self.next_fork_item(draft.copy))),
             copies,
+            redraw: self.box_redraws(draft.copy, &draft.original, &part),
         };
         AnyCommand::of(&cmd)
             .map_err(|e| PartDraftError::Field(message("part", key!("error-part-value"), &[&e.to_string()])))

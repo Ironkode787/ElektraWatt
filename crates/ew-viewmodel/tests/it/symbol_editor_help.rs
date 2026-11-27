@@ -13,11 +13,7 @@ use serde_json::json;
 fn f1_on_a_selected_connection_point_opens_its_section() {
     let tmp = Tmp::new("symbol-editor-help");
     let mut shell = tmp.empty_shell(Mode::Headless);
-    done(
-        &mut shell,
-        "symbol.new",
-        json!({"key": "example.help", "name": "Help"}),
-    );
+    crate::common::new_drawing(&mut shell, "Help");
     done(
         &mut shell,
         "symbol.cp",

@@ -24,7 +24,7 @@ pub use ew_schema::{Dir4, PartBox, PartBoxPin};
 use ew_units::{Grid, Nm, Pt2};
 
 use crate::part_editor::{PartDraftError, PartSheet, enum_words, message};
-use crate::{AnyCommand, Session};
+use crate::Session;
 
 /// The connection grid's step the device box is edited on, in nanometres: the native 4 mm.
 pub const EDIT_STEP: i64 = 4_000_000;
@@ -647,18 +647,12 @@ impl Session {
         }
         if draft.box_ != draft.original.box_ {
             p.box_.clone_from(&draft.box_);
+        } else if p.box_.is_none() && !p.cp_pattern.is_empty() {
+            // A box with pins of its own is laid out when it is saved, as Arrange… lays it out: a device of it is drawn
+            // with one click, and the browsers picture its pins.
+            p.box_ = Some(draft.box_steps().layout(EDIT_STEP));
         }
         Ok(())
-    }
-
-    /// The project's copy of library item `item` among its parts (the part a Save made or changed: a new part's
-    /// item, a fork's item); `None` when the project holds none.
-    pub fn part_copy_of_item(&self, item: Uuid) -> Option<Uuid> {
-        let q = self.query();
-        q.parts()
-            .iter()
-            .find(|(_, c)| c.item_id.as_uuid() == item)
-            .map(|(id, _)| id.as_uuid())
     }
 
     /// The part copies the project holds.
@@ -666,45 +660,9 @@ impl Session {
         self.query().parts().iter().map(|(id, _)| id.as_uuid()).collect()
     }
 
-    /// Every part drawn as a box with pins of its own ([`PartSheet::drawn_as_box`]): those the project holds, then
-    /// those of every installed library that it does not hold, each with its draft (without the names of its
-    /// functions).
-    pub fn box_parts(&self) -> Vec<(crate::PartPick, PartSheet)> {
-        let q = self.query();
-        let mut out: Vec<(crate::PartPick, PartSheet)> = q
-            .parts()
-            .iter()
-            .map(|(id, c)| {
-                let copy = id.as_uuid();
-                (
-                    crate::PartPick::Held(copy),
-                    self.draft_of(&q, (**c).clone(), copy),
-                )
-            })
-            .collect();
-        let registry = self.libraries();
-        for library in registry.libraries() {
-            for doc in registry.documents(library.id, ew_schema::Kind::Part) {
-                let ew_schema::LibDocument::Part(c) = doc else {
-                    continue;
-                };
-                let (library, item) = (c.library_id.as_uuid(), c.item_id.as_uuid());
-                let held: Id<Part> = ew_ids::v5::lib_copy_id(library, item);
-                if q.parts().get(held).is_none() {
-                    out.push((
-                        crate::PartPick::Library { library, item },
-                        self.unheld_draft(&q, c),
-                    ));
-                }
-            }
-        }
-        out.retain(|(_, d)| d.drawn_as_box());
-        out
-    }
-
     /// The boxes drawn of devices that use the part copy `copy`, each the drawing of a function the part's main
-    /// template entry made: what a changed layout asks to redraw.
-    pub fn boxes_of_part(&self, copy: Uuid) -> Vec<Id<Representation>> {
+    /// template entry made: what a changed layout draws anew.
+    fn boxes_of_part(&self, copy: Uuid) -> Vec<Id<Representation>> {
         let q = self.query();
         let Some(part) = q.parts().get(Id::from_uuid(copy)) else {
             return Vec::new();
@@ -735,38 +693,44 @@ impl Session {
         out
     }
 
-    /// The `box.reshape` that draws the box `rep` as the layout of the part copy `copy` says, where it stands: its
-    /// outline the layout's rectangle and its pins on their edges, on the page's grid. `None` for a part without a
-    /// layout, a representation that is no box, or a box on a page that is gone.
-    pub fn redraw_box_command(&self, copy: Uuid, rep: Id<Representation>) -> Option<AnyCommand> {
+    /// The boxes a part's new layout draws anew (its box arranged, doc 07 §5.6): each box of a device that uses the
+    /// part copy `copy` ([`Session::boxes_of_part`]) as `box.reshape` takes it, where it stands, its outline the
+    /// layout's rectangle and its pins on their edges on the page's grid. None when `after` lays its box out as
+    /// `before` does, or not at all. `library.update` and `part.edit_copy` carry them (`redraw`).
+    pub(crate) fn box_redraws(&self, copy: Uuid, before: &Part, after: &Part) -> Vec<ReshapeBox> {
+        let Some(layout) = after.box_.as_ref().filter(|l| before.box_.as_ref() != Some(*l)) else {
+            return Vec::new();
+        };
         let q = self.query();
-        let part = q.parts().get(Id::from_uuid(copy))?;
-        let layout = part.item.box_.as_ref()?;
-        let record = q.reps().get(rep)?;
-        record.box_.as_ref()?;
-        let page = q.pages().get(record.page)?;
-        let pins: Vec<u16> = part.item.cp_pattern.iter().map(|c| c.idx).collect();
-        let step = page.grid.at(1)?.0;
-        let (_, outline, cps) =
-            steps(&pins, &[], Some(layout), step).on_page(page.grid, (record.pos.x.0, record.pos.y.0))?;
+        let pins: Vec<u16> = after.cp_pattern.iter().map(|c| c.idx).collect();
         let point = |p: (i64, i64)| Pt2::new(Nm(p.0), Nm(p.1));
-        AnyCommand::of(&ReshapeBox {
-            rep,
-            outline: outline.into_iter().map(point).collect(),
-            cps: Some(
-                cps.into_iter()
-                    .map(|(idx, pos, dir)| BoxCp {
-                        idx,
-                        pos: point(pos),
-                        dir,
-                        name: None,
-                        extra: Default::default(),
-                    })
-                    .collect(),
-            ),
-            centre: false,
-        })
-        .ok()
+        self.boxes_of_part(copy)
+            .into_iter()
+            .filter_map(|rep| {
+                let record = q.reps().get(rep)?;
+                record.box_.as_ref()?;
+                let page = q.pages().get(record.page)?;
+                let step = page.grid.at(1)?.0;
+                let (_, outline, cps) =
+                    steps(&pins, &[], Some(layout), step).on_page(page.grid, (record.pos.x.0, record.pos.y.0))?;
+                Some(ReshapeBox {
+                    rep,
+                    outline: outline.into_iter().map(point).collect(),
+                    cps: Some(
+                        cps.into_iter()
+                            .map(|(idx, pos, dir)| BoxCp {
+                                idx,
+                                pos: point(pos),
+                                dir,
+                                name: None,
+                                extra: Default::default(),
+                            })
+                            .collect(),
+                    ),
+                    centre: false,
+                })
+            })
+            .collect()
     }
 }
 

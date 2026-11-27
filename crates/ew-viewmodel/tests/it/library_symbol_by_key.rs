@@ -19,11 +19,7 @@ fn a_library_symbol_is_named_by_its_key_and_its_address_before_and_after_its_fir
         json!({"cmd": "page.create", "params": {"number": 2, "grid": {"num": 4000000, "den": 1}}}),
     );
     done(&mut shell, "page.goto", json!({"folio": "2"}));
-    done(
-        &mut shell,
-        "symbol.new",
-        json!({"key": "example.by-key", "name": "Keyed contact"}),
-    );
+    crate::common::new_drawing(&mut shell, "Keyed contact");
     done(
         &mut shell,
         "symbol.draw",
@@ -34,12 +30,11 @@ fn a_library_symbol_is_named_by_its_key_and_its_address_before_and_after_its_fir
         "symbol.cp",
         json!({"x": 0, "y": 0, "designation": "1"}),
     );
-    done(
-        &mut shell,
-        "symbol.save",
-        json!({"directory": tmp.0.join("symbols.ewlib")}),
-    );
-    done(&mut shell, "symbol.close", json!({}));
+    // Saved with his parts; its key comes from its name.
+    done(&mut shell, "parts.save", json!({}));
+    let key = shell.symbol_editor().expect("the drawing").draft.key.clone();
+    done(&mut shell, "parts.back", json!({}));
+    done(&mut shell, "parts.back", json!({}));
     done(&mut shell, "tool.place", json!({}));
     let address = shell
         .picker()
@@ -58,14 +53,14 @@ fn a_library_symbol_is_named_by_its_key_and_its_address_before_and_after_its_fir
     done(
         &mut shell,
         "place.pick",
-        json!({"symbol": "example.by-key", "letter": "U"}),
+        json!({"symbol": key, "letter": "U"}),
     );
     done(&mut shell, "cursor.set", json!({"x_mm": 40, "y_mm": 40}));
     done(&mut shell, "canvas.activate", json!({}));
     done(&mut shell, "ui.dismiss", json!({}));
 
     // After it: by its key and by its address.
-    for symbol in ["example.by-key", address.as_str()] {
+    for symbol in [key.as_str(), address.as_str()] {
         done(&mut shell, "place.pick", json!({"symbol": symbol, "letter": "U"}));
         done(&mut shell, "ui.dismiss", json!({}));
     }

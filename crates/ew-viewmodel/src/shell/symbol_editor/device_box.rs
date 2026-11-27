@@ -423,18 +423,14 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// Done and To the part on the box: the open sheet takes the box's pins and their places (a part with pins of its
-    /// own that had no layout takes the one drawn here), and the place shows the part again; a drawing of a symbol in
-    /// hand under the box stays in hand.
+    /// Done and To the part on the box: the open sheet takes the box's pins and their places, and the place shows the
+    /// part again; a drawing of a symbol in hand under the box stays in hand.
     pub(crate) fn close_box(&mut self) -> Outcome {
         let Some(b) = self.symbol_editor.as_mut().and_then(|e| e.device_box.take()) else {
             return Outcome::refused(key!("reason-no-device-box"));
         };
         let changed = b.dirty();
-        let mut draft = b.draft;
-        if changed && draft.box_.is_none() && draft.pins_from().is_none() && !draft.pins.is_empty() {
-            draft.box_ = Some(draft.box_steps().layout(EDIT_STEP));
-        }
+        let draft = b.draft;
         if let Some(editor) = &mut self.symbol_editor {
             editor.shown = false;
             if !editor.in_hand() {
@@ -640,10 +636,10 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// The editor's own actions while a device box is edited: the keys a person learned on a page act on the pins
-    /// (Delete removes the selected ones, an arrow moves them a grid step along their edge, Select all), Undo and
-    /// Redo step the box's history, Save saves the part, Test on a page places a device of it, and Close returns to
-    /// what the editor held. `None` for an action that is the symbol's alone.
+    /// The drawing's own actions while a box is arranged: the keys a person learned on a page act on the pins (Delete
+    /// removes the selected ones, an arrow moves them a grid step along their edge, Select all), Undo and Redo step
+    /// the box's history, and Test on a page waits for the part's Save. `None` for an action that is the symbol's
+    /// alone.
     pub(super) fn box_operation(
         &mut self,
         action: &str,
@@ -833,5 +829,4 @@ impl ShellModel {
         }
         result
     }
-
 }

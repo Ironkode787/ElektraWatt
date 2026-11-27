@@ -247,7 +247,6 @@ commands! {
     exchange::ExchangeSymbol,
     paste::PasteFragment,
     box_reshape::ReshapeBox,
-    box_reshape::RedrawBoxes,
     structure_box::CreateStructureBox,
     items::PlaceItem,
     items::PlaceMarker,

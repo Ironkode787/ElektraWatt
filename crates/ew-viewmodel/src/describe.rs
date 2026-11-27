@@ -1433,16 +1433,20 @@ fn bar_button(b: &crate::command_bar::CommandButton) -> String {
     text
 }
 
-/// The command bar's lines as the window shows the bar (`shown_command_bar`: over the symbol editor its one tab, never
+/// The command bar's lines as the window shows the bar (`shown_command_bar`: over Parts its tab Part or Drawing, never
 /// collapsed): the active tab, then one line per group with its commands in bar order, then the next step; a collapsed
 /// bar prints its tab line only.
 fn command_bar_lines(model: &ShellModel, lines: &mut Vec<String>) {
     let bar = crate::command_bar::shown_command_bar(model);
-    let tab = bar
-        .tabs
-        .iter()
-        .find(|(t, _)| *t == bar.tab)
-        .map_or("", |(_, l)| l.as_str());
+    let tab = match &bar.place_tabs {
+        Some(p) if p.drawing => strings::text(key!("parts-tab-drawing")),
+        Some(_) => strings::text(key!("parts-tab-part")),
+        None => bar
+            .tabs
+            .iter()
+            .find(|(t, _)| *t == bar.tab)
+            .map_or("", |(_, l)| l.as_str()),
+    };
     let mut head = format!("commandbar tab \"{tab}\"");
     if bar.collapsed {
         head.push_str(" collapsed");

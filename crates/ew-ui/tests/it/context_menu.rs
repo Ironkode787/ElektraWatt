@@ -495,7 +495,7 @@ fn item_at(h: &Harness<'_, App>, name: &str) -> Pos2 {
 }
 
 /// A right click on a device's row in the Devices navigator selects it and offers what its symbol offers on
-/// the page (Choose part…, Edit symbol, Copy and edit, from the same function), Go to its first placement and
+/// the page (Choose part…, from the same function), Go to its first placement and
 /// Properties of selection; Choose part… opens the part dialog for it and Go to shows its first placement.
 #[test]
 fn a_device_rows_menu_offers_what_its_symbol_offers_and_goes_to_it() {
@@ -526,7 +526,6 @@ fn a_device_rows_menu_offers_what_its_symbol_offers_and_goes_to_it() {
     for label in [
         "Go to 103-C2",
         "Choose part…",
-        "Copy and edit",
         "Properties of selection",
     ] {
         entry(&h, at, label);

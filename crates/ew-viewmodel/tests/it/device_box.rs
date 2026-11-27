@@ -1,20 +1,22 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The device box (doc 07 §2.5): a part's pins and where they stand on its box, edited on the symbol editor's
-//! screen, saved with the part, and drawn that way when the part is placed.
+//! The box of a part drawn as a box (doc 07 §2.5, §5.6): Arrange… opens it as the drawing of Parts, where its pins
+//! are placed on its edges; Done gives the sheet the layout, the part's Save keeps it and draws the placed boxes of
+//! the part anew, and a device of it is drawn that way.
 
-use crate::common::{Tmp, actual_size, cursor, done, failed, grid_point, new_project, tables};
+use crate::common::{Tmp, actual_size, cursor, done, grid_point, new_drawing, new_project, own_open, tables};
 use ew_api::geometry::Dir;
+use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::symbol_editor::{DeviceBox, side_word};
 use ew_viewmodel::shell::{Outcome, ShellModel};
 use serde_json::json;
 
 fn device_box(s: &ShellModel) -> &DeviceBox {
     s.symbol_editor()
-        .expect("the editor")
+        .expect("the drawing")
         .device_box()
-        .expect("the device box")
+        .expect("the box")
 }
 
 /// The pin table as (name, edge, millimetres along it).
@@ -39,18 +41,49 @@ fn page_150(s: &mut ShellModel) {
     done(s, "view.zoom_actual", json!({}));
 }
 
-/// What the owner asked for: a library part that is drawn as a box (the sample's power supply EW-GEN-PSU-1, its pins
-/// L, N and PE and two + and two -) opened from the project, given one more pin (a DC-OK contact), its inputs put on
-/// the top edge, its outputs on the bottom edge and the contact on the right, saved; the project
-/// then holds its own copy of the part with the pin and the layout, the boxes of it that are drawn are offered for
-/// redrawing with their count, and a click with the Device tool places the box as it was laid out.
+/// A new part of his own drawn as a box, `number` of maker Example with pins `names`, open in Parts and not saved.
+fn new_box_part(s: &mut ShellModel, number: &str, names: &[&str]) {
+    done(s, "parts.new", json!({"start": "box"}));
+    for (field, value) in [("part_number", number), ("manufacturer", "Example")] {
+        done(s, "parts.field", json!({"field": field, "value": value}));
+    }
+    for name in names {
+        done(s, "part.pin", json!({"add": true, "name": name}));
+    }
+}
+
+/// Leaves Parts for the page: Back from the box, the sheet and the place.
+fn leave_parts(s: &mut ShellModel) {
+    for _ in 0..3 {
+        if s.parts_place().is_none() {
+            return;
+        }
+        done(s, "parts.back", json!({}));
+    }
+    assert!(s.parts_place().is_none(), "back on the page");
+}
+
+/// Places part `number` on the page shown at grid point `k` with the Place tool.
+fn place_part(s: &mut ShellModel, number: &str, k: (i64, i64)) {
+    done(s, "tool.place", json!({}));
+    done(s, "place.pick", json!({"part": number}));
+    let at = grid_point(s, k);
+    cursor(s, at);
+    done(s, "canvas.activate", json!({}));
+    done(s, "ui.dismiss", json!({}));
+}
+
+/// What the owner asked for: his own copy of a part drawn as a box (the starter power supply, its pins L, N and PE
+/// and two + and two -), arranged: one more pin (a DC-OK contact), its inputs on the top edge, its outputs on the
+/// bottom edge and the contact on the right; Done gives the sheet the layout, Save keeps it, and a click with the
+/// Place tool draws the box as it was laid out.
 #[test]
-fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
+fn an_own_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
     let tmp = Tmp::new("device-box-library-part");
     let mut s = actual_size(&tmp, "102");
     page_150(&mut s);
-    crate::common::own_of(&mut s, "EW-GEN-PSU-1", "PSU-OWN");
-    done(&mut s, "part.box", json!({"part": "PSU-OWN"}));
+    own_open(&mut s, "EW-GEN-PSU-1", "PSU-OWN");
+    done(&mut s, "parts.draw", json!({"what": "box"}));
     // The box as it was always drawn: the first half of the pins on top, the rest below.
     let before = pins(&s);
     assert_eq!(before.len(), 7);
@@ -113,28 +146,24 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
     assert_ne!(pins(&s), laid_out);
     done(&mut s, "edit.redo", json!({}));
     assert_eq!(pins(&s), laid_out);
-    assert!(device_box(&s).dirty());
-    done(&mut s, "symbol.save", json!({}));
-    let b = device_box(&s);
-    assert!(!b.dirty(), "saved");
+    // Done: the sheet has the pin and the layout, changed and not saved yet; Save keeps them.
+    done(&mut s, "parts.save", json!({}));
+    assert!(s.symbol_editor().is_none(), "back on the part");
+    let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the part");
+    assert!(open.changed);
+    assert!(open.sheet.pins.iter().any(|p| p.name == "OK"));
+    // The project holds the part: Save's card first, then the change.
+    done(&mut s, "parts.save", json!({}));
+    done(&mut s, "preview.apply", json!({}));
+    leave_parts(&mut s);
+    done(&mut s, "parts.open", json!({"part": "PSU-OWN"}));
+    done(&mut s, "parts.draw", json!({"what": "box"}));
     assert_eq!(pins(&s), laid_out, "the saved part reads back as it was laid out");
-    let copy = b.draft.copy;
-    assert!(
-        !b.draft.fork,
-        "the project has its own copy of the library's part now"
-    );
-    // Closing the box returns to the project, where it was opened from.
-    done(&mut s, "symbol.close", json!({}));
-    assert!(s.symbol_editor().is_none());
+    leave_parts(&mut s);
     // One click places the box as the part lays it out.
-    done(
-        &mut s,
-        "tool.black_box",
-        json!({"part": copy.to_string(), "template": 0}),
-    );
+    done(&mut s, "page.goto", json!({"folio": "150"}));
+    place_part(&mut s, "PSU-OWN", (10, 10));
     let at = grid_point(&s, (10, 10));
-    cursor(&mut s, at);
-    done(&mut s, "canvas.activate", json!({}));
     let t = tables(&s);
     let rep = t
         .reps
@@ -161,12 +190,6 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
         .map(|c| (c.1.0 - at.0) / step)
         .collect();
     assert_eq!(bottom, [1, 2, 3, 4], "the four outputs along the bottom edge");
-    assert!(
-        b.cps
-            .iter()
-            .filter(|c| c.2 == Dir::Down)
-            .all(|c| c.1.1 == at.1 + 4 * step)
-    );
     assert_eq!(b.cps.iter().filter(|c| c.2 == Dir::Right).count(), 1);
     let labels: Vec<&str> = t
         .cps
@@ -180,98 +203,34 @@ fn a_library_part_s_box_gets_a_pin_and_a_layout_and_is_placed_that_way() {
     );
 }
 
-/// Add bus interface… in the device box (FT-2208): a part of one's own opens in Parts on Bus interfaces with
-/// a new interface row; a library's part the project holds keeps its library's interfaces, refused in words.
+/// A part of one's own made in Parts, its pins named there and arranged on its box (a pin's rows in Properties: its
+/// name and the potential it carries); two of its boxes placed. Its box arranged anew and the part saved, Save's card
+/// names both boxes drawn anew, and applying the change redraws them in one undo step.
 #[test]
-fn add_bus_interface_opens_the_part_editor_on_a_new_interface() {
-    let tmp = Tmp::new("device-box-bus");
-    let mut s = actual_size(&tmp, "102");
-    done(&mut s, "part.box", json!({"part": "EW-GEN-PSU-1"}));
-    assert!(
-        failed(&mut s, "part.box_details", json!({"bus": true})).contains("make a part of your own from it"),
-        "a library's part"
-    );
-    assert!(
-        s.symbol_editor().and_then(|e| e.device_box()).is_some(),
-        "the box stays open"
-    );
-    done(&mut s, "symbol.close", json!({}));
-    done(&mut s, "part.box", json!({"new": true}));
-    done(&mut s, "part.box_details", json!({"bus": true}));
-    match s.parts_place().and_then(|p| p.sheet.as_ref()) {
-        Some(e) => {
-            assert_eq!(e.group.map(|g| g.name()), Some("ports"));
-            assert_eq!(e.sheet.bus.len(), 1, "a new interface row");
-        }
-        None => panic!("the part in Parts"),
-    }
-}
-
-/// A part of one's own made on the screen: named, given pins, saved to the project; a drawn box of it is redrawn when
-/// its layout changes later and the person says so.
-#[test]
-fn a_new_part_s_box_is_saved_and_a_drawn_box_is_redrawn_on_request() {
+fn a_new_part_s_box_is_arranged_and_its_save_draws_the_placed_boxes_anew() {
     let tmp = Tmp::new("device-box-new-part");
     let mut s = new_project(&tmp);
     page_150(&mut s);
-    done(&mut s, "part.box", json!({"new": true}));
-    // Nothing is saved before the part has a number and a manufacturer; the refusal says which.
-    assert_eq!(
-        failed(&mut s, "symbol.save", json!({})),
-        "Symbol editor: Give the part a part number."
-    );
-    done(
-        &mut s,
-        "symbol.prop",
-        json!({"key": "part_number", "value": "PSU-24"}),
-    );
-    done(
-        &mut s,
-        "symbol.prop",
-        json!({"key": "manufacturer", "value": "Example"}),
-    );
-    for name in ["L", "N", "+", "-"] {
-        done(&mut s, "part.pin", json!({"add": true, "name": name}));
-    }
+    new_box_part(&mut s, "PSU-24", &["L", "N", "+", "-"]);
+    done(&mut s, "parts.draw", json!({"what": "box"}));
     assert_eq!(
         pins(&s).iter().map(|p| (p.0.as_str(), p.1)).collect::<Vec<_>>(),
         [("L", "top"), ("N", "top"), ("+", "bottom"), ("-", "bottom")]
     );
-    // A pin's rows in Properties: its name and the potential it carries.
     done(&mut s, "part.box_select", json!({"pins": [0]}));
     done(&mut s, "symbol.prop", json!({"key": "role", "value": "l"}));
     done(&mut s, "symbol.prop", json!({"key": "name", "value": "L1"}));
     assert_eq!(device_box(&s).pin_table()[0].name, "L1");
-    done(&mut s, "symbol.save", json!({}));
-    let copy = device_box(&s).draft.copy;
-    assert!(!device_box(&s).draft.new);
-    // Test on a page arms the Device tool with the part; a click places its box.
-    done(&mut s, "symbol.scratch", json!({}));
-    assert!(s.symbol_editor().is_none(), "the editor steps aside");
-    assert_eq!(s.tool().name(), "black_box");
-    let at = grid_point(&s, (10, 10));
-    cursor(&mut s, at);
-    done(&mut s, "canvas.activate", json!({}));
-    done(&mut s, "ui.dismiss", json!({}));
-    // A second box of the part beside it.
-    done(
-        &mut s,
-        "place.pick",
-        json!({"part": copy.to_string(), "template": 0}),
-    );
-    let beside = grid_point(&s, (40, 10));
-    cursor(&mut s, beside);
-    done(&mut s, "canvas.activate", json!({}));
-    done(&mut s, "ui.dismiss", json!({}));
-    let top = |s: &ShellModel| -> Vec<i64> {
-        let t = tables(s);
-        let b = t.reps.iter().find_map(|r| r.black_box.clone()).expect("the box");
-        b.cps
-            .iter()
-            .filter(|c| c.2 == Dir::Up)
-            .map(|c| (c.1.0 - at.0) / 4_000_000)
-            .collect()
-    };
+    // Test on a page waits for the part's Save.
+    assert!(matches!(
+        s.dispatch("symbol.scratch", &json!({})),
+        Outcome::Failed { .. }
+    ));
+    done(&mut s, "parts.save", json!({}));
+    done(&mut s, "parts.save", json!({}));
+    done(&mut s, "parts.back", json!({}));
+    place_part(&mut s, "PSU-24", (10, 10));
+    place_part(&mut s, "PSU-24", (40, 10));
     // The pin that stands first on the top edge of each box drawn of the part.
     let firsts = |s: &ShellModel| -> Vec<Option<u16>> {
         tables(s)
@@ -287,28 +246,28 @@ fn a_new_part_s_box_is_saved_and_a_drawn_box_is_redrawn_on_request() {
             })
             .collect()
     };
-    let before = top(&s);
-    assert_eq!(before.len(), 2);
-    assert_eq!(firsts(&s), [Some(0), Some(0)], "two boxes, L first");
-    // Back to the box: the two top pins change places, saved; the drawn box is offered, and redrawn on request.
-    done(&mut s, "symbol.new", json!({}));
+    assert_eq!(firsts(&s), [Some(0), Some(0)], "two boxes, L1 first");
+    // Arranged anew: the two top pins change places; Save's card names the boxes it draws anew.
+    done(&mut s, "parts.open", json!({"part": "PSU-24"}));
+    done(&mut s, "parts.draw", json!({"what": "box"}));
     done(&mut s, "part.pin", json!({"pin": 0, "side": "top"}));
-    done(&mut s, "symbol.save", json!({}));
-    assert_eq!(
-        crate::common::toast(&s),
-        "Saved the device box of PSU-24. Boxes of it that are drawn the old way: 2."
-    );
-    done(&mut s, "symbol.close", json!({}));
-    // Redraw them: both boxes in one undo step.
+    done(&mut s, "parts.save", json!({}));
+    done(&mut s, "parts.save", json!({}));
+    let boxes = match s.properties().card().map(|c| &c.origin) {
+        Some(CardOrigin::Part(card)) => card.boxes.clone(),
+        other => panic!("the part's card: {other:?}"),
+    };
+    assert_eq!(boxes.len(), 2, "{boxes:?}");
+    assert!(boxes.iter().all(|b| b.starts_with("Drawn anew: ")), "{boxes:?}");
     let rev = s.revision();
-    done(&mut s, "part.redraw_boxes", json!({"part": format!("id:{copy}")}));
+    done(&mut s, "preview.apply", json!({}));
+    done(&mut s, "page.goto", json!({"folio": "150"}));
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one step");
     assert_eq!(
         firsts(&s),
         [Some(1), Some(1)],
         "N stands first on the top edge of both now"
     );
-    assert_eq!(top(&s).len(), 2);
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(firsts(&s), [Some(0), Some(0)], "one Undo takes back both");
 }
@@ -322,20 +281,15 @@ fn a_new_part_s_box_is_saved_and_a_drawn_box_is_redrawn_on_request() {
 fn a_box_lands_on_the_grid_of_the_page_it_is_drawn_on() {
     let tmp = Tmp::new("device-box-grids");
     let mut s = new_project(&tmp);
-    done(&mut s, "part.box", json!({"new": true}));
-    for (key, value) in [("part_number", "PSU-5"), ("manufacturer", "Example")] {
-        done(&mut s, "symbol.prop", json!({"key": key, "value": value}));
-    }
-    for name in ["L", "N", "PE", "+"] {
-        done(&mut s, "part.pin", json!({"add": true, "name": name}));
-    }
+    new_box_part(&mut s, "PSU-5", &["L", "N", "PE", "+"]);
+    done(&mut s, "parts.draw", json!({"what": "box"}));
     done(&mut s, "part.box_size", json!({"width": 16, "height": 12}));
     for (pin, side, at) in [(0, "top", 4), (1, "top", 8), (2, "top", 12), (3, "bottom", 8)] {
         done(&mut s, "part.pin", json!({"pin": pin, "side": side, "at": at}));
     }
-    done(&mut s, "symbol.save", json!({}));
-    let copy = device_box(&s).draft.copy;
-    done(&mut s, "symbol.close", json!({}));
+    done(&mut s, "parts.save", json!({}));
+    done(&mut s, "parts.save", json!({}));
+    done(&mut s, "parts.back", json!({}));
     for (number, grid) in [(150, (4_000_000, 1)), (160, (7_937_500, 3))] {
         done(
             &mut s,
@@ -346,14 +300,7 @@ fn a_box_lands_on_the_grid_of_the_page_it_is_drawn_on() {
         );
         done(&mut s, "page.goto", json!({"folio": number.to_string()}));
         done(&mut s, "view.zoom_actual", json!({}));
-        done(
-            &mut s,
-            "tool.black_box",
-            json!({"part": copy.to_string(), "template": 0}),
-        );
-        let at = grid_point(&s, (1, 1));
-        cursor(&mut s, at);
-        done(&mut s, "canvas.activate", json!({}));
+        place_part(&mut s, "PSU-5", (1, 1));
         let t = tables(&s);
         assert_eq!(t.grid, grid);
         let b = t.reps.iter().find_map(|r| r.black_box.clone()).expect("the box");
@@ -395,79 +342,18 @@ fn a_box_lands_on_the_grid_of_the_page_it_is_drawn_on() {
     }
 }
 
-/// The owner's case: a starter part drawn as a box that the project does not hold (the power supply) is listed on the
-/// start card's Device box for a part…; choosing it opens a copy of the person's own with all its pins where a device
-/// of it is drawn, a line saying so; a pin moved and the copy saved, the project holds it as his own part.
+/// A part that is not his is never arranged: Arrange… on a starter part is refused in words, and Make my own from it
+/// is the way.
 #[test]
-fn a_starter_part_that_is_not_placed_opens_as_a_copy_of_one_s_own() {
-    let tmp = Tmp::new("device-box-starter-copy");
-    let mut s = new_project(&tmp);
-    done(&mut s, "symbol.start", json!({}));
-    let (part, _, detail) = s
-        .box_parts()
-        .iter()
-        .find(|(_, number, _)| number == "EW-GEN-PSU-1")
-        .cloned()
-        .expect("the starter power supply is listed");
-    assert!(detail.contains("ElektraWatt starter parts"), "{detail}");
-    done(&mut s, "part.box", json!({ "part": part }));
-    let b = device_box(&s);
-    assert!(b.draft.new, "a new part of the person's own");
-    assert!(
-        b.copy_line()
-            .is_some_and(|l| l.starts_with("A copy of your own of EW-GEN-PSU-1")),
-        "{:?}",
-        b.copy_line()
+fn arrange_is_refused_on_a_part_that_is_not_his() {
+    let tmp = Tmp::new("device-box-not-his");
+    let mut s = actual_size(&tmp, "102");
+    done(&mut s, "parts.open", json!({"part": "EW-GEN-PSU-1"}));
+    assert_eq!(
+        crate::common::refused(&mut s, "parts.draw", json!({"what": "box"})),
+        "reason-part-not-yours"
     );
-    let names: Vec<String> = pins(&s).into_iter().map(|p| p.0).collect();
-    assert_eq!(names, ["L", "N", "PE", "+", "+", "-", "-"]);
-    let plus = device_box(&s).pin_table()[3].idx;
-    done(&mut s, "part.pin", json!({"pin": plus, "side": "right", "at": 4}));
-    done(&mut s, "symbol.save", json!({}));
-    let b = device_box(&s);
-    assert!(!b.draft.new && b.draft.own, "saved as the person's own part");
-    assert_eq!(b.copy_line(), None);
-    assert!(pins(&s).contains(&("+".to_owned(), "right", 4)));
-}
-
-/// A starter part placed on a page: its box, opened from the start card, says that the starter library cannot be
-/// changed and that Save makes a copy of the person's own in the project, which its devices take.
-#[test]
-fn a_placed_starter_part_s_box_says_save_makes_a_copy() {
-    let tmp = Tmp::new("device-box-starter-placed");
-    let mut s = new_project(&tmp);
-    page_150(&mut s);
-    done(
-        &mut s,
-        "place.pick",
-        json!({"part": "EW-GEN-PSU-1", "template": 0}),
-    );
-    // A part without a layout: its box is drawn by two clicks.
-    for corner in [(10, 10), (30, 30)] {
-        let at = grid_point(&s, corner);
-        cursor(&mut s, at);
-        done(&mut s, "canvas.activate", json!({}));
-    }
-    done(&mut s, "ui.dismiss", json!({}));
-    assert!(
-        tables(&s).reps.iter().any(|r| r.black_box.is_some()),
-        "the box is drawn"
-    );
-    done(&mut s, "symbol.start", json!({}));
-    let (part, _, _) = s
-        .box_parts()
-        .iter()
-        .find(|(_, number, _)| number == "EW-GEN-PSU-1")
-        .cloned()
-        .expect("the placed power supply is listed");
-    assert!(part.starts_with("id:"), "the project holds it: {part}");
-    done(&mut s, "part.box", json!({ "part": part }));
-    let line = device_box(&s).copy_line().expect("the copy line");
-    assert!(
-        line.starts_with("ElektraWatt starter parts cannot be changed: Save makes a copy of your own"),
-        "{line}"
-    );
-    assert_eq!(pins(&s).len(), 7);
+    assert!(s.symbol_editor().is_none());
 }
 
 /// The device browser's picture of a part drawn as a box is its box with its pins as the part lays them out (it was
@@ -476,15 +362,9 @@ fn a_placed_starter_part_s_box_says_save_makes_a_copy() {
 fn the_device_browser_shows_a_box_part_with_its_pins() {
     let tmp = Tmp::new("device-box-preview");
     let mut s = new_project(&tmp);
-    done(&mut s, "part.box", json!({"new": true}));
-    for (key, value) in [("part_number", "ECP-8"), ("manufacturer", "Example")] {
-        done(&mut s, "symbol.prop", json!({"key": key, "value": value}));
-    }
-    for name in ["24V", "0V", "1", "2"] {
-        done(&mut s, "part.pin", json!({"add": true, "name": name}));
-    }
-    done(&mut s, "symbol.save", json!({}));
-    done(&mut s, "symbol.close", json!({}));
+    new_box_part(&mut s, "ECP-8", &["24V", "0V", "1", "2"]);
+    done(&mut s, "parts.save", json!({}));
+    done(&mut s, "parts.back", json!({}));
     done(&mut s, "tool.place_part", json!({}));
     done(&mut s, "picker.filter", json!({"text": "ECP-8"}));
     let preview = s.picker().and_then(|p| p.preview.clone()).expect("a picture");
@@ -497,28 +377,26 @@ fn the_device_browser_shows_a_box_part_with_its_pins() {
     );
 }
 
-/// Close box returns where the box was opened from: the editor's ways in, which offer the symbol draft in hand to
-/// continue, not that draft as if it had been opened again.
+/// To the part returns from the box to the part's sheet; a symbol drawn before waits in hand under it.
 #[test]
-fn close_box_returns_to_the_ways_in_it_was_opened_from() {
+fn to_the_part_returns_to_the_sheet_and_keeps_the_drawing_in_hand() {
     let tmp = Tmp::new("device-box-close");
     let mut s = new_project(&tmp);
-    done(
-        &mut s,
-        "symbol.new",
-        json!({"key": "example.lamp", "name": "Lamp"}),
-    );
+    new_drawing(&mut s, "Lamp");
     done(
         &mut s,
         "symbol.draw",
         json!({"tool": "rectangle", "x": -2, "y": -2, "x2": 2, "y2": 2}),
     );
-    done(&mut s, "symbol.start", json!({}));
-    done(&mut s, "part.box", json!({"new": true}));
-    done(&mut s, "symbol.close", json!({}));
-    let editor = s.symbol_editor().expect("the editor stays");
-    assert!(editor.device_box().is_none() && editor.start, "the ways in");
-    assert!(editor.in_hand(), "the lamp waits to be continued");
+    done(&mut s, "parts.back", json!({}));
+    new_box_part(&mut s, "LMP-1", &["X1", "X2"]);
+    done(&mut s, "parts.draw", json!({"what": "box"}));
+    assert!(s.symbol_editor().and_then(|e| e.device_box()).is_some());
+    done(&mut s, "parts.back", json!({}));
+    assert!(s.symbol_editor().is_none(), "the part's sheet shows");
+    assert!(s.parts_place().and_then(|p| p.sheet.as_ref()).is_some());
+    let kept = s.kept_symbol_editor().expect("the lamp waits in hand");
+    assert!(kept.device_box().is_none() && kept.in_hand());
 }
 
 /// A PLC card's pins come from its channels: the box shows, and a change of its pins is refused with the sentence
@@ -528,18 +406,10 @@ fn a_plc_card_s_pins_are_not_edited_on_the_box() {
     let tmp = Tmp::new("device-box-plc");
     let mut s = new_project(&tmp);
     done(&mut s, "parts.new", json!({"start": "module"}));
-    done(
-        &mut s,
-        "parts.field",
-        json!({"field": "manufacturer", "value": "Example"}),
-    );
-    done(
-        &mut s,
-        "parts.field",
-        json!({"field": "part_number", "value": "DI-8"}),
-    );
-    done(&mut s, "part.box", json!({}));
-    assert!(s.dialog().is_none(), "Parts gave way to the box");
+    for (field, value) in [("manufacturer", "Example"), ("part_number", "DI-8")] {
+        done(&mut s, "parts.field", json!({"field": field, "value": value}));
+    }
+    done(&mut s, "parts.draw", json!({"what": "box"}));
     let why = device_box(&s).pins_from().expect("the sentence");
     assert!(why.contains("PLC card"), "{why}");
     assert_eq!(

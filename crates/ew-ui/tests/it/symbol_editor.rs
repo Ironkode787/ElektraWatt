@@ -53,18 +53,28 @@ fn graphics(d: &mut Driver) -> Value {
     serde_json::to_value(&d.shell_mut().symbol_editor().unwrap().draft.symbol.graphics).unwrap()
 }
 
-/// The editor on a draft with two small squares, a filled one around the origin (taken by its face) and one right of
-/// it that is not filled (taken by its line), nothing selected; the drawing's centre is the symbol's origin (an empty
-/// draft is fitted around it).
-fn two_squares(tmp: &Tmp) -> (Driver, (i64, i64)) {
+/// Parts on a new drawing named `name`.
+fn drawing(tmp: &Tmp, name: &str) -> Driver {
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
+    done(&mut d, "parts.open", json!({}));
+    done(&mut d, "parts.new_symbol", json!({}));
     done(
         &mut d,
-        "symbol.new",
-        json!({"key": "example.window", "name": "Window"}),
+        "parts.field",
+        json!({"field": "symbol.name", "value": name}),
     );
     d.settle();
+    d
+}
+
+/// The drawing with two small squares, a filled one around the origin (taken by its face) and one right of it that
+/// is not filled (taken by its line), nothing selected, and nothing else: the texts its kind brings are deleted. The
+/// drawing's centre is the symbol's origin (a new drawing is fitted around it).
+fn two_squares(tmp: &Tmp) -> (Driver, (i64, i64)) {
+    let mut d = drawing(tmp, "Window");
+    done(&mut d, "symbol.select", json!({"items": "all"}));
+    done(&mut d, "symbol.delete", json!({}));
     done(
         &mut d,
         "symbol.draw",
@@ -244,28 +254,21 @@ fn ctrl_c_and_ctrl_v_copy_and_paste_shapes_texts_points_and_pins() {
     d.shell_mut().shutdown();
 }
 
-/// With nothing in hand the editor shows the ways in; New symbol opens the drawing with its outline and Properties.
+/// New symbol in Parts opens the drawing at once, no question first, with its tools, its short sheet and its outline.
 #[test]
-fn the_start_card_leads_to_a_new_symbol() {
+fn new_symbol_in_parts_opens_the_drawing_at_once() {
     let tmp = Tmp::new();
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
-    done(&mut d, "symbol.new", json!({}));
+    done(&mut d, "parts.open", json!({}));
     d.settle();
-    for way in [
-        "New symbol",
-        "Copy a library symbol\u{2026}",
-        "Device box for a part\u{2026}",
-        "Import a file\u{2026}",
-    ] {
-        assert!(d.find(way).is_some(), "{way}: {:?}", d.labels());
-    }
-    assert!(d.find("Line").is_none(), "no tools before something is in hand");
-    d.input(&click(d.find("New symbol").unwrap()));
-    assert!(!d.shell_mut().symbol_editor().unwrap().start);
+    assert!(d.find("Line").is_none(), "no tools before a drawing is open");
+    d.input(&click(d.find("New symbol").expect("New symbol in Parts")));
+    d.settle();
+    assert!(d.shell_mut().symbol_editor().is_some());
     for name in [
         "Line",
-        "Connection point",
+        "Pin",
         "Shapes (0)",
         "What it is of New symbol",
     ] {
@@ -280,14 +283,7 @@ fn the_start_card_leads_to_a_new_symbol() {
 #[test]
 fn the_tools_draw_with_the_pointer_and_escape_returns_to_select() {
     let tmp = Tmp::new();
-    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
-    d.enable_accesskit();
-    done(
-        &mut d,
-        "symbol.new",
-        json!({"key": "example.tools", "name": "Tools"}),
-    );
-    d.settle();
+    let mut d = drawing(&tmp, "Tools");
     let (cx, cy) = d.find("Drawing of Tools").expect("the drawing");
     d.input(&click(d.find("Line").unwrap()));
     d.input(&click((cx - 100, cy - 100)));
@@ -302,7 +298,7 @@ fn the_tools_draw_with_the_pointer_and_escape_returns_to_select() {
         text: "K1".to_owned(),
     });
     d.input(&key("Enter"));
-    d.input(&click(d.find("Connection point").unwrap()));
+    d.input(&click(d.find("Pin").unwrap()));
     d.input(&click((cx - 100, cy + 100)));
     d.input(&click((cx + 100, cy + 100)));
     let g = graphics(&mut d);
@@ -336,17 +332,12 @@ fn the_tools_draw_with_the_pointer_and_escape_returns_to_select() {
     d.shell_mut().shutdown();
 }
 
-/// A row of Properties commits on Enter as one undo step, a name typed and not left is saved by a click on Save, and
-/// Close editor returns to the window.
+/// A row of Properties commits on Enter as one undo step, a name typed on the short sheet and not left is saved by a
+/// click on Save, and Back leaves the drawing.
 #[test]
 fn a_row_commits_once_and_save_takes_what_was_typed() {
     let tmp = Tmp::new();
     let (mut d, _) = two_squares(&tmp);
-    done(
-        &mut d,
-        "symbol.directory",
-        json!({"directory": tmp.0.join("window.ewlib")}),
-    );
     done(&mut d, "symbol.cp", json!({"x": 0, "y": 4, "designation": "1"}));
     done(&mut d, "symbol.select", json!({"items": ["graphic:0"]}));
     d.input(&Input::Wait { ms: 50 });
@@ -369,7 +360,7 @@ fn a_row_commits_once_and_save_takes_what_was_typed() {
         json!([-2_000_000, -2_000_000]),
         "one step"
     );
-    // The symbol's own rows with nothing selected; the name is typed, then Save is clicked without leaving the field.
+    // The symbol's own rows on its short sheet; the name is typed, then Save is clicked without leaving the field.
     done(&mut d, "symbol.select", json!({"items": []}));
     d.input(&Input::Wait { ms: 50 });
     d.input(&click(d.find("Name of Window").unwrap()));
@@ -382,19 +373,19 @@ fn a_row_commits_once_and_save_takes_what_was_typed() {
     {
         let editor = d.shell_mut().symbol_editor().unwrap();
         assert_eq!(editor.error, None);
-        assert!(editor.stored(), "saved to the library");
+        assert!(editor.stored(), "saved into My parts");
         assert_eq!(
             serde_json::to_value(&editor.draft.symbol.name).unwrap()["en"],
             json!("Lamp")
         );
     }
     d.input(&Input::Wait { ms: 15_000 });
-    d.input(&click(d.find("Close editor").unwrap()));
+    d.input(&click(d.find("Back").unwrap()));
     assert!(d.shell_mut().symbol_editor().is_none());
     d.shell_mut().shutdown();
 }
 
-/// The device box of a new part DRV-1, opened by Pins and box… in Parts, with three pins added by Add pin.
+/// The box of a new part DRV-1, opened by Arrange… in Parts, with three pins added by Add pin.
 fn box_with_three_pins(tmp: &Tmp) -> Driver {
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
@@ -418,7 +409,7 @@ fn box_with_three_pins(tmp: &Tmp) -> Driver {
     // The pins are a section of the editor (picture A): a click shows it.
     crate::own_parts::press(&mut d, "On the schematic section");
     d.input(&click(
-        d.find("Pins and box\u{2026}").expect("the sheet's button"),
+        d.find("Arrange\u{2026}").expect("the sheet's button"),
     ));
     assert!(d.shell_mut().dialog().is_none(), "Parts gave way");
     for _ in 0..3 {
@@ -454,7 +445,7 @@ fn box_now(d: &mut Driver) -> ((i64, i64), Vec<PinPlace>) {
     ((steps.w, steps.h), pins)
 }
 
-/// The device box through the window: Pins and box… in Parts opens it on the part being made; Add pin puts
+/// The box through the window: Arrange… in Parts opens it on the part being made; Add pin puts
 /// a pin on the box; a pin dragged to the right edge stands there.
 #[test]
 fn a_pin_is_added_and_dragged_onto_another_edge_of_the_box() {
@@ -550,39 +541,5 @@ fn every_edge_of_the_box_sizes_it_and_the_pins_stay_where_they_stand() {
     let (size, higher) = box_now(&mut d);
     assert_eq!(size, (4, 6), "a step higher");
     assert_eq!(places(&higher), places(&narrow), "the pins keep their places");
-    d.shell_mut().shutdown();
-}
-
-/// Redraw them in the toast that a Save of a drawn part's box shows, clicked inside the editor: the boxes are redrawn
-/// and the toast says so (it did nothing visible there).
-#[test]
-fn redraw_them_inside_the_editor_redraws_and_says_so() {
-    let tmp = Tmp::new();
-    let mut d = box_with_three_pins(&tmp);
-    done(&mut d, "symbol.save", json!({}));
-    // A box of the part on the page, then back in its box: two pins change places and the box is saved.
-    done(&mut d, "symbol.scratch", json!({}));
-    done(&mut d, "cursor.set", json!({"x_mm": 100, "y_mm": 100}));
-    done(&mut d, "canvas.activate", json!({}));
-    done(&mut d, "ui.dismiss", json!({}));
-    done(&mut d, "symbol.new", json!({}));
-    done(&mut d, "part.pin", json!({"pin": 0, "side": "right", "at": 4}));
-    done(&mut d, "symbol.save", json!({}));
-    d.input(&Input::Wait { ms: 100 });
-    assert!(
-        d.find("Back to the editor").is_none(),
-        "the page's toast left when the editor took the window"
-    );
-    let redraw = d.find("Redraw them").expect("the toast's Redraw them");
-    d.input(&click(redraw));
-    d.input(&Input::Wait { ms: 100 });
-    assert!(d.find("Redraw them").is_none(), "the toast is spent");
-    assert!(
-        d.texts()
-            .iter()
-            .any(|t| t == "1 as their part lays them out now, their wires with them."),
-        "{:?}",
-        d.texts()
-    );
     d.shell_mut().shutdown();
 }

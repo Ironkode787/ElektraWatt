@@ -611,6 +611,26 @@ pub fn strip_at(shell: &mut ShellModel, key: &str) {
 /// Makes the person's own part `own` from the starter part `starter` in Parts (a starter part is never changed): Make
 /// my own, its number, Save, Back.
 pub fn own_of(shell: &mut ShellModel, starter: &str, own: &str) {
+    own_open(shell, starter, own);
+    done(shell, "parts.back", json!({}));
+}
+
+/// A new symbol of his own named `name`, drawn in Parts (New symbol in the place, then its Name typed); a drawing in
+/// hand before it goes.
+pub fn new_drawing(shell: &mut ShellModel, name: &str) {
+    if shell.parts_place().is_none() {
+        done(shell, "parts.open", json!({}));
+    }
+    done(shell, "parts.new_symbol", json!({ "discard": true }));
+    done(
+        shell,
+        "parts.field",
+        json!({ "field": "symbol.name", "value": name }),
+    );
+}
+
+/// [`own_of`] without Back: the part saved stays open in Parts.
+pub fn own_open(shell: &mut ShellModel, starter: &str, own: &str) {
     done(shell, "parts.open", json!({ "part": starter }));
     done(shell, "parts.own", json!({}));
     done(
@@ -624,5 +644,4 @@ pub fn own_of(shell: &mut ShellModel, starter: &str, own: &str) {
         json!({ "field": "part_number", "value": own }),
     );
     done(shell, "parts.save", json!({}));
-    done(shell, "parts.back", json!({}));
 }

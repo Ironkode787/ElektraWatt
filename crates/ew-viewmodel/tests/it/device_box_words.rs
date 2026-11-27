@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The device box says what it does with what a person typed: a pin's place between two steps of the pin
-//! grid lands on a step and a note says where; a copy of a starter part says that it keeps the starter's part number.
+//! grid lands on a step and a note says where.
 
-use crate::common::{Tmp, actual_size, done, new_project};
+use crate::common::{Tmp, actual_size, done, own_open};
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::shell::symbol_editor::DeviceBox;
 use serde_json::json;
@@ -25,7 +25,8 @@ fn noted(s: &ShellModel, text: &str) -> bool {
 fn a_pin_typed_between_two_steps_says_where_it_stands() {
     let tmp = Tmp::new("device-box-pin-step");
     let mut s = actual_size(&tmp, "102");
-    done(&mut s, "part.box", json!({"part": "EW-GEN-PSU-1"}));
+    own_open(&mut s, "EW-GEN-PSU-1", "PSU-OWN");
+    done(&mut s, "parts.draw", json!({"what": "box"}));
     let pin = device_box(&s).pin_table()[3].idx;
     // On a step: no word.
     done(&mut s, "part.pin", json!({"pin": pin, "side": "right", "at": 8}));
@@ -42,24 +43,5 @@ fn a_pin_typed_between_two_steps_says_where_it_stands() {
             .entries()
             .map(|n| n.text.clone())
             .collect::<Vec<_>>()
-    );
-}
-
-#[test]
-fn a_copy_of_a_starter_part_says_it_keeps_the_part_number() {
-    let tmp = Tmp::new("device-box-copy-number");
-    let mut s = new_project(&tmp);
-    done(&mut s, "symbol.start", json!({}));
-    let (part, _, _) = s
-        .box_parts()
-        .iter()
-        .find(|(_, number, _)| number == "EW-GEN-PSU-1")
-        .cloned()
-        .expect("the starter power supply is listed");
-    done(&mut s, "part.box", json!({ "part": part }));
-    let line = device_box(&s).copy_line().unwrap_or_default();
-    assert!(
-        line.contains("The copy keeps the part number EW-GEN-PSU-1 until you give it one of its own"),
-        "{line}"
     );
 }

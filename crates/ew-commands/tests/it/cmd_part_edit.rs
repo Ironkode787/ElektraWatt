@@ -96,6 +96,7 @@ fn edit(copy: Id<Part>, part: Value, fork: Option<u128>) -> EditPartCopy {
         part,
         fork: fork.map(|f| Id::<LibItem>::from_uuid(uuid(f))),
         copies: Vec::new(),
+        redraw: Vec::new(),
     }
 }
 

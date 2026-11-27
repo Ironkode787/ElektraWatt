@@ -151,6 +151,7 @@ fn a_fork_changes_accessories_and_variants_and_refuses_a_ferrule_or_a_variant_wi
         part,
         fork: Some(Id::from_uuid(uuid(fork))),
         copies: vec![],
+        redraw: vec![],
     };
     // EP2 instead of EP, and a red variant with its own number: the fork takes them.
     let red = json!([{"key": "RD", "name": {"en": "Red"}, "part_number": "T-A-RD"}]);

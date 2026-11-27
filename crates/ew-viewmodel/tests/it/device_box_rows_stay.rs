@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The pin list of a device box keeps its rows while the same pins are edited: the sample's power supply's
-//! box, a pin of its top edge given the bottom edge, keeps its row; selecting another pin sorts the list by the box
+//! The pin list of a device box keeps its rows while the same pins are edited: the box of his own copy of the starter
+//! power supply, a pin of its top edge given the bottom edge, keeps its row; selecting another pin sorts the list by the box
 //! again, the edited pin among the bottom edge's.
 
-use crate::common::{Tmp, actual_size, done};
+use crate::common::{Tmp, actual_size, done, own_open};
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::shell::symbol_editor::side_word;
 use serde_json::json;
@@ -25,7 +25,8 @@ fn rows(s: &ShellModel) -> Vec<(u16, &'static str)> {
 fn a_pin_given_another_edge_keeps_its_row_while_it_is_edited() {
     let tmp = Tmp::new("device-box-rows-stay");
     let mut s = actual_size(&tmp, "102");
-    done(&mut s, "part.box", json!({"part": "EW-GEN-PSU-1"}));
+    own_open(&mut s, "EW-GEN-PSU-1", "PSU-OWN");
+    done(&mut s, "parts.draw", json!({"what": "box"}));
     let before = rows(&s);
     let (pin, _) = *before
         .iter()

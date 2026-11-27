@@ -806,10 +806,10 @@ fn an_inside_out_grip_drag_is_refused_and_leaves_the_box_alone() {
     );
 }
 
-/// A box of a part draws the part's pins; Add pin opens its device box, where they are edited, and
-/// says so; the box is unchanged.
+/// A box of a part draws the part's pins; Add pin opens the part in Parts, where they are arranged: the sample's starter
+/// power supply as it is, with the line that Make my own from it is the way; the box is unchanged.
 #[test]
-fn add_pin_on_a_part_s_box_opens_its_device_box() {
+fn add_pin_on_a_part_s_box_opens_the_part_in_parts() {
     let tmp = Tmp::new("box-cp");
     let mut s = actual_size(&tmp, "101");
     let before = g1(&tables(&s));
@@ -817,8 +817,14 @@ fn add_pin_on_a_part_s_box_opens_its_device_box() {
     select_ids(&mut s, &[before.id.to_string()]);
     done(&mut s, "box.add_cp", json!({}));
     assert!(
-        s.symbol_editor().and_then(|e| e.device_box()).is_some(),
-        "the device box opens"
+        s.parts_place().and_then(|p| p.sheet.as_ref()).is_some(),
+        "the part in Parts"
+    );
+    assert!(s.symbol_editor().is_none(), "a starter part's box is not arranged");
+    assert!(
+        crate::common::toast(&s).starts_with("The pins of this box are its part's"),
+        "{}",
+        crate::common::toast(&s)
     );
     assert_eq!(g1(&tables(&s)).black_box, before.black_box, "the box stays");
 }

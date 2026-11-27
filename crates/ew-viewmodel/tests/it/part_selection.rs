@@ -232,13 +232,13 @@ fn favourites_and_recent_persist() {
     let tmp = Tmp::new("part-sel-3");
     let mut s = writable(&tmp);
     // A part of the project's own, which no library holds (the sample's parts are all library copies): OWN-1.
-    done(&mut s, "part.box", json!({"new": true}));
-    for (key, value) in [("part_number", "OWN-1"), ("manufacturer", "Own")] {
-        done(&mut s, "symbol.prop", json!({"key": key, "value": value}));
+    done(&mut s, "parts.new", json!({"start": "box"}));
+    for (field, value) in [("part_number", "OWN-1"), ("manufacturer", "Own")] {
+        done(&mut s, "parts.field", json!({"field": field, "value": value}));
     }
     done(&mut s, "part.pin", json!({"add": true, "name": "1"}));
-    done(&mut s, "symbol.save", json!({}));
-    done(&mut s, "symbol.close", json!({}));
+    done(&mut s, "parts.save", json!({}));
+    done(&mut s, "parts.back", json!({}));
     select(&mut s, "-101F2");
     done(&mut s, "part.choose", json!({}));
     let vlv = item_text(&s, "EW-GEN-VLV-1");

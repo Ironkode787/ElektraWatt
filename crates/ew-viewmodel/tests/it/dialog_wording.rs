@@ -118,16 +118,16 @@ fn every_dialog(tmp: &Tmp) -> (ShellModel, Vec<Dialog>) {
     (shell, dialogs)
 }
 
-/// Closes whatever an action left open (a dialog, a picker, the palette, a card, the wizard, the first run, the symbol
-/// editor) and arms Select, so that the next action starts from the project view.
-const REST: &[&str] = &["wizard.cancel", "first_run.finish", "symbol.close", "find.close"];
+/// Closes whatever an action left open (a dialog, a picker, the palette, a card, the wizard, the first run, a drawing
+/// and Parts) and arms Select, so that the next action starts from the project view.
+const REST: &[&str] = &["wizard.cancel", "first_run.finish", "parts.back", "parts.back", "find.close"];
 
 fn back_to_rest(shell: &mut ShellModel) {
     for _ in 0..4 {
         let _ = shell.dispatch("ui.dismiss", &Value::Null);
     }
     for close in REST {
-        // The symbol editor closes without its question about the draft.
+        // Parts closes without its question about the part.
         let _ = shell.dispatch(close, &json!({ "discard": true }));
     }
     let _ = shell.dispatch("tool.select", &json!({}));

@@ -1216,26 +1216,21 @@ fn the_form_check_names_a_form_the_census_does_not_open() {
     assert_eq!(form_problems(&built, &built), Vec::<String>::new());
 }
 
-/// The symbol editor's screen: the start card and its lists; the outline, the drawing and Properties with
-/// nothing selected (More open), with a shape, a connection point and a text field selected, and with several things;
-/// and a part's device box with a pin selected.
+/// The drawing in Parts: the Symbols shelf; the short sheet, the drawing and Properties with nothing selected (More
+/// open), with a shape, a connection point and a text field selected, and with several things; and a part's box
+/// arranged with a pin selected.
 #[test]
 fn census_the_symbol_editor() {
     let tmp = Tmp::new();
     let mut h = on_sample(&tmp, "g.ew");
     let mut census = Census::default();
-    dispatch(&mut h, "symbol.new", json!({}));
+    dispatch(&mut h, "parts.open", json!({}));
+    dispatch(&mut h, "parts.find", json!({"shelf": "symbols"}));
     h.run_ok();
-    census.visit(&mut h, "the symbol editor's start card");
-    for way in ["Copy a library symbol\u{2026}", "Device box for a part\u{2026}"] {
-        h.get_by_label(way).click();
-        h.run_ok();
-        census.visit(&mut h, &format!("the start card's {way}"));
-        h.get_by_label("Back").click();
-        h.run_ok();
-    }
+    census.visit(&mut h, "the Symbols shelf of Parts");
     for (action, params) in [
-        ("symbol.new", json!({"key": "example.census", "name": "Census"})),
+        ("parts.new_symbol", json!({"discard": true})),
+        ("parts.field", json!({"field": "symbol.name", "value": "Census"})),
         (
             "symbol.draw",
             json!({"tool": "rectangle", "x": 0, "y": 0, "x2": 8, "y2": 8}),
@@ -1268,7 +1263,16 @@ fn census_the_symbol_editor() {
     dispatch(&mut h, "symbol.tool", json!({"tool": "cp"}));
     h.run_ok();
     census.visit(&mut h, "the symbol editor with the Connection point tool");
-    dispatch(&mut h, "part.box", json!({"part": "EW-GEN-PSU-1"}));
+    // A box of his own, arranged.
+    dispatch(&mut h, "parts.draw", json!({"done": true}));
+    dispatch(&mut h, "parts.new", json!({"start": "box"}));
+    for (field, value) in [("manufacturer", "Example"), ("part_number", "BOX-1")] {
+        dispatch(&mut h, "parts.field", json!({"field": field, "value": value}));
+    }
+    for name in ["L+", "M"] {
+        dispatch(&mut h, "part.pin", json!({"add": true, "name": name}));
+    }
+    dispatch(&mut h, "parts.draw", json!({"what": "box"}));
     dispatch(&mut h, "part.box_select", json!({"pins": [0]}));
     h.run_ok();
     census.visit(&mut h, "the device box with a pin selected");
@@ -1287,19 +1291,20 @@ fn the_symbol_editors_refusal_answers_above_the_drawing_and_in_to_do() {
     let tmp = Tmp::new();
     let mut h = on_sample(&tmp, "g.ew");
     for (action, params) in [
-        ("symbol.new", json!({"key": "example.once", "name": "Once"})),
+        ("parts.open", json!({})),
+        ("parts.new_symbol", json!({"discard": true})),
+        ("parts.field", json!({"field": "symbol.name", "value": "Once"})),
         (
             "symbol.draw",
             json!({"tool": "line", "x": 0, "y": 0, "x2": 0, "y2": 4}),
         ),
         ("symbol.cp", json!({"x": 4.5, "y": 0, "designation": "1"})),
-        ("symbol.directory", json!({"directory": tmp.0.join("once.ewlib")})),
         ("symbol.select", json!({"items": []})),
     ] {
         dispatch(&mut h, action, params);
     }
     h.run_ok();
-    let _ = h.state_mut().shell_mut().dispatch("symbol.save", &json!({}));
+    let _ = h.state_mut().shell_mut().dispatch("parts.save", &json!({}));
     h.run_ok();
     h.run_ok();
     let text = "Connection point 1 is off the connection grid. Move it onto the grid before saving.";
@@ -1331,11 +1336,8 @@ fn the_symbol_editors_tool_buttons_name_their_keys() {
     use egui::accesskit::Role;
     let tmp = Tmp::new();
     let mut h = on_sample(&tmp, "g.ew");
-    dispatch(
-        &mut h,
-        "symbol.new",
-        json!({"key": "example.keys", "name": "Keys"}),
-    );
+    dispatch(&mut h, "parts.open", json!({}));
+    dispatch(&mut h, "parts.new_symbol", json!({"discard": true}));
     h.run_ok();
     h.run_ok();
     let shortcut = |h: &Harness<'_, App>, name: &str| {
@@ -1350,7 +1352,7 @@ fn the_symbol_editors_tool_buttons_name_their_keys() {
         ("Line", Some("L")),
         ("Rectangle", Some("B")),
         ("Text", Some("T")),
-        ("Connection point", Some("P")),
+        ("Pin", Some("P")),
         ("Circle", None),
     ] {
         assert_eq!(shortcut(&h, tool).as_deref(), key, "{tool}");

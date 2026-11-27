@@ -965,7 +965,7 @@ impl EditorView {
 
 /// The symbol's short sheet (doc 07 §5.6): Name and What it is, typed and chosen where they stand (`parts.field`), and
 /// what follows from them, not asked: where it is listed and the grid of its pins; a symbol that is not his reads as
-/// text, with one line that says why and Make my own from it.
+/// text, with one line that says why and Make my own from it; a saved one of his offers a new part drawn with it.
 fn short_sheet(ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
     if let Some(why) = &editor.locked {
@@ -983,19 +983,19 @@ fn short_sheet(ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
         ui.add_space(t.space_2);
     }
     let rows = editor.symbol_rows();
-    let from = events.len();
-    panels::sheet_rows(ui, &rows, &label(key!("symbol-the-symbol")), "symbol.prop", events, |_, _| {});
-    // A field of the short sheet is the symbol's own (`parts.field symbol.<key>`), not a selected thing's.
-    for e in &mut events[from..] {
-        if let Event::Action(name, params) = e
-            && *name == "symbol.prop"
-        {
+    let mut own = Vec::new();
+    let name = ew_viewmodel::shell::symbol_editor::display_name(&editor.draft);
+    panels::sheet_rows(ui, &rows, &name, "symbol.prop", &mut own, |_, _| {});
+    // A field of the short sheet is the symbol's own (`parts.field symbol.<key>`), not a selected thing's; it goes
+    // before the bar's action, as the sheet's rows do.
+    for e in own.into_iter().rev() {
+        if let Event::Action(_, params) = e {
             let key = params["key"].as_str().unwrap_or_default().to_owned();
             let value = match &params["value"] {
                 Value::String(s) => s.clone(),
                 other => other.to_string(),
             };
-            *e = Event::Action("parts.field", json!({ "field": format!("symbol.{key}"), "value": value }));
+            events.insert(0, Event::Action("parts.field", json!({ "field": format!("symbol.{key}"), "value": value })));
         }
     }
     let grid = editor.draft.symbol.grid;
@@ -1008,6 +1008,12 @@ fn short_sheet(ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
             ui.label(crate::components::small_secondary(&t, caption));
             ui.label(value);
         });
+    }
+    // A saved symbol of his own starts a part drawn with it (`parts.new {symbol}`).
+    if let Some(address) = editor.published().filter(|_| editor.locked.is_none()) {
+        if components::button(ui, Kind::Secondary, label(key!("parts-new-part-with-it")), None, 0.0).clicked() {
+            action(events, "parts.new", json!({ "symbol": address }));
+        }
     }
     ui.add_space(t.space_2);
 }

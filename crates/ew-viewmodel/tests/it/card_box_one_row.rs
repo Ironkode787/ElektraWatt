@@ -134,7 +134,7 @@ fn a_new_card_s_device_box_starts_in_one_row() {
         done(&mut s, "parts.field", json!({"field": field, "value": value}));
     }
     done(&mut s, "parts.save", json!({}));
-    done(&mut s, "part.box", json!({"part": "DIO-8"}));
+    done(&mut s, "parts.draw", json!({"what": "box"}));
     let e = s
         .symbol_editor()
         .and_then(|e| e.device_box())

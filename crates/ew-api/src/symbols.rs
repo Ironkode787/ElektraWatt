@@ -215,6 +215,12 @@ impl crate::Session {
     }
 }
 
+/// The function a symbol drawn for a piece of what `what` is (a starter function's key) names: the starter's, so that
+/// the piece's Symbol cell offers it (doc 07 §5.6). `None` for a function the starter has not.
+pub fn piece_function(what: &str) -> Option<LibRef> {
+    crate::output::starter_fndef_by_key(what).map(|def| crate::part_new::copy_ref(def, None))
+}
+
 impl crate::Session {
     /// A new drawing named `name` for piece `row` of a part (Draw a new symbol…, doc 07 §5.6): the piece's function
     /// as the starter gives it, its pins standing on the drawing already on the 4 mm grid (the first leaving up, the
@@ -227,7 +233,7 @@ impl crate::Session {
         let def = crate::output::starter_fndef_by_key(&row.what)
             .ok_or_else(|| Error::Refused(text!("symbol-function-required")))?;
         let mut draft = SymbolDraft::new("", name)?;
-        draft.function_ref = Some(crate::part_new::fndef_ref(def));
+        draft.function_ref = piece_function(&row.what);
         draft.function = def.item.clone();
         let step: i64 = 4_000_000;
         let mut cps = Vec::new();

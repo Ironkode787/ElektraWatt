@@ -29,11 +29,7 @@ fn places(shell: &ShellModel) -> ((i64, i64), (i64, i64), Value) {
 fn a_points_number_text_moves_and_turns_with_it() {
     let tmp = Tmp::new("symbol-cp-text-follows");
     let mut shell = tmp.empty_shell(Mode::Headless);
-    done(
-        &mut shell,
-        "symbol.new",
-        json!({"key": "example.follow", "name": "Follow"}),
-    );
+    crate::common::new_drawing(&mut shell, "Follow");
     done(
         &mut shell,
         "symbol.cp",

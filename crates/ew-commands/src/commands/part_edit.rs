@@ -73,6 +73,10 @@ pub struct EditPartCopy {
     /// Library documents to embed (`lib/` JSON form): a manufacturer the project lacks.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub copies: Vec<Value>,
+    /// The drawn boxes of the part that its new layout draws anew (its box arranged, doc 07 §5.6), each as `box.reshape`
+    /// takes it, after the part and its boxes' pins are in.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub redraw: Vec<crate::commands::ReshapeBox>,
 }
 
 fn bad(at: impl Into<String>, message: Text) -> CmdError {
@@ -404,6 +408,9 @@ impl Command for EditPartCopy {
         // The drawn boxes of its devices take the pins and sockets the part has now, each kept pin under its new
         // index.
         crate::commands::box_follow::follow_part_boxes(tx, primary, &remap)?;
+        for b in &self.redraw {
+            b.run(tx)?;
+        }
         Ok(Outcome::primary((Kind::Part, primary.cast())))
     }
 }

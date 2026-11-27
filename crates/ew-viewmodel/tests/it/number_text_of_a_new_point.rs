@@ -15,11 +15,7 @@ use serde_json::json;
 fn a_new_point_s_number_stands_inside_the_box_at_the_point_turned_by_its_edge() {
     let tmp = Tmp::new("symbol-point-number");
     let mut shell = tmp.empty_shell(Mode::Headless);
-    done(
-        &mut shell,
-        "symbol.new",
-        json!({"key":"example.supply","name":"Supply"}),
-    );
+    crate::common::new_drawing(&mut shell, "Supply");
     done(
         &mut shell,
         "symbol.draw",

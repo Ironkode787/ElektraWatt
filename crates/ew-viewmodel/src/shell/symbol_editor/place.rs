@@ -92,7 +92,8 @@ impl SymbolEditor {
         }
     }
 
-    /// Why the symbol cannot be saved now, in words: it is not his (Make my own from it), or what To do lists.
+    /// Why the symbol cannot be saved now, in words: it is not his (Make my own from it), or the first thing To do
+    /// lists, which Save says above the drawing.
     pub fn save_refusal(&self) -> Option<String> {
         if self.device_box.is_some() {
             return None;
@@ -100,18 +101,19 @@ impl SymbolEditor {
         if let Some(why) = &self.locked {
             return Some(why.clone());
         }
-        (!self.draft.validate().is_empty()).then(|| words(key!("reason-symbol-to-do")))
+        self.outline().todo.into_iter().next().map(|t| t.text)
     }
 }
 
 /// What it is, by its [`WHAT`] word, for a drawing of `discipline`: the word given where the discipline offers it, else
-/// the first it offers.
+/// a normally open contact (the guess for a first symbol, doc 07 §5.6), else the first it offers.
 fn what_for(word: Option<&str>, discipline: &str) -> &'static str {
     let group = super::sheet::what_group(discipline);
-    WHAT.iter()
-        .filter(|(_, groups, ..)| groups.contains(group))
+    let offered = || WHAT.iter().filter(|(_, groups, ..)| groups.contains(group));
+    offered()
         .find(|(w, ..)| Some(*w) == word)
-        .or_else(|| WHAT.iter().find(|(_, groups, ..)| groups.contains(group)))
+        .or_else(|| offered().find(|(w, ..)| *w == "contact-no"))
+        .or_else(|| offered().next())
         .map_or(WHAT[0].0, |(w, ..)| w)
 }
 
@@ -406,7 +408,11 @@ impl ShellModel {
                 } else {
                     row.symbol.clone()
                 };
-                self.copy_draft(&source)
+                // His copy draws the piece's function, so that the piece's Symbol cell offers it.
+                self.copy_draft(&source).map(|mut d| {
+                    d.function_ref = ew_api::symbols::piece_function(&row.what);
+                    d
+                })
             }
             Ok(Some("new") | None) => session
                 .piece_drawing(&row, strings::text(key!("symbol-untitled")))
@@ -458,9 +464,28 @@ impl ShellModel {
                 })
             });
         let found = home.and_then(|l| registry.libraries().into_iter().find(|i| i.id == l));
+        // It keeps its own key: the library's document's, the project's copy's, else the key it was named by.
+        let key_of = |s: &schema::SymbolDef| s.meta.key.as_ref().map(|k| k.as_str().to_owned());
+        let own_key = address
+            .strip_prefix("library:")
+            .and_then(|r| r.split_once(':'))
+            .and_then(|(l, i)| {
+                let (l, i) = (l.parse::<Uuid>().ok()?, i.parse::<Uuid>().ok()?);
+                registry.documents(l, schema::Kind::Symbol).into_iter().find_map(|d| match d {
+                    schema::LibDocument::Symbol(s) if s.item_id.as_uuid() == i => key_of(&s.item),
+                    _ => None,
+                })
+            })
+            .or_else(|| {
+                let session = self.parts_session()?;
+                let q = session.query();
+                let held = q.symbols().iter().find(|(id, _)| id.as_uuid().to_string() == source)?;
+                key_of(&held.1.item)
+            })
+            .unwrap_or_else(|| source.to_owned());
         let draft = match self.parts_session() {
-            Some(session) => session.symbol_draft(source, "user.symbol"),
-            None => SymbolDraft::from_library(&registry, source, "user.symbol"),
+            Some(session) => session.symbol_draft(source, &own_key),
+            None => SymbolDraft::from_library(&registry, source, &own_key),
         };
         let mut draft = match draft {
             Ok(d) => d,

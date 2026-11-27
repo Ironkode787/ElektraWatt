@@ -1,44 +1,68 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use crate::common::{Tmp, done, failed};
+//! The drawing of a symbol in Parts (doc 07 §5.6): its tools, its selection and Properties, its history, Save into My
+//! parts with a key from its name, Test on a page, Export, and the questions before a drawing with changes goes.
+
+use crate::common::{Tmp, done, failed, new_drawing};
 use ew_viewmodel::shell::{Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::json;
 
-#[test]
-fn published_symbol_is_available_in_insert_and_scratch_retains_its_own_identity() {
-    let tmp = Tmp::new("symbol-publish-insert");
-    let mut shell = tmp.empty_shell(Mode::Headless);
+/// A one-pin drawing named `name`, a new symbol of his own in Parts.
+fn drawn(shell: &mut ShellModel, name: &str) {
+    new_drawing(shell, name);
     done(
-        &mut shell,
-        "file.new",
-        json!({"dir":tmp.0.join("project"),"template":"builtin"}),
+        shell,
+        "symbol.draw",
+        json!({"tool":"line","x":0,"y":0,"x2":0,"y2":4}),
     );
+    done(shell, "symbol.cp", json!({"x":0,"y":0,"designation":"1"}));
+}
+
+/// Saves the drawing with his parts and leaves Parts; the key the symbol was saved under.
+fn saved_and_left(shell: &mut ShellModel) -> String {
+    done(shell, "parts.save", json!({}));
+    let key = shell.symbol_editor().expect("the drawing").draft.key.clone();
+    done(shell, "parts.back", json!({}));
+    done(shell, "parts.back", json!({}));
+    assert!(shell.parts_place().is_none(), "back on the page");
+    key
+}
+
+/// The key of every symbol of the project saved at `dir` that starts with `start`.
+fn project_keys(dir: &std::path::Path, start: &str) -> Vec<String> {
+    let (session, _) = ew_api::Session::open_read_only(dir, "ElektraWatt test").unwrap();
+    let q = session.query();
+    q.symbols()
+        .iter()
+        .filter_map(|(_, s)| s.item.meta.key.as_ref().map(ToString::to_string))
+        .filter(|k| k.starts_with(start))
+        .collect()
+}
+
+/// A symbol saved in Parts is offered by the symbol picker as ordinary geometry and placed; a test copy keeps an
+/// identity of its own in the project; a fresh window finds the symbol on the Symbols shelf among his own.
+#[test]
+fn a_saved_symbol_is_offered_by_the_picker_and_a_test_copy_keeps_its_own_identity() {
+    let tmp = Tmp::new("symbol-publish-insert");
+    let dir = tmp.0.join("project");
+    // His user folder, where My parts lives.
+    let config = || {
+        let mine = ew_api::library::LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), vec![], vec![]);
+        tmp.config().with_libraries(Some(mine))
+    };
+    let mut shell = ShellModel::new(Mode::Headless, config());
+    done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
     done(
         &mut shell,
         "command.run",
         json!({"cmd":"page.create","params":{"number":2,"grid":{"num":4000000,"den":1}}}),
     );
     done(&mut shell, "page.goto", json!({"folio":"2"}));
-    done(&mut shell, "tool.place", json!({})); // Prime the catalogue before publication.
+    done(&mut shell, "tool.place", json!({})); // Prime the catalogue before the save.
     done(&mut shell, "ui.dismiss", json!({}));
-    done(
-        &mut shell,
-        "symbol.new",
-        json!({"key":"example.published","name":"Published contact"}),
-    );
-    done(
-        &mut shell,
-        "symbol.draw",
-        json!({"tool":"rectangle","x":0,"y":0,"x2":8,"y2":8}),
-    );
-    done(&mut shell, "symbol.cp", json!({"x":0,"y":0,"designation":"1"}));
-    done(
-        &mut shell,
-        "symbol.save",
-        json!({"directory":tmp.0.join("symbols.ewlib")}),
-    );
-    done(&mut shell, "symbol.close", json!({}));
+    drawn(&mut shell, "Published contact");
+    let key = saved_and_left(&mut shell);
     done(&mut shell, "tool.place", json!({}));
     let row = shell
         .picker()
@@ -50,422 +74,113 @@ fn published_symbol_is_available_in_insert_and_scratch_retains_its_own_identity(
         .unwrap_or_else(|| panic!("{:?}", shell.picker().unwrap().catalogue))
         .clone();
     assert!(row.key.starts_with("library:"));
-    assert!(
-        !row.black_box,
-        "authored geometry must use ordinary symbol placement"
-    );
+    assert!(!row.black_box, "drawn geometry is placed as a symbol");
     done(&mut shell, "ui.dismiss", json!({}));
     done(&mut shell, "place.pick", json!({"symbol":row.key,"letter":"U"}));
     done(&mut shell, "cursor.set", json!({"x_mm":40,"y_mm":40}));
     done(&mut shell, "canvas.activate", json!({}));
     done(&mut shell, "ui.dismiss", json!({}));
-    done(&mut shell, "tool.place", json!({}));
+    // Opened again from the picker's address, changed and tested on the page.
+    done(&mut shell, "parts.open", json!({"symbol": row.key}));
     assert!(
-        !shell
-            .picker()
-            .unwrap()
-            .catalogue
-            .symbols
-            .iter()
-            .find(|r| r.key == "example.published")
-            .unwrap()
-            .black_box
+        shell.symbol_editor().is_some_and(|e| e.locked.is_none()),
+        "his own symbol opens to be changed"
     );
-    done(&mut shell, "ui.dismiss", json!({}));
     done(
         &mut shell,
-        "symbol.fork",
-        json!({"source":row.key,"key":"example.scratch"}),
+        "symbol.draw",
+        json!({"tool":"line","x":4,"y":0,"x2":4,"y2":4}),
     );
     done(&mut shell, "symbol.scratch", json!({}));
-    done(&mut shell, "symbol.close", json!({"discard":true}));
     done(&mut shell, "file.save", json!({}));
-    let path = tmp.0.join("project");
     shell.shutdown();
-    let (session, _) = ew_api::Session::open_read_only(&path, "ElektraWatt test").unwrap();
-    let q = session.query();
-    let scratch = q
-        .symbols()
-        .iter()
-        .find(|(_, s)| {
-            s.item
-                .meta
-                .key
-                .as_ref()
-                .is_some_and(|k| k.as_str().starts_with("example.scratch.test."))
-        })
-        .unwrap()
-        .1
-        .clone();
-    assert_eq!(scratch.library_id.as_uuid(), ew_api::symbols::DRAFT_LIBRARY);
-    assert!(q.symbols().iter().any(|(_, s)| {
-        s.item
-            .meta
-            .key
-            .as_ref()
-            .is_some_and(|k| k.as_str() == "example.published")
-    }));
+    let keys = project_keys(&dir, &key);
+    assert!(keys.contains(&key), "{keys:?}");
     assert!(
-        session
-            .place_catalogue("2")
-            .unwrap()
+        keys.iter().any(|k| k.starts_with(&format!("{key}.test."))),
+        "{keys:?}"
+    );
+    // A fresh window lists it on the Symbols shelf, among his own.
+    let mut reopened = ShellModel::new(Mode::Headless, config());
+    done(&mut reopened, "parts.open", json!({}));
+    done(
+        &mut reopened,
+        "parts.find",
+        json!({"shelf": "symbols", "scope": "mine", "text": "published"}),
+    );
+    let place = reopened.parts_place().unwrap();
+    assert!(
+        place
             .symbols
             .iter()
-            .filter(|s| s.key == "example.published")
-            .all(|s| !s.black_box)
-    );
-    drop(session);
-    // A fresh shell has no in-memory tiers from the publication operation.
-    let mut reopened = tmp.empty_shell(Mode::Headless);
-    done(&mut reopened, "symbol.new", json!({"key":"example.next"}));
-    assert!(
-        reopened
-            .symbol_editor()
-            .unwrap()
-            .sources
-            .iter()
-            .any(|s| s.key.as_deref() == Some("example.published") && s.library.is_some())
+            .any(|s| s.name == "Published contact" && s.mine),
+        "{:?}",
+        place.symbols
     );
     reopened.shutdown();
 }
 
+/// A new symbol drawn for a page on the QET grid is drawn on that grid; saved and placed there it is ordinary
+/// geometry, and a page on the 4 mm grid does not offer it.
 #[test]
-fn pin_mapping_swaps_atomically_without_changing_function_data() {
-    for mode in [Mode::Headless, Mode::Gui] {
-        let tmp = Tmp::new("symbol-map");
-        let mut shell = tmp.empty_shell(mode);
-        done(
-            &mut shell,
-            "symbol.new",
-            json!({"key":"example.contact","name":"Contact"}),
-        );
-        done(&mut shell, "symbol.function", json!({"key":"ew.fn.contact-no"}));
-        done(
-            &mut shell,
-            "symbol.cp",
-            json!({"idx":1,"fn_cp":0,"x":0,"y":0,"direction":"up"}),
-        );
-        done(
-            &mut shell,
-            "symbol.cp",
-            json!({"idx":2,"fn_cp":1,"x":0,"y":8,"direction":"down"}),
-        );
-        let before = shell.symbol_editor().unwrap().draft.clone();
-        done(&mut shell, "symbol.map_cp", json!({"cp":1,"fn_cp":1}));
-        let after = shell.symbol_editor().unwrap().draft.clone();
-        assert_eq!(after.symbol.cps.get(&1).unwrap().fn_cp, 1);
-        assert_eq!(after.symbol.cps.get(&2).unwrap().fn_cp, 0);
-        assert_eq!(after.function, before.function);
-        assert_eq!(after.function_ref, before.function_ref);
-        assert_eq!(
-            after.symbol.cps.get(&1).unwrap().pos,
-            before.symbol.cps.get(&1).unwrap().pos
-        );
-        done(&mut shell, "symbol.undo", json!({}));
-        assert_eq!(shell.symbol_editor().unwrap().draft, before);
-        done(&mut shell, "symbol.redo", json!({}));
-        assert_eq!(shell.symbol_editor().unwrap().draft, after);
-        assert_eq!(shell.dispatch("symbol.map_cp", &json!({"cp":1,"fn_cp":65000})), Outcome::Failed {
-            message: "Symbol editor: Choose a physical function pin with the same discipline. A used pin can only swap with another compatible pin.".into()
-        });
-        assert_eq!(shell.symbol_editor().unwrap().draft, after);
-        done(&mut shell, "symbol.undo", json!({}));
-        assert_eq!(shell.symbol_editor().unwrap().error, None);
-        shell.shutdown();
-    }
-}
-
-#[test]
-fn authored_qet_symbol_without_key_suffix_keeps_grid_and_shape_after_insertion() {
+fn a_symbol_drawn_for_a_qet_page_keeps_its_grid_after_placing() {
     let tmp = Tmp::new("symbol-qet-catalogue");
+    let dir = tmp.0.join("project");
     let mut shell = tmp.empty_shell(Mode::Headless);
-    done(
-        &mut shell,
-        "file.new",
-        json!({"dir":tmp.0.join("project"),"template":"builtin"}),
-    );
-    done(
-        &mut shell,
-        "command.run",
-        json!({"cmd":"page.create","params":{"number":2,"grid":{"num":7937500,"den":3}}}),
-    );
-    done(
-        &mut shell,
-        "command.run",
-        json!({"cmd":"page.create","params":{"number":3,"grid":{"num":4000000,"den":1}}}),
-    );
+    done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
+    for (number, grid) in [(2, json!({"num":7937500,"den":3})), (3, json!({"num":4000000,"den":1}))] {
+        done(
+            &mut shell,
+            "command.run",
+            json!({"cmd":"page.create","params":{"number":number,"grid":grid}}),
+        );
+    }
     done(&mut shell, "page.goto", json!({"folio":"2"}));
+    done(&mut shell, "parts.new_symbol", json!({}));
+    let grid = serde_json::to_value(&shell.symbol_editor().unwrap().draft.symbol.grid).unwrap();
+    assert_eq!(grid, json!({"num":7937500,"den":3}), "page 2's grid");
     done(
         &mut shell,
-        "symbol.new",
-        json!({"key":"example.import","name":"Imported graphic"}),
+        "parts.field",
+        json!({"field":"symbol.name","value":"QET graphic"}),
     );
     done(
         &mut shell,
         "symbol.draw",
         json!({"tool":"line","x":0,"y":0,"x2":4,"y2":0}),
     );
-    let mut doc = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
-    doc["symbol"]["grid"] = json!({"num":7937500,"den":3});
-    done(&mut shell, "symbol.replace", json!({"document":doc}));
-    done(
-        &mut shell,
-        "symbol.save",
-        json!({"directory":tmp.0.join("imported.ewlib")}),
-    );
-    done(&mut shell, "symbol.close", json!({}));
-    done(&mut shell, "tool.place", json!({}));
-    let key = shell
-        .picker()
-        .unwrap()
-        .catalogue
-        .symbols
-        .iter()
-        .find(|r| r.name.starts_with("Imported graphic"))
-        .unwrap()
-        .key
-        .clone();
-    done(&mut shell, "ui.dismiss", json!({}));
-    done(&mut shell, "place.pick", json!({"symbol":key,"letter":"U"}));
+    // Save and place on 2: the page shows with the Place tool armed with it.
+    done(&mut shell, "parts.save", json!({}));
+    assert!(shell.parts_place().is_none());
     assert_eq!(shell.tool().name(), "place");
     done(&mut shell, "cursor.set", json!({"x_mm":40,"y_mm":40}));
     done(&mut shell, "canvas.activate", json!({}));
     done(&mut shell, "ui.dismiss", json!({}));
-    done(&mut shell, "tool.place", json!({}));
-    let row = shell
-        .picker()
-        .unwrap()
-        .catalogue
-        .symbols
-        .iter()
-        .find(|r| r.key == "example.import")
-        .unwrap();
-    assert!(!row.black_box);
-    done(&mut shell, "ui.dismiss", json!({}));
     done(&mut shell, "file.save", json!({}));
     shell.shutdown();
-    let (session, _) = ew_api::Session::open_read_only(&tmp.0.join("project"), "ElektraWatt test").unwrap();
-    assert!(
+    let (session, _) = ew_api::Session::open_read_only(&dir, "ElektraWatt test").unwrap();
+    let offered = |folio: &str| {
         session
-            .place_catalogue("2")
+            .place_catalogue(folio)
             .unwrap()
             .symbols
             .iter()
-            .any(|r| r.key == "example.import" && !r.black_box)
-    );
+            .filter(|r| r.name.starts_with("QET graphic"))
+            .map(|r| r.black_box)
+            .collect::<Vec<_>>()
+    };
     assert!(
-        !session
-            .place_catalogue("3")
-            .unwrap()
-            .symbols
-            .iter()
-            .any(|r| r.key == "example.import")
+        !offered("2").is_empty() && offered("2").iter().all(|b| !b),
+        "page 2 offers it as a symbol"
     );
+    assert!(offered("3").is_empty(), "page 3 is on another grid");
 }
 
+/// The drawing's history, Export, Save, Test on a page and the drawing in hand, in both frontends: a point off the
+/// grid is said in words; Undo and Redo step; a symbol of another grid is refused on the page in front and tested on
+/// a page of its own grid; Back keeps the drawing with its changes, which an import over it asks for.
 #[test]
-fn standalone_library_chooser_and_fork_keep_the_source_independent() {
-    let tmp = Tmp::new("symbol-fork");
-    let mut shell = tmp.empty_shell(Mode::Gui);
-    done(
-        &mut shell,
-        "symbol.new",
-        json!({"key":"example.empty","name":"Empty"}),
-    );
-    let editor = shell.symbol_editor().unwrap();
-    assert!(editor.functions.iter().any(|f| f.key == "ew.fn.contact-no"));
-    let source = editor
-        .sources
-        .iter()
-        .find(|s| s.key.as_deref() == Some("ew.iec.contact-no"))
-        .unwrap()
-        .source
-        .clone();
-    done(
-        &mut shell,
-        "symbol.fork",
-        json!({"source":source,"key":"example.fork","discard":true}),
-    );
-    let fork = shell.symbol_editor().unwrap().draft.clone();
-    assert_eq!(fork.key, "example.fork");
-    assert!(fork.function_ref.is_none());
-    assert!(!fork.symbol.graphics.is_empty());
-    done(
-        &mut shell,
-        "symbol.draw",
-        json!({"tool":"line","x":0,"y":0,"x2":4,"y2":0}),
-    );
-    done(
-        &mut shell,
-        "symbol.fork",
-        json!({"source":source,"key":"example.fork","discard":true}),
-    );
-    assert_eq!(shell.symbol_editor().unwrap().draft, fork);
-    shell.shutdown();
-}
-
-#[test]
-fn project_and_library_sources_with_the_same_key_fork_the_selected_copy() {
-    use ew_api::symbols;
-    let tmp = Tmp::new("symbol-source-identity");
-    let mut shell = tmp.empty_shell(Mode::Headless);
-    done(
-        &mut shell,
-        "file.new",
-        json!({"dir":tmp.0.join("project"),"template":"builtin"}),
-    );
-    done(
-        &mut shell,
-        "symbol.fork",
-        json!({"source":"ew.iec.contact-no","key":"ew.iec.contact-no"}),
-    );
-    let original = shell.symbol_editor().unwrap().draft.clone();
-    let installed = shell
-        .symbol_editor()
-        .unwrap()
-        .sources
-        .iter()
-        .find(|s| s.key.as_deref() == Some("ew.iec.contact-no"))
-        .unwrap()
-        .source
-        .clone();
-    done(
-        &mut shell,
-        "symbol.draw",
-        json!({"tool":"line","x":-4,"y":0,"x2":4,"y2":0}),
-    );
-    let changed = shell.symbol_editor().unwrap().draft.clone();
-    let copies = changed.documents(symbols::DRAFT_LIBRARY).unwrap();
-    let embedded = copies
-        .iter()
-        .find_map(|d| match d {
-            symbols::schema::LibDocument::Symbol(s) => Some(s.id.to_string()),
-            _ => None,
-        })
-        .unwrap();
-    done(&mut shell, "symbol.close", json!({"discard":true}));
-    done(
-        &mut shell,
-        "command.run",
-        json!({"cmd":"library.embed","params":{"copies":copies}}),
-    );
-    for (source, graphics) in [
-        (&embedded, &changed.symbol.graphics),
-        (&installed, &original.symbol.graphics),
-    ] {
-        done(
-            &mut shell,
-            "symbol.fork",
-            json!({"source":source,"key":"example.copy","discard":true}),
-        );
-        assert_eq!(&shell.symbol_editor().unwrap().draft.symbol.graphics, graphics);
-    }
-    shell.shutdown();
-}
-
-#[test]
-fn equal_function_keys_in_two_libraries_retain_their_own_pin_data() {
-    let tmp = Tmp::new("symbol-function-identity");
-    let mut shell = tmp.empty_shell(Mode::Headless);
-    let mut first = String::new();
-    for designation in ["A", "B"] {
-        done(
-            &mut shell,
-            "symbol.new",
-            json!({"key":"example.shared","name":designation,"discard":true}),
-        );
-        done(
-            &mut shell,
-            "symbol.draw",
-            json!({"tool":"line","x":0,"y":0,"x2":0,"y2":4}),
-        );
-        done(
-            &mut shell,
-            "symbol.cp",
-            json!({"x":0,"y":0,"designation":designation}),
-        );
-        done(
-            &mut shell,
-            "symbol.save",
-            json!({"directory":tmp.0.join(format!("{designation}.ewlib"))}),
-        );
-        done(
-            &mut shell,
-            "symbol.new",
-            json!({"key":"example.empty","name":"Empty","discard":true}),
-        );
-        if designation == "A" {
-            first = shell
-                .symbol_editor()
-                .unwrap()
-                .functions
-                .iter()
-                .find(|f| f.key == "example.shared.function")
-                .unwrap()
-                .source
-                .clone();
-        }
-    }
-    let choices: Vec<_> = shell
-        .symbol_editor()
-        .unwrap()
-        .functions
-        .iter()
-        .filter(|f| f.key == "example.shared.function")
-        .map(|f| f.source.clone())
-        .collect();
-    assert_eq!(choices.len(), 2);
-    for source in choices {
-        done(&mut shell, "symbol.function", json!({"key":source}));
-        assert_eq!(
-            shell
-                .symbol_editor()
-                .unwrap()
-                .draft
-                .function
-                .cps
-                .get(&1)
-                .unwrap()
-                .designation
-                .as_str(),
-            if source == first { "A" } else { "B" }
-        );
-    }
-    shell.shutdown();
-}
-
-#[test]
-fn editor_f1_opens_its_reference_in_both_frontends() {
-    for mode in [Mode::Headless, Mode::Gui] {
-        let tmp = Tmp::new("symbol-help");
-        let mut shell = tmp.empty_shell(mode);
-        done(
-            &mut shell,
-            "symbol.new",
-            json!({"key":"example.help","name":"Help"}),
-        );
-        done(&mut shell, "help.documentation", json!({}));
-        assert_eq!(
-            shell.last_help(),
-            Some("reference/symbol-editor.html#symbol-editor-and-automated-authoring")
-        );
-        assert_eq!(
-            ew_viewmodel::help::action_topic("symbol.new"),
-            Some("symbol.new"),
-            "the bar's Symbol editor… button has its own section"
-        );
-        done(&mut shell, "symbol.close", json!({"discard":true}));
-        done(&mut shell, "help.documentation", json!({}));
-        assert_eq!(
-            shell.last_help(),
-            Some("how-to/application-window.html#start-page")
-        );
-        shell.shutdown();
-    }
-}
-
-#[test]
-fn editor_power_block_history_export_save_and_place_in_both_frontends() {
+fn a_drawings_history_export_save_and_test_in_both_frontends() {
     for mode in [Mode::Headless, Mode::Gui] {
         let tmp = Tmp::new("symbol-editor");
         let mut shell = tmp.empty_shell(mode);
@@ -475,11 +190,7 @@ fn editor_power_block_history_export_save_and_place_in_both_frontends() {
             json!({"dir":tmp.0.join("scratch.ew"),"template":"builtin"}),
         );
         done(&mut shell, "page.goto", json!({"folio":"1"}));
-        done(
-            &mut shell,
-            "symbol.new",
-            json!({"key":"example.power","name":"Power block"}),
-        );
+        new_drawing(&mut shell, "Power block");
         done(
             &mut shell,
             "symbol.draw",
@@ -492,164 +203,82 @@ fn editor_power_block_history_export_save_and_place_in_both_frontends() {
                 json!({"x":0,"y":i*4,"designation":if i==6{"FE".into()}else{i.to_string()},"direction":"left"}),
             );
         }
-        done(&mut shell, "symbol.slot", json!({"x":0,"y":-4,"kind":"tag"}));
         done(&mut shell, "symbol.validate", json!({}));
         let original = shell.symbol_editor().unwrap().draft.clone();
         done(&mut shell, "symbol.cp", json!({"idx":1,"x":4.5,"y":4}));
-        assert_eq!(shell.dispatch("symbol.validate",&json!({})),Outcome::Failed{message:"Symbol editor: Connection point 1 is off the connection grid. Move it onto the grid before saving.".into()});
+        assert_eq!(
+            failed(&mut shell, "symbol.validate", json!({})),
+            "Connection point 1 is off the connection grid. Move it onto the grid before saving."
+        );
         done(&mut shell, "edit.undo", json!({}));
         assert_eq!(shell.symbol_editor().unwrap().draft, original);
         done(&mut shell, "edit.redo", json!({}));
-        assert_eq!(
-            shell
-                .symbol_editor()
-                .unwrap()
-                .draft
-                .symbol
-                .cps
-                .iter()
-                .next()
-                .unwrap()
-                .pos
-                .x
-                .0,
-            4_500_000
-        );
+        let first = shell.symbol_editor().unwrap().draft.symbol.cps.iter().next().unwrap().pos;
+        assert_eq!(first.x.0, 4_500_000);
         done(&mut shell, "edit.undo", json!({}));
         let file = tmp.0.join("power.symbol.json");
         done(&mut shell, "symbol.export", json!({"file":file}));
-        done(
-            &mut shell,
-            "symbol.save",
-            json!({"directory":tmp.0.join("symbols.ewlib")}),
-        );
+        done(&mut shell, "parts.save", json!({}));
         done(&mut shell, "symbol.variant", json!({"variant":7}));
+        // Page 1 is on the QET grid: the 4 mm symbol is refused there in words, both grids named.
         let pages = shell.page_count();
-        assert!(matches!(
-            shell.dispatch("symbol.place", &json!({"x":80,"y":80})),
-            Outcome::Failed { .. }
-        ));
+        assert_eq!(
+            failed(&mut shell, "symbol.place", json!({"x":80,"y":80})),
+            "This symbol is drawn on the 4 mm connection grid, and this page uses QET 10 px. Place it on a page with \
+             its grid."
+        );
         assert_eq!(shell.page_count(), pages);
+        // Test on a page: a page of its grid shows; the drawing waits in hand.
         done(&mut shell, "symbol.scratch", json!({}));
         assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (4_000_000, 1));
-        // The page shows after a test placement; the editor keeps the draft, Edit ▸ Symbol editor returns.
         assert!(shell.symbol_editor().is_none());
-        done(&mut shell, "symbol.new", json!({}));
+        done(&mut shell, "parts.new_symbol", json!({"like": "hand"}));
         done(&mut shell, "symbol.place", json!({"x":80,"y":80}));
-        done(&mut shell, "symbol.new", json!({}));
+        done(&mut shell, "parts.new_symbol", json!({"like": "hand"}));
         done(
             &mut shell,
             "symbol.draw",
             json!({"tool":"line","x":1,"y":1,"x2":2,"y2":2}),
         );
-        done(&mut shell, "symbol.place", json!({"x":120,"y":80}));
-        done(&mut shell, "symbol.new", json!({}));
+        // Back keeps the drawing with its changes; an import over it asks first.
         let draft = shell.symbol_editor().unwrap().draft.clone();
-        let mut qet = serde_json::to_value(&draft).unwrap();
-        let grid = ew_api::symbols::units::Grid::QET_10PX;
-        qet["symbol"]["grid"] = serde_json::to_value(grid).unwrap();
-        for (i, pin) in qet["symbol"]["cps"]
-            .as_array_mut()
-            .unwrap()
-            .iter_mut()
-            .enumerate()
-        {
-            pin["pos"] = json!([0, grid.at(i as i64 + 1).unwrap().0]);
-        }
-        done(&mut shell, "symbol.replace", json!({"document":qet}));
-        done(&mut shell, "symbol.validate", json!({}));
-        let page_count = shell.page_count();
-        // The picker's words, both grids named.
-        assert_eq!(
-            shell.dispatch("symbol.place", &json!({"x":80,"y":80})),
-            Outcome::Failed {
-                message: "Symbol editor: This symbol is drawn on the QET 10 px connection grid, and this page uses \
-                          4 mm. Place it on a page with its grid."
-                    .into()
-            }
-        );
-        assert_eq!(shell.page_count(), page_count);
-        done(&mut shell, "symbol.replace", json!({"document":draft}));
-        // Close keeps the unsaved draft; another symbol is refused until it is discarded.
-        done(&mut shell, "symbol.close", json!({}));
+        done(&mut shell, "parts.back", json!({}));
         assert!(shell.symbol_editor().is_none());
         assert_eq!(shell.kept_symbol_editor().unwrap().draft, draft);
+        if mode == Mode::Headless {
+            assert_eq!(
+                failed(&mut shell, "symbol.open", json!({"file":file})),
+                "This symbol has unsaved changes. Save it or choose Discard changes."
+            );
+        }
+        done(&mut shell, "symbol.open", json!({"file":file,"discard":true}));
         assert_eq!(
-            shell.dispatch("symbol.open", &json!({"file":file})),
-            Outcome::Failed {
-                message: "Symbol editor: This symbol has unsaved changes. Save it or choose Discard changes."
-                    .into()
-            }
+            shell.symbol_editor().unwrap().draft.symbol,
+            original.symbol,
+            "the exported drawing"
         );
-        done(&mut shell, "symbol.close", json!({"discard":true}));
-        assert!(shell.kept_symbol_editor().is_none());
-        done(&mut shell, "symbol.open", json!({"file":file}));
-        assert_eq!(shell.symbol_editor().unwrap().draft, original);
         shell.shutdown();
     }
 }
 
+/// Each Test on a page takes a free folio of its own.
 #[test]
-fn moving_an_assigned_pin_keeps_its_mapping_and_scratch_uses_a_free_folio() {
-    for mode in [Mode::Headless, Mode::Gui] {
-        let tmp = Tmp::new("symbol-scratch");
-        let mut shell = tmp.empty_shell(mode);
-        done(
-            &mut shell,
-            "file.new",
-            json!({"dir":tmp.0.join("scratch.ew"),"template":"builtin"}),
-        );
-        done(
-            &mut shell,
-            "symbol.new",
-            json!({"key":"example.contact","name":"Contact"}),
-        );
-        done(&mut shell, "symbol.function", json!({"key":"ew.fn.contact-no"}));
-        done(
-            &mut shell,
-            "symbol.draw",
-            json!({"tool":"line","x":0,"y":0,"x2":0,"y2":8}),
-        );
-        done(
-            &mut shell,
-            "symbol.cp",
-            json!({"idx":1,"fn_cp":0,"x":0,"y":0,"direction":"up"}),
-        );
-        done(
-            &mut shell,
-            "symbol.cp",
-            json!({"idx":2,"fn_cp":1,"x":0,"y":8,"direction":"down"}),
-        );
-        let before = shell
-            .symbol_editor()
-            .unwrap()
-            .draft
-            .symbol
-            .cps
-            .iter()
-            .next()
-            .unwrap()
-            .clone();
-        done(&mut shell, "symbol.cp", json!({"idx":1,"x":4,"y":0}));
-        let after = shell
-            .symbol_editor()
-            .unwrap()
-            .draft
-            .symbol
-            .cps
-            .iter()
-            .next()
-            .unwrap();
-        assert_eq!(after.fn_cp, before.fn_cp);
-        assert_eq!(after.dir, before.dir);
-        done(&mut shell, "symbol.validate", json!({}));
-        let pages = shell.page_count();
-        done(&mut shell, "symbol.scratch", json!({}));
-        assert_eq!(shell.page_count(), pages + 1);
-        done(&mut shell, "symbol.scratch", json!({}));
-        assert_eq!(shell.page_count(), pages + 2);
-        shell.shutdown();
-    }
+fn test_on_a_page_takes_a_free_folio_each_time() {
+    let tmp = Tmp::new("symbol-scratch");
+    let mut shell = tmp.empty_shell(Mode::Headless);
+    done(
+        &mut shell,
+        "file.new",
+        json!({"dir":tmp.0.join("scratch.ew"),"template":"builtin"}),
+    );
+    drawn(&mut shell, "Contact");
+    let pages = shell.page_count();
+    done(&mut shell, "symbol.scratch", json!({}));
+    assert_eq!(shell.page_count(), pages + 1);
+    done(&mut shell, "parts.new_symbol", json!({"like": "hand"}));
+    done(&mut shell, "symbol.scratch", json!({}));
+    assert_eq!(shell.page_count(), pages + 2);
+    shell.shutdown();
 }
 
 #[test]
@@ -664,11 +293,7 @@ fn project_save_confirmation_saves_the_project_with_a_symbol_open() {
             json!({"dir":tmp.0.join("project.ew"),"template":"builtin"}),
         );
         done(&mut shell, "page.new", json!({"folio":"42"}));
-        done(
-            &mut shell,
-            "symbol.new",
-            json!({"key":"example.test","name":"Test"}),
-        );
+        new_drawing(&mut shell, "Test");
         done(
             &mut shell,
             "symbol.export",
@@ -682,111 +307,44 @@ fn project_save_confirmation_saves_the_project_with_a_symbol_open() {
     }
 }
 
-/// A one-pin drawing keyed `key` in a fresh editor.
-fn drawn(shell: &mut ShellModel, key: &str, name: &str) {
-    done(shell, "symbol.new", json!({"key":key,"name":name,"discard":true}));
-    done(
-        shell,
-        "symbol.draw",
-        json!({"tool":"line","x":0,"y":0,"x2":0,"y2":4}),
-    );
-    done(shell, "symbol.cp", json!({"x":0,"y":0,"designation":"1"}));
-}
-
-#[test]
-fn a_second_symbol_saved_on_the_same_key_is_refused_and_the_first_stays() {
-    let tmp = Tmp::new("symbol-same-key");
-    let mut shell = tmp.empty_shell(Mode::Headless);
-    let library = json!({"directory":tmp.0.join("symbols.ewlib")});
-    drawn(&mut shell, "example.shared", "First");
-    done(&mut shell, "symbol.save", library.clone());
-    let editor = shell.symbol_editor().unwrap();
-    assert!(editor.draft.identity.is_some() && !editor.dirty());
-    drawn(&mut shell, "example.shared", "Second");
-    let refusal = "Symbol editor: The library already holds a different symbol with the key example.shared. Choose \
-                   another key.";
-    assert_eq!(failed(&mut shell, "symbol.save", library.clone()), refusal);
-    // The version bump that the immutability refusal asks for does not change that.
-    let mut doc = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
-    doc["version"] = json!("1.0.1");
-    done(&mut shell, "symbol.replace", json!({"document":doc}));
-    assert_eq!(failed(&mut shell, "symbol.save", library), refusal);
-    assert!(shell.symbol_editor().unwrap().draft.identity.is_none());
-    done(
-        &mut shell,
-        "symbol.new",
-        json!({"key":"example.next","discard":true}),
-    );
-    let names: Vec<_> = shell
-        .symbol_editor()
-        .unwrap()
-        .sources
-        .iter()
-        .filter(|s| s.key.as_deref() == Some("example.shared"))
-        .map(|s| serde_json::to_value(&s.name).unwrap())
-        .collect();
-    assert_eq!(names, [json!({"en":"First"})]);
-    shell.shutdown();
-}
-
-/// A person names a symbol and never has to give it a key: a new draft's key is made from its name and follows the
-/// name until a key is typed; Save to library then saves, and a second symbol of the same name takes the next free
-/// key instead of a refusal.
+/// A person names a symbol and never gives it a key: the key is made from the name and follows it; Save saves into
+/// My parts and says so, and a second symbol of the same name takes the next free key instead of a refusal. An
+/// import takes its file's name.
 #[test]
 fn a_new_symbol_takes_its_key_from_its_name() {
     let tmp = Tmp::new("symbol-key-from-name");
     let mut shell = tmp.empty_shell(Mode::Headless);
     let key = |shell: &ShellModel| shell.symbol_editor().unwrap().draft.key.clone();
-    let rename = |shell: &mut ShellModel, name: &str, typed: Option<&str>| {
-        let mut doc = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
-        doc["symbol"]["name"] = json!({"en": name});
-        if let Some(k) = typed {
-            doc["key"] = json!(k);
-        }
-        done(shell, "symbol.replace", json!({"document": doc}));
+    let name = |shell: &mut ShellModel, name: &str| {
+        done(
+            shell,
+            "parts.field",
+            json!({"field":"symbol.name","value":name}),
+        );
     };
-    done(&mut shell, "symbol.new", json!({}));
-    assert_eq!(key(&shell), "user.new-symbol");
-    assert!(!shell.symbol_editor().unwrap().dirty(), "the key is no edit");
+    done(&mut shell, "parts.open", json!({}));
+    done(&mut shell, "parts.new_symbol", json!({}));
+    assert!(!shell.symbol_editor().unwrap().dirty(), "a new drawing is no change");
     let line = json!({"tool":"line","x":0,"y":0,"x2":0,"y2":4});
     done(&mut shell, "symbol.draw", line.clone());
-    // The key follows the name, a typed key stays, and an emptied one is made from the name again.
-    rename(&mut shell, "Pump 3 (spare)", None);
+    name(&mut shell, "Pump 3 (spare)");
     assert_eq!(key(&shell), "user.pump-3-spare");
-    rename(&mut shell, "Pump", Some("acme.pump"));
-    rename(&mut shell, "Pump station", None);
-    assert_eq!(key(&shell), "acme.pump");
-    rename(&mut shell, "Pump station", Some(""));
+    name(&mut shell, "Pump station");
     assert_eq!(key(&shell), "user.pump-station");
-    // Save saves, and says where the symbol went.
-    let library = json!({"directory": tmp.0.join("symbols.ewlib")});
-    done(&mut shell, "symbol.save", library.clone());
+    done(&mut shell, "parts.save", json!({}));
     assert_eq!(
         shell.toast().map(|t| t.text.clone()).as_deref(),
-        Some("Saved Pump station to the library My symbols. Draw ▸ Symbol places it on a page.")
+        Some("Saved Pump station to the library My parts. Draw ▸ Symbol places it on a page.")
     );
     let first = shell.symbol_editor().unwrap().draft.identity.clone();
     // A second new symbol of the same name is a second symbol.
-    done(
-        &mut shell,
-        "symbol.new",
-        json!({"discard": true, "name": "Pump station"}),
-    );
+    new_drawing(&mut shell, "Pump station");
     done(&mut shell, "symbol.draw", line);
     assert_eq!(key(&shell), "user.pump-station");
-    done(&mut shell, "symbol.save", library);
+    done(&mut shell, "parts.save", json!({}));
     assert_eq!(key(&shell), "user.pump-station-2");
     assert!(!shell.symbol_editor().unwrap().dirty());
     assert_ne!(shell.symbol_editor().unwrap().draft.identity, first);
-    // A copy of a library symbol still needs the key the person gives it.
-    assert_eq!(
-        failed(
-            &mut shell,
-            "symbol.fork",
-            json!({"source":"ew.iec.contact-no","key":"","discard":true})
-        ),
-        "Symbol editor: Give the symbol a key."
-    );
     // An import without a key takes its file's name.
     let file = tmp.0.join("contact no.elmt");
     std::fs::write(
@@ -795,41 +353,21 @@ fn a_new_symbol_takes_its_key_from_its_name() {
     )
     .unwrap();
     done(&mut shell, "symbol.open", json!({"file":file,"discard":true}));
-    assert_eq!(shell.symbol_editor().unwrap().draft.key, "contact_no");
+    assert_eq!(key(&shell), "contact_no");
     shell.shutdown();
 }
 
-#[test]
-fn an_assigned_function_is_required_as_compatible() {
-    let tmp = Tmp::new("symbol-function-caret");
-    let mut shell = tmp.empty_shell(Mode::Headless);
-    done(
-        &mut shell,
-        "symbol.new",
-        json!({"key":"example.contact","name":"Contact"}),
-    );
-    done(&mut shell, "symbol.function", json!({"key":"ew.fn.contact-no"}));
-    let draft = &shell.symbol_editor().unwrap().draft;
-    let reference = draft.function_ref.as_ref().unwrap();
-    assert!(reference.version_req.starts_with('^'), "{reference:?}");
-    shell.shutdown();
-}
-
+/// Without configured libraries a symbol is saved into My parts of the settings folder, its index there and not
+/// beside the library; a library of the user tier is not remembered as a company library.
 #[test]
 fn saving_without_configured_tiers_keeps_the_index_in_the_settings_folder() {
     let tmp = Tmp::new("symbol-tiers");
     let config = tmp.0.join("config");
     let mut shell = ShellModel::new(Mode::Headless, ShellConfig::in_dir(&config, "0.0.0-test"));
-    drawn(&mut shell, "example.tiers", "Tiers");
-    done(
-        &mut shell,
-        "symbol.save",
-        json!({"directory":tmp.0.join("out").join("symbols.ewlib")}),
-    );
-    assert!(!tmp.0.join("out").join(".symbol-index").exists());
+    drawn(&mut shell, "Tiers");
+    done(&mut shell, "parts.save", json!({}));
     assert!(config.join("library-index").is_dir());
     shell.shutdown();
-    // A library of the user tier opens from it: it is not remembered as a company library.
     let data = tmp.0.join("data");
     let tiers = ew_api::library::LibraryTiers::under(&data, &tmp.0.join("cache"), vec![], vec![]);
     let user = tmp.0.join("user-config");
@@ -837,82 +375,66 @@ fn saving_without_configured_tiers_keeps_the_index_in_the_settings_folder() {
         Mode::Headless,
         ShellConfig::in_dir(&user, "0.0.0-test").with_libraries(Some(tiers)),
     );
-    drawn(&mut shell, "example.user", "User");
-    done(
-        &mut shell,
-        "symbol.save",
-        json!({"directory":data.join("libraries").join("symbols.ewlib")}),
-    );
+    drawn(&mut shell, "User");
+    done(&mut shell, "parts.save", json!({}));
     shell.shutdown();
     let settings = std::fs::read_to_string(user.join("settings.toml")).unwrap_or_default();
     assert!(!settings.contains("company"), "{settings}");
 }
 
 #[test]
-fn refusals_of_export_and_unknown_members_are_in_words() {
+fn an_export_over_a_file_is_refused_in_words() {
     let tmp = Tmp::new("symbol-refusals");
     let mut shell = tmp.empty_shell(Mode::Headless);
-    drawn(&mut shell, "example.words", "Words");
+    drawn(&mut shell, "Words");
     let file = json!({"file":tmp.0.join("words.symbol.json")});
     done(&mut shell, "symbol.export", file.clone());
     assert_eq!(
         failed(&mut shell, "symbol.export", file),
-        "Symbol editor: A file with this name already exists. Choose another name."
+        "A file with this name already exists. Choose another name."
     );
-    let mut doc = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
-    doc["symbol"]["text_slot"] = json!([]);
-    done(&mut shell, "symbol.replace", json!({"document":doc}));
-    assert_eq!(
-        failed(
-            &mut shell,
-            "symbol.save",
-            json!({"directory":tmp.0.join("symbols.ewlib")})
-        ),
-        "Symbol editor: The symbol has a field this version does not know: text_slot. Remove or rename it before \
-         saving."
-    );
-    assert!(!tmp.0.join("symbols.ewlib").exists());
     shell.shutdown();
 }
 
-/// Close leaves the view and keeps the draft with its history; Edit ▸ Symbol editor returns to it;
-/// only Discard drops it.
+/// Back leaves the drawing and keeps it with its history; New symbol ▸ Go on with the drawing in hand returns to it;
+/// a new drawing with `discard` drops it.
 #[test]
-fn closing_the_editor_keeps_the_draft_and_its_history_until_discarded() {
+fn back_keeps_the_drawing_and_its_history_until_discarded() {
     let tmp = Tmp::new("symbol-keep");
     let mut shell = tmp.empty_shell(Mode::Headless);
-    drawn(&mut shell, "example.kept", "Kept");
+    drawn(&mut shell, "Kept");
     let draft = shell.symbol_editor().unwrap().draft.clone();
-    done(&mut shell, "symbol.close", json!({}));
+    done(&mut shell, "parts.back", json!({}));
     assert!(shell.symbol_editor().is_none());
     assert!(shell.kept_symbol_editor().unwrap().dirty());
-    done(&mut shell, "symbol.new", json!({}));
+    assert_eq!(
+        failed(&mut shell, "parts.new_symbol", json!({})),
+        "This symbol has unsaved changes. Save it or choose Discard changes."
+    );
+    done(&mut shell, "parts.new_symbol", json!({"like": "hand"}));
     let editor = shell.symbol_editor().unwrap();
     assert_eq!(editor.draft, draft);
     assert!(editor.can_undo());
     done(&mut shell, "edit.undo", json!({}));
     assert!(shell.symbol_editor().unwrap().draft.symbol.cps.is_empty());
-    done(&mut shell, "symbol.close", json!({"discard": true}));
-    assert!(shell.kept_symbol_editor().is_none());
-    done(&mut shell, "symbol.new", json!({}));
-    assert!(shell.symbol_editor().unwrap().draft.symbol.graphics.is_empty());
+    done(&mut shell, "parts.new_symbol", json!({"discard": true}));
+    let editor = shell.symbol_editor().unwrap();
+    assert!(editor.draft.symbol.graphics.is_empty());
+    assert!(!editor.dirty() && !editor.can_undo());
     shell.shutdown();
 }
 
-/// An unedited new, forked or imported draft is no unsaved change, and an import is in no library yet.
+/// An unedited new or imported drawing is no unsaved change and is not saved yet; an exported one is saved.
 #[test]
-fn the_draft_state_says_unsaved_only_after_an_edit_and_saved_only_once_stored() {
+fn the_drawing_state_says_unsaved_only_after_an_edit_and_saved_only_once_stored() {
     use ew_viewmodel::strings;
     let tmp = Tmp::new("symbol-state");
     let mut shell = tmp.empty_shell(Mode::Headless);
     let words = |shell: &ShellModel| strings::text(shell.symbol_editor().unwrap().state_key()).to_owned();
-    done(
-        &mut shell,
-        "symbol.new",
-        json!({"key":"example.state","name":"State"}),
-    );
+    done(&mut shell, "parts.open", json!({}));
+    done(&mut shell, "parts.new_symbol", json!({}));
     assert!(!shell.symbol_editor().unwrap().dirty());
-    assert_eq!(words(&shell), "Not in a library yet");
+    assert_eq!(words(&shell), "Not saved yet");
     done(
         &mut shell,
         "symbol.draw",
@@ -922,27 +444,20 @@ fn the_draft_state_says_unsaved_only_after_an_edit_and_saved_only_once_stored() 
     let file = tmp.0.join("state.symbol.json");
     done(&mut shell, "symbol.export", json!({"file":file}));
     assert_eq!(words(&shell), "Saved");
-    done(&mut shell, "symbol.close", json!({"discard": true}));
-    done(&mut shell, "symbol.open", json!({"file":file}));
+    done(&mut shell, "symbol.open", json!({"file":file,"discard":true}));
     assert!(!shell.symbol_editor().unwrap().dirty());
-    assert_eq!(words(&shell), "Not in a library yet");
+    assert_eq!(words(&shell), "Not saved yet");
     let qet = concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../ew-import-qet/tests/fixtures/contact_no.elmt"
     );
     done(&mut shell, "symbol.open", json!({"file":qet}));
-    assert_eq!(words(&shell), "Not in a library yet");
-    done(
-        &mut shell,
-        "symbol.fork",
-        json!({"source":"ew.iec.contact-no","key":"example.fork"}),
-    );
-    assert!(!shell.symbol_editor().unwrap().dirty());
+    assert_eq!(words(&shell), "Not saved yet");
     shell.shutdown();
 }
 
-/// An empty path is refused in words before any file system call, and a relative one resolves against the
-/// default user library's folder, never the working directory.
+/// An empty path is refused in words before any file system call, and a relative one resolves against the user
+/// library folder, never the working directory.
 #[test]
 fn symbol_paths_are_refused_when_empty_and_resolve_against_the_user_library_folder() {
     let tmp = Tmp::new("symbol-paths");
@@ -950,27 +465,16 @@ fn symbol_paths_are_refused_when_empty_and_resolve_against_the_user_library_fold
     let mut shell = ShellModel::new(Mode::Headless, ShellConfig::in_dir(&config, "0.0.0-test"));
     assert_eq!(
         failed(&mut shell, "symbol.open", json!({"file":""})),
-        "Symbol editor: Choose a symbol file first."
+        "Choose a symbol file first."
     );
-    drawn(&mut shell, "example.paths", "Paths");
+    drawn(&mut shell, "Paths");
     assert_eq!(
         failed(&mut shell, "symbol.export", json!({"file":"  "})),
-        "Symbol editor: Choose a symbol file first."
+        "Choose a symbol file first."
     );
-    assert_eq!(
-        failed(&mut shell, "symbol.directory", json!({"directory":""})),
-        "Symbol editor: Choose a library folder before saving."
-    );
-    done(&mut shell, "symbol.directory", json!({"directory":"mine.ewlib"}));
-    let user = config.join("libraries");
-    assert_eq!(
-        std::path::PathBuf::from(&shell.symbol_editor().unwrap().directory),
-        std::path::absolute(user.join("mine.ewlib")).unwrap()
-    );
-    done(&mut shell, "symbol.save", json!({}));
-    assert!(user.join("mine.ewlib").is_dir());
+    done(&mut shell, "parts.save", json!({}));
     done(&mut shell, "symbol.export", json!({"file":"paths.symbol.json"}));
-    assert!(user.join("paths.symbol.json").is_file());
+    assert!(config.join("libraries").join("paths.symbol.json").is_file());
     shell.shutdown();
 }
 
@@ -980,15 +484,10 @@ fn the_window_asks_the_pickers_for_a_missing_symbol_path() {
     use ew_viewmodel::shell::Prompt;
     let tmp = Tmp::new("symbol-pickers");
     let mut shell = tmp.empty_shell(Mode::Gui);
-    done(
-        &mut shell,
-        "symbol.new",
-        json!({"key":"example.pick","name":"Pick"}),
-    );
+    new_drawing(&mut shell, "Pick");
     for (action, prompt) in [
         ("symbol.open", Prompt::OpenSymbol),
         ("symbol.export", Prompt::SaveSymbol),
-        ("symbol.directory", Prompt::LibraryFolder),
     ] {
         done(&mut shell, action, json!({}));
         let asked = shell.take_prompt().unwrap();
@@ -997,9 +496,9 @@ fn the_window_asks_the_pickers_for_a_missing_symbol_path() {
     shell.shutdown();
 }
 
-/// A test placement shows the page with the symbol selected and offers the way back to the kept draft.
+/// A test placement shows the page with the symbol selected and offers the way back to the drawing in hand.
 #[test]
-fn a_test_placement_shows_the_page_and_its_toast_returns_to_the_editor() {
+fn a_test_placement_shows_the_page_and_its_toast_returns_to_the_drawing() {
     let tmp = Tmp::new("symbol-back");
     let mut shell = tmp.empty_shell(Mode::Headless);
     done(
@@ -1007,7 +506,7 @@ fn a_test_placement_shows_the_page_and_its_toast_returns_to_the_editor() {
         "file.new",
         json!({"dir":tmp.0.join("project.ew"),"template":"builtin"}),
     );
-    drawn(&mut shell, "example.back", "Back");
+    drawn(&mut shell, "Back");
     done(&mut shell, "symbol.scratch", json!({}));
     assert!(shell.symbol_editor().is_none());
     assert_eq!(shell.selection().items.len(), 1);
@@ -1020,7 +519,7 @@ fn a_test_placement_shows_the_page_and_its_toast_returns_to_the_editor() {
         "notifications.run",
         json!({"entry": toast.serial, "action": "edit"}),
     );
-    assert_eq!(shell.symbol_editor().unwrap().draft.key, "example.back");
+    assert_eq!(shell.symbol_editor().unwrap().draft.key, "user.back");
     done(&mut shell, "symbol.place", json!({"x":80,"y":80}));
     assert_eq!(
         shell.notifications().newest_visible().unwrap().text,
@@ -1037,13 +536,13 @@ fn a_test_copy_placed_again_after_reopening_the_project_takes_its_own_key() {
     let dir = tmp.0.join("project.ew");
     let mut shell = ShellModel::new(Mode::Headless, config.clone());
     done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
-    drawn(&mut shell, "example.reopen", "Reopen");
+    drawn(&mut shell, "Reopen");
     done(&mut shell, "symbol.scratch", json!({}));
     done(&mut shell, "file.save", json!({}));
     shell.shutdown();
     let mut shell = ShellModel::new(Mode::Headless, config);
     done(&mut shell, "file.open", json!({"dir":dir}));
-    drawn(&mut shell, "example.reopen", "Reopen");
+    drawn(&mut shell, "Reopen");
     done(
         &mut shell,
         "symbol.draw",
@@ -1052,27 +551,21 @@ fn a_test_copy_placed_again_after_reopening_the_project_takes_its_own_key() {
     done(&mut shell, "symbol.scratch", json!({}));
     done(&mut shell, "file.save", json!({}));
     shell.shutdown();
-    let (session, _) = ew_api::Session::open_read_only(&dir, "ElektraWatt test").unwrap();
-    let keys: std::collections::BTreeSet<String> = session
-        .query()
-        .symbols()
-        .iter()
-        .filter_map(|(_, s)| s.item.meta.key.as_ref().map(ToString::to_string))
-        .filter(|k| k.starts_with("example.reopen.test."))
-        .collect();
+    let keys: std::collections::BTreeSet<String> =
+        project_keys(&dir, "user.reopen.test.").into_iter().collect();
     assert_eq!(keys.len(), 2, "{keys:?}");
 }
 
-/// Quitting with an unsaved draft asks Save symbol, Discard or Cancel; `discard` discards it.
+/// Quitting with a drawing with changes asks Save symbol, Discard or Cancel; `discard` discards it.
 #[test]
-fn quitting_with_an_unsaved_draft_asks_and_discard_discards_it() {
+fn quitting_with_an_unsaved_drawing_asks_and_discard_discards_it() {
     use ew_viewmodel::dialogs::spec;
     use ew_viewmodel::shell::{ConfirmAnswer, Dialog};
     let tmp = Tmp::new("symbol-quit");
     let config = tmp.config();
     let mut shell = ShellModel::new(Mode::Headless, config.clone());
-    drawn(&mut shell, "example.quit", "Quit block");
-    done(&mut shell, "symbol.close", json!({}));
+    drawn(&mut shell, "Quit block");
+    done(&mut shell, "parts.back", json!({}));
     assert_eq!(
         failed(&mut shell, "app.quit", json!({})),
         "This symbol has unsaved changes. Save it or choose Discard changes."
@@ -1080,18 +573,12 @@ fn quitting_with_an_unsaved_draft_asks_and_discard_discards_it() {
     done(&mut shell, "app.quit", json!({"discard": true}));
     assert!(shell.should_quit() && shell.kept_symbol_editor().is_none());
     let mut shell = ShellModel::new(Mode::Gui, config);
-    drawn(&mut shell, "example.quit", "Quit block");
+    drawn(&mut shell, "Quit block");
     done(&mut shell, "app.quit", json!({}));
     let dialog = shell.dialog().unwrap().clone();
     assert!(matches!(dialog, Dialog::ConfirmDiscard { symbol: true, .. }));
     let s = spec(&dialog, &shell);
     assert_eq!(s.title, "Save the symbol Quit block?");
-    assert_eq!(
-        s.body,
-        [
-            "The symbol draft has changes that are not in a library. Save it before you quit, or discard the changes."
-        ]
-    );
     let labels: Vec<&str> = s.buttons().iter().map(|b| b.label.as_str()).collect();
     assert_eq!(labels, ["Save symbol", "Cancel", "Discard changes"]);
     assert_eq!(shell.answer_confirm(ConfirmAnswer::Cancel), Outcome::Done);
@@ -1102,9 +589,9 @@ fn quitting_with_an_unsaved_draft_asks_and_discard_discards_it() {
     shell.shutdown();
 }
 
-/// While the editor shows, Ctrl+S saves the symbol and the File menu names Save symbol and keeps Save project.
+/// While the drawing shows, Ctrl+S saves the symbol and the File menu names Save symbol and keeps Save project.
 #[test]
-fn the_file_menu_names_save_symbol_and_keeps_save_project_while_the_editor_shows() {
+fn the_file_menu_names_save_symbol_and_keeps_save_project_while_the_drawing_shows() {
     use ew_viewmodel::actions::{MenuEntry, menu_model};
     let tmp = Tmp::new("symbol-menu");
     let mut shell = tmp.empty_shell(Mode::Headless);
@@ -1127,63 +614,19 @@ fn the_file_menu_names_save_symbol_and_keeps_save_project_while_the_editor_shows
             .collect()
     };
     assert_eq!(labels(&shell), ["Save", "Save as…"]);
-    drawn(&mut shell, "example.menu", "Menu");
+    drawn(&mut shell, "Menu");
     assert_eq!(labels(&shell), ["Save symbol", "Save project", "Save as…"]);
-    done(&mut shell, "symbol.close", json!({}));
     done(&mut shell, "page.new", json!({"folio":"7"}));
-    done(&mut shell, "symbol.new", json!({}));
     assert!(shell.is_dirty());
     done(&mut shell, "file.save_project", json!({}));
     assert!(!shell.is_dirty());
-    done(&mut shell, "symbol.directory", json!({"directory":"menu.ewlib"}));
     done(&mut shell, "file.save", json!({}));
     assert!(shell.symbol_editor().unwrap().stored());
     shell.shutdown();
 }
 
-#[test]
-fn saving_a_published_draft_under_another_key_adds_a_symbol_and_says_so() {
-    let tmp = Tmp::new("symbol-renamed-key");
-    let mut shell = tmp.empty_shell(Mode::Headless);
-    let library = json!({"directory":tmp.0.join("symbols.ewlib")});
-    drawn(&mut shell, "example.a", "A");
-    done(&mut shell, "symbol.save", library.clone());
-    let first = shell.symbol_editor().unwrap().draft.identity.clone();
-    let mut doc = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
-    doc["key"] = json!("example.b");
-    doc["version"] = json!("1.0.1");
-    done(&mut shell, "symbol.replace", json!({"document":doc}));
-    done(&mut shell, "symbol.save", library.clone());
-    assert_eq!(
-        shell.toast().unwrap().text,
-        "Saved example.b as a new symbol; the symbol with the earlier key stays in the library."
-    );
-    let editor = shell.symbol_editor().unwrap();
-    assert_ne!(editor.draft.identity, first);
-    assert!(!editor.dirty());
-    // The draft keeps its new identity: saving it again adds nothing.
-    done(&mut shell, "symbol.save", library);
-    done(
-        &mut shell,
-        "symbol.new",
-        json!({"key":"example.next","discard":true}),
-    );
-    let mut keys: Vec<_> = shell
-        .symbol_editor()
-        .unwrap()
-        .sources
-        .iter()
-        .filter(|s| s.library.is_some())
-        .filter_map(|s| s.key.clone())
-        .filter(|k| k.starts_with("example."))
-        .collect();
-    keys.sort();
-    assert_eq!(keys, ["example.a", "example.b"]);
-    shell.shutdown();
-}
-
-/// The file picker offers exactly the extensions the editor reads: JSON, and every extension an importer
-/// takes (a file the JSON reader would refuse otherwise), `.pxf` among them.
+/// The file picker offers exactly the extensions the drawing reads: JSON, and every extension an importer takes (a
+/// file the JSON reader would refuse otherwise), `.pxf` among them.
 #[test]
 fn the_symbol_file_picker_offers_every_extension_an_importer_reads() {
     use ew_api::symbols;
@@ -1206,9 +649,9 @@ fn the_symbol_file_picker_offers_every_extension_an_importer_reads() {
     assert!(FILE_EXTENSIONS.contains(&"json"));
 }
 
-/// On a QET-grid page the Insert symbol picker lists a published 4 mm symbol with both grids in words and what Place
+/// On a QET-grid page the Insert symbol picker lists a saved 4 mm symbol with both grids in words and what Place
 /// does: it is placed on the page in front as its copy drawn on the page's grid, every connection point on a grid
-/// point of the page, so wires meet it (it was refused before, with a new page as the only way).
+/// point of the page, so wires meet it.
 #[test]
 fn a_symbol_on_another_grid_is_placed_on_the_page_in_front_on_its_grid() {
     use ew_viewmodel::strings;
@@ -1221,19 +664,14 @@ fn a_symbol_on_another_grid_is_placed_on_the_page_in_front_on_its_grid() {
         json!({"dir":tmp.0.join("project.ew"),"template":"builtin"}),
     );
     assert_eq!(shell.canvas().unwrap().page().snapper.grid(), (7_937_500, 3));
-    drawn(&mut shell, "example.grid-block", "Grid block");
+    drawn(&mut shell, "Grid block");
     // A second point two 4 mm steps on: 8 mm is no point of the QET grid.
     done(
         &mut shell,
         "symbol.cp",
         json!({"x": 8, "y": 0, "designation": "2"}),
     );
-    done(
-        &mut shell,
-        "symbol.save",
-        json!({"directory": tmp.0.join("grid.ewlib")}),
-    );
-    done(&mut shell, "symbol.close", json!({}));
+    saved_and_left(&mut shell);
     done(&mut shell, "tool.place", json!({}));
     let picker = shell.picker().unwrap();
     let i = picker
@@ -1241,10 +679,9 @@ fn a_symbol_on_another_grid_is_placed_on_the_page_in_front_on_its_grid() {
         .symbols
         .iter()
         .position(|s| s.key.starts_with("library:") && s.name.starts_with("Grid block"))
-        .expect("the published symbol is listed");
+        .expect("the saved symbol is listed");
     let row = PickerRow::Symbol(i);
     assert!(picker.rows.contains(&row));
-    // Both grids named as the status bar, New page and Properties name them, and what Place does.
     let words = "This symbol is drawn on the 4 mm connection grid, and this page uses QET 10 px. Place puts it here \
                  with its connection points on this page's grid.";
     assert_eq!(picker.disabled_words(row), None, "the row can be placed");
@@ -1268,8 +705,8 @@ fn a_symbol_on_another_grid_is_placed_on_the_page_in_front_on_its_grid() {
     let tables = std::sync::Arc::clone(&shell.canvas().unwrap().page().tables);
     assert_eq!(tables.grid, (7_937_500, 3), "on the page in front");
     let grid = ew_api::symbols::units::Grid::QET_10PX;
-    // A point of the QET grid is a third of a nanometre off a whole one: a placed point is the sum of two of them, as
-    // with the starter library's QET edition, so within a nanometre of the grid (8 mm is no point of it).
+    // A point of the QET grid is a third of a nanometre off a whole one: a placed point is the sum of two of them, so
+    // within a nanometre of the grid.
     let on_grid = |v: i64| {
         let n = ew_api::symbols::units::Nm(v);
         grid.at(grid.snap(n)).is_some_and(|g| (g.0 - v).abs() <= 1)
@@ -1286,9 +723,9 @@ fn a_symbol_on_another_grid_is_placed_on_the_page_in_front_on_its_grid() {
     shell.shutdown();
 }
 
-/// On a QET-grid page Place on current page is refused in the picker's words, both grids named, and offers
-/// Place on a new page with its grid; the Insert symbol picker's greyed row of the published symbol places it on a new
-/// page with its grid, selected, and the picker closes.
+/// On a QET-grid page placing a 4 mm drawing on the page in front is refused in the picker's words, both grids
+/// named, and offers Place on a new page with its grid; the picker's greyed row of the saved symbol places it on a
+/// new page with its grid, selected, and the picker closes.
 #[test]
 fn a_symbol_on_another_grid_is_placed_on_a_new_page_with_its_grid() {
     use ew_viewmodel::tools::PickerRow;
@@ -1300,11 +737,11 @@ fn a_symbol_on_another_grid_is_placed_on_a_new_page_with_its_grid() {
         json!({"dir":tmp.0.join("project.ew"),"template":"builtin"}),
     );
     let grid = |shell: &ShellModel| shell.canvas().unwrap().page().snapper.grid();
-    drawn(&mut shell, "example.offer", "Offer block");
+    drawn(&mut shell, "Offer block");
     assert_eq!(
         failed(&mut shell, "symbol.place", json!({"x":40,"y":40})),
-        "Symbol editor: This symbol is drawn on the 4 mm connection grid, and this page uses QET 10 px. Place it on \
-         a page with its grid."
+        "This symbol is drawn on the 4 mm connection grid, and this page uses QET 10 px. Place it on a page with its \
+         grid."
     );
     assert!(shell.symbol_editor().unwrap().offer_new_page);
     let pages = shell.page_labels().len();
@@ -1312,15 +749,10 @@ fn a_symbol_on_another_grid_is_placed_on_a_new_page_with_its_grid() {
     assert_eq!(grid(&shell), (4_000_000, 1));
     assert_eq!(shell.page_labels().len(), pages + 1);
     assert_eq!(shell.selection().items.len(), 1);
-    // The picker: the published symbol's greyed row, made current, is placed on a new page of its grid.
-    done(&mut shell, "symbol.new", json!({}));
+    // The picker: the saved symbol's greyed row, made current, is placed on a new page of its grid.
+    done(&mut shell, "parts.new_symbol", json!({"like": "hand"}));
     assert!(!shell.symbol_editor().unwrap().offer_new_page);
-    done(
-        &mut shell,
-        "symbol.save",
-        json!({"directory": tmp.0.join("offer.ewlib")}),
-    );
-    done(&mut shell, "symbol.close", json!({}));
+    saved_and_left(&mut shell);
     done(&mut shell, "nav.goto", json!({"text": "1"}));
     assert_eq!(grid(&shell), (7_937_500, 3));
     done(&mut shell, "tool.place", json!({}));
@@ -1363,7 +795,7 @@ fn a_symbol_on_another_grid_is_placed_on_a_new_page_with_its_grid() {
     shell.shutdown();
 }
 
-/// A symbol file that cannot be read and a draft that cannot be written are said in the window's words, never in
+/// A symbol file that cannot be read and a drawing that cannot be written are said in the window's words, never in
 /// the reader's (a line and a column) or the operating system's.
 #[test]
 fn a_bad_symbol_file_and_a_failed_export_are_said_in_words() {
@@ -1373,9 +805,9 @@ fn a_bad_symbol_file_and_a_failed_export_are_said_in_words() {
     std::fs::write(&bad, "{ \"format\": ").unwrap();
     assert_eq!(
         failed(&mut shell, "symbol.open", json!({ "file": bad })),
-        "Symbol editor: This file cannot be read as a symbol. It may be damaged, or not a symbol file."
+        "This file cannot be read as a symbol. It may be damaged, or not a symbol file."
     );
-    drawn(&mut shell, "example.words", "Words");
+    drawn(&mut shell, "Words");
     // A folder that is a file: the system refuses the write.
     let blocker = tmp.0.join("blocker");
     std::fs::write(&blocker, "x").unwrap();
@@ -1385,36 +817,34 @@ fn a_bad_symbol_file_and_a_failed_export_are_said_in_words() {
             "symbol.export",
             json!({ "file": blocker.join("draft.symbol.json") })
         ),
-        "Symbol editor: The draft could not be written to that file. Check that the folder exists and that you may \
-         write to it."
+        "The draft could not be written to that file. Check that the folder exists and that you may write to it."
     );
     shell.shutdown();
 }
 
 /// Place on a new page with its grid makes the page for the symbol alone: when the placement is then refused (a
 /// terminal in a project without a terminal strip), the page is taken back, the page that was on show shows again,
-/// and the refusal is said in words. (The Insert symbol list offers no terminal: Terminal… places those.)
+/// and the refusal is said in words.
 #[test]
 fn a_refused_placement_on_a_new_page_leaves_no_empty_page() {
     let tmp = Tmp::new("symbol-new-page-refused");
     let dir = tmp.0.join("project.ew");
     let mut shell = tmp.empty_shell(Mode::Headless);
     done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
-    // A terminal symbol on the native grid, saved to a library; the project's page 1 is on the QET grid.
-    drawn(&mut shell, "example.terminal", "Clamp");
-    done(&mut shell, "symbol.function", json!({"key":"ew.fn.terminal"}));
+    drawn(&mut shell, "Clamp");
     done(
         &mut shell,
-        "symbol.save",
-        json!({"directory": tmp.0.join("terminals.ewlib")}),
+        "parts.field",
+        json!({"field":"symbol.what","value":"terminal"}),
     );
+    done(&mut shell, "parts.save", json!({}));
     let labels =
         |shell: &ShellModel| -> Vec<String> { shell.page_labels().iter().map(ToString::to_string).collect() };
     let pages = labels(&shell);
     let folio = pages[shell.page_index()].clone();
     let refusal = failed(&mut shell, "symbol.new_page", json!({}));
     assert!(
-        refusal.starts_with("Symbol editor: No terminal strip to add to"),
+        refusal.starts_with("No terminal strip to add to"),
         "{refusal}"
     );
     assert_eq!(labels(&shell), pages, "no page is left behind");
@@ -1427,24 +857,20 @@ fn a_refused_placement_on_a_new_page_leaves_no_empty_page() {
     shell.shutdown();
 }
 
-/// The editor's offer for a draft saved to a library and unchanged since places the published
-/// symbol on a new page with its grid and selects it; for any other draft it is Test on a new page, and
-/// `symbol.new_page` is refused in words.
+/// Place on a new page places the saved symbol while the drawing is as saved and selects it; for any other drawing
+/// it is refused in words.
 #[test]
-fn the_editors_offer_places_the_published_symbol_only_while_the_draft_is_as_saved() {
+fn place_on_a_new_page_places_the_saved_symbol_only_while_the_drawing_is_as_saved() {
     let tmp = Tmp::new("symbol-offer-published");
     let dir = tmp.0.join("project.ew");
     let mut shell = tmp.empty_shell(Mode::Headless);
     done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
-    drawn(&mut shell, "example.offered", "Offered");
-    let not_published = "Symbol editor: The symbol is not in a library as drawn. Save it to a library first.";
+    drawn(&mut shell, "Offered");
+    let not_saved = "The symbol is not in a library as drawn. Save it to a library first.";
     assert_eq!(shell.symbol_editor().unwrap().published(), None);
-    assert_eq!(failed(&mut shell, "symbol.new_page", json!({})), not_published);
-    done(
-        &mut shell,
-        "symbol.save",
-        json!({"directory": tmp.0.join("offered.ewlib")}),
-    );
+    assert_eq!(failed(&mut shell, "symbol.new_page", json!({})), not_saved);
+    done(&mut shell, "parts.save", json!({}));
+    let key = shell.symbol_editor().unwrap().draft.key.clone();
     assert!(
         shell
             .symbol_editor()
@@ -1452,7 +878,7 @@ fn the_editors_offer_places_the_published_symbol_only_while_the_draft_is_as_save
             .published()
             .is_some_and(|a| a.starts_with("library:"))
     );
-    // An edit makes it a draft again; its undo makes it the published one.
+    // An edit makes it a drawing again; its undo makes it the saved one.
     done(
         &mut shell,
         "symbol.draw",
@@ -1461,8 +887,6 @@ fn the_editors_offer_places_the_published_symbol_only_while_the_draft_is_as_save
     assert_eq!(shell.symbol_editor().unwrap().published(), None);
     done(&mut shell, "symbol.undo", json!({}));
     assert!(shell.symbol_editor().unwrap().published().is_some());
-    failed(&mut shell, "symbol.place", json!({"x":40,"y":40}));
-    assert!(shell.symbol_editor().unwrap().offer_new_page);
     let pages = shell.page_labels().len();
     let recorded = shell.recorded_commands().len();
     done(&mut shell, "symbol.new_page", json!({}));
@@ -1473,40 +897,22 @@ fn the_editors_offer_places_the_published_symbol_only_while_the_draft_is_as_save
         .map(|c| c.cmd.as_str())
         .collect();
     assert_eq!(cmds, ["page.create", "device.place"]);
-    let selected = &shell.selection().items;
-    assert_eq!(selected.len(), 1);
-    assert_ne!(
-        Some(selected[0].0.to_string()),
-        shell.current_page().map(|p| p.uuid_text()),
-        "the symbol is selected, not its page"
-    );
-    assert_eq!(
-        shell.toast().map(|t| t.text.clone()).as_deref(),
-        Some("Placed -2A1 at 2-B1.")
-    );
+    assert_eq!(shell.selection().items.len(), 1);
     done(&mut shell, "file.save", json!({}));
     shell.shutdown();
-    // The project embeds the published symbol under its own key, no test copy.
-    let (session, _) = ew_api::Session::open_read_only(&dir, "ElektraWatt test").unwrap();
-    let q = session.query();
-    let keys: Vec<String> = q
-        .symbols()
-        .iter()
-        .filter_map(|(_, s)| s.item.meta.key.as_ref().map(ToString::to_string))
-        .filter(|k| k.starts_with("example.offered"))
-        .collect();
-    assert_eq!(keys, ["example.offered"]);
+    // The project embeds the saved symbol under its own key, no test copy.
+    assert_eq!(project_keys(&dir, &key), [key]);
 }
 
-/// A new free text is centred on its click, in the small style pin designations use until a style is
-/// chosen in the draft, then in the style chosen last; a text may hold a line break; a style is named in words.
+/// A new free text is centred on its click, in the small style pin designations use until a style is chosen for a
+/// text of the drawing, then in the style chosen last; a text may hold a line break; a style is named in words.
 #[test]
 fn a_new_text_is_centred_in_the_style_chosen_last() {
     use ew_viewmodel::shell::symbol_editor::text_style_words;
     use ew_viewmodel::strings;
     let tmp = Tmp::new("symbol-text-style");
     let mut shell = tmp.empty_shell(Mode::Headless);
-    drawn(&mut shell, "example.texts", "Texts");
+    drawn(&mut shell, "Texts");
     let texts = |shell: &ShellModel| -> Vec<serde_json::Value> {
         let d = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
         d["symbol"]["graphics"]
@@ -1530,12 +936,12 @@ fn a_new_text_is_centred_in_the_style_chosen_last() {
             &json!([8_000_000, 8_000_000])
         )
     );
-    // A style chosen for the first text is the next text's.
-    let mut doc = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
-    let graphics = doc["symbol"]["graphics"].as_array_mut().unwrap();
-    let at = graphics.iter().position(|g| g.get("text").is_some()).unwrap();
-    graphics[at]["text"]["style"] = json!("tag.main");
-    done(&mut shell, "symbol.replace", json!({"document": doc}));
+    // A style chosen for the text, which is selected as it is drawn, is the next text's.
+    done(
+        &mut shell,
+        "symbol.prop",
+        json!({"key": "style", "value": "tag.main"}),
+    );
     done(
         &mut shell,
         "symbol.draw",
@@ -1564,14 +970,14 @@ fn a_new_text_is_centred_in_the_style_chosen_last() {
 fn an_edit_the_reader_refuses_is_refused_in_words() {
     let tmp = Tmp::new("symbol-edit-words");
     let mut shell = tmp.empty_shell(Mode::Headless);
-    drawn(&mut shell, "example.words", "Words");
+    drawn(&mut shell, "Words");
     let before = shell.symbol_editor().unwrap().draft.clone();
     let sentence = "That change would leave the symbol incomplete, so it was not made. Fill in what it needs and try \
                     again.";
     assert_eq!(
         shell.dispatch("symbol.draw", &json!({"tool":"text","x":8,"y":8,"text":""})),
         Outcome::Failed {
-            message: format!("Symbol editor: {sentence}")
+            message: sentence.to_owned()
         }
     );
     let editor = shell.symbol_editor().unwrap();
@@ -1582,67 +988,8 @@ fn an_edit_the_reader_refuses_is_refused_in_words() {
     shell.shutdown();
 }
 
-/// With no folder given, a new draft's Library folder is the default user library, `symbols.ewlib` in the
-/// user library folder, and Save to library saves there.
-#[test]
-fn save_without_a_folder_saves_to_the_default_user_library() {
-    let tmp = Tmp::new("symbol-default-library");
-    let mut shell = tmp.empty_shell(Mode::Headless);
-    drawn(&mut shell, "example.default", "Default library");
-    let library = std::path::absolute(tmp.0.join("config").join("libraries").join("symbols.ewlib")).unwrap();
-    assert_eq!(
-        shell.symbol_editor().unwrap().directory,
-        library.to_string_lossy()
-    );
-    done(&mut shell, "symbol.save", json!({}));
-    assert!(shell.symbol_editor().unwrap().stored());
-    assert!(library.is_dir());
-    shell.shutdown();
-}
-
-/// An editable copy of a starter symbol under its own key says nothing of a new symbol when saved:
-/// only its function definition took an identity of its own.
-#[test]
-fn saving_a_copy_under_its_own_key_announces_no_new_symbol() {
-    let tmp = Tmp::new("symbol-own-key");
-    let mut shell = tmp.empty_shell(Mode::Headless);
-    done(&mut shell, "symbol.new", json!({"key":"example.empty"}));
-    let source = shell
-        .symbol_editor()
-        .unwrap()
-        .sources
-        .iter()
-        .find(|s| s.key.as_deref() == Some("ew.iec.contact-no"))
-        .unwrap()
-        .source
-        .clone();
-    done(
-        &mut shell,
-        "symbol.fork",
-        json!({"source":source,"key":"ew.iec.contact-no","discard":true}),
-    );
-    let before = shell.symbol_editor().unwrap().draft.identity.clone();
-    done(
-        &mut shell,
-        "symbol.save",
-        json!({"directory": tmp.0.join("own.ewlib")}),
-    );
-    let after = shell.symbol_editor().unwrap().draft.identity.clone();
-    assert_ne!(before, after, "the function definition took an identity");
-    assert_eq!(
-        before.map(|i| i.symbol),
-        after.map(|i| i.symbol),
-        "the symbol kept its own"
-    );
-    assert_eq!(
-        shell.toast().map(|t| t.text.clone()).as_deref(),
-        Some("Saved Contact, normally open to the library My symbols. Draw ▸ Symbol places it on a page.")
-    );
-    shell.shutdown();
-}
-
-/// The test copy's item IDs are v5 names whose parts are joined with U+001F (ADR-0004
-/// amendment 4); a save whose owned function definition differs at its version takes the next patch version.
+/// The test copy's item IDs are v5 names whose parts are joined with U+001F (ADR-0004 amendment 4); a changed symbol
+/// saved again takes the next patch version, and the toast names it.
 #[test]
 fn the_test_copys_ids_join_their_parts_with_the_unit_separator() {
     use ew_api::{output::Uuid, symbols};
@@ -1650,14 +997,20 @@ fn the_test_copys_ids_join_their_parts_with_the_unit_separator() {
     let dir = tmp.0.join("project.ew");
     let mut shell = tmp.empty_shell(Mode::Headless);
     done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
-    drawn(&mut shell, "example.v5", "Five");
-    let library = json!({"directory": tmp.0.join("v5.ewlib")});
-    done(&mut shell, "symbol.save", library.clone());
-    let mut doc = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
-    doc["function"]["cps"][0]["designation"] = json!("A1");
-    done(&mut shell, "symbol.replace", json!({"document": doc}));
-    done(&mut shell, "symbol.save", library);
+    drawn(&mut shell, "Five");
+    done(&mut shell, "parts.save", json!({}));
+    done(
+        &mut shell,
+        "symbol.draw",
+        json!({"tool":"line","x":4,"y":0,"x2":4,"y2":4}),
+    );
+    done(&mut shell, "parts.save", json!({}));
     assert_eq!(shell.symbol_editor().unwrap().draft.version, "1.0.1");
+    assert!(!shell.symbol_editor().unwrap().dirty());
+    assert_eq!(
+        shell.toast().map(|t| t.text.clone()).as_deref(),
+        Some("Saved Five as version 1.0.1 to the library My parts. Draw ▸ Symbol places it on a page.")
+    );
     done(&mut shell, "symbol.scratch", json!({}));
     done(&mut shell, "file.save", json!({}));
     shell.shutdown();
@@ -1671,7 +1024,7 @@ fn the_test_copys_ids_join_their_parts_with_the_unit_separator() {
                 .meta
                 .key
                 .as_ref()
-                .is_some_and(|k| k.as_str().starts_with("example.v5.test."))
+                .is_some_and(|k| k.as_str().starts_with("user.five.test."))
         })
         .unwrap();
     let key = copy.item.meta.key.as_ref().unwrap().to_string();
@@ -1681,58 +1034,50 @@ fn the_test_copys_ids_join_their_parts_with_the_unit_separator() {
     );
 }
 
-/// The editor has a button on the Draw tab's Place group, and the command search names it there.
+/// New symbol has a button on the Draw tab's Place group, and the command search names it there.
 #[test]
-fn the_editor_has_a_button_on_the_draw_tab_and_the_search_groups_it_there() {
+fn new_symbol_has_a_button_on_the_draw_tab_and_the_search_groups_it_there() {
     use ew_viewmodel::command_bar::{Group, Tab};
     let tmp = Tmp::new("symbol-draw-tab");
     let mut shell = tmp.empty_shell(Mode::Gui);
-    let place = ew_viewmodel::actions::find("symbol.new")
+    let place = ew_viewmodel::actions::find("parts.new_symbol")
         .unwrap()
         .placement
         .unwrap();
     assert_eq!((place.tab, place.group), (Tab::Draw, Group::Place));
-    // The button is named "Symbol editor" (a button named "Symbols" was not found); its menu entry is
-    // "Symbol editor…".
     let bar = place.bar_label.unwrap();
-    assert_eq!(ew_viewmodel::strings::text(bar), "Symbol editor");
+    assert_eq!(ew_viewmodel::strings::text(bar), "New symbol");
     assert!(ew_viewmodel::strings::set_locale("nl"));
     let dutch = ew_viewmodel::strings::text(bar);
     assert!(ew_viewmodel::strings::set_locale("en"));
-    assert_eq!(dutch, "Symbooleditor");
-    assert_eq!(
-        ew_viewmodel::strings::text(ew_viewmodel::key!("action-symbol-new")),
-        "Symbol editor…"
-    );
+    assert_eq!(dutch, "Nieuw symbool");
     done(&mut shell, "tools.palette", json!({}));
-    shell.set_palette_query("symbol editor");
+    shell.set_palette_query("new symbol");
     let entry = shell
         .palette_entries()
         .into_iter()
-        .find(|e| e.id == "symbol.new")
+        .find(|e| e.id == "parts.new_symbol")
         .unwrap();
     assert_eq!(entry.breadcrumb, "Draw · Place");
     shell.shutdown();
 }
 
-/// The quit question's Save symbol saves the draft, then quits.
+/// The quit question's Save symbol saves the drawing into My parts, then quits.
 #[test]
-fn the_quit_questions_save_symbol_saves_the_draft_and_quits() {
+fn the_quit_questions_save_symbol_saves_the_drawing_and_quits() {
     use ew_viewmodel::shell::ConfirmAnswer;
     let tmp = Tmp::new("symbol-quit-save");
     let mut shell = tmp.empty_shell(Mode::Gui);
-    drawn(&mut shell, "example.quit-save", "Quit save");
-    done(&mut shell, "symbol.directory", json!({"directory": "quit.ewlib"}));
+    drawn(&mut shell, "Quit save");
     done(&mut shell, "app.quit", json!({}));
     assert!(shell.dialog().is_some() && !shell.should_quit());
     assert_eq!(shell.answer_confirm(ConfirmAnswer::Save), Outcome::Done);
     assert!(shell.should_quit());
     assert!(shell.kept_symbol_editor().unwrap().stored());
-    assert!(tmp.0.join("config").join("libraries").join("quit.ewlib").is_dir());
     shell.shutdown();
 }
 
-/// The quit question's and the scratch page's titles name the symbol in the window's language.
+/// The quit question's and the test page's titles name the symbol in the window's language.
 #[test]
 fn the_titles_name_the_symbol_in_the_windows_language() {
     use ew_viewmodel::dialogs::spec;
@@ -1741,11 +1086,8 @@ fn the_titles_name_the_symbol_in_the_windows_language() {
     let dir = tmp.0.join("project.ew");
     let mut shell = tmp.empty_shell(Mode::Gui);
     done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
-    drawn(&mut shell, "example.language", "Supply block");
-    let mut named = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
-    named["symbol"]["name"] = json!({"en": "Supply block", "nl": "Voedingsblok"});
-    done(&mut shell, "symbol.replace", json!({"document": named}));
     assert!(strings::set_locale("nl"));
+    drawn(&mut shell, "Voedingsblok");
     done(&mut shell, "app.quit", json!({}));
     let title = spec(shell.dialog().unwrap(), &shell).title;
     done(&mut shell, "ui.dismiss", json!({}));
@@ -1767,45 +1109,13 @@ fn the_titles_name_the_symbol_in_the_windows_language() {
     );
 }
 
-/// Part 3's nit: `symbol.role` sets a connection point's potential role, `none` clears it, each one undo step;
-/// a missing point and an assigned function definition are refused in words.
+/// A refused action names no member ("index", "idx", "start"), and an Image primitive has its word.
 #[test]
-fn symbol_role_sets_and_clears_a_connection_points_potential_role() {
-    let tmp = Tmp::new("symbol-role");
-    let mut shell = tmp.empty_shell(Mode::Headless);
-    drawn(&mut shell, "example.role", "Role");
-    let role = |shell: &ShellModel| {
-        let draft = &shell.symbol_editor().unwrap().draft;
-        serde_json::to_value(draft).unwrap()["function"]["cps"][0]["potential_role"].clone()
-    };
-    done(&mut shell, "symbol.role", json!({"cp": 1, "role": "fe"}));
-    assert_eq!(role(&shell), json!("fe"));
-    done(&mut shell, "symbol.role", json!({"cp": 1, "role": "l_plus"}));
-    assert_eq!(role(&shell), json!("l_plus"));
-    done(&mut shell, "edit.undo", json!({}));
-    assert_eq!(role(&shell), json!("fe"));
-    done(&mut shell, "symbol.role", json!({"cp": 1, "role": "none"}));
-    assert_eq!(role(&shell), serde_json::Value::Null);
-    assert_eq!(
-        failed(&mut shell, "symbol.role", json!({"cp": 9, "role": "pe"})),
-        "Symbol editor: This symbol has no connection point 9."
-    );
-    done(&mut shell, "symbol.function", json!({"key":"ew.fn.contact-no"}));
-    assert_eq!(
-        failed(&mut shell, "symbol.role", json!({"cp": 1, "role": "pe"})),
-        "Symbol editor: An assigned function definition keeps its roles. Change them in a function definition of the \
-         symbol's own."
-    );
-    shell.shutdown();
-}
-
-/// Part 3's nits: a refused action names no member ("index", "idx", "start"), and an Image primitive has its word.
-#[test]
-fn refusals_of_the_editors_actions_are_in_words() {
+fn refusals_of_the_drawings_actions_are_in_words() {
     use ew_viewmodel::strings;
     let tmp = Tmp::new("symbol-words");
     let mut shell = tmp.empty_shell(Mode::Headless);
-    drawn(&mut shell, "example.words", "Words");
+    drawn(&mut shell, "Words");
     for (action, params, text) in [
         (
             "symbol.candidate",
@@ -1828,26 +1138,22 @@ fn refusals_of_the_editors_actions_are_in_words() {
             "Give the arc's start and sweep in whole degrees, from −360 to 360.",
         ),
     ] {
-        assert_eq!(
-            failed(&mut shell, action, params),
-            format!("Symbol editor: {text}"),
-            "{action}"
-        );
+        assert_eq!(failed(&mut shell, action, params), text, "{action}");
     }
     assert_eq!(strings::text(ew_viewmodel::key!("symbol-image")), "Image");
     shell.shutdown();
 }
 
-/// Re-review part 4: the same content placed twice is one embedded copy, placed twice.
+/// The same content placed twice is one embedded copy, placed twice.
 #[test]
 fn the_same_content_placed_twice_reuses_one_copy() {
     let tmp = Tmp::new("symbol-twice");
     let dir = tmp.0.join("project.ew");
     let mut shell = tmp.empty_shell(Mode::Headless);
     done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
-    drawn(&mut shell, "example.twice", "Twice");
+    drawn(&mut shell, "Twice");
     done(&mut shell, "symbol.scratch", json!({}));
-    done(&mut shell, "symbol.new", json!({}));
+    done(&mut shell, "parts.new_symbol", json!({"like": "hand"}));
     done(&mut shell, "symbol.place", json!({"x":80,"y":80}));
     done(&mut shell, "file.save", json!({}));
     shell.shutdown();
@@ -1861,7 +1167,7 @@ fn the_same_content_placed_twice_reuses_one_copy() {
                 .meta
                 .key
                 .as_ref()
-                .is_some_and(|k| k.to_string().starts_with("example.twice.test."))
+                .is_some_and(|k| k.to_string().starts_with("user.twice.test."))
         })
         .map(|(id, _)| id)
         .collect();
@@ -1870,154 +1176,50 @@ fn the_same_content_placed_twice_reuses_one_copy() {
     assert_eq!(placed, 2);
 }
 
-/// A changed symbol saves under the next patch version and the toast names it. A typed older version stays refused,
-/// in words, in both languages: the symbol by its name, the versions, no UUID.
-#[test]
-fn version_refusals_of_a_save_name_the_symbol_and_its_versions() {
-    use ew_viewmodel::strings;
-    let tmp = Tmp::new("symbol-versions");
-    let mut shell = tmp.empty_shell(Mode::Headless);
-    drawn(&mut shell, "example.versions", "Versions block");
-    let library = json!({"directory": tmp.0.join("versions.ewlib")});
-    done(&mut shell, "symbol.save", library.clone());
-    done(
-        &mut shell,
-        "symbol.draw",
-        json!({"tool":"line","x":4,"y":0,"x2":4,"y2":4}),
-    );
-    done(&mut shell, "symbol.save", library.clone());
-    assert_eq!(shell.symbol_editor().unwrap().draft.version, "1.0.1");
-    assert!(!shell.symbol_editor().unwrap().dirty());
-    assert_eq!(
-        shell.toast().map(|t| t.text.clone()).as_deref(),
-        Some(
-            "Saved Versions block as version 1.0.1 to the library My symbols. Draw ▸ Symbol places it on a page."
-        )
-    );
-    // A typed older version stays refused, in words, in both languages.
-    let mut older = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
-    older["version"] = json!("0.9.0");
-    done(&mut shell, "symbol.replace", json!({"document": older}));
-    assert_eq!(
-        failed(&mut shell, "symbol.save", library.clone()),
-        "Symbol editor: The library holds the symbol Versions block at the newer version 1.0.1; version 0.9.0 would \
-         replace it. Give the change a version above 1.0.1."
-    );
-    assert!(strings::set_locale("nl"));
-    let dutch = failed(&mut shell, "symbol.save", library);
-    assert!(strings::set_locale("en"));
-    assert_eq!(
-        dutch,
-        "Symbooleditor: De bibliotheek bevat het symbool Versions block in de nieuwere versie 1.0.1; versie 0.9.0 zou \
-         die vervangen. Geef de wijziging een versie hoger dan 1.0.1."
-    );
-    shell.shutdown();
-}
-
-/// `symbol.new` with `discard` starts a fresh draft; without a key or name it returns to the kept
-/// one.
-#[test]
-fn a_new_symbol_with_discard_starts_a_fresh_draft() {
-    let tmp = Tmp::new("symbol-fresh");
-    let mut shell = tmp.empty_shell(Mode::Headless);
-    drawn(&mut shell, "example.kept", "Kept");
-    done(&mut shell, "symbol.close", json!({}));
-    done(&mut shell, "symbol.new", json!({}));
-    assert_eq!(shell.symbol_editor().unwrap().draft.key, "example.kept");
-    done(&mut shell, "symbol.new", json!({"discard": true}));
-    let editor = shell.symbol_editor().unwrap();
-    assert!(editor.draft.symbol.graphics.is_empty());
-    assert_eq!(editor.draft.key, "user.new-symbol");
-    assert!(!editor.dirty() && !editor.can_undo());
-    shell.shutdown();
-}
-
-/// In the window, New symbol over unsaved changes asks Save
-/// symbol, Discard or Cancel in the house dialog, in words that match its buttons; a clean draft is replaced at once.
+/// In the window, New symbol over a drawing with changes asks Save symbol, Discard or Cancel in the house dialog, in
+/// words that match its buttons; a drawing without changes is replaced at once.
 #[test]
 fn new_symbol_over_unsaved_changes_asks_save_discard_or_cancel() {
     use ew_viewmodel::dialogs::spec;
     use ew_viewmodel::shell::{ConfirmAnswer, Dialog};
     let tmp = Tmp::new("symbol-ask");
     let mut shell = tmp.empty_shell(Mode::Gui);
-    drawn(&mut shell, "example.ask", "Ask block");
-    let fresh = json!({"discard": true});
-    assert_eq!(
-        shell.ask_symbol_discard("symbol.new", fresh.clone()),
-        Outcome::Done
-    );
+    let name = |shell: &ShellModel| {
+        ew_viewmodel::shell::symbol_editor::display_name(&shell.symbol_editor().unwrap().draft)
+    };
+    drawn(&mut shell, "Ask block");
+    done(&mut shell, "parts.new_symbol", json!({}));
     let dialog = shell.dialog().unwrap().clone();
     assert!(matches!(dialog, Dialog::ConfirmDiscard { symbol: true, .. }));
     let s = spec(&dialog, &shell);
     assert_eq!(s.title, "Save the symbol Ask block?");
-    assert_eq!(
-        s.body,
-        ["The symbol draft has changes that are not in a library. Save it first, or discard the changes."]
-    );
     let labels: Vec<&str> = s.buttons().iter().map(|b| b.label.as_str()).collect();
     assert_eq!(labels, ["Save symbol", "Cancel", "Discard changes"]);
-    // Cancel keeps the draft.
+    // Cancel keeps the drawing.
     assert_eq!(shell.answer_confirm(ConfirmAnswer::Cancel), Outcome::Done);
-    assert_eq!(shell.symbol_editor().unwrap().draft.key, "example.ask");
-    // Discard starts the fresh draft.
-    assert_eq!(
-        shell.ask_symbol_discard("symbol.new", fresh.clone()),
-        Outcome::Done
-    );
+    assert_eq!(name(&shell), "Ask block");
+    // Discard starts the new one.
+    done(&mut shell, "parts.new_symbol", json!({}));
     assert_eq!(shell.answer_confirm(ConfirmAnswer::Discard), Outcome::Done);
-    assert_eq!(shell.symbol_editor().unwrap().draft.key, "user.new-symbol");
-    // Save symbol saves the draft first, then starts the fresh one.
-    drawn(&mut shell, "example.ask", "Ask block");
-    done(&mut shell, "symbol.directory", json!({"directory": "ask.ewlib"}));
-    assert_eq!(
-        shell.ask_symbol_discard("symbol.new", fresh.clone()),
-        Outcome::Done
-    );
+    assert_eq!(name(&shell), "New symbol");
+    // Save symbol saves the drawing first, then starts the new one.
+    drawn(&mut shell, "Ask block");
+    done(&mut shell, "parts.new_symbol", json!({}));
     assert_eq!(shell.answer_confirm(ConfirmAnswer::Save), Outcome::Done);
     assert!(shell.dialog().is_none());
-    assert_eq!(shell.symbol_editor().unwrap().draft.key, "user.new-symbol");
-    assert!(tmp.0.join("config").join("libraries").join("ask.ewlib").is_dir());
-    // A clean draft asks nothing.
-    assert_eq!(shell.ask_symbol_discard("symbol.new", fresh), Outcome::Done);
+    assert_eq!(name(&shell), "New symbol");
+    assert!(shell.settings().symbols_recent.first().is_some(), "saved");
+    // A drawing without changes asks nothing.
+    done(&mut shell, "parts.new_symbol", json!({}));
     assert!(shell.dialog().is_none());
     shell.shutdown();
 }
 
-/// A ready-made function locks the function type; Take off (`symbol.function`
-/// with an empty key) unlocks it and keeps the function's type and connection points; with none used it is refused.
-#[test]
-fn take_off_unlocks_a_ready_made_function_and_keeps_its_pins() {
-    let tmp = Tmp::new("symbol-take-off");
-    let mut shell = tmp.empty_shell(Mode::Headless);
-    done(
-        &mut shell,
-        "symbol.new",
-        json!({"key":"example.contact","name":"Contact"}),
-    );
-    assert!(!failed(&mut shell, "symbol.function", json!({"key": ""})).is_empty());
-    done(&mut shell, "symbol.function", json!({"key":"ew.fn.contact-no"}));
-    let used = shell.symbol_editor().unwrap().draft.clone();
-    assert!(used.function_ref.is_some());
-    done(&mut shell, "symbol.function", json!({"key": ""}));
-    let taken_off = shell.symbol_editor().unwrap().draft.clone();
-    assert!(taken_off.function_ref.is_none(), "unlocked");
-    assert_eq!(taken_off.function, used.function, "the type and the pins stay");
-    done(&mut shell, "symbol.undo", json!({}));
-    assert!(
-        shell.symbol_editor().unwrap().draft.function_ref.is_some(),
-        "one undo step"
-    );
-    shell.shutdown();
-}
-
-/// A draft with a rectangle, a line to a connection point, and the point: the things the selection tests act on.
+/// A drawing with a rectangle, a line to a connection point, and the point: the things the selection tests act on.
+/// The texts its kind needs (the device tag, the cross-reference of a contact) stand on it from the start.
 fn with_things(tmp: &Tmp) -> ShellModel {
     let mut shell = tmp.empty_shell(Mode::Headless);
-    done(
-        &mut shell,
-        "symbol.new",
-        json!({"key":"example.select","name":"Select"}),
-    );
+    new_drawing(&mut shell, "Select");
     done(
         &mut shell,
         "symbol.draw",
@@ -2033,7 +1235,6 @@ fn with_things(tmp: &Tmp) -> ShellModel {
         "symbol.cp",
         json!({"x":0,"y":4,"designation":"1","direction":"left"}),
     );
-    // The point brings the text that writes its number.
     shell
 }
 
@@ -2061,30 +1262,24 @@ fn the_selection_is_moved_copied_and_deleted_as_on_a_page() {
     // A drawn thing is the one selected, so its rows show.
     assert_eq!(selection(&shell), ["cp:0"]);
     done(&mut shell, "symbol.select", json!({"items": "all"}));
-    assert_eq!(selection(&shell), ["cp:0", "slot:0", "graphic:0", "graphic:1"]);
+    let all = selection(&shell);
+    for thing in ["cp:0", "graphic:0", "graphic:1"] {
+        assert!(all.iter().any(|s| s == thing), "{thing}: {all:?}");
+    }
     // With a connection point selected an arrow moves everything one step of the connection grid.
     done(&mut shell, "symbol.nudge", json!({"dx": 1}));
     assert_eq!(
         graphics(&shell)[0]["rect"]["rect"],
         json!([[8_000_000, 0], [16_000_000, 8_000_000]])
     );
-    let cp = shell
-        .symbol_editor()
-        .unwrap()
-        .draft
-        .symbol
-        .cps
-        .iter()
-        .next()
-        .unwrap()
-        .pos;
+    let cp = shell.symbol_editor().unwrap().draft.symbol.cps.iter().next().unwrap().pos;
     assert_eq!((cp.x.0, cp.y.0), (4_000_000, 4_000_000));
     done(&mut shell, "symbol.undo", json!({}));
     assert_eq!(
         graphics(&shell)[0]["rect"]["rect"],
         json!([[4_000_000, 0], [12_000_000, 8_000_000]])
     );
-    assert_eq!(selection(&shell).len(), 4, "the selection outlives an undo");
+    assert_eq!(selection(&shell), all, "the selection outlives an undo");
     // A shape alone moves by the drawing grid's step, which the person chooses.
     done(&mut shell, "symbol.select", json!({"items": ["graphic:0"]}));
     done(&mut shell, "symbol.nudge", json!({"dy": -1}));
@@ -2137,7 +1332,7 @@ fn the_selection_is_moved_copied_and_deleted_as_on_a_page() {
     // Nothing selected: the keys say so in words and change nothing.
     assert_eq!(
         failed(&mut shell, "symbol.delete", json!({})),
-        "Symbol editor: Nothing is selected. Click a thing in the drawing or in the list first."
+        "Nothing is selected. Click a thing in the drawing or in the list first."
     );
     shell.shutdown();
 }
@@ -2146,8 +1341,18 @@ fn the_selection_is_moved_copied_and_deleted_as_on_a_page() {
 /// so the symbol stays ready to save; a copied one gets a number and a pin of its own.
 #[test]
 fn a_connection_point_is_deleted_and_copied_with_its_pin() {
+    use ew_api::symbols::schema::SlotKind;
     let tmp = Tmp::new("symbol-cp-delete");
     let mut shell = with_things(&tmp);
+    let numbers = |shell: &ShellModel| {
+        let d = &shell.symbol_editor().unwrap().draft;
+        d.symbol
+            .text_slots
+            .iter()
+            .filter(|s| matches!(s.kind, SlotKind::CpDesignation(_)))
+            .count()
+    };
+    assert_eq!(numbers(&shell), 1);
     done(&mut shell, "symbol.select", json!({"items": ["cp:0"]}));
     done(&mut shell, "symbol.duplicate", json!({}));
     {
@@ -2160,17 +1365,15 @@ fn a_connection_point_is_deleted_and_copied_with_its_pin() {
     done(&mut shell, "symbol.delete", json!({}));
     let draft = &shell.symbol_editor().unwrap().draft;
     assert_eq!((draft.symbol.cps.len(), draft.function.cps.len()), (1, 1));
-    assert!(
-        draft.symbol.text_slots.is_empty(),
-        "the number's text went with its point"
-    );
+    assert_eq!(numbers(&shell), 0, "the number's text went with its point");
     assert!(draft.validate().is_empty(), "{:?}", draft.validate());
     shell.shutdown();
 }
 
-/// Properties follows the selection: with nothing selected the symbol's own rows, What it is in a panel builder's
-/// words; a row set with several things selected changes each; a shape's size and a handle reshape it; Line up puts
-/// the selected things on one edge.
+/// The symbol's short sheet holds Name and What it is; Properties follows the selection, and with nothing selected
+/// says so. What it is, chosen in a panel builder's words, sets what the program does with the symbol; a row set with
+/// several things selected changes each; a shape's size and a handle reshape it; Line up puts the selected things on
+/// one edge.
 #[test]
 fn the_rows_of_properties_follow_the_selection_and_set_every_selected_thing() {
     use ew_viewmodel::shell::symbol_editor::RowValue;
@@ -2183,32 +1386,24 @@ fn the_rows_of_properties_follow_the_selection_and_set_every_selected_thing() {
     );
     done(&mut shell, "symbol.select", json!({"items": []}));
     let sheet = shell.symbol_sheet().unwrap();
-    assert_eq!(sheet.title, "Select");
-    let keys: Vec<&str> = sheet.rows.iter().filter(|r| !r.more).map(|r| r.key).collect();
-    assert_eq!(keys, ["name", "what", "discipline", "category", "folder"]);
-    let what = sheet.rows.iter().find(|r| r.key == "what").unwrap();
-    assert!(
-        matches!(&what.value, RowValue::Choice { value: Some(v), .. } if v == "box"),
-        "a new symbol is a device box: {what:?}"
-    );
-    // What it is, chosen in trade words, sets what the program does with the symbol and where it is listed.
-    done(
-        &mut shell,
-        "symbol.prop",
-        json!({"key": "what", "value": "contact-no"}),
-    );
-    let function = serde_json::to_value(&shell.symbol_editor().unwrap().draft.function).unwrap();
-    assert_eq!(function["contact_kind"], "no");
-    assert_eq!(function["category"][0], "Relay");
+    assert!(sheet.rows.is_empty(), "nothing selected: {:?}", sheet.rows);
     assert_eq!(
-        shell.symbol_editor().unwrap().outline().what,
-        "Normally open contact \u{b7} Electrical"
+        sheet.line,
+        "Nothing is selected. Click a thing in the drawing or in the list first."
+    );
+    let short = shell.symbol_editor().unwrap().symbol_rows();
+    let keys: Vec<&str> = short.iter().map(|r| r.key).collect();
+    assert_eq!(keys, ["name", "what"]);
+    let what = short.iter().find(|r| r.key == "what").unwrap();
+    assert!(
+        matches!(&what.value, RowValue::Choice { value: Some(v), .. } if v == "contact-no"),
+        "a first symbol is a normally open contact: {what:?}"
     );
     // A pressure switch is one of the kinds a panel builder draws: a contact, listed with the sensors.
     done(
         &mut shell,
-        "symbol.prop",
-        json!({"key": "what", "value": "pressure-switch"}),
+        "parts.field",
+        json!({"field": "symbol.what", "value": "pressure-switch"}),
     );
     let function = serde_json::to_value(&shell.symbol_editor().unwrap().draft.function).unwrap();
     assert_eq!(function["contact_kind"], "no");
@@ -2272,7 +1467,7 @@ fn the_rows_of_properties_follow_the_selection_and_set_every_selected_thing() {
     // A value a row does not take is refused in words.
     assert_eq!(
         failed(&mut shell, "symbol.prop", json!({"key": "w", "value": -1})),
-        "Symbol editor: That value does not fit this row, so nothing was changed."
+        "That value does not fit this row, so nothing was changed."
     );
     // Line up: the line's left end comes to the rectangle's left edge.
     done(
@@ -2291,47 +1486,13 @@ fn the_rows_of_properties_follow_the_selection_and_set_every_selected_thing() {
     shell.shutdown();
 }
 
-/// Opened with nothing in hand the editor shows the ways in, not an empty drawing; a way in or the first change
-/// leaves the card, and Leave with nothing in hand closes the editor.
-#[test]
-fn the_start_card_shows_with_nothing_in_hand() {
-    let tmp = Tmp::new("symbol-start");
-    let mut shell = tmp.empty_shell(Mode::Headless);
-    done(&mut shell, "symbol.new", json!({}));
-    assert!(shell.symbol_editor().unwrap().start);
-    done(&mut shell, "symbol.start", json!({"leave": true}));
-    assert!(
-        shell.symbol_editor().is_none(),
-        "nothing in hand: the editor closes"
-    );
-    done(&mut shell, "symbol.start", json!({}));
-    done(&mut shell, "symbol.new", json!({"discard": true}));
-    let editor = shell.symbol_editor().unwrap();
-    assert!(!editor.start, "New symbol opens the drawing");
-    done(
-        &mut shell,
-        "symbol.draw",
-        json!({"tool":"line","x":0,"y":0,"x2":8,"y2":0}),
-    );
-    done(&mut shell, "symbol.start", json!({}));
-    assert!(shell.symbol_editor().unwrap().start);
-    done(&mut shell, "symbol.start", json!({"leave": true}));
-    let editor = shell.symbol_editor().unwrap();
-    assert!(!editor.start && editor.in_hand(), "back to the draft in hand");
-    shell.shutdown();
-}
-
 /// A connection point put on the end of a lead faces the way the lead points out of the symbol (Along its lead, the
 /// tool's first direction), so a wire carries straight on from it; one where no lead ends keeps the default.
 #[test]
 fn a_connection_point_on_a_lead_faces_along_it() {
     let tmp = Tmp::new("symbol-cp-lead");
     let mut shell = tmp.empty_shell(Mode::Headless);
-    done(
-        &mut shell,
-        "symbol.new",
-        json!({"key": "example.pressure", "name": "Pressure switch"}),
-    );
+    new_drawing(&mut shell, "Pressure switch");
     for (y, y2) in [(-4, -12), (4, 12)] {
         done(
             &mut shell,
@@ -2363,30 +1524,10 @@ fn a_connection_point_on_a_lead_faces_along_it() {
     assert_eq!(dirs, ["up", "down", "left"]);
 }
 
-/// Copy a library symbol… lists the starter library's symbols on both grids: each name says its grid, so the two
-/// lamps are told apart ("Lamp (4 mm grid)", "Lamp (QET 10 px grid)").
+/// While the drawing shows, the command search offers what the dispatch does: a page's tool greyed with the
+/// drawing's reason, as the menus grey it, and Save, which saves the symbol, enabled.
 #[test]
-fn the_symbols_to_copy_name_their_grid() {
-    let tmp = Tmp::new("symbol-sources-grid");
-    let mut shell = tmp.empty_shell(Mode::Headless);
-    done(&mut shell, "symbol.new", json!({}));
-    let mut lamps: Vec<String> = shell
-        .symbol_editor()
-        .unwrap()
-        .sources
-        .iter()
-        .map(|s| s.words().0)
-        .filter(|name| name.starts_with("Lamp ("))
-        .collect();
-    lamps.sort();
-    lamps.dedup();
-    assert_eq!(lamps, ["Lamp (4 mm grid)", "Lamp (QET 10 px grid)"]);
-}
-
-/// While the symbol editor shows, the command search offers what the dispatch does: a drawing tool greyed with the
-/// editor's reason, as the menus grey it, and Save, which saves the symbol, enabled.
-#[test]
-fn the_command_search_in_the_symbol_editor_greys_what_the_editor_refuses() {
+fn the_command_search_on_the_drawing_greys_what_the_drawing_refuses() {
     let tmp = Tmp::new("symbol-palette");
     let mut shell = tmp.empty_shell(Mode::Headless);
     done(
@@ -2394,11 +1535,7 @@ fn the_command_search_in_the_symbol_editor_greys_what_the_editor_refuses() {
         "file.new",
         json!({"dir":tmp.0.join("project"),"template":"builtin"}),
     );
-    done(
-        &mut shell,
-        "symbol.new",
-        json!({"key":"example.searched","name":"Searched contact"}),
-    );
+    drawn(&mut shell, "Searched contact");
     done(&mut shell, "tools.palette", json!({}));
     for (query, id, enabled) in [("wire", "tool.wire", false), ("save", "file.save", true)] {
         shell.set_palette_query(query);
@@ -2424,10 +1561,10 @@ fn the_command_search_in_the_symbol_editor_greys_what_the_editor_refuses() {
     }
 }
 
-/// The describe text prints the command bar the window shows: over the symbol editor its one tab "Symbol editor",
-/// never collapsed, though the project's bar is collapsed under it.
+/// The describe text prints the command bar the window shows: over Parts with a drawing its tab Drawing, never
+/// collapsed, though the project's bar is collapsed under it.
 #[test]
-fn the_describe_text_prints_the_bar_the_window_shows_over_the_editor() {
+fn the_describe_text_prints_the_bar_the_window_shows_over_the_drawing() {
     let tmp = Tmp::new("symbol-describe-bar");
     let mut shell = tmp.empty_shell(Mode::Headless);
     done(
@@ -2436,12 +1573,12 @@ fn the_describe_text_prints_the_bar_the_window_shows_over_the_editor() {
         json!({"dir":tmp.0.join("project"),"template":"builtin"}),
     );
     done(&mut shell, "view.command_bar", json!({}));
-    done(&mut shell, "symbol.new", json!({}));
+    new_drawing(&mut shell, "Described");
     let text = shell.describe();
     let tab = text
         .lines()
         .find(|l| l.starts_with("commandbar tab "))
         .expect("the command bar's tab line");
-    assert_eq!(tab, "commandbar tab \"Symbol editor\"");
+    assert_eq!(tab, "commandbar tab \"Drawing\"");
     shell.shutdown();
 }

@@ -685,8 +685,8 @@ pub fn command_bar(model: &ShellModel) -> CommandBarModel {
     command_bar_of(model, model.command_tab())
 }
 
-/// The command bar the window shows for the screen ([`ShellModel::screen`]): [`command_bar`], but over the symbol
-/// editor, which has its own row of commands, a bar never collapsed with the editor's one tab and no workspaces.
+/// The command bar the window shows for the screen ([`ShellModel::screen`]): [`command_bar`], but over Parts, which has
+/// its own row of commands, a bar never collapsed with the place's two tabs, Part and Drawing, and no workspaces.
 pub fn shown_command_bar(model: &ShellModel) -> CommandBarModel {
     let mut bar = command_bar(model);
     bar.collapsed = shown_collapsed(model);
@@ -704,9 +704,9 @@ pub fn shown_command_bar(model: &ShellModel) -> CommandBarModel {
 }
 
 /// Whether the command bar the window shows is collapsed to its tab row: the project's bar's collapse, never over
-/// the symbol editor ([`shown_command_bar`]).
+/// Parts ([`shown_command_bar`]).
 pub fn shown_collapsed(model: &ShellModel) -> bool {
-    model.command_bar_collapsed() && model.symbol_editor().is_none() && model.parts_place().is_none()
+    model.command_bar_collapsed() && model.parts_place().is_none()
 }
 
 /// The Draw tab's groups whose commands act on the selection: the canvas context menu offers them.

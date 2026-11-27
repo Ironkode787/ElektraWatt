@@ -912,7 +912,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     with_params(
-        "text?:text, shelf?:enum(parts|symbols), scope?:enum(all|project|mine), kind?:text, maker?:text, lacking?:bool",
+        "text?:text, shelf?:text, scope?:enum(all|project|mine), kind?:text, maker?:text, lacking?:bool",
         hidden(act(
             "parts.find",
             View,
@@ -945,7 +945,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             View,
             Menu::Edit,
             &[],
-            part_editable,
+            field_editable,
             None,
             |s, p| s.act_parts_field(p),
         )),

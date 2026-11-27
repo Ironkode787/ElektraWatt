@@ -807,6 +807,7 @@ fn a_part_fork_repoints_carriers_and_placements() {
             part,
             fork: Some(Id::from_uuid(uuid(fork))),
             copies: Vec::new(),
+            redraw: Vec::new(),
         };
         let preview = e.preview(&cmd).unwrap();
         e.commit(preview).unwrap();

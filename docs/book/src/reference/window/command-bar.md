@@ -123,10 +123,13 @@ Makes a cable of the selected wires, or gives a wire's cable its part, and draws
 
 Gives the devices new numbers by their place in the drawings (`Ctrl+Shift+N`).
 
-### Symbol editor…
+### New symbol
 
-Opens the symbol editor: a new symbol, a copy of a library symbol, or the box of a device. See
-[Symbol editor](../symbol-editor.md).
+Opens Parts on a new drawing at once, for the page in front: on its connection grid, as what you drew last, with the
+device tag's text where the standard puts it (`Ctrl+I`). **Save and place on** the page saves it with your parts and
+arms Place with it; **Back without it** keeps it in hand. Its menu: **Like the last one**, a copy of the symbol you
+saved last; **Like the selected one** (also **Draw one like it…** on a symbol's right-click), which Save puts in place
+of the selected symbol; **Go on with the drawing in hand**. See [Drawing a symbol](../symbol-editor.md).
 
 ### Auto-fill rail…
 
@@ -137,7 +140,8 @@ or of their tags. Devices without a location can be given the cabinet's in the s
 ### Add pin
 
 On a selected box drawn without a part, puts a new pin on its edge: the pin follows the pointer along the edge
-nearest it, a click puts it there, and a field asks its name. On a box of a part it opens the part's device box. See
+nearest it, a click puts it there, and a field asks its name. On a box of a part it opens the part in Parts and
+arranges its box (**Arrange…**); a part that is not yours opens as it is, where **Make my own from it** is the way. See
 [Black box](tools.md#black-box).
 
 ## PLC

@@ -48,13 +48,26 @@ impl ShellModel {
     /// `box.add_cp {x_mm?, y_mm?}` (Add pin, the box's right-click, and the Draw tab's Arrange group): on a box whose
     /// pins are its own, a new pin on the free grid point of its outline nearest the point, its name then asked in
     /// place; without a point the pin follows the pointer along the edge until a click puts it; on a box of a part,
-    /// Parts arranges the part's box, where the part's pins are edited.
+    /// Parts arranges the part's box, where the part's pins are edited; a part that is not his opens in Parts as it is,
+    /// where Make my own from it is the way to its pins.
     pub(crate) fn act_box_add_cp(&mut self, p: &Map<String, Value>) -> Outcome {
         let (rep, b) = match self.selected_box() {
             Ok(one) => one,
             Err(reason) => return Outcome::refused(reason),
         };
         if !b.own_pins {
+            let opened = self.dispatch("parts.open", &json!({}));
+            if opened != Outcome::Done {
+                return opened;
+            }
+            let mine = self
+                .parts_place()
+                .and_then(|place| place.sheet.as_ref())
+                .is_some_and(crate::shell::parts_place::OpenSheet::editable);
+            if !mine {
+                self.notify(strings::text(key!("toast-box-pin-not-yours")).to_owned(), false);
+                return Outcome::Done;
+            }
             let out = self.arrange_box(None);
             if out == Outcome::Done {
                 self.notify(strings::text(key!("toast-box-pin-part")).to_owned(), false);

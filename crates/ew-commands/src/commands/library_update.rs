@@ -377,6 +377,10 @@ pub struct UpdateLibraryCopies {
     /// update (`lib/` JSON form).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub embed: Vec<Value>,
+    /// The drawn boxes of an updated part that its new layout draws anew (its box arranged, doc 07 §5.6), each as
+    /// `box.reshape` takes it, after the copies and their boxes' pins are in.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub redraw: Vec<crate::commands::ReshapeBox>,
 }
 
 /// The FnDefs and the manufacturer a part names, the FnDef a symbol names: the closure items an update checks,
@@ -700,6 +704,9 @@ impl Command for UpdateLibraryCopies {
             crate::commands::box_follow::follow_part_boxes(tx, part, &remap)?;
         }
         follow_drawn_cps(tx, drawn, &remap)?;
+        for b in &self.redraw {
+            b.run(tx)?;
+        }
         Ok(Outcome {
             primary,
             ..Outcome::default()

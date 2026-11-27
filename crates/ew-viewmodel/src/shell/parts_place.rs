@@ -679,8 +679,8 @@ impl ShellModel {
         None
     }
 
-    /// `parts.find {text?, scope?, kind?, lacking?}`: the list's search, scope (`all`, `project`, `mine`), kind filter
-    /// (`all` for none) and Lacks something.
+    /// `parts.find {text?, scope?, kind?, maker?, lacking?, shelf?}`: the list's search, scope (`all`, `project`,
+    /// `mine`), kind filter (`all` for none), maker, Lacks something, and the shelf it shows (`parts`, `symbols`).
     pub(crate) fn act_parts_find(&mut self, p: &Map<String, Value>) -> Outcome {
         let text = or_return!(string_param(p, "text")).map(str::to_owned);
         let scope = match or_return!(string_param(p, "scope")) {

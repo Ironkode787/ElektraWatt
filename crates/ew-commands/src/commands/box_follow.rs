@@ -28,7 +28,8 @@ use crate::tx::TxBuilder;
 /// it. A box that grew past its page's drawing area (into the title block, off the sheet) goes back along that row by
 /// whole grid steps until it stands inside again, its CPs and their wires with it ([`back_inside`]); otherwise it keeps
 /// its top-left. A box turned, or not an axis-aligned rectangle, or without a CP left, takes no new CP: it is drawn
-/// again by Redraw them or by deleting it and drawing it again, as before.
+/// again as its part's new layout says when the box is arranged anew (the update's `redraw`), or by deleting it and
+/// drawing it again.
 pub(crate) fn follow_part_boxes(
     tx: &mut TxBuilder<'_>,
     part: Id<Part>,

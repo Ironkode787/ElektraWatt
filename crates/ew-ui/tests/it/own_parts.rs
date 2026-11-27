@@ -662,25 +662,25 @@ fn a_head_station_made_in_the_window_takes_its_cards_and_its_dp_port() {
     assert!(slave, "the port is the part's slave interface");
 }
 
-/// Item 5, the way from the symbol editor: a symbol saved to a library offers Make a part for this symbol…, which
-/// opens Parts on a new part drawn with it; saved, the part's main function is the symbol's function
-/// definition, so the device browser places the part with that symbol.
+/// Item 5, the way from a drawing: a symbol of his own saved offers New part drawn with it…, which opens a new part
+/// drawn with it; saved, the part's main function is the symbol's function definition, so the device browser places
+/// the part with that symbol.
 #[test]
-fn the_symbol_editor_makes_a_part_for_its_saved_symbol() {
+fn a_saved_symbol_makes_a_part_drawn_with_it() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     press(&mut d, "Symbol");
     d.input(&typed("coil, rect"));
     d.settle();
-    press(&mut d, "Copy and edit");
+    press(&mut d, "Open in Parts");
+    press(&mut d, "Make my own from it");
     press(&mut d, "Save");
     let fndef = d
         .shell_mut()
         .symbol_editor()
         .and_then(|e| e.published().map(str::to_owned))
-        .expect("the symbol is saved to a library");
-    press(&mut d, "Draft");
-    press(&mut d, "Make a part for this symbol…");
+        .expect("the symbol is saved with his parts");
+    press(&mut d, "New part drawn with it…");
     let drawn = draft(&mut d).drawn_with;
     assert!(drawn.is_some(), "the new part names the symbol it is drawn with");
     fill(&mut d, "Maker", "Acme");

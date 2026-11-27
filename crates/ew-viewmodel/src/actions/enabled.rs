@@ -1317,12 +1317,21 @@ pub(super) fn part_editable(m: &ShellModel) -> Result<(), Text> {
     }
 }
 
-/// Save: the open part is his to change and was changed (a new part always is); on the drawing, the symbol is his and
-/// has nothing left to do.
+/// A field may be typed: on the drawing, the symbol's short sheet (refused in words where the symbol is not his); else
+/// the open part's, where it is his to change.
+pub(super) fn field_editable(m: &ShellModel) -> Result<(), Text> {
+    if m.symbol_editor().is_some() {
+        return Ok(());
+    }
+    part_editable(m)
+}
+
+/// Save: the open part is his to change and was changed (a new part always is); on the drawing, the symbol is his
+/// (what it has left to do, Save says above the drawing).
 pub(super) fn part_savable(m: &ShellModel) -> Result<(), Text> {
     if let Some(editor) = m.symbol_editor() {
-        return match editor.save_refusal() {
-            Some(why) => Err(ew_api::Text::bare(ew_api::TextArg::Plain(why))),
+        return match &editor.locked {
+            Some(why) => Err(ew_api::Text::bare(ew_api::TextArg::Plain(why.clone()))),
             None => Ok(()),
         };
     }

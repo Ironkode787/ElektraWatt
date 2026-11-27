@@ -149,18 +149,13 @@ fn help_guides_lists_the_how_to_guides_and_opens_one() {
     shell.shutdown();
 }
 
-/// F1 in the symbol editor does not open its general page whatever is in front. The start card, a selected shape and
-/// a selected connection point open their own places; the bar's buttons
-/// open theirs (Highlight its own section, not the panels page).
+/// F1 on a drawing does not open its general page whatever is in front. A selected shape and a selected connection
+/// point open their own places; the bar's buttons open theirs (Highlight its own section, not the panels page).
 #[test]
 fn f1_opens_the_own_place_of_the_editors_parts_and_the_bars_buttons() {
     let tmp = Tmp::new("f1-own-places");
     let mut shell = tmp.empty_shell(Mode::Headless);
-    done(
-        &mut shell,
-        "symbol.new",
-        json!({"key": "example.f1", "name": "F1"}),
-    );
+    crate::common::new_drawing(&mut shell, "F1");
     done(
         &mut shell,
         "symbol.draw",
@@ -173,9 +168,7 @@ fn f1_opens_the_own_place_of_the_editors_parts_and_the_bars_buttons() {
         json!({"x": 0, "y": 0, "designation": "1"}),
     );
     assert_eq!(f1(&mut shell), "reference/symbol-editor.html#a-connection-point");
-    done(&mut shell, "symbol.start", json!({}));
-    assert_eq!(f1(&mut shell), "reference/symbol-editor.html#the-start-card");
-    done(&mut shell, "symbol.close", json!({"discard": true}));
+    done(&mut shell, "parts.back", json!({}));
     done(
         &mut shell,
         "help.documentation",

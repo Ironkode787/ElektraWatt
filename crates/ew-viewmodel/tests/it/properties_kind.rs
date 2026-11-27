@@ -249,10 +249,10 @@ fn an_air_supplys_menu_offers_its_medium_and_no_potential() {
     s.shutdown();
 }
 
-/// Item 4 (F9, last sentence): the symbol editor sets what a symbol is drawn for. Drawn as pneumatic, its function
-/// types follow (a valve offered, no contact), a new point takes the discipline and one point can differ; the symbol
-/// browser shows it, and a device of the saved symbol is one Properties calls pneumatic: a source with its Medium row,
-/// whatever its category.
+/// Item 4 (F9, last sentence): a symbol drawn for a fluid page is drawn as pneumatic (doc 07 §5.6). Its function
+/// types follow (a valve offered, no contact), a new point takes the discipline and one point can differ; Save and
+/// place puts it on that page, and a device of the saved symbol is one Properties calls pneumatic: a source with its
+/// Medium row, whatever its category.
 #[test]
 fn a_symbol_drawn_as_pneumatic_gives_a_pneumatic_device() {
     use ew_api::symbols::schema::Discipline;
@@ -262,16 +262,15 @@ fn a_symbol_drawn_as_pneumatic_gives_a_pneumatic_device() {
     crate::common::make_project(&mut s, &tmp.0.join("project"), &[]);
     done(
         &mut s,
-        "command.run",
-        json!({"cmd": "page.create", "params": {"number": 2, "grid": {"num": 4000000, "den": 1}}}),
+        "page.new",
+        json!({"folio": "201", "type": "fluid", "title": "Fluid"}),
     );
-    done(&mut s, "page.goto", json!({"folio": "2"}));
+    done(&mut s, "parts.new_symbol", json!({}));
     done(
         &mut s,
-        "symbol.new",
-        json!({"key": "example.air", "name": "Air point"}),
+        "parts.field",
+        json!({"field": "symbol.name", "value": "Air point"}),
     );
-    done(&mut s, "symbol.discipline", json!({"discipline": "pneumatic"}));
     let editor = s.symbol_editor().expect("the editor");
     assert_eq!(editor.discipline(), "pneumatic");
     let kinds = function_kinds(editor.discipline());
@@ -305,10 +304,11 @@ fn a_symbol_drawn_as_pneumatic_gives_a_pneumatic_device() {
         (vec![Discipline::Pneumatic], vec![Discipline::Pneumatic])
     );
     // One point can differ, and back.
+    done(&mut s, "symbol.select", json!({"items": ["cp:0"]}));
     done(
         &mut s,
-        "symbol.discipline",
-        json!({"discipline": "electrical", "cp": 1}),
+        "symbol.prop",
+        json!({"key": "discipline", "value": "electrical"}),
     );
     assert_eq!(
         pin(&s),
@@ -316,28 +316,18 @@ fn a_symbol_drawn_as_pneumatic_gives_a_pneumatic_device() {
     );
     done(
         &mut s,
-        "symbol.discipline",
-        json!({"discipline": "pneumatic", "cp": 1}),
+        "symbol.prop",
+        json!({"key": "discipline", "value": "pneumatic"}),
     );
-    done(
-        &mut s,
-        "symbol.save",
-        json!({"directory": tmp.0.join("symbols.ewlib")}),
-    );
-    done(&mut s, "symbol.close", json!({}));
-    done(&mut s, "tool.place", json!({}));
-    let row = s
-        .picker()
-        .expect("the browser")
-        .catalogue
-        .symbols
-        .iter()
-        .find(|r| r.name.starts_with("Air point"))
-        .cloned()
-        .expect("the saved symbol");
-    assert_eq!(row.discipline, Some(Discipline::Pneumatic));
-    done(&mut s, "ui.dismiss", json!({}));
-    let air = place(&mut s, json!({"symbol": row.key, "letter": "X"}), (10, 10));
+    // Save and place on 201: the page shows with the Place tool armed with it.
+    let before = reps(&s);
+    done(&mut s, "parts.save", json!({}));
+    assert_eq!(s.tool().name(), "place");
+    place_at(&mut s, (10, 10));
+    let air = reps(&s)
+        .into_iter()
+        .find(|r| before.iter().all(|b| b.id != r.id))
+        .expect("the symbol placed");
     let what = what_of(&mut s, &air);
     assert!(what.ends_with(" · pneumatic"), "{what}");
     let sheet = sheet_of(&mut s, &air);

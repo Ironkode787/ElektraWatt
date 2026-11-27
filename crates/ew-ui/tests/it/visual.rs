@@ -1232,9 +1232,9 @@ fn a_section_is_made_from_the_pages_panel_and_from_the_trees_right_click_menu() 
 /// "important parts such as the terminal strip have no
 /// button of their own", the Wire marker was in the menu only, and the symbol editor hid behind a small button
 /// named "Symbols". On the Draw tab, at 1920 × 1080: Terminal opens its own form (strip, kind, how many, from
-/// which number), Marker arms the Wire marker, and Symbol editor opens the editor.
+/// which number), Marker arms the Wire marker, and New symbol opens Parts on a new drawing at once.
 #[test]
-fn the_draw_tab_has_buttons_for_terminal_wire_marker_and_the_symbol_editor() {
+fn the_draw_tab_has_buttons_for_terminal_wire_marker_and_a_new_symbol() {
     use ew_viewmodel::shell::Dialog;
     let tmp = Tmp::new();
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
@@ -1262,8 +1262,8 @@ fn the_draw_tab_has_buttons_for_terminal_wire_marker_and_the_symbol_editor() {
     assert_eq!(d.shell_mut().tool().name(), "marker");
     d.input(&key("escape"));
     d.settle();
-    press(&mut d, "Symbol editor");
-    assert!(d.shell_mut().symbol_editor().is_some(), "the editor opens");
+    press(&mut d, "New symbol");
+    assert!(d.shell_mut().symbol_editor().is_some(), "the drawing opens");
     d.shell_mut().shutdown();
 }
 

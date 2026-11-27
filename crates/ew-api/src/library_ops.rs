@@ -952,8 +952,13 @@ impl Session {
         let mut plan_copies = Vec::new();
         let mut devices = BTreeSet::new();
         let mut reps = BTreeSet::new();
+        let mut redraw = Vec::new();
         for (held_doc, lib) in pairs {
             let (kind, copy, _, _, from, _) = identity(&held_doc).expect("a held copy");
+            // A part whose box was arranged anew draws its boxes anew.
+            if let (LibDocument::Part(before), LibDocument::Part(after)) = (&held_doc, &lib) {
+                redraw.extend(self.box_redraws(copy, &before.item, &after.item));
+            }
             let (_, _, _, _, to, _) = identity(&lib).expect("a typed document");
             let diff = classify_update(&held_doc, &lib);
             let (d, rp) = where_used(q, &held_doc);
@@ -983,6 +988,7 @@ impl Session {
                 })
                 .collect(),
             embed: embed.iter().map(to_value).collect(),
+            redraw,
         };
         let command = AnyCommand::of(&cmd).map_err(ApiError::Cmd)?;
         // the preview on a throwaway engine over the current snapshot (the session's engine is not touched)
