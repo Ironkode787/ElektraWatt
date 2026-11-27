@@ -424,7 +424,7 @@ change here.
 - behaviour-change: Output ▸ Workshop ▸ Hole tables shows the project's hole table, else opens Report block… on it;
   the hole table lists each surface's holes after a heading that names its page and the corner they are measured
   from, with X and Y, how each is made ("Ø 4.2, tap M5"), what it is and what it is for. The sample has an earth stud
-  on its plate and its hole table on page 915
+  on its plate and its hole table on page 925
 - behaviour-change: EW-LAY-012 Holes too close (two holes closer than the web between holes, a hole in a sheet's edge
   margin or off the sheet) and EW-LAY-017 Holes not known (a part in a cut-out or screwed to a surface without
   holes, or a device placed there without a part), both warnings

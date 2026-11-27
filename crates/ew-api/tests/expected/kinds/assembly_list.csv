@@ -23,7 +23,7 @@ data,11,End bracket,,EW-GEN-EB-1,End bracket for TS 35,,10,,with EW-GEN-TRM-1
 heading,Bridges of -X1021,,,,,,,,
 data,,Bridge BR1,1 to 4,EW-GEN-BRG-4,"Plug-in bridge, 4 poles, for 5.2 mm terminals",,,,4 poles
 data,,Bridge BR2,5 to 8,EW-GEN-BRG-4,"Plug-in bridge, 4 poles, for 5.2 mm terminals",,,,4 poles
-heading,-X1031 · on rail 2 from 0 to 48.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm with its end brackets,,,,,,,,
+heading,-X1031 · on rail 1 from 379 to 427.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm with its end brackets,,,,,,,,
 data,1,End bracket,,EW-GEN-EB-1,End bracket for TS 35,,10,,with EW-GEN-TRM-1
 data,2,Terminal,U,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,U,
 data,3,Terminal,V,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,V,

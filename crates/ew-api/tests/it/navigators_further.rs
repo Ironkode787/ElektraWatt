@@ -499,11 +499,8 @@ fn ips_structure_blocks() {
         (aspect.role, aspect.label.as_str()),
         (NavRole::Location, "location")
     );
-
-    // Report blocks: the wizard's standard layout, nine page blocks, the legend Enclosure… made as 902's page, and the
-    // workshop lists 912 to 914.
-    // Report blocks: the wizard's standard layout, nine page blocks, and the legends Enclosure… and Surface… made as
-    // 902's and 904's pages.
+    // Report blocks: the wizard's standard layout, nine page blocks, the legends Enclosure… and Surface… made as 902's,
+    // 904's and 905's pages, the workshop lists 912 to 914 and the hole table 925.
     let t = s.navigator_table(NavKind::Blocks);
     assert_tree_contract(&t);
     let rows = table_rows(&t);
@@ -515,10 +512,8 @@ fn ips_structure_blocks() {
     assert_eq!(
         paged,
         [
-            "2", "901", "902.1", "903", "906", "907", "908", "909", "910", "911", "912", "913", "914"
-            "2", "901", "902.1", "903", "904.1", "906", "907", "908", "909", "910", "911"
-            "2", "901", "902.1", "903", "904.1", "906", "907", "908", "909", "910", "911", "915"
-            "2", "901", "902.1", "903", "904.1", "905.1", "906", "907", "908", "909", "910", "911", "915"
+            "2", "901", "902.1", "903", "904.1", "905.1", "906", "907", "908", "909", "910", "911", "912",
+            "913", "914", "925"
         ]
     );
     assert!(rows.iter().all(|n| n.cells[4] != "0"), "no embedded block");

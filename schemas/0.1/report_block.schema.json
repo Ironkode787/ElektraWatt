@@ -387,6 +387,9 @@
         {
           "const": "consumables",
           "description": "Consumables: what the wires consume, ferrules and markers (doc 13 §3.6, FR-MFG-049).",
+          "type": "string"
+        },
+        {
           "const": "hole_table",
           "description": "Hole table: every hole of every surface, numbered in drilling order (doc 13 §9.2, FR-MFG-029).",
           "type": "string"

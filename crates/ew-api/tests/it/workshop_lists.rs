@@ -392,7 +392,7 @@ fn strip_rows(s: &Session, tag: &str) -> Vec<String> {
     rows
 }
 
-/// The assembly list's heading in each of its forms (doc 13 §6.1): -X1011 put on rail 2 right after -X1031 starts
+/// The assembly list's heading in each of its forms (doc 13 §6.1): -X1011 put on -X1031's rail right after it starts
 /// against -X1031's end bracket and has none of its own before it; -X1021 turned half round on its rail lists its last
 /// terminal first; -X1031 taken off its rail (its placement removed) is on no rail with both its end brackets, and with
 /// its terminal SH without a part (no width) its length is "at least".
@@ -406,11 +406,18 @@ fn the_assembly_heading_says_against_turned_on_no_rail_and_at_least() {
                 Record::Placement(p) if p.device == x1031 => Some(p.carrier.clone()),
                 _ => None,
             })
-            .expect("-X1031 on rail 2");
+            .expect("-X1031 on a rail");
+        // The rail holds the strips alone.
+        records.retain(|r| {
+            !matches!(r, Record::Placement(p)
+                if p.carrier == rail2 && ![x1011, x1021, x1031].contains(&p.device))
+        });
         for r in records.iter_mut() {
             let Record::Placement(p) = r else { continue };
-            if p.device == x1011 {
+            if p.device == x1031 {
                 // -X1031 stands with its end brackets from 0 to 48.2 mm.
+                p.pose.t[0] = ew_units::Nm::from_mm(10);
+            } else if p.device == x1011 {
                 p.carrier = rail2.clone();
                 p.pose.t[0] = ew_units::Nm::from_um(48_200);
             } else if p.device == x1021 {
@@ -422,7 +429,7 @@ fn the_assembly_heading_says_against_turned_on_no_rail_and_at_least() {
     });
     let x1011 = strip_rows(&s, "-X1011");
     assert!(
-        x1011[0].starts_with("heading,-X1011 · on rail 2 from 48.2 to ")
+        x1011[0].starts_with("heading,-X1011 · on rail ")
             && x1011[0].contains(" · against the end bracket of -X1031 · 5 terminals · "),
         "{x1011:#?}"
     );

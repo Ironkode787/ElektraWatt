@@ -236,20 +236,13 @@ source fields re-keys the dependent records, and the writer marks both their old
 | `Function.device` | page-less connections, potential, net and medium definitions and bonds at the function's CPs |
 | `Carrier.surface`, `MountingSurface.enclosure`, `Enclosure.space` | dependent layout records |
 
-Ranks 50 to 54 (`layout_space`, `enclosure`,
-`mounting_surface`, `carrier`, `placement`) live in `layout/<space>.jsonl`: a space owns itself, an
-enclosure names its space, and a surface, carrier and placement reach it through carrier → surface → enclosure. The
-follow closure re-keys the dependants of `Carrier.surface`, `MountingSurface.enclosure` and `Enclosure.space`, so a
-carrier moved to another surface moves its placements' lines, and an incremental save equals a full save (LM-1).
-Rank 56, `committed_route`, is typed (below); ranks 55, 57 and 58 (`route_override`, `routing_path`,
-`surface_feature`) have no table and are kept and written as unknown records.
 Ranks 50 to 54 and 58 (`layout_space`, `enclosure`,
 `mounting_surface`, `carrier`, `placement`, `surface_feature`) live in `layout/<space>.jsonl`: a space owns itself,
 an enclosure names its space, and a surface, carrier, placement and surface feature reach it through carrier → surface
 → enclosure. The follow closure re-keys the dependants of `Carrier.surface`, `MountingSurface.enclosure` and
 `Enclosure.space`, so a carrier moved to another surface moves its placements' lines, and an incremental save equals
-a full save (LM-1). Ranks 55 to 57 (`route_override`, `committed_route`, `routing_path`) have no table and are
-kept and written as unknown records.
+a full save (LM-1). Rank 56, `committed_route`, is typed (below); ranks 55 and 57 (`route_override`, `routing_path`)
+have no table and are kept and written as unknown records.
 
 A property test guards the table: after any random command sequence, incremental saves must equal a full save,
 byte for byte (NFR-REL-16).

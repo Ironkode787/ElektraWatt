@@ -33,7 +33,7 @@ const EXCLUDED: &[(&str, &str)] = &[
         "it goes with the project's own panel layout (doc 12 §5.4), which Enclosure… makes",
     ),
     (
-        "the hole table 915",
+        "the hole table 925",
         "it lists the holes of the project's own surfaces, which the basic project has none of",
     ),
     (

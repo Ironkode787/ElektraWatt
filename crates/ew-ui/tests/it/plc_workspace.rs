@@ -1764,6 +1764,9 @@ fn two_stations_and_a_bus_are_built_from_nothing() {
         .expect("the Report list")
         .click();
     settle(&mut h);
+    // The list is longer than its popup: the kind is scrolled into view first.
+    h.get_by_label("Network address list").scroll_to_me();
+    settle(&mut h);
     h.get_by_label("Network address list").click();
     settle(&mut h);
     h.get_by_label("Create").click();

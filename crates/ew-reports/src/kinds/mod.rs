@@ -42,7 +42,6 @@ pub use cut_list::{CutList, TubeCutList};
 pub use device_list::DeviceList;
 pub use enclosure_legend::EnclosureLegend;
 pub use fluid::{MediumOverview, TubeLabels, TubeList, ValveTerminalConfig};
-pub use fluid::{MediumOverview, TubeCutList, TubeLabels, TubeList, ValveTerminalConfig};
 pub use hole_table::HoleTable;
 pub use io_list::IoList;
 pub use labels::{LabelFile, Labels, label_column_words, label_files};

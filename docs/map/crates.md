@@ -908,7 +908,6 @@ Built-in report row queries (a user SQL report gives an empty row set marked not
 | `src/kinds/device_list.rs` |  | `device_list`: the device list (FR-REP-008). |
 | `src/kinds/enclosure_legend.rs` |  | `enclosure_legend`: the layout legend of a mounting surface (FR-LAY-012; doc 12 §5.4, doc 09 §2.2). |
 | `src/kinds/fluid.rs` |  | The fluid report kinds (doc 11 §8.1, §8.2): `tube_list` (FR-FLU-012), `tube_labels` (FR-FLU-013), `valve_terminal_config` (FR-FLU-015) and `medium_overview` (FR-FLU-016), over the row sources of `ew-derive` (`tube_rows`, `valve_terminal_rows`, `medium_rows`). |
-| `src/kinds/fluid.rs` |  | The fluid report kinds (doc 11 §8.1, §8.2): `tube_list` (FR-FLU-012), `tube_cut_list` and `tube_labels` (FR-FLU-013), `valve_terminal_config` (FR-FLU-015) and `medium_overview` (FR-FLU-016), over the row sources of `ew-derive` (`tube_rows`, `valve_terminal_rows`, `medium_rows`). |
 | `src/kinds/hole_table.rs` |  | `hole_table`: every hole of every surface of the project, surface by surface (doc 13 §9.2, FR-MFG-029). |
 | `src/kinds/io_list.rs` |  | `io_list`: the I/O assignment list, one row per channel of each station's modules (FR-PLC-023; doc 10 §5). |
 | `src/kinds/labels.rs` |  | `labels`: every label of the workshop (doc 13 §5.3), from `ew_derive::LabelRows`, one row per label in the order the fitter applies them; `tube_labels` lists the tube markers of the same engine with the same columns. |
