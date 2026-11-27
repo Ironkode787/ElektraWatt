@@ -810,3 +810,14 @@ change here.
   unit (mm²), and a saved part opens with no field in focus (a new part still starts in its first field)
 - text-change: a parts table's description columns name their language in the window's language ("Description,
   Dutch"); an import's chips are tinted: new in the accent's tint, refused in the warning's
+- behaviour-change: a parts table's row is compared with the part you can read wherever it lives: a starter part, a
+  part of another library or a part only in this project that the row repeats unchanged reads "the same" and nothing
+  is written; a row that changes one is refused with the way in (Make my own from it, or keep it in My parts first).
+  Only a row that names no part you can read is new
+- behaviour-change: Save of an import writes the set you looked at: where My parts changed since the table was read,
+  nothing is written, the rows are judged anew and a line says so; the column map is saved with the set, not before
+- behaviour-change: a changed row of an import names the fields it changes (What was read, and What changes beside
+  it with what each holds now and will hold); a Like column is matched by maker and number, and a Like on a row whose
+  part exists says it is not used
+- behaviour-change: Shift in the list of Parts takes the rows shown between its ends (a folded group's rows are not
+  shown); Export after the save dialog's Replace writes the file; a tick box several parts differ in shows mixed

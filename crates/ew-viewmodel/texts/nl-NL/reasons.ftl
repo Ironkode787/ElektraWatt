@@ -303,6 +303,7 @@ error-parts-import = De tabel is niet gelezen: { $p0 }
 reason-no-parts-map = Er wordt geen artikeltabel toegewezen
 reason-no-import-set = Artikelen toont geen set van een import
 reason-set-nothing-new = Niets van deze import is nieuw of gewijzigd
+reason-set-read-again = Mijn artikelen zijn gewijzigd sinds de tabel gelezen is: de rijen worden opnieuw beoordeeld. Bekijk ze en sla opnieuw op
 reason-parts-many-not-yours = { $p0 }: niet uw artikelen om te wijzigen; maak er eerst uw eigen van
 reason-parts-many-here = { $p0 }: alleen in dit project; bewaar ze eerst in Mijn artikelen, of wijzig ze één voor één
 error-find-field = Er is geen zoekveld { $p0 }

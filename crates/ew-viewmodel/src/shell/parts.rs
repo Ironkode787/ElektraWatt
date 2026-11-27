@@ -363,13 +363,41 @@ fn refusal_words(why: &SetRefusal) -> String {
             ],
         ),
         SetRefusal::Like(number) => strings::format(key!("parts-set-like"), &[number]),
+        // A part he can read that is not his: the way in, in the words of the sheet of several parts.
+        SetRefusal::NotHis { number, lives } => match lives {
+            ew_api::parts::Lives::NotMine { starter: true, .. } => {
+                strings::format(key!("parts-set-starter"), &[number])
+            }
+            ew_api::parts::Lives::NotMine { library, .. } => {
+                strings::format(key!("parts-set-library"), &[number, library])
+            }
+            _ => strings::text(key!("parts-set-here")).to_owned(),
+        },
     }
+}
+
+/// A changed row's changes as the card of an update names them: each member's words, what it holds now and what it
+/// will hold.
+pub fn row_changes(row: &ew_api::parts_set::SetRow) -> Vec<(String, String, String)> {
+    super::part_dialog::card_fields(&row.changes)
 }
 
 /// What a row of the set is, in a sentence of What was read: refused with why, the same, a repeat; `None` for a new
 /// or a changed row.
 pub fn row_sentence(row: &ew_api::parts_set::SetRow) -> Option<String> {
     let line = row.line.to_string();
+    let base = row_status_sentence(row, &line);
+    // A Like the row does not use, said rather than dropped.
+    if !row.like_unused {
+        return base;
+    }
+    let like = strings::format(key!("parts-set-like-unused"), &[&line, &row.number]);
+    Some(base.map_or_else(|| like.clone(), |b| format!("{b} {like}")))
+}
+
+/// The sentence of a row by what it is: refused with why, the same, a repeat, changed with the fields it changes.
+fn row_status_sentence(row: &ew_api::parts_set::SetRow, line: &str) -> Option<String> {
+    let line = line.to_owned();
     match &row.status {
         SetStatus::Refused(why) => Some(strings::format(
             key!("parts-set-refused-line"),
@@ -383,7 +411,14 @@ pub fn row_sentence(row: &ew_api::parts_set::SetRow) -> Option<String> {
             key!("parts-set-repeats-line"),
             &[&line, &row.number, &of.to_string()],
         )),
-        SetStatus::New | SetStatus::Changed => None,
+        SetStatus::Changed => {
+            let words: Vec<String> = row_changes(row).into_iter().map(|(w, _, _)| w).collect();
+            Some(strings::format(
+                key!("parts-set-changed-line"),
+                &[&line, &row.number, &words.join(", ")],
+            ))
+        }
+        SetStatus::New => None,
     }
 }
 
@@ -733,6 +768,30 @@ impl ShellModel {
             return Outcome::refused(key!("reason-no-import-set"));
         };
         let map = shown.map.clone();
+        let (Some(session), _) = self.parts_session_mut() else {
+            return Outcome::refused(key!("reason-no-parts-place"));
+        };
+        let (new, changed) = match session.save_set(&set) {
+            Ok(c) => c,
+            // My parts changed since the table was read: nothing is written, the rows are judged anew and shown.
+            Err(ew_api::parts_set::SetSaveError::Changed(fresh)) => {
+                if let Some(shown) = self.parts.as_deref_mut().and_then(|p| p.set.as_deref_mut()) {
+                    shown.set = Some(*fresh);
+                }
+                self.parts_refresh();
+                self.set_row_shown();
+                return Outcome::refused(key!("reason-set-read-again"));
+            }
+            Err(ew_api::parts_set::SetSaveError::Catalog(catalog::CatalogError::Library(
+                ew_api::library::LibraryError::NotFound,
+            ))) => {
+                return failed(key!("error-part-no-my-parts"), &[]);
+            }
+            Err(ew_api::parts_set::SetSaveError::Catalog(e)) => {
+                return failed(key!("error-parts-import"), &[&e.to_string()]);
+            }
+        };
+        // The map is saved with the set it read, not before.
         if let (Some(map), Some(dir)) = (&map, self.config.config_dir.as_deref())
             && let Ok(columns) = map.column_map()
             && let Err(e) = catalog::save_column_map(dir, &map.source, &columns)
@@ -741,16 +800,6 @@ impl ShellModel {
                 message: e.to_string(),
             };
         }
-        let (Some(session), _) = self.parts_session_mut() else {
-            return Outcome::refused(key!("reason-no-parts-place"));
-        };
-        let (new, changed) = match session.save_set(&set) {
-            Ok(c) => c,
-            Err(catalog::CatalogError::Library(ew_api::library::LibraryError::NotFound)) => {
-                return failed(key!("error-part-no-my-parts"), &[]);
-            }
-            Err(e) => return failed(key!("error-parts-import"), &[&e.to_string()]),
-        };
         self.libraries_changed();
         if let Some(place) = self.parts.as_deref_mut() {
             place.set = None;

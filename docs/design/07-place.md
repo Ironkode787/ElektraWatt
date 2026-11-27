@@ -325,7 +325,7 @@ My parts since this project took it. See changes…"); nothing changes in the pr
 - **The set.** What a table or a parts file brings stands in the list as a scope of its own, This import, each row
   new, changed, the same or refused with its reason, and a dot where it lacks something; the sheet's What was read
   says each refusal and each row that is the same in a sentence. A row shows beside it as it will be: its kind, its
-  fields and Ready for. A row is laid over the part My parts holds of its maker and number, and its texts are read as
+  fields and Ready for. A row is laid over the part My parts holds of its maker and number; a row of a part he can read that is not his (a starter part, another library's, one only in this project) is the same where it repeats it, else refused with the way in (Make my own from it, Keep in my parts); only a row that names no part he can read is new. A changed row names the fields it changes. and its texts are read as
   the part's sheet reads them, so a text that does not read refuses its row in the sheet's words. Nothing is saved
   until **Save n to My parts**, which reads the file again against My parts as it is then and writes the new and the
   changed parts in one write; Discard drops the set. An EPLAN parts file's set also says how many of its parts the

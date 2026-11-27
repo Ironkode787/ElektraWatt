@@ -368,6 +368,25 @@ pub(super) fn as_it_will_be(ui: &mut Ui, shown: &ImportSet) {
                         ui.end_row();
                     }
                 });
+            // A changed row: what changes, what it holds now and what it will hold.
+            let changes = ew_viewmodel::shell::row_changes(row);
+            if !changes.is_empty() {
+                ui.add_space(t.space_3);
+                ui.label(RichText::new(strings::text(key!("parts-set-changes"))).font(theme::font(&t.type_label)));
+                egui::Grid::new("parts-set-changes")
+                    .num_columns(2)
+                    .spacing([t.space_4, t.space_2])
+                    .show(ui, |ui| {
+                        for (word, now, will) in changes {
+                            ui.label(components::body_secondary(&t, word));
+                            ui.add(egui::Label::new(components::body(
+                                &t,
+                                strings::format(key!("parts-set-change"), &[&now, &will]),
+                            )).wrap());
+                            ui.end_row();
+                        }
+                    });
+            }
         });
     ui.add_space(t.space_4);
     super::ready_for(

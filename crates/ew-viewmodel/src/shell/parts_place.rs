@@ -918,10 +918,10 @@ impl ShellModel {
             place.lacking = v.as_bool().unwrap_or(false);
         }
         // A group of the list folded shut, or opened again.
-        if let Some(id) = fold {
-            if !place.folded.remove(&id) {
-                place.folded.insert(id);
-            }
+        if let Some(id) = fold
+            && !place.folded.remove(&id)
+        {
+            place.folded.insert(id);
         }
         self.parts_refresh();
         Outcome::Done

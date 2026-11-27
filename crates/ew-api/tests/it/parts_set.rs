@@ -183,7 +183,7 @@ fn a_new_row_like_a_part_of_my_parts_takes_what_its_columns_do_not_give() {
         s.set_draft_field(&mut sheet, f, v).expect(f);
     }
     s.new_part_in_my_parts(&sheet).expect("saved into My parts");
-    let table = "Maker;Article;Like;W\nExample;FT-4;FT-2.5;6.2\n";
+    let table = "Maker;Article;Like;W\nExample;FT-4;FT-2.5;6.2\nExample;FT-2.5;FT-4;5.2\n";
     let input = ImportInput::new("family.csv", table.as_bytes().to_vec()).expect("an input");
     let map = ColumnMap::new(
         None,
@@ -203,6 +203,9 @@ fn a_new_row_like_a_part_of_my_parts_takes_what_its_columns_do_not_give() {
     let mm = |n: i64| Some(ew_units::Nm(n));
     assert_eq!((mech.width, mech.height), (mm(6_200_000), mm(60_000_000)));
     assert_eq!(part.part_number.as_str(), "FT-4");
+    // A Like on a row of a part My parts holds is not used, and the row says so.
+    assert!(set.rows[1].like_unused, "{:?}", set.rows[1]);
+    assert!(!set.rows[0].like_unused);
 }
 
 /// A new cable whose row gives no cores has none; a count with a cross-section gives that many cores of it.
@@ -232,4 +235,118 @@ Example;CY-12;cable;12;0.75
     let twelve = part(1).sections.cable_cores;
     assert_eq!(twelve.len(), 12);
     assert!(twelve.iter().all(|c| c.csa == Some(ew_schema::Csa::Mm2("0.75".parse().unwrap()))));
+}
+
+/// A table of any parts he can read, read back unchanged, is the same for every row and writes nothing: a starter part,
+/// a part only in this project and one of his own. Changed, the two that are not his are refused with the way in, his
+/// own is changed with what changes, and it keeps what the table does not carry (its pins).
+#[test]
+fn a_table_of_parts_he_can_read_is_the_same_and_a_change_to_one_not_his_is_refused() {
+    use ew_api::parts::{Lives, PartScope};
+    use ew_api::PartPick;
+    let tmp = ew_testdir::Tmp::new("parts-set-readable");
+    let mut s = project(&tmp.0);
+    let mut made = |s: &mut Session, number: &str, to_library: bool| {
+        let mut sheet = s.new_part_draft().expect("a new part");
+        sheet.to_library = to_library;
+        for (f, v) in [("manufacturer", "Example"), ("part_number", number), ("kind", "terminal")] {
+            s.set_draft_field(&mut sheet, f, v).expect(f);
+        }
+        let cmd = s.new_part_command(&sheet).expect("its command").command;
+        let preview = s.preview(&cmd).expect("previewed");
+        s.commit(preview).expect("committed");
+    };
+    made(&mut s, "FT-4", true);
+    made(&mut s, "DL-2.5", false);
+    let copy = |s: &Session, n: &str| {
+        s.query()
+            .parts()
+            .iter()
+            .find(|(_, c)| c.item.part_number.as_str() == n)
+            .map(|(id, _)| id.as_uuid())
+            .expect(n)
+    };
+    let starter = s
+        .parts_find("EW-GEN-TRM-1", PartScope::All, None, false, None, 50)
+        .into_iter()
+        .find(|f| f.offer.part_number == "EW-GEN-TRM-1")
+        .expect("the starter terminal");
+    let PartPick::Library { library, item } = starter.offer.pick else {
+        panic!("a library's part")
+    };
+    let sheets = vec![
+        s.library_part_draft(library, item).expect("the starter's sheet"),
+        s.part_draft(copy(&s, "DL-2.5")).expect("the project's own"),
+        s.part_draft(copy(&s, "FT-4")).expect("his own"),
+    ];
+    let pins_before = sheets[2].pins.len();
+    let columns = ew_api::parts_many::table_columns(&sheets);
+    let table = |change: bool| {
+        let mut text = columns.iter().map(|(m, _)| m.as_str()).collect::<Vec<_>>().join(";") + "\n";
+        for i in 0..sheets.len() {
+            let cells: Vec<String> = columns
+                .iter()
+                .map(|(m, t)| if change && m == "type_designation" { "changed".to_owned() } else { t[i].clone() })
+                .collect();
+            text += &(cells.join(";") + "\n");
+        }
+        ImportInput::new("parts.csv", text.into_bytes()).expect("an input")
+    };
+    let map = ColumnMap::new(None, columns.iter().map(|(m, _)| (m.as_str(), m.as_str()))).expect("the map");
+    let same = s.table_set(&table(false), &map).expect("the set");
+    assert_eq!(same.counts(), (0, 0, 3, 0), "{:#?}", same.rows);
+    assert_eq!(s.save_set(&same).expect("saved"), (0, 0));
+    let changed = s.table_set(&table(true), &map).expect("the set");
+    let status = |n: &str| changed.rows.iter().find(|r| r.number == n).expect(n).status.clone();
+    assert!(
+        matches!(status("EW-GEN-TRM-1"), SetStatus::Refused(SetRefusal::NotHis { lives: Lives::NotMine { starter: true, .. }, .. })),
+        "{:?}",
+        status("EW-GEN-TRM-1")
+    );
+    assert!(
+        matches!(status("DL-2.5"), SetStatus::Refused(SetRefusal::NotHis { lives: Lives::OnlyHere, .. })),
+        "{:?}",
+        status("DL-2.5")
+    );
+    let own = changed.rows.iter().find(|r| r.number == "FT-4").expect("FT-4");
+    assert_eq!(own.status, SetStatus::Changed);
+    assert!(own.changes.iter().any(|c| c.member == "type_designation"), "{:?}", own.changes);
+    assert_eq!(s.save_set(&changed).expect("saved"), (0, 1));
+    let now = s.part_draft(copy(&s, "FT-4")).expect("his own");
+    assert_eq!(now.pins.len(), pins_before);
+}
+
+/// Save writes the set shown or nothing: a row read as the same, then changed in My parts meanwhile, is judged anew and
+/// the Save refused; his edit stands.
+#[test]
+fn save_refuses_a_set_my_parts_changed_under() {
+    let tmp = ew_testdir::Tmp::new("parts-set-stale");
+    let mut s = project(&tmp.0);
+    let input = ImportInput::new("example-parts.csv", TABLE.as_bytes().to_vec()).expect("an input");
+    let first = s.table_set(&input, &map()).expect("the set");
+    s.save_set(&first).expect("saved");
+    // Read again: FT-4 is the same; then its width is changed in My parts before the Save.
+    let set = s.table_set(&input, &map()).expect("the set");
+    let row = |set: &ew_api::parts_set::PartsSet| set.rows.iter().find(|r| r.number == "FT-4").expect("FT-4").status.clone();
+    assert_eq!(row(&set), SetStatus::Same);
+    let (lib, item) = match s
+        .parts_find("FT-4", ew_api::parts::PartScope::Mine, None, false, None, 5)
+        .into_iter()
+        .find(|f| f.offer.part_number == "FT-4")
+        .expect("in My parts")
+        .offer
+        .pick
+    {
+        ew_api::PartPick::Library { library, item } => (library, item),
+        other => panic!("{other:?}"),
+    };
+    let mut sheet = s.library_part_draft(lib, item).expect("its sheet");
+    s.set_draft_field(&mut sheet, "mech.width", "7").expect("width");
+    s.own_part_update(&sheet).expect("saved");
+    match s.save_set(&set) {
+        Err(ew_api::parts_set::SetSaveError::Changed(fresh)) => assert_eq!(row(&fresh), SetStatus::Changed),
+        other => panic!("{other:?}"),
+    }
+    let now = s.library_part_draft(lib, item).expect("its sheet");
+    assert_eq!(now.text("mech.width"), "7");
 }

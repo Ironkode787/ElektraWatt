@@ -1609,7 +1609,7 @@ fn row_cell<'a>(
                 ui.add_space(t.space_3);
                 let mut on = says_yes(&row.text);
                 let r = ui
-                    .add_enabled(editable, egui::Checkbox::without_text(&mut on))
+                    .add_enabled(editable, egui::Checkbox::without_text(&mut on).indeterminate(hint.is_some()))
                     .disabled_tip(strings::text(key!("reason-part-not-yours")));
                 r.widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, editable, on, &label));
                 if r.changed() {
