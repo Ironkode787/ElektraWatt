@@ -533,6 +533,8 @@ fn an_edit_in_place_is_previewed() {
     let mut s = writable(&tmp);
     own_mcb(&mut s);
     done(&mut s, "parts.open", json!({ "part": "MCB-OWN" }));
+    let before = lines(&s, "field \"Description\"");
+    assert_eq!(before.len(), 1, "{}", s.describe());
     done(
         &mut s,
         "parts.field",
@@ -552,6 +554,8 @@ fn an_edit_in_place_is_previewed() {
         lines(&s, "device ").contains(&"device \"-101F2\"".to_owned()),
         "{text}"
     );
+    // The parts list row of -101F2 changes its description: the card names it.
+    assert!(!lines(&s, "changed ").is_empty(), "{text}");
     done(&mut s, "preview.apply", json!({}));
     assert_eq!(steps(&s), n + 1);
     let (cmd, params) = last(&s);
@@ -561,6 +565,12 @@ fn an_edit_in_place_is_previewed() {
         "in place: {params}"
     );
     done(&mut s, "edit.undo", json!({}));
+    done(&mut s, "parts.open", json!({ "part": "MCB-OWN" }));
+    assert_eq!(
+        lines(&s, "field \"Description\""),
+        before,
+        "undo restores the part"
+    );
     s.shutdown();
 }
 
