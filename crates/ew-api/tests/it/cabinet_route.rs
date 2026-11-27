@@ -245,9 +245,30 @@ fn route_and_the_shops_numbers_refuse_in_words() {
     assert_eq!(length(&s).0, was.0 + 20_000_000, "10 mm more at each end");
 }
 
+/// -X1031 turned half round where it stands on its rail, as the window's X turns it (`layout.move` to the clip point with
+/// mode free, which keeps it where it fits): its placement.
+fn turn_x1031(s: &mut Session) -> ew_ids::Id<ew_schema::Placement> {
+    let q = s.query();
+    let (placement, p) = q
+        .table::<ew_schema::Placement>()
+        .iter()
+        .find(|(_, p)| ew_derive::short_tag(&q, p.device) == "-X1031")
+        .map(|(id, p)| (id, p.clone()))
+        .expect("-X1031 placed");
+    drop(q);
+    assert!(
+        matches!(p.carrier, ew_schema::CarrierRef::Carrier(_)),
+        "-X1031 is on a rail"
+    );
+    let pose = json!({"t": [p.pose.t[0].0, 0, 0], "q": [0, 0, 0, 1_000_000_000]});
+    let cmd = json!({"placement": placement.as_uuid(), "pose": pose, "mode": "free"});
+    run(s, "layout.move", cmd).expect("turned");
+    placement
+}
+
 /// After Route, -X1031 turned half round on its rail stales the ways of its wires: the wire list prints 103.5's length
 /// after "≈" with Length from "stale", the cut list and the consumables print their pieces and metres with "≈"; Route
-/// lays them again.
+/// lays them again, 101.6 and 103.6 too.
 #[test]
 fn a_turned_strip_stales_its_wires_and_the_lists_say_so() {
     use ew_api::output::{RowExport, row_export};
@@ -271,27 +292,15 @@ fn a_turned_strip_stales_its_wires_and_the_lists_say_so() {
     };
     assert!(row(&s, "103.5").contains(",routed,"));
     assert!(!lines(&s, "cut_list").iter().any(|l| l.contains('≈')));
-    let q = s.query();
-    let (placement, p) = q
-        .table::<ew_schema::Placement>()
-        .iter()
-        .find(|(_, p)| ew_derive::short_tag(&q, p.device) == "-X1031")
-        .map(|(id, p)| (id, p.clone()))
-        .expect("-X1031 placed");
-    drop(q);
-    let t = p.pose.t.map(|n| n.0);
-    run(
-        &mut s,
-        "layout.move",
-        json!({"placement": placement.as_uuid(), "pose": {"t": t, "q": [0, 0, 0, 1_000_000_000]}}),
-    )
-    .expect("turned");
+    turn_x1031(&mut s);
     let stale = row(&s, "103.5");
     assert!(stale.contains(",≈ ") && stale.contains(",stale,"), "{stale}");
     assert!(lines(&s, "cut_list").iter().any(|l| l.contains('≈')));
     assert!(lines(&s, "consumables").iter().any(|l| l.contains('≈')));
     run(&mut s, "layout.route", json!({"space": space})).expect("Route again");
-    assert!(row(&s, "103.5").contains(",routed,"));
+    for n in ["103.5", "101.6", "103.6"] {
+        assert!(row(&s, n).contains(",routed,"), "{}", row(&s, n));
+    }
 }
 
 /// The findings of `rule` on the session.
@@ -347,21 +356,7 @@ fn ew_lay_011_is_one_finding_per_cause_whatever_its_wires() {
     let space = s.cabinet_of_folio("902").unwrap();
     run(&mut s, "layout.route", json!({"space": space})).expect("Route");
     assert!(findings(&s, "EW-LAY-011").is_empty());
-    let q = s.query();
-    let (placement, p) = q
-        .table::<ew_schema::Placement>()
-        .iter()
-        .find(|(_, p)| ew_derive::short_tag(&q, p.device) == "-X1031")
-        .map(|(id, p)| (id, p.clone()))
-        .unwrap();
-    drop(q);
-    let t = p.pose.t.map(|n| n.0);
-    run(
-        &mut s,
-        "layout.move",
-        json!({"placement": placement.as_uuid(), "pose": {"t": t, "q": [0, 0, 0, 1_000_000_000]}}),
-    )
-    .expect("turned");
+    let placement = turn_x1031(&mut s);
     let f = findings(&s, "EW-LAY-011");
     assert_eq!(f.len(), 1, "{f:#?}");
     assert!(
