@@ -238,6 +238,13 @@ impl crate::Session {
         let step: i64 = 4_000_000;
         let mut cps = Vec::new();
         let mut slots = vec![json!({"kind": "tag", "pos": [-1_000_000, 0], "align": "bottom_right", "visible": true})];
+        // A coil's or a contact's cross-reference under the tag, as the standard puts it (doc 07a).
+        if matches!(
+            def.item.contact_kind,
+            schema::ContactKind::No | schema::ContactKind::Nc | schema::ContactKind::Co | schema::ContactKind::Coil
+        ) {
+            slots.push(json!({"kind": "xref", "pos": [-1_000_000, 6_000_000], "align": "top_right", "visible": true}));
+        }
         for (i, pin) in def.item.cps.iter().enumerate() {
             let at = i64::try_from(i).unwrap_or(0);
             let (dir, y) = if at % 2 == 0 {

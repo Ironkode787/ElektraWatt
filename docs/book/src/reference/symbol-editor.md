@@ -24,7 +24,7 @@ your drawing grid, **Snap to grid** and the tool you left the last time.
 - **The bar** holds the way back (**Back without it** for a page, **To the part** for a piece, else **Back**), the
   tools (**Select**, **Line**, **Rectangle**, **Circle**, **More shapes** with ellipse, arc, polyline and polygon,
   **Text**, **Pin**, **Text field**, and **Other marks** with the cross-reference point and the mechanical link point),
-  the **Drawing grid** and **Snap to grid**, **Test on a page** and **Export**, and at its right end the next step:
+  the **Drawing grid** and **Snap to grid**, **Test on a page** and **Export draft**, and at its right end the next step:
   **Save and place on 102** for a page, **Save and use for -102S1** for a drawing like a placed symbol, **Done** for a
   piece, else **Save** (`Ctrl+Enter`). Each tool's tooltip says what it does and how.
 - <a id="the-outline"></a>**The short sheet**, on the left: **Name** and **What it is**, typed and chosen where they stand, and what follows
@@ -103,7 +103,7 @@ version (1.0.1 after 1.0.0). A save says where the symbol went; one refused says
 
 **Back** leaves the drawing in hand with its history: New symbol's **Go on with the drawing in hand** returns to it.
 A new drawing over one with changes not saved first asks whether to save the symbol; so does quitting. While the
-drawing shows, `Ctrl+S` saves the symbol and the File menu's **Save project** saves the project. **Export** writes
+drawing shows, `Ctrl+S` saves the symbol and the File menu's **Save project** saves the project. **Export draft** writes
 portable JSON to a new file, including incomplete work; an existing file is never overwritten.
 
 **Test on a page** places a test copy on the page in front, or on a new page of the symbol's connection grid when the

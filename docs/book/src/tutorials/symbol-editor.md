@@ -33,8 +33,8 @@ with a test copy, ready to wire.
    selects the pin. Press `Ctrl+Z` to undo the change. Fine drawing coordinates, such as 0.5 mm, remain valid.
 8. Choose **Save** at the bar's right end. A message says the symbol is saved to the library My parts: you never
    choose a folder or a key.
-9. Choose **Export** in the bar and name the file `power.symbol.json`; it is written beside your libraries. The file is
-   the portable drawing, with the identity the save gave it.
+9. Choose **Export draft** in the bar and name the file `power.symbol.json`; it is written beside your libraries. The
+   file is the portable drawing, with the identity the save gave it.
 10. Choose **Test on a page**. The project's page uses another connection grid, so a new page of the 4 mm grid shows
     with a test copy of the symbol selected, ready to wire.
 11. Choose **File ▸ Save** (`Ctrl+S`).

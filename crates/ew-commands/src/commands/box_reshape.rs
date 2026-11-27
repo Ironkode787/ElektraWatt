@@ -416,7 +416,7 @@ impl ReshapeBox {
                 ));
             }
         }
-        // A box's own pins have names; a box of a part draws the part's pins, edited in its device box.
+        // A box's own pins have names; a box of a part draws the part's pins, arranged in Parts.
         if let Some(i) = cps.iter().position(|c| c.name.is_some()) {
             let of_part = rep
                 .functions

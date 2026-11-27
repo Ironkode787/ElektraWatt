@@ -114,7 +114,7 @@ fn a_card_placed_any_way_is_laid_out_in_one_row_as_draw_on_a_page_lays_it() {
     s.shutdown();
 }
 
-/// A card of one's own starts its device box (Pins and box…, and the box placed from it until the box is edited) as a
+/// A card of one's own starts its box (Arrange…, and the box placed from it until the box is edited) as a
 /// card's: its channels in one row on one edge, its supply down the left side.
 #[test]
 fn a_new_card_s_device_box_starts_in_one_row() {

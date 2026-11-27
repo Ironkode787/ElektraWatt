@@ -910,7 +910,7 @@ fn detail(ui: &mut Ui, t: &Tokens, picker: &Picker, events: &mut Vec<Event>) {
 }
 
 /// Under the detail of a row that places a symbol (not in the strip chooser or a part's symbol choice): Open in Parts,
-/// where his own symbol is changed and another read and made his own; for a part drawn as a box, Pins and box…, which
+/// where his own symbol is changed and another read and made his own; for a part drawn as a box, Arrange…, which
 /// arranges its box there.
 fn edit_buttons(
     ui: &mut Ui,
