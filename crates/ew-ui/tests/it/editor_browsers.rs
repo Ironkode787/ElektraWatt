@@ -207,7 +207,7 @@ fn a_drawn_symbol_is_listed_under_what_it_is() {
     d.settle();
     d.input(&Input::Wait { ms: 50 });
     press(&mut d, "What it is of New symbol");
-    press(&mut d, "Coil of a relay or contactor");
+    press(&mut d, "Coil, rectangular");
     assert!(d.texts().iter().any(|t| t == "Relays"), "Listed under follows");
     assert_eq!(
         d.shell_mut()

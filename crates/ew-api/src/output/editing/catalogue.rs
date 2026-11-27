@@ -1304,6 +1304,23 @@ pub(crate) fn starter_piece_fndefs() -> impl Iterator<Item = (&'static str, &'st
     })
 }
 
+/// Every starter FnDef with pins, in the starter's order, by its key: what a symbol can stand for (doc 07 §5.6), the
+/// pieces' functions ([`starter_piece_fndefs`]) and the black boxes, bus ports and terminals with pins.
+pub(crate) fn starter_pinned_fndefs() -> impl Iterator<Item = (&'static str, &'static LibCopy<FnDef>)> {
+    starter_docs().iter().filter_map(|(key, _, d)| match d {
+        LibDocument::Fndef(c) if !c.item.cps.is_empty() => Some((*key, c)),
+        _ => None,
+    })
+}
+
+/// The key of the starter FnDef that is item `item` (`ew.fn.coil`).
+pub(crate) fn starter_fndef_key(item: Uuid) -> Option<&'static str> {
+    starter_docs().iter().find_map(|(k, _, d)| match d {
+        LibDocument::Fndef(c) if c.item_id.as_uuid() == item => Some(*k),
+        _ => None,
+    })
+}
+
 /// The starter FnDef of key `key` (`ew.fn.coil`).
 pub(crate) fn starter_fndef_by_key(key: &str) -> Option<&'static LibCopy<FnDef>> {
     starter_docs().iter().find_map(|(k, _, d)| match d {

@@ -215,6 +215,16 @@ impl crate::Session {
     }
 }
 
+/// The starter function of key `key` (`ew.fn.coil`), as What it is sets it on a drawing.
+pub fn starter_function(key: &str) -> Option<&'static ew_schema::FnDef> {
+    crate::output::starter_fndef_by_key(key).map(|c| &c.item)
+}
+
+/// The key of the starter function `r` names (`ew.fn.coil`), any version; `None` for another library's.
+pub fn starter_function_key(r: &LibRef) -> Option<&'static str> {
+    crate::output::starter_fndef_key(r.item.as_uuid())
+}
+
 /// The function a symbol drawn for a piece of what `what` is (a starter function's key) names: the starter's, so that
 /// the piece's Symbol cell offers it (doc 07 §5.6). `None` for a function the starter has not.
 pub fn piece_function(what: &str) -> Option<LibRef> {

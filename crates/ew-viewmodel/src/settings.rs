@@ -399,8 +399,8 @@ impl Settings {
         dedup(&mut self.symbols_recent);
         self.symbols_recent.truncate(MAX_RECENT);
         // A word, a grid or a scope this version does not offer reads as none.
-        let what = crate::shell::symbol_editor::WHAT;
-        self.symbol_last_kind = (self.symbol_last_kind.take()).filter(|w| what.iter().any(|(k, ..)| k == w));
+        let what = crate::shell::symbol_editor::what_kinds();
+        self.symbol_last_kind = (self.symbol_last_kind.take()).filter(|w| what.iter().any(|(k, _)| k == w));
         self.symbol_drawing_grid =
             (self.symbol_drawing_grid).filter(|g| *g < crate::shell::symbol_editor::GRID_STEPS.len());
         self.symbols_scope = (self.symbols_scope.take())
@@ -1171,7 +1171,7 @@ mod tests {
             tips_seen: vec!["wheel".to_owned()],
             terminal_spacing: Some(4),
             symbols_recent: vec!["library:l:s".to_owned()],
-            symbol_last_kind: Some("coil".to_owned()),
+            symbol_last_kind: Some("ew.fn.coil".to_owned()),
             symbol_drawing_grid: Some(1),
             symbol_snap: Some(false),
             symbols_scope: Some("mine".to_owned()),
@@ -1183,7 +1183,7 @@ mod tests {
             "author_name = \"A. Engineer\"\nbasic_project = \"/w/t.ew\"\ncanvas_backend = \"cpu\"\n\
             comes_from = \"eplan\"\ndensity = \"compact\"\ndwg_converter = \"/opt/oda\"\nfirst_run_done = true\n\
             keymap = \"kicad\"\nlanguage = \"nl\"\nmin_font_pt = 14\nrecent_projects = [\"/w/a.ew\"]\n\
-            reduce_motion = false\nsymbol_drawing_grid = 1\nsymbol_last_kind = \"coil\"\nsymbol_snap = false\n\
+            reduce_motion = false\nsymbol_drawing_grid = 1\nsymbol_last_kind = \"ew.fn.coil\"\nsymbol_snap = false\n\
             symbols_recent = [\"library:l:s\"]\nsymbols_scope = \"mine\"\nterminal_spacing = 4\ntheme = \"dark\"\n\
             tips = false\ntips_seen = [\"wheel\"]\nui_scale = 1.25\nupdate_check = true\nversion = 1\n\
             wheel_scrolls = true\nworkspace = \"PLC\"\n\n[parts]\nfavourites = [\"a/1\"]\nrecent = [\"b/2\"]\n\n\

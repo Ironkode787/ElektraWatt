@@ -10,7 +10,8 @@
 //! that it came from) and finishes the errand: placed on the page with the Place tool armed, exchanged for the selected
 //! symbol, or given to the piece. `parts.back` leaves the drawing, which stays in hand.
 
-use super::{SymbolEditor, WHAT, name_words, symbol_error, words};
+use super::sheet::{BOX, what_kinds};
+use super::{SymbolEditor, name_words, symbol_error, words};
 use crate::shell::parts_place::Origin;
 use crate::shell::{Outcome, ShellModel, failed, string_param};
 use crate::{key, strings};
@@ -142,16 +143,14 @@ fn piece_words(row: &ew_api::part_pieces::PieceRow) -> String {
     format!("{what} {}", row.pins.trim()).trim_end().to_owned()
 }
 
-/// What it is, by its [`WHAT`] word, for a drawing of `discipline`: the word given where the discipline offers it, else
-/// a normally open contact (the guess for a first symbol, doc 07 §5.6), else the first it offers.
-fn what_for(word: Option<&str>, discipline: &str) -> &'static str {
-    let group = super::sheet::what_group(discipline);
-    let offered = || WHAT.iter().filter(|(_, groups, ..)| groups.contains(group));
-    offered()
-        .find(|(w, ..)| Some(*w) == word)
-        .or_else(|| offered().find(|(w, ..)| *w == "contact-no"))
-        .or_else(|| offered().next())
-        .map_or(WHAT[0].0, |(w, ..)| w)
+/// What it is, by its [`what_kinds`] word, for a drawing of `discipline`: the word given (the symbol drawn last),
+/// else the guess for a first symbol (doc 07 §5.6): a normally open contact on an electrical page, else a device box.
+fn what_for(word: Option<&str>, discipline: &str) -> String {
+    match word.filter(|w| what_kinds().iter().any(|(k, _)| k == w)) {
+        Some(w) => w.to_owned(),
+        None if discipline == "electrical" => "ew.fn.contact-no".to_owned(),
+        None => BOX.to_owned(),
+    }
 }
 
 /// A new drawing on connection grid `grid`, as what `what` is: its function set as what it is, and the texts its kind
@@ -161,9 +160,18 @@ fn new_draft(grid: (u64, u64), what: &str) -> Result<SymbolDraft, String> {
     let draft = SymbolDraft::new("", strings::text(key!("symbol-untitled"))).map_err(symbol_error)?;
     let mut d = serde_json::to_value(&draft).map_err(|e| e.to_string())?;
     d["symbol"]["grid"] = json!({"num": grid.0, "den": grid.1});
-    let (_, _, kind, category) = WHAT.iter().find(|(w, ..)| *w == what).copied().unwrap_or(WHAT[0]);
-    d["function"]["contact_kind"] = json!(kind);
-    d["function"]["category"] = json!([category, "Generic", "Generic"]);
+    // A starter function: the symbol draws it; a box: a function of its own, its pins as drawn.
+    match (ew_api::symbols::starter_function(what), ew_api::symbols::piece_function(what)) {
+        (Some(def), Some(r)) => {
+            d["function"] = serde_json::to_value(def).map_err(|e| e.to_string())?;
+            d["function_ref"] = serde_json::to_value(r).map_err(|e| e.to_string())?;
+        }
+        _ => {
+            d["function"]["contact_kind"] = json!("black_box");
+            d["function"]["category"] = json!(["Assembly", "Generic", "Generic"]);
+        }
+    }
+    let kind = d["function"]["contact_kind"].as_str().unwrap_or_default().to_owned();
     // One text line under another: 6 mm, 4 mm on the QET grid (doc 07a).
     let line: i64 = if grid == (ew_units::Grid::QET_10PX.num(), ew_units::Grid::QET_10PX.den()) {
         4_000_000
@@ -172,7 +180,7 @@ fn new_draft(grid: (u64, u64), what: &str) -> Result<SymbolDraft, String> {
     };
     let mut slots =
         vec![json!({"kind": "tag", "pos": [-1_000_000, 0], "align": "bottom_right", "visible": true})];
-    if matches!(kind, "no" | "nc" | "co" | "coil") {
+    if matches!(kind.as_str(), "no" | "nc" | "co" | "coil") {
         slots.push(json!({"kind": "xref", "pos": [-1_000_000, line], "align": "top_right", "visible": true}));
     }
     d["symbol"]["text_slots"] = json!(slots);
@@ -294,7 +302,7 @@ impl ShellModel {
                     None => ((4_000_000, 1), "electrical"),
                 };
                 let what = what_for(self.settings.symbol_last_kind.as_deref(), discipline);
-                new_draft(grid, what).map(|d| (d, None))
+                new_draft(grid, &what).map(|d| (d, None))
             }
             Some("last") => match self.settings.symbols_recent.first().cloned() {
                 Some(address) => self.copy_draft(&address).map(|d| (d, None)),
@@ -748,7 +756,7 @@ impl ShellModel {
         };
         // What it is, kept for the next symbol he draws.
         if let Some(what) = self.symbol_editor.as_ref().and_then(SymbolEditor::what) {
-            self.settings.symbol_last_kind = Some(what.to_owned());
+            self.settings.symbol_last_kind = Some(what);
             self.save_settings();
         }
         match purpose {

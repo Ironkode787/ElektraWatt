@@ -1307,7 +1307,7 @@ fn the_symbol_editors_refusal_answers_above_the_drawing_and_in_to_do() {
     let _ = h.state_mut().shell_mut().dispatch("parts.save", &json!({}));
     h.run_ok();
     h.run_ok();
-    let text = "Connection point 1 is off the connection grid. Move it onto the grid before saving.";
+    let text = "Connection point 13 is off the connection grid. Move it onto the grid before saving.";
     let shell = h.state().shell();
     assert_eq!(shell.symbol_editor().unwrap().error.as_deref(), Some(text));
     assert_eq!(shell.banner(), None);

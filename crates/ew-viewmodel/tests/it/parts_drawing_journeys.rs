@@ -87,7 +87,7 @@ fn journey_4_a_symbol_nobody_has_is_drawn_from_the_page_and_placed_there() {
         (Some(page_grid.0), Some(page_grid.1)),
         "page 101's grid"
     );
-    assert_eq!(editor.what(), Some("contact-no"));
+    assert_eq!(editor.what().as_deref(), Some("ew.fn.contact-no"));
     let slots = serde_json::to_value(&editor.draft.symbol.text_slots).unwrap();
     assert!(
         slots.as_array().unwrap().iter().any(|s| s["kind"] == "tag"),
@@ -130,7 +130,7 @@ fn journey_4_a_symbol_nobody_has_is_drawn_from_the_page_and_placed_there() {
         .cloned()
         .expect("the saved symbol");
     assert!(address.starts_with("library:"), "{address}");
-    assert_eq!(s.settings().symbol_last_kind.as_deref(), Some("contact-no"));
+    assert_eq!(s.settings().symbol_last_kind.as_deref(), Some("ew.fn.contact-no"));
 }
 
 /// Journey 5: Ctrl+I on the page opens the drawing with What it is, the drawing grid and Snap as he left them; Like
@@ -150,7 +150,7 @@ fn journey_5_the_tenth_symbol_is_drawn_as_the_last_one_was_left() {
     done(
         &mut s,
         "parts.field",
-        json!({"field": "symbol.what", "value": "coil"}),
+        json!({"field": "symbol.what", "value": "ew.fn.coil"}),
     );
     done(&mut s, "symbol.grid", json!({"step": 1, "snap": false}));
     draw_contact(&mut s);
@@ -160,7 +160,7 @@ fn journey_5_the_tenth_symbol_is_drawn_as_the_last_one_was_left() {
     // Ctrl+I: What it is, the grid and Snap as he left them.
     done(&mut s, "parts.new_symbol", json!({}));
     let editor = s.symbol_editor().unwrap();
-    assert_eq!(editor.what(), Some("coil"));
+    assert_eq!(editor.what().as_deref(), Some("ew.fn.coil"));
     assert_eq!((editor.grid, editor.snap), (1, false));
     done(&mut s, "parts.back", json!({}));
     assert!(s.parts_place().is_none(), "Back without it returns to the page");
@@ -656,4 +656,52 @@ fn a_piece_s_new_symbol_is_given_to_it_with_no_project_open() {
     done(&mut s, "parts.find", json!({"shelf": "symbols", "text": "MY-CON-5"}));
     let shelf: Vec<String> = s.parts_place().map(|p| p.symbols.iter().map(|f| f.address.clone()).collect()).unwrap_or_default();
     assert!(shelf.contains(&symbol), "the shelf lists it: {shelf:?}");
+}
+
+/// What it is offers every function a symbol can stand for, also those no piece is: his own symbol for the power
+/// supply's function, drawn in Parts with its seven pins, is the one Place draws a part on that function with (the
+/// starter's supply, a black box), and the next one again.
+#[test]
+fn his_own_symbol_of_a_black_box_part_s_function_draws_the_part() {
+    let tmp = Tmp::new("own-psu-symbol");
+    let mut s = project(&tmp);
+    done(&mut s, "parts.open", json!({}));
+    done(&mut s, "parts.new_symbol", json!({}));
+    let editor = s.symbol_editor().expect("the drawing");
+    let what = editor.symbol_rows().into_iter().find(|r| r.key == "what").expect("What it is");
+    let ew_viewmodel::shell::symbol_editor::RowValue::Choice { options, .. } = what.value else {
+        panic!("a choice: {:?}", what.value);
+    };
+    for key in ["ew.fn.psu-ac-dc", "ew.fn.terminal", "ew.fn.pn-port", "ew.fn.valve-5-2-sol-spring"] {
+        assert!(options.iter().any(|(k, _)| k == key), "{key} offered: {options:?}");
+    }
+    let supply = options.iter().find(|(k, _)| k == "ew.fn.psu-ac-dc").map(|(_, w)| w.clone()).unwrap();
+    assert!(!supply.contains("ew."), "in words: {supply}");
+    for (field, value) in [("symbol.what", "ew.fn.psu-ac-dc"), ("symbol.name", "Own supply")] {
+        done(&mut s, "parts.field", json!({"field": field, "value": value}));
+    }
+    done(
+        &mut s,
+        "symbol.draw",
+        json!({"tool": "rectangle", "x": -4, "y": 4, "x2": 20, "y2": 28}),
+    );
+    let pins = [(0, 0, "up"), (8, 0, "up"), (16, 0, "up"), (0, 32, "down"), (4, 32, "down"), (12, 32, "down"), (16, 32, "down")];
+    for (fn_cp, (x, y, direction)) in pins.into_iter().enumerate() {
+        done(
+            &mut s,
+            "symbol.cp",
+            json!({"x": x, "y": y, "direction": direction, "fn_cp": fn_cp}),
+        );
+    }
+    let key = s.symbol_editor().unwrap().draft.key.clone();
+    done(&mut s, "parts.save", json!({}));
+    done(&mut s, "parts.back", json!({"discard": true}));
+    done(&mut s, "parts.back", json!({}));
+    for at in [(10, 10), (40, 10)] {
+        done(&mut s, "tool.place", json!({}));
+        done(&mut s, "place.pick", json!({"part": "EW-GEN-PSU-1"}));
+        click(&mut s, at);
+    }
+    let drawn = placed(&s).iter().filter(|k| **k == key).count();
+    assert_eq!(drawn, 2, "both supplies drawn with his symbol: {:?}", placed(&s));
 }

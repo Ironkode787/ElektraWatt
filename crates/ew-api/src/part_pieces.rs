@@ -57,45 +57,48 @@ pub const MOST_LEVELS: usize = 3;
 /// piece's pins. Where the starter draws two pieces with one function (a main and an auxiliary contact), that
 /// function's one word: their pins tell them apart.
 pub fn piece_kinds() -> Vec<PieceKind> {
+    crate::output::starter_piece_fndefs().filter_map(kind_of).collect()
+}
+
+/// What a symbol can stand for (its What it is, doc 07 §5.6): every starter function with pins, the pieces' and also
+/// the power supply, the terminals, the bus ports and the other functions that are not pieces, in the words of
+/// [`piece_kinds`].
+pub fn symbol_kinds() -> Vec<PieceKind> {
+    crate::output::starter_pinned_fndefs().filter_map(kind_of).collect()
+}
+
+/// Starter function `c` of key `key` in a person's words ([`piece_kinds`]).
+fn kind_of((key, c): (&'static str, &'static ew_schema::LibCopy<ew_schema::FnDef>)) -> Option<PieceKind> {
     use ew_l10n::TextArg;
-    crate::output::starter_piece_fndefs()
-        .filter_map(|(key, c)| {
-            // In the window's languages, each as the symbol's name reads in it.
-            if let Some(name) = crate::output::starter_function_name(c.id) {
-                let named: Vec<(ew_mltext::LangTag, String)> = (crate::catalogue().tags().into_iter())
-                    .filter_map(|tag| {
-                        let lang: ew_mltext::LangTag = tag.parse().ok()?;
-                        let base: ew_mltext::LangTag = tag.split('-').next()?.parse().ok()?;
-                        let text = name.text_for(&lang).or_else(|| name.text_for(&base))?.to_owned();
-                        Some((lang, text))
-                    })
-                    .collect();
-                let words = Text::bare(TextArg::Ml(ew_mltext::MlText::from_langs(named)));
-                return Some(PieceKind { key, words });
-            }
-            let cps: Vec<String> = c
-                .item
-                .cps
-                .iter()
-                .map(|cp| cp.designation.as_str().to_owned())
-                .collect();
-            let words = crate::output::navigators::kind_text(&c.item, &cps)?;
-            // The function's words end in its own pins (`Coil A1-A2`); the piece's pins are the row's.
-            let pins = cps.join("-");
-            let words = match words.args() {
-                [TextArg::Ml(m)] => Text::bare(TextArg::Ml(ew_mltext::MlText::from_langs(
-                    m.languages()
-                        .filter_map(|l| {
-                            m.get(l)
-                                .map(|t| (l.clone(), t.trim_end_matches(pins.as_str()).trim_end().to_owned()))
-                        })
-                        .collect::<Vec<_>>(),
-                ))),
-                _ => words,
-            };
-            Some(PieceKind { key, words })
-        })
-        .collect()
+    // In the window's languages, each as the symbol's name reads in it.
+    if let Some(name) = crate::output::starter_function_name(c.id) {
+        let named: Vec<(ew_mltext::LangTag, String)> = (crate::catalogue().tags().into_iter())
+            .filter_map(|tag| {
+                let lang: ew_mltext::LangTag = tag.parse().ok()?;
+                let base: ew_mltext::LangTag = tag.split('-').next()?.parse().ok()?;
+                let text = name.text_for(&lang).or_else(|| name.text_for(&base))?.to_owned();
+                Some((lang, text))
+            })
+            .collect();
+        let words = Text::bare(TextArg::Ml(ew_mltext::MlText::from_langs(named)));
+        return Some(PieceKind { key, words });
+    }
+    let cps: Vec<String> = c.item.cps.iter().map(|cp| cp.designation.as_str().to_owned()).collect();
+    let words = crate::output::navigators::kind_text(&c.item, &cps)?;
+    // The function's words end in its own pins (`Coil A1-A2`); the piece's pins are the row's.
+    let pins = cps.join("-");
+    let words = match words.args() {
+        [TextArg::Ml(m)] => Text::bare(TextArg::Ml(ew_mltext::MlText::from_langs(
+            m.languages()
+                .filter_map(|l| {
+                    m.get(l)
+                        .map(|t| (l.clone(), t.trim_end_matches(pins.as_str()).trim_end().to_owned()))
+                })
+                .collect::<Vec<_>>(),
+        ))),
+        _ => words,
+    };
+    Some(PieceKind { key, words })
 }
 
 /// The library address of library copy `c` (`library:<library>:<item>`), as a piece names its symbol.

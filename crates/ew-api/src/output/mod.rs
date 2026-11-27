@@ -127,7 +127,7 @@ pub use ew_text::DEFAULT_STYLE_KEY;
 // A valve port's side of EW-FL-012, which the page tables and symbol shapes carry for autoconnect.
 pub use editing::starter_piece_symbol;
 pub(crate) use editing::{
-    starter_fndef_by_key, starter_function_name, starter_piece_fndefs, starter_symbol_name,
+    starter_fndef_by_key, starter_fndef_key, starter_function_name, starter_piece_fndefs, starter_pinned_fndefs, starter_symbol_name,
 };
 pub use ew_derive::ValvePort;
 pub use ew_export::{

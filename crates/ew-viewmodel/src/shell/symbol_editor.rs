@@ -18,7 +18,7 @@ mod sheet;
 pub use device_box::{DeviceBox, PinLine, SIDES, side_word, side_words};
 pub use place::{Drawing, PageDrawing, PieceDrawing};
 pub use selection::{Clipboard, Item, bounds, grips, role_words};
-pub use sheet::{Outline, OutlineGroup, OutlineRow, RowValue, Sheet, SheetRow, Todo, WHAT, trim_mm};
+pub use sheet::{Outline, OutlineGroup, OutlineRow, RowValue, Sheet, SheetRow, Todo, trim_mm, what_kinds};
 
 /// The editor's drawing tools, in the order of its bar.
 pub const TOOLS: [&str; 13] = [
@@ -1160,7 +1160,16 @@ impl ShellModel {
             .ok_or_else(damaged)?;
         let old = points.iter().find(|v| v["idx"] == index).cloned();
         let new = old.is_none();
-        let mut cp = old.unwrap_or(json!({"idx":index,"fn_cp":index,"dir":"left","discipline":discipline}));
+        // A new point of a drawing of a starter function (What it is) stands for the function's first pin no point
+        // stands for yet; of a function of its own, for a pin of its own number.
+        let free = (editor.draft.function_ref.is_some())
+            .then(|| {
+                let drawn: Vec<u16> = editor.draft.symbol.cps.iter().map(|c| c.fn_cp).collect();
+                editor.draft.function.cps.iter().map(|c| c.idx).find(|i| !drawn.contains(i))
+            })
+            .flatten()
+            .map_or(index, u64::from);
+        let mut cp = old.unwrap_or(json!({"idx":index,"fn_cp":free,"dir":"left","discipline":discipline}));
         if let Some(mapping) = p.get("fn_cp") {
             cp["fn_cp"] = mapping.clone();
         }

@@ -125,43 +125,21 @@ pub struct Outline {
     pub import_reviewed: bool,
 }
 
-/// What a symbol is, as the What it is list offers it: its word, the disciplines it is offered for (`e` electrical,
-/// `f` fluid power, `b` bus), the function type it sets and the first level of the category the browsers list it under.
-/// The first is what a new symbol is.
-pub const WHAT: [(&str, &str, &str, &str); 24] = [
-    ("box", "efb", "black_box", "Assembly"),
-    ("contact-no", "e", "no", "Relay"),
-    ("contact-nc", "e", "nc", "Relay"),
-    ("contact-co", "e", "co", "Relay"),
-    ("coil", "e", "coil", "Relay"),
-    ("protection", "e", "pole", "ProtectionOvercurrent"),
-    ("switch", "e", "pole", "SwitchingMain"),
-    ("pushbutton", "e", "no", "ManualCommand"),
-    ("pressure-switch", "e", "no", "SensingPressure"),
-    ("position-switch", "e", "no", "SensingPosition"),
-    ("temperature-switch", "e", "nc", "SensingTemperature"),
-    ("lamp", "e", "pole", "IndicatorLight"),
-    ("motor", "e", "pole", "MotorRotary"),
-    ("heater", "e", "pole", "Heating"),
-    ("transformer", "e", "pole", "TransformerAcAc"),
-    ("supply", "e", "black_box", "PowerSupplyAcDc"),
-    ("terminal", "e", "terminal", "Terminal"),
-    ("plc", "e", "plc_io", "Controller"),
-    ("valve", "f", "valve", "ValveDirectional"),
-    ("cylinder", "f", "pole", "CylinderFluid"),
-    ("air", "f", "pole", "AirPreparation"),
-    ("fluid-sensor", "f", "pole", "FluidSensor"),
-    ("flow", "f", "pole", "FlowControl"),
-    ("bus-port", "b", "bus_port", "Controller"),
-];
+/// What it is's word for a device box with pins of its own: the symbol keeps a function of its own, its pins as drawn.
+pub const BOX: &str = "box";
 
-/// The letter of [`WHAT`]'s disciplines for `discipline`.
-pub(super) fn what_group(discipline: &str) -> char {
-    match discipline {
-        "pneumatic" | "vacuum" | "hydraulic" => 'f',
-        "bus" => 'b',
-        _ => 'e',
-    }
+/// What a symbol can stand for, as the What it is list offers it, each as (its word, its words): a device box with pins
+/// of its own ([`BOX`], what a first symbol of a fluid or bus page is), then every starter function with pins by its key
+/// (`ew.fn.coil`), from the functions' one home ([`ew_api::part_pieces::symbol_kinds`], which the pieces table reads
+/// too), whatever the discipline: a function chosen is the one the symbol draws, its pins standing for the function's.
+pub fn what_kinds() -> Vec<(String, String)> {
+    let mut out = vec![(BOX.to_owned(), label("symbol-what-box"))];
+    out.extend(
+        (ew_api::part_pieces::symbol_kinds().into_iter()).map(|k| (k.key.to_owned(), strings::render(&k.words))),
+    );
+    // After the box, by their words in the window's language.
+    out[1..].sort_by(|a, b| a.1.cmp(&b.1));
+    out
 }
 
 fn label(key: &str) -> String {
@@ -400,20 +378,20 @@ impl SymbolEditor {
         kinds
     }
 
-    /// What the symbol is, in a panel builder's words: the [`WHAT`] entry its function type and category make, else
-    /// its function type's own words.
-    pub fn what(&self) -> Option<&'static str> {
-        let f = serde_json::to_value(&self.draft.function).unwrap_or_default();
-        let (kind, category) = (f["contact_kind"].as_str()?, f["category"][0].as_str()?);
-        let group = what_group(self.discipline());
-        WHAT.iter()
-            .find(|(_, groups, k, c)| groups.contains(group) && *k == kind && *c == category)
-            .map(|(word, ..)| *word)
+    /// What the symbol is, as its [`what_kinds`] word: the starter function it draws, else [`BOX`] for a box of its own
+    /// function; `None` for a function of its own of another type, or another library's.
+    pub fn what(&self) -> Option<String> {
+        match &self.draft.function_ref {
+            Some(r) => ew_api::symbols::starter_function_key(r).map(str::to_owned),
+            None => matches!(self.draft.function.contact_kind, symbols::schema::ContactKind::BlackBox).then(|| BOX.to_owned()),
+        }
     }
 
+    /// What the symbol is, in a panel builder's words: its [`what_kinds`] words, else its function type's own.
     fn what_words(&self) -> String {
-        match self.what() {
-            Some(word) => label(&format!("symbol-what-{word}")),
+        let kind = self.what().and_then(|w| what_kinds().into_iter().find(|(k, _)| *k == w));
+        match kind {
+            Some((_, words)) => words,
             None => {
                 let kind = serde_json::to_value(&self.draft.function.contact_kind).unwrap_or_default();
                 label(&format!("symbol-kind-{}", kind.as_str().unwrap_or("unknown")))
@@ -816,21 +794,17 @@ impl SymbolEditor {
     /// words; where it is listed and which function it stands for follow from what it is and are not asked.
     pub fn symbol_rows(&self) -> Vec<SheetRow> {
         let d = &self.draft;
-        let locked = d.function_ref.is_some().then(|| label("symbol-function-locked"));
-        let group = what_group(self.discipline());
-        let mut what: Vec<(String, String)> = WHAT
-            .iter()
-            .filter(|(_, groups, ..)| groups.contains(group))
-            .map(|(word, ..)| ((*word).to_owned(), label(&format!("symbol-what-{word}"))))
-            .collect();
-        // A symbol whose type and category no entry makes shows as what its type is, the list's last line.
-        let current = self.what().map_or_else(
-            || {
+        // Locked only for another library's function: a starter function is changed here.
+        let locked = (d.function_ref.is_some() && self.what().is_none()).then(|| label("symbol-function-locked"));
+        let mut what = what_kinds();
+        // A symbol of a function no entry is shows as what its type is, the list's last line.
+        let current = match self.what().filter(|w| what.iter().any(|(k, _)| k == w)) {
+            Some(w) => w,
+            None => {
                 what.push(("other".to_owned(), self.what_words()));
-                "other"
-            },
-            |w| w,
-        );
+                "other".to_owned()
+            }
+        };
         let text = |s: &str| RowValue::Text(Some(s.to_owned()));
         vec![
             row(
@@ -840,7 +814,7 @@ impl SymbolEditor {
             ),
             SheetRow {
                 locked,
-                ..row("what", "symbol-what", choice(current, what))
+                ..row("what", "symbol-what", choice(&current, what))
             },
         ]
     }
@@ -1080,12 +1054,45 @@ impl SymbolEditor {
         let own_function = self.draft.function_ref.is_none();
         match (key, text, value) {
             ("name", Some(s), _) if !s.trim().is_empty() => set_ml(&mut doc["symbol"]["name"], s.trim()),
-            ("what", Some(word), _) if own_function => {
-                let Some((_, _, kind, category)) = WHAT.iter().find(|(w, ..)| *w == word) else {
-                    return false;
-                };
-                doc["function"]["contact_kind"] = json!(kind);
-                doc["function"]["category"] = json!([category, "Generic", "Generic"]);
+            // A starter function: the symbol draws it, its pins standing for the function's. The box: a function of
+            // its own again (no key), its pins kept.
+            ("what", Some(word), _) if own_function || self.what().is_some() => {
+                if word == BOX {
+                    doc["function_ref"] = Value::Null;
+                    // Its pins those drawn.
+                    let drawn: Vec<Value> = (doc["symbol"]["cps"].as_array())
+                        .map(|a| a.iter().map(|c| c["fn_cp"].clone()).collect())
+                        .unwrap_or_default();
+                    if let Some(pins) = doc["function"]["cps"].as_array_mut() {
+                        pins.retain(|p| drawn.contains(&p["idx"]));
+                    }
+                    if let Some(function) = doc["function"].as_object_mut() {
+                        function.remove("internal");
+                    }
+                    if let Some(meta) = doc["function"]["meta"].as_object_mut() {
+                        meta.remove("key");
+                    }
+                    doc["function"]["contact_kind"] = json!("black_box");
+                    doc["function"]["category"] = json!(["Assembly", "Generic", "Generic"]);
+                } else {
+                    let (Some(def), Some(r)) =
+                        (ew_api::symbols::starter_function(word), ew_api::symbols::piece_function(word))
+                    else {
+                        return false;
+                    };
+                    // The points drawn stand for its pins in order; one more than it has is To do's.
+                    let pins: Vec<u16> = def.cps.iter().map(|c| c.idx).collect();
+                    if let Some(points) = doc.pointer_mut("/symbol/cps").and_then(Value::as_array_mut) {
+                        for (point, pin) in points.iter_mut().zip(&pins) {
+                            point["fn_cp"] = json!(pin);
+                        }
+                    }
+                    let (Ok(def), Ok(r)) = (serde_json::to_value(def), serde_json::to_value(r)) else {
+                        return false;
+                    };
+                    doc["function"] = def;
+                    doc["function_ref"] = r;
+                }
             }
             ("reviewed", _, Value::Bool(on)) => doc["import_reviewed"] = json!(on),
             _ => return false,

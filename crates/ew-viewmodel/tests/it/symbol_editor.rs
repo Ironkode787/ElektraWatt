@@ -195,6 +195,12 @@ fn a_drawings_history_export_save_and_test_in_both_frontends() {
         );
         done(&mut shell, "page.goto", json!({"folio":"1"}));
         new_drawing(&mut shell, "Power block");
+        // A box with pins of its own: as many as it draws.
+        done(
+            &mut shell,
+            "parts.field",
+            json!({"field": "symbol.what", "value": "box"}),
+        );
         done(
             &mut shell,
             "symbol.draw",
@@ -847,7 +853,7 @@ fn a_refused_placement_on_a_new_page_leaves_no_empty_page() {
     done(
         &mut shell,
         "parts.field",
-        json!({"field":"symbol.what","value":"terminal"}),
+        json!({"field":"symbol.what","value":"ew.fn.terminal"}),
     );
     done(&mut shell, "parts.save", json!({}));
     let labels =
@@ -1362,6 +1368,12 @@ fn a_connection_point_is_deleted_and_copied_with_its_pin() {
     use ew_api::symbols::schema::SlotKind;
     let tmp = Tmp::new("symbol-cp-delete");
     let mut shell = with_things(&tmp);
+    // A function of its own (a box), whose pins are as drawn.
+    done(
+        &mut shell,
+        "parts.field",
+        json!({"field": "symbol.what", "value": "box"}),
+    );
     let numbers = |shell: &ShellModel| {
         let d = &shell.symbol_editor().unwrap().draft;
         d.symbol
@@ -1414,22 +1426,27 @@ fn the_rows_of_properties_follow_the_selection_and_set_every_selected_thing() {
     assert_eq!(keys, ["name", "what"]);
     let what = short.iter().find(|r| r.key == "what").unwrap();
     assert!(
-        matches!(&what.value, RowValue::Choice { value: Some(v), .. } if v == "contact-no"),
+        matches!(&what.value, RowValue::Choice { value: Some(v), .. } if v == "ew.fn.contact-no"),
         "a first symbol is a normally open contact: {what:?}"
     );
-    // A pressure switch is one of the kinds a panel builder draws: a contact, listed with the sensors.
+    // A pressure switch is one of the functions a symbol stands for: the symbol draws the starter's.
     done(
         &mut shell,
         "parts.field",
-        json!({"field": "symbol.what", "value": "pressure-switch"}),
+        json!({"field": "symbol.what", "value": "ew.fn.pressure-switch"}),
     );
-    let function = serde_json::to_value(&shell.symbol_editor().unwrap().draft.function).unwrap();
-    assert_eq!(function["contact_kind"], "no");
-    assert_eq!(function["category"][0], "SensingPressure");
-    assert_eq!(
-        shell.symbol_editor().unwrap().outline().what,
-        "Pressure switch or sensor \u{b7} Electrical"
-    );
+    let editor = shell.symbol_editor().unwrap();
+    assert_eq!(editor.what().as_deref(), Some("ew.fn.pressure-switch"));
+    assert!(editor.draft.function_ref.is_some(), "it draws the starter's function");
+    assert!(editor.outline().what.starts_with("Pressure switch"), "{}", editor.outline().what);
+    // A box of its own, from the two-pin contact: its pins say what they carry.
+    for what in ["ew.fn.contact-no", "box"] {
+        done(
+            &mut shell,
+            "parts.field",
+            json!({"field": "symbol.what", "value": what}),
+        );
+    }
     // Two connection points: the rows they share; a value that differs is not shown as either's.
     done(&mut shell, "symbol.select", json!({"items": ["cp:0", "cp:1"]}));
     let sheet = shell.symbol_sheet().unwrap();
@@ -1466,7 +1483,7 @@ fn the_rows_of_properties_follow_the_selection_and_set_every_selected_thing() {
             .iter()
             .map(|r| (r.label.as_str(), r.detail.as_str()))
             .collect::<Vec<_>>(),
-        [("1", "L+"), ("2", "L+")]
+        [("13", "L+"), ("14", "L+")]
     );
     assert!(outline.todo.is_empty(), "ready to save: {:?}", outline.todo);
     // A rectangle's rows are its place and size; a handle drags a corner.

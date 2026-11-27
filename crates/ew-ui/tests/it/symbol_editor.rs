@@ -307,7 +307,7 @@ fn the_tools_draw_with_the_pointer_and_escape_returns_to_select() {
             .iter()
             .map(|p| p.designation.to_string())
             .collect();
-        assert_eq!(names, ["1", "2"], "the tool counts on");
+        assert_eq!(names, ["13", "14"], "a first symbol draws the contact's pins");
         assert!(
             draft
                 .symbol
