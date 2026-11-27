@@ -187,7 +187,7 @@ impl Prompt {
                 None,
                 vec![],
             ),
-            // The symbol editor's file and library folder.
+            // The drawing's symbol files: an import, Export draft.
             Prompt::OpenSymbol => (
                 title(key!("prompt-open-symbol-title")),
                 PickKind::File,
@@ -204,12 +204,6 @@ impl Prompt {
                 vec![filter("JSON", &["json"])],
             ),
             Prompt::Folder => (title(key!("prompt-folder-title")), PickKind::Folder, None, vec![]),
-            Prompt::LibraryFolder => (
-                title(key!("prompt-library-folder-title")),
-                PickKind::Folder,
-                None,
-                vec![],
-            ),
         };
         PromptSpec {
             title,

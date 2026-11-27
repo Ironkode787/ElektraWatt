@@ -325,8 +325,8 @@ impl CardPins {
         out
     }
 
-    /// The card's every pin in one box, as a part's own device box holds them (the device box editor's start, the
-    /// browser's picture): its channels in one row, the inputs' then the outputs', on the upper edge where it has
+    /// The card's every pin in one box, as a part's own device box holds them (Arrange… of a card that has no layout
+    /// yet, the browser's picture): its channels in one row, the inputs' then the outputs', on the upper edge where it has
     /// inputs (else the lower), its other pins down the left side ([`crate::part_box::card_box`]).
     pub fn one_box(&self) -> crate::part_box::BoxSteps {
         let row: Vec<u16> = self.inputs.iter().chain(&self.outputs).copied().collect();

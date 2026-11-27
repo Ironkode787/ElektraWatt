@@ -644,12 +644,10 @@ pub enum Prompt {
     OpenImport,
     /// The program of the ODA File Converter (a DWG import).
     OpenConverter,
-    /// A symbol file to open or import in the symbol editor.
+    /// A symbol file to import into Parts' drawing.
     OpenSymbol,
-    /// A symbol authoring file name (the symbol editor's Export draft).
+    /// A symbol authoring file name (the drawing's Export draft).
     SaveSymbol,
-    /// A symbol library folder (the symbol editor's Library folder).
-    LibraryFolder,
     /// A PLC exchange file name of the chosen format, whose extension (`aml`, `xlsx`, `xml`) this holds (PLC
     /// exchange…'s export).
     SavePlcExchange(&'static str),

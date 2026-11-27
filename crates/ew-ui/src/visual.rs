@@ -259,7 +259,6 @@ impl Platform for VisualPlatform {
             Prompt::LabelFolder => Pick::Path(self.base.join("labels")),
             Prompt::SavePackage => Pick::Path(self.base.join("package.zip")),
             Prompt::SaveSymbol => Pick::Path(self.base.join("symbol.json")),
-            Prompt::LibraryFolder => Pick::Path(self.base.join("symbols.ewlib")),
             Prompt::Folder => Pick::Path(self.base.clone()),
             Prompt::SavePlcExchange(extension) => Pick::Path(self.base.join(format!("plc.{extension}"))),
             Prompt::OpenQet

@@ -85,7 +85,6 @@ dialog-connect = Verbinden
 prompt-open-symbol-title = Een symbool openen of importeren
 prompt-save-symbol-title = Symboolconcept exporteren
 prompt-symbol-name = symbool.json
-prompt-library-folder-title = Een map voor de symboolbibliotheek kiezen
 prompt-symbol-filter = Symboolbestanden
 prompt-image-filter = Afbeeldingen
 prompt-converter-title = Kies de ODA File Converter

@@ -90,7 +90,6 @@ dialog-connect = Connect
 prompt-open-symbol-title = Open or import a symbol
 prompt-save-symbol-title = Export symbol draft
 prompt-symbol-name = symbol.json
-prompt-library-folder-title = Choose a symbol library folder
 prompt-symbol-filter = Symbol files
 prompt-image-filter = Images
 prompt-converter-title = Choose the ODA File Converter

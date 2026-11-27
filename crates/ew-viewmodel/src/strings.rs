@@ -748,11 +748,11 @@ pub fn choice_words(value: &str) -> String {
         "single_line" => "single-line".to_owned(),
         "user_defined" => "user-defined".to_owned(),
         "page_based" => "page-based".to_owned(),
-        // The symbol editor's tools by their names in the bar.
+        // The drawing's tools by their names in the bar.
         "cp" => "connection point".to_owned(),
         "slot" => "text slot".to_owned(),
         "link" => "link point".to_owned(),
-        // `symbol.role`'s potential roles, as printed.
+        // A pin's potential roles (its Properties row `role`), as printed.
         "l1" | "l2" | "l3" | "l" | "n" | "pe" | "pen" | "fe" | "m" => value.to_uppercase(),
         "l_plus" => "L+".to_owned(),
         "l_minus" => "L-".to_owned(),

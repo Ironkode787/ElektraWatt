@@ -13,8 +13,8 @@
 //! - **A terminal:** Add terminal (its strip's next free number, of its own kind and part, floating at the pointer),
 //!   Choose part…, Edit strip, Define potential…. **Several terminals:** Choose part… for them all.
 //! - **A symbol of a device:** on a coil Add contact per free contact of its device (each floats its symbol), on a
-//!   contact Go to coil; Join device… where another device can take it; Choose part…; Edit symbol and Copy and edit;
-//!   Define potential… on a symbol of one electrical connection point; then its device's fluid actions (a source's
+//!   contact Go to coil; Join device… where another device can take it; Choose part…; Arrange its box… on a box of a
+//!   part, else Draw one like it…; Define potential… on a symbol of one electrical connection point; then its device's fluid actions (a source's
 //!   Medium: entries and New medium…, the medium another fluid device's ports carry, Add valve, Generate overview…, Plug
 //!   port).
 //!
@@ -42,7 +42,7 @@ struct DeviceThing<'a> {
     device: Uuid,
     /// The function the symbol draws: a coil offers its device's free contacts, a contact its coil.
     function: Option<Uuid>,
-    /// The symbol copy Edit symbol opens; none for a device not placed.
+    /// The symbol copy Draw one like it… starts from; none for a device not placed.
     symbol: Option<Uuid>,
     /// The symbol on the page shown, in the page's menu: Go to coil, Join device… and Define potential… read it.
     here: Option<&'a TableRep>,
@@ -539,8 +539,8 @@ impl ShellModel {
 
     /// What a device offers, on the page and on a navigator's row alike: on a coil Add contact per free
     /// contact; on the page's contact Go to coil; on the page's symbol Join device… where another device can take it;
-    /// Choose part…; Edit symbol and Copy and edit of its symbol; on the page's symbol of one connection point Define
-    /// potential….
+    /// Choose part…; on the page's box of a part Arrange its box…, on another of its symbols Draw one like it…; on the
+    /// page's symbol of one connection point Define potential….
     fn device_entries(&self, thing: &DeviceThing<'_>, out: &mut Vec<ActionItem>) {
         let session = self.project.as_ref().map(|p| &p.session);
         let role = session
