@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-27T22:21:01Z\n"
+"POT-Creation-Date: 2026-11-27T23:06:14Z\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4069,10 +4069,15 @@ msgstr ""
 msgid ""
 "To move one of these holes, type another place into its row: the chip then "
 "says \"moved\", and **Reset** puts the hole back. Tick **Leave out** below a "
-"hole you do not make; it is then drawn and listed nowhere."
+"hole you do not make; it is then drawn and listed nowhere. Your shop's way "
+"of fixing is set once in Project properties ▸ Workshop (Fixing holes, Rail "
+"fixing, Duct fixing, Web between holes, Measured from). When a new Rail "
+"fixing or Duct fixing puts a rail's or a duct's holes elsewhere, a hole you "
+"moved or left out there is reset, and the card of the change says how many "
+"and on which rails and ducts before you apply it."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:38
+#: src/how-to/cabinet-surfaces.md:42
 msgid ""
 "To add a hole of your own, right-click the surface where it goes and choose "
 "**Add hole here…**. The form \"Add a hole to -UC1 door\" asks for the "
@@ -4084,13 +4089,13 @@ msgid ""
 "cut-out, M12 to M63 for a gland, width × height for a rectangle.\""
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:43
+#: src/how-to/cabinet-surfaces.md:47
 msgid ""
 "A hole of your own is dragged with Select, its rows are Kind, Size, X, Y and "
 "For in Properties, and `Delete` removes it."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:45
+#: src/how-to/cabinet-surfaces.md:49
 msgid ""
 "Choose **Check ▸ Check project**. **Holes too close** (EW-LAY-012) names "
 "both holes and how far apart they are, such as \"… is 3 mm from … on …: keep "
@@ -4102,11 +4107,11 @@ msgid ""
 "cabinet** ([Make your own parts](own-parts.md))."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:51
+#: src/how-to/cabinet-surfaces.md:55
 msgid "Cable glands"
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:53
+#: src/how-to/cabinet-surfaces.md:57
 msgid ""
 "A cable that leaves the cabinet, such as the supply cable or a motor cable, "
 "brings its cable gland, chosen from the workshop stock by the cable's outer "
@@ -4114,7 +4119,7 @@ msgid ""
 "the button **Bottom**, which goes to the bottom's page."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:56
+#: src/how-to/cabinet-surfaces.md:60
 msgid ""
 "On the bottom's page the HUD offers **Place cable glands**, which places "
 "every gland that waits in a row. Or drag them from Unplaced devices, where "
@@ -4125,7 +4130,7 @@ msgid ""
 "it."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:61
+#: src/how-to/cabinet-surfaces.md:65
 msgid ""
 "Select the cable: in Properties, under its part, **Gland** names the gland "
 "part with the chip \"proposed for 12.5 mm\", and **Gland hole** names its "
@@ -4134,7 +4139,7 @@ msgid ""
 "proposal back."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:64
+#: src/how-to/cabinet-surfaces.md:68
 msgid ""
 "Check project names a gland that waits (**Cable gland**, EW-LAY-018, an "
 "error when you release) with **Place on the bottom**. A cable whose gland "
@@ -4144,11 +4149,11 @@ msgid ""
 "choose **Keep it as a hole**."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:69
+#: src/how-to/cabinet-surfaces.md:73
 msgid "The hole table"
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:71
+#: src/how-to/cabinet-surfaces.md:75
 msgid ""
 "Choose **Output ▸ Workshop ▸ Hole tables**. The hole table page lists every "
 "hole and cut-out of each surface, surface by surface, numbered in the order "
@@ -4158,7 +4163,7 @@ msgid ""
 "for. A project without a hole table opens **Report block…** on it."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:76
+#: src/how-to/cabinet-surfaces.md:80
 msgid ""
 "The drawings for drilling, the template to print at full size and the DXF, "
 "are in [Export the labels, the drilling drawings and the "
@@ -6989,10 +6994,26 @@ msgid ""
 msgstr ""
 
 #: src/reference/window/tools.md:268
+msgid ""
+"On a panel layout page that shows a cabinet's mounting plate, the same Route "
+"routes the cabinet instead: it lays each wire of the cabinet through the "
+"ducts and gives it its length. With nothing selected it plans the wires "
+"without a way and those whose way no longer holds; with devices, ducts or "
+"wires selected, the wires at them. Nothing changes until you choose Apply: "
+"the page shows each planned way and each duct's fill, and the card in the "
+"Preview tab lists the ducts, the lengths, the wires typed by hand, those "
+"made on site and those without a way with what to do; its tick Route every "
+"wire again plans every wire of the cabinet. Apply stores the ways in one "
+"undo step. The steps are [Route the cabinet's wires and give them their "
+"lengths](../../how-to/route-wires.md). On a page that is neither, Route is "
+"greyed with its reason (a door's page, a list)."
+msgstr ""
+
+#: src/reference/window/tools.md:277
 msgid "Arrange and route"
 msgstr ""
 
-#: src/reference/window/tools.md:270
+#: src/reference/window/tools.md:279
 msgid ""
 "Moves the symbols of the selection, or with nothing selected the symbols of "
 "the page, to where the page is best for them, and routes their wires: every "
@@ -7002,7 +7023,7 @@ msgid ""
 "Apply."
 msgstr ""
 
-#: src/reference/window/tools.md:275
+#: src/reference/window/tools.md:284
 msgid ""
 "Each symbol is put in line with the pin it is wired to, on the side that pin "
 "faces: a contact under the breaker that feeds it, a sensor over its input's "
@@ -7040,7 +7061,7 @@ msgid ""
 "other side still has to be wired by the end that faces the card."
 msgstr ""
 
-#: src/reference/window/tools.md:298
+#: src/reference/window/tools.md:307
 msgid ""
 "It never moves a symbol you keep in place (right-click ▸ Keep in place), a "
 "symbol outside the selection, a symbol in a structure box, or a symbol to "
@@ -7048,7 +7069,7 @@ msgid ""
 "where they are and the others are arranged round them."
 msgstr ""
 
-#: src/reference/window/tools.md:302
+#: src/reference/window/tools.md:311
 msgid ""
 "The Preview tab shows what it would do: how many symbols move and how many "
 "of them across the sheet, how many wires are routed and how many of those "
@@ -7064,7 +7085,7 @@ msgid ""
 "Hold B to see the page as it is."
 msgstr ""
 
-#: src/reference/window/tools.md:312
+#: src/reference/window/tools.md:321
 msgid ""
 "Untick a row to plan again with that symbol where it stands, or that wire as "
 "it runs; the page and the rows follow, and what you see is what Apply "
@@ -7090,18 +7111,18 @@ msgid ""
 "Notifications in the status bar, to read them all."
 msgstr ""
 
-#: src/reference/window/tools.md:327 src/explanation/eplan-and-ew.md:44
+#: src/reference/window/tools.md:336 src/explanation/eplan-and-ew.md:44
 msgid "Interruption point"
 msgstr ""
 
-#: src/reference/window/tools.md:329
+#: src/reference/window/tools.md:338
 msgid ""
 "Places an interruption point: the end of a potential on this page that "
 "continues at a point of the same name elsewhere. Open it with Draw ▸ Connect "
 "▸ Interruption point."
 msgstr ""
 
-#: src/reference/window/tools.md:332
+#: src/reference/window/tools.md:341
 msgid ""
 "The arrow always points right, the way the signal flows. A source, where the "
 "potential leaves the page, has its wire on the arrow's tail and belongs at "
@@ -7113,7 +7134,7 @@ msgid ""
 "end."
 msgstr ""
 
-#: src/reference/window/tools.md:338
+#: src/reference/window/tools.md:347
 msgid ""
 "Source and Target beside the name field show the direction the next click "
 "places, wherever on the page it lands. The tool starts at Source, as a new "
@@ -7125,7 +7146,7 @@ msgid ""
 "which has no source yet\")."
 msgstr ""
 
-#: src/reference/window/tools.md:344
+#: src/reference/window/tools.md:353
 msgid ""
 "Type the name in the field Interruption point name at the page's top left, "
 "once for a pair: the tool then floats the same name as the first point's "
@@ -7155,7 +7176,7 @@ msgid ""
 "wire on a target that no source feeds yet carries the target's name."
 msgstr ""
 
-#: src/reference/window/tools.md:364
+#: src/reference/window/tools.md:373
 msgid ""
 "A point keeps room for its texts: where its name or its cross-reference "
 "would print over another interruption point's, it is not placed, and the "
@@ -7164,11 +7185,11 @@ msgid ""
 "anyway."
 msgstr ""
 
-#: src/reference/window/tools.md:368
+#: src/reference/window/tools.md:377
 msgid "Interruption point direction"
 msgstr ""
 
-#: src/reference/window/tools.md:370
+#: src/reference/window/tools.md:379
 msgid ""
 "Turns the interruption point that the tool floats from source to target, or "
 "back. Draw ▸ Connect ▸ Interruption point direction. An undirected point, "
@@ -7176,7 +7197,7 @@ msgid ""
 "properties."
 msgstr ""
 
-#: src/reference/window/tools.md:374
+#: src/reference/window/tools.md:383
 msgid ""
 "The point takes the form of its new direction: the wire moves from the tail "
 "to the tip, or back. Changing the direction of a placed point in its "
@@ -7184,21 +7205,21 @@ msgid ""
 "other form yet: place one point of that direction first."
 msgstr ""
 
-#: src/reference/window/tools.md:378
+#: src/reference/window/tools.md:387
 msgid "Star source"
 msgstr ""
 
-#: src/reference/window/tools.md:380
+#: src/reference/window/tools.md:389
 msgid ""
 "Marks the interruption point as the source of its name in star mode: one "
 "source, many targets. Draw ▸ Connect ▸ Star source."
 msgstr ""
 
-#: src/reference/window/tools.md:383
+#: src/reference/window/tools.md:392
 msgid "Wire annotation"
 msgstr ""
 
-#: src/reference/window/tools.md:385
+#: src/reference/window/tools.md:394
 msgid ""
 "Places a wire annotation, the label that prints the cross-section and "
 "colours of the wires it marks. Open it with **Annotate** on the Draw tab or "
@@ -7215,7 +7236,7 @@ msgid ""
 "wires and its text beyond the line's end, clear of the wires."
 msgstr ""
 
-#: src/reference/window/tools.md:395
+#: src/reference/window/tools.md:404
 msgid ""
 "The wires' numbers print on the page with **Draw ▸ Connect ▸ Show wire "
 "numbers on the pages** or the checkbox of that name in the project's "
@@ -7230,62 +7251,62 @@ msgid ""
 "one code for the whole rail."
 msgstr ""
 
-#: src/reference/window/tools.md:402
+#: src/reference/window/tools.md:411
 msgid "Text"
 msgstr ""
 
-#: src/reference/window/tools.md:404
+#: src/reference/window/tools.md:413
 msgid "Places a free text on the page. Open it with Draw ▸ Annotate ▸ Text."
 msgstr ""
 
-#: src/reference/window/tools.md:406
+#: src/reference/window/tools.md:415
 msgid "Graphic"
 msgstr ""
 
-#: src/reference/window/tools.md:408
+#: src/reference/window/tools.md:417
 msgid ""
 "Draws a graphic: a line, polyline, rectangle, circle, arc or polygon, which "
 "has no electrical meaning. Open it with Draw ▸ Annotate ▸ Graphic and the "
 "shape."
 msgstr ""
 
-#: src/reference/window/tools.md:411 src/explanation/eplan-and-ew.md:122
+#: src/reference/window/tools.md:420 src/explanation/eplan-and-ew.md:122
 msgid "Structure box"
 msgstr ""
 
-#: src/reference/window/tools.md:413
+#: src/reference/window/tools.md:422
 msgid ""
 "Draws a structure box: a dashed frame that puts what it encloses into a "
 "function or location of the project's structure. Open it with Draw ▸ "
 "Annotate ▸ Structure box."
 msgstr ""
 
-#: src/reference/window/tools.md:416
+#: src/reference/window/tools.md:425
 msgid "Image"
 msgstr ""
 
-#: src/reference/window/tools.md:418
+#: src/reference/window/tools.md:427
 msgid ""
 "Places an image file (SVG, PNG or JPEG) on the page. Open it with Draw ▸ "
 "Annotate ▸ Image…."
 msgstr ""
 
-#: src/reference/window/tools.md:420
+#: src/reference/window/tools.md:429
 msgid "Place device"
 msgstr ""
 
-#: src/reference/window/tools.md:422
+#: src/reference/window/tools.md:431
 msgid ""
 "On a panel layout page, places a device of the location on a rail or the "
 "mounting plate. Open it from the Unplaced devices navigator, which lists the "
 "devices of the location that have no place yet."
 msgstr ""
 
-#: src/reference/window/tools.md:425
+#: src/reference/window/tools.md:434
 msgid "Place glands"
 msgstr ""
 
-#: src/reference/window/tools.md:427
+#: src/reference/window/tools.md:436
 msgid ""
 "On a panel layout page of the bottom, the top or a side, places the cable "
 "glands dragged from Glands in the Unplaced devices navigator: while you "
@@ -7293,11 +7314,11 @@ msgid ""
 "stand in; let go to place them."
 msgstr ""
 
-#: src/reference/window/tools.md:431
+#: src/reference/window/tools.md:440
 msgid "Rail"
 msgstr ""
 
-#: src/reference/window/tools.md:433
+#: src/reference/window/tools.md:442
 msgid ""
 "On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail. The "
 "page shows an enclosure first: Project ▸ Setup ▸ Enclosure… puts the new "
@@ -7305,19 +7326,19 @@ msgid ""
 "layout](../../how-to/panel-layout.md))."
 msgstr ""
 
-#: src/reference/window/tools.md:436
+#: src/reference/window/tools.md:445
 msgid "Duct"
 msgstr ""
 
-#: src/reference/window/tools.md:438
+#: src/reference/window/tools.md:447
 msgid "On a panel layout page, draws a wiring duct. Open it with Draw ▸ Duct."
 msgstr ""
 
-#: src/reference/window/tools.md:440
+#: src/reference/window/tools.md:449
 msgid "Edit frame"
 msgstr ""
 
-#: src/reference/window/tools.md:442
+#: src/reference/window/tools.md:451
 msgid ""
 "Changes the page's frame and its title block on the page. Open it with Page "
 "▸ Frame ▸ Edit frame, a double click on the title block or on the column "
@@ -7339,7 +7360,7 @@ msgid ""
 "so once."
 msgstr ""
 
-#: src/reference/window/tools.md:455
+#: src/reference/window/tools.md:464
 msgid ""
 "With nothing chosen, Properties shows the frame: its paper, its title block "
 "(Shared with the other frames, or Its own: a copy of the block for this "
