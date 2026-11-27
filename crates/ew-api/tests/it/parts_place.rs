@@ -645,3 +645,89 @@ fn changing_one_piece_keeps_another_piece_s_symbol_the_project_alone_holds() {
         "the first piece keeps its symbol"
     );
 }
+
+/// The sample's first part of several pieces (EW-GEN-CON-1), as a part only in this project (its library not
+/// installed), its template changed by `change` first: the session and its copy.
+fn pieces_part(change: impl FnOnce(&mut ew_schema::Part)) -> (Session, Uuid) {
+    let (project, records, mut lib) = common::sample_records();
+    let gone = ew_ids::Uuid::from_u128(0x5eed_0000_0000_0000_0000_0000_0000_0004);
+    let mut change = Some(change);
+    let mut copy_id = None;
+    for doc in &mut lib {
+        if let ew_schema::LibDocument::Part(c) = doc
+            && copy_id.is_none()
+            && c.item.function_template.len() >= 3
+            && c.item.function_template.iter().all(|t| t.fndef.extra.contains_key("key"))
+        {
+            c.library_id = ew_ids::Id::from_uuid(gone);
+            if let Some(change) = change.take() {
+                change(&mut c.item);
+            }
+            copy_id = Some(c.id.as_uuid());
+        }
+    }
+    (common::session_of(project, records, lib), copy_id.expect("a part of three pieces"))
+}
+
+/// A symbol only the project holds, by a library nobody has.
+fn project_only_symbol(n: u128) -> ew_schema::LibRef {
+    serde_json::from_value(serde_json::json!({
+        "library": ew_ids::Uuid::from_u128(0x5eed_0000_0000_0000_0000_0000_0000_0005), "item": ew_ids::Uuid::from_u128(n),
+        "version_req": "*"
+    }))
+    .expect("a reference")
+}
+
+/// A piece is matched by what it is in the stored template, not by where its row stands: the first row of three
+/// removed, the third keeps the symbol only the project holds.
+#[test]
+fn removing_a_piece_keeps_a_later_piece_s_symbol() {
+    let symbol = project_only_symbol(6);
+    let (s, copy) = pieces_part(|p| p.function_template[2].symbol = Some(symbol.clone()));
+    let mut sheet = s.part_draft(copy).expect("its sheet");
+    let third = sheet.pieces[2].clone();
+    assert!(sheet.remove_piece(0), "the first row removed");
+    let part: ew_schema::Part =
+        serde_json::from_value(s.part_edit_command(&sheet).expect("the change").params["part"].clone()).expect("the part");
+    let kept = part
+        .function_template
+        .iter()
+        .find(|t| t.fndef.extra.get("key").and_then(|k| k.as_str()) == Some(third.what.as_str()) && t.symbol.is_some());
+    assert_eq!(kept.and_then(|t| t.symbol.clone()), Some(symbol), "{:?}", part.function_template);
+}
+
+/// What the pieces table does not show (the box entry, an entry without a key) is written back as it was when a piece
+/// changes.
+#[test]
+fn changing_a_piece_keeps_the_entries_the_table_does_not_show() {
+    let mut extra: Vec<ew_schema::TemplateFn> = Vec::new();
+    let (s, copy) = pieces_part(|p| {
+        let mut boxed = p.function_template[0].clone();
+        boxed.fndef.extra.insert("key".into(), serde_json::json!(ew_schema::starter::FN_BLACKBOX));
+        boxed.main = false;
+        boxed.symbol = None;
+        let mut unkeyed = p.function_template[1].clone();
+        unkeyed.fndef.extra.remove("key");
+        unkeyed.main = false;
+        p.function_template.insert(1, unkeyed);
+        p.function_template.push(boxed);
+    });
+    {
+        let q = s.query();
+        let c = q.parts().get(ew_ids::Id::from_uuid(copy)).expect("the copy").clone();
+        let shown = |t: &ew_schema::TemplateFn| {
+            t.fndef.extra.get("key").and_then(|k| k.as_str()).is_some_and(|k| k != ew_schema::starter::FN_BLACKBOX)
+        };
+        extra.extend(c.item.function_template.iter().filter(|t| !shown(t)).cloned());
+    }
+    assert_eq!(extra.len(), 2, "a box entry and one without a key");
+    let mut sheet = s.part_draft(copy).expect("its sheet");
+    let pins: Vec<String> = sheet.pieces[1].pins.split(", ").map(str::to_owned).collect();
+    s.set_draft_field(&mut sheet, "pieces[1].pins", &pins[..pins.len() - 1].join(", "))
+        .expect("a piece changed");
+    let part: ew_schema::Part =
+        serde_json::from_value(s.part_edit_command(&sheet).expect("the change").params["part"].clone()).expect("the part");
+    for e in &extra {
+        assert!(part.function_template.contains(e), "kept as it was: {e:?}");
+    }
+}
