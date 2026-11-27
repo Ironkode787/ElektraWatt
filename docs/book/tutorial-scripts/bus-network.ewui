@@ -26,13 +26,13 @@
 {"action":"ui.dismiss"}
 {"action":"tool.select"}
 {"action":"tool.wire"}
-{"action":"cursor.set","params":{"x_mm":111.563,"y_mm":48.934}}
+{"action":"cursor.set","params":{"pin":"-2A1:P1"}}
 {"action":"canvas.activate"}
-{"action":"cursor.set","params":{"x_mm":142.877,"y_mm":103.733}}
+{"action":"cursor.set","params":{"pin":"-2K1:P1"}}
 {"action":"canvas.activate"}
-{"action":"cursor.set","params":{"x_mm":148.095,"y_mm":132.438}}
+{"action":"cursor.set","params":{"pin":"-2K1:P4"}}
 {"action":"canvas.activate"}
-{"action":"cursor.set","params":{"x_mm":148.095,"y_mm":141.993}}
+{"action":"cursor.set","params":{"pin":"-2A2:P1"}}
 {"action":"canvas.activate"}
 {"action":"tool.select"}
 {"action":"navigator.show","params":{"kind":"plc"}}
@@ -68,9 +68,9 @@
 {"action":"ui.dismiss"}
 {"action":"tool.select"}
 {"action":"tool.wire"}
-{"action":"cursor.set","params":{"x_mm":166.362,"y_mm":132.438}}
+{"action":"cursor.set","params":{"pin":"-2K1:P5"}}
 {"action":"canvas.activate"}
-{"action":"cursor.set","params":{"x_mm":226.382,"y_mm":141.993}}
+{"action":"cursor.set","params":{"pin":"-2K2:P1"}}
 {"action":"canvas.activate"}
 {"action":"tool.select"}
 {"action":"table.cell","params":{"kind":"bus","row":"-2K2 X1","column":"address"}}

@@ -674,3 +674,6 @@ change here.
 - behaviour-change: in a Dutch project the label files and the drawings for drilling are named in Dutch, in Labels…,
   Drilling…, `ew export labels`, `ew export drilling` and the package ("SAMPLE-E Draadmerkers EW-GEN-MRK-1.xlsx",
   "+CAB Deur boormal.pdf", "+CAB Deur.dxf"); they kept their English names
+- text-change: the guide's tutorial scripts wire by pin names (`cursor.set {pin}`), so a moved layout no longer breaks
+  them; placing a symbol, drawing a box's corners and a wire's end on the grid stay in millimetres, where the driver
+  names no place

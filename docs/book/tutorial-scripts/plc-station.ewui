@@ -18,11 +18,11 @@
 {"action":"plc.rack_create"}
 {"action":"plc.rack_next","params":{"step":"draw","folio":"1"}}
 {"action":"tool.wire"}
-{"action":"cursor.set","params":{"x_mm":77.638,"y_mm":46.324}}
+{"action":"cursor.set","params":{"pin":"-1B1:14"}}
 {"action":"canvas.activate"}
-{"action":"cursor.set","params":{"x_mm":82.857,"y_mm":158.535}}
+{"action":"cursor.set","params":{"pin":"-1A1-A1:1"}}
 {"action":"canvas.activate"}
-{"action":"cursor.set","params":{"x_mm":124.61,"y_mm":46.324}}
+{"action":"cursor.set","params":{"pin":"-1E1:X2"}}
 {"action":"canvas.activate"}
 {"action":"cursor.set","params":{"x_mm":148.095,"y_mm":46.324}}
 {"action":"canvas.activate"}

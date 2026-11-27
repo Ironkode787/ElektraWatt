@@ -4,9 +4,9 @@
 {"action":"file.import_qet_apply","params":{"confirm":true}}
 {"action":"ui.describe"}
 {"action":"tool.wire"}
-{"action":"cursor.set","params":{"x_mm":55.634,"y_mm":95.576}}
+{"action":"cursor.set","params":{"pin":"-1A1:X2"}}
 {"action":"canvas.activate"}
-{"action":"cursor.set","params":{"x_mm":27.104,"y_mm":78.458}}
+{"action":"cursor.set","params":{"pin":"G1:-"}}
 {"action":"canvas.activate"}
 {"action":"tool.select"}
 {"action":"ui.describe"}
