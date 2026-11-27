@@ -159,7 +159,7 @@ fn the_form_opened_again_starts_at_its_top_on_its_first_field() {
     };
     let first = |h: &H| {
         let node = h
-            .query_all_by_label("Manufacturer")
+            .query_all_by_label("Maker")
             .last()
             .expect("the form's first field");
         (node.rect().min.y, node.accesskit_node().is_focused())
@@ -169,7 +169,7 @@ fn the_form_opened_again_starts_at_its_top_on_its_first_field() {
     assert!(focused, "the first field has the keys");
     // The bus interfaces: the preset's row taken away (a card has none); then the PLC section scrolled down, and
     // Cancel while the form stands there.
-    h.get_by_label("Bus interfaces section").click();
+    h.get_by_label("Network ports section").click();
     settle(&mut h);
     h.get_by_label("Remove interface X1").click();
     settle(&mut h);

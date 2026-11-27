@@ -3,7 +3,7 @@
 
 //! What the part dialog gives a part to: the terminals of a strip and the cells of a grid, and the dialog's refresh.
 
-use super::{LAYOUT_KIND_WORDS, Target, message_text, parse_items, purposes};
+use super::{Target, message_text, parse_items, purposes};
 use crate::key;
 use crate::navigators::table::{accessory_index, strip_route};
 use crate::shell::{Dialog, Outcome, ShellModel, failed};
@@ -229,13 +229,11 @@ impl ShellModel {
             // A part's description in the window's language, else English, else its first.
             c.query.lang = Some(strings::rule_language().to_owned());
             c.offers = project.session.part_offers(&c.query);
-            // A layout kind is offered to a device only where panel layout
-            // attaches it (`chooser_layout_kinds`: an enclosure or a plate to a device without a main function, never an
-            // end bracket, a rail or a duct).
+            // A layout kind is offered to a device only where panel layout attaches it (`chooser_takes_kind`: an
+            // enclosure or a plate to a device without a main function, never an end bracket, a rail or a duct).
             if let PartTarget::Devices { devices, .. } = &c.target {
-                let allowed = project.session.chooser_layout_kinds(devices);
                 c.offers
-                    .retain(|o| !LAYOUT_KIND_WORDS.contains(&o.kind.as_str()) || allowed.contains(&o.kind));
+                    .retain(|o| project.session.chooser_takes_kind(devices, &o.kind));
             }
             // A cable's parts that do not fit it come after those that do, each with the reason (greyed, not
             // hidden).

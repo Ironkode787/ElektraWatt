@@ -74,7 +74,7 @@ fn a_part_of_my_parts_changes_its_front_view_and_holes() {
     assert_eq!(holes, [("cutout".to_owned(), "22 mm".to_owned())]);
     assert_eq!(lines, 0);
     // A fixing and an outline, saved as the part's next version.
-    done(&mut s, "part.section", json!({"section": "front"}));
+    done(&mut s, "part.section", json!({"section": "cabinet"}));
     done(&mut s, "part.table_row", json!({"table": "mech.holes"}));
     fields(
         &mut s,

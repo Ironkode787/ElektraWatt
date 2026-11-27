@@ -22,15 +22,15 @@ fn a_new_part_takes_its_size_and_a_saved_one_changes_it_through_the_card() {
     d.input(&key("Shift+I"));
     d.settle();
     press(&mut d, "New part…");
-    fill(&mut d, "Manufacturer", "Acme");
+    fill(&mut d, "Maker", "Acme");
     fill(&mut d, "Part number", "RL-22");
     fill(&mut d, "Description", "Interface relay, 1 changeover");
-    press(&mut d, "Size and mounting section");
+    press(&mut d, "In the cabinet section");
     fill(&mut d, "Width (mm)", "six");
     assert!(
         d.texts().iter().any(
-            |t| t.starts_with("Width (mm): \u{201c}six\u{201d} is not a length")
-                || t.starts_with("Width (mm): \"six\" is not a length")
+            |t| t.starts_with("Width: \u{201c}six\u{201d} is not a length")
+                || t.starts_with("Width: \"six\" is not a length")
         ),
         "a wrong width is refused in words in the form's foot, naming its field"
     );
@@ -98,18 +98,18 @@ fn the_new_part_forms_library_box_shows_and_a_message_moves_nothing() {
     };
     let library = at(&d, "Also add to my parts library");
     let save = at(&d, "Save");
-    let title = at(&d, "Manufacturer");
+    let title = at(&d, "Maker");
     // A row below the box's centre and half a button above Save's: the box ends clear of the foot row.
     assert!(
         library.1 > title.1 && library.1 + 24 < save.1 - 18,
         "{library:?} {save:?}"
     );
-    fill(&mut d, "Manufacturer", "Acme");
-    press(&mut d, "Size and mounting section");
+    fill(&mut d, "Maker", "Acme");
+    press(&mut d, "In the cabinet section");
     let before = at(&d, "Width (mm)");
     fill(&mut d, "Width (mm)", "six");
     assert!(
-        d.texts().iter().any(|t| t.starts_with("Width (mm): ")),
+        d.texts().iter().any(|t| t.starts_with("Width: ")),
         "the foot names the field"
     );
     assert_eq!(at(&d, "Width (mm)"), before, "the message moves no field");

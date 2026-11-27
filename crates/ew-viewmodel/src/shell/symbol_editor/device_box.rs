@@ -290,7 +290,7 @@ impl DeviceBox {
             let d = &self.draft;
             let identity = (!d.new).then(|| words(key!("box-identity-in-part-editor")));
             let mut rows: Vec<SheetRow> = [
-                ("part_number", key!("part-field-part_number")),
+                ("part_number", key!("part-field-part-number")),
                 ("manufacturer", key!("part-field-manufacturer")),
                 ("description", key!("part-field-description")),
             ]
@@ -598,7 +598,7 @@ impl ShellModel {
         self.leave_box(b.from_project);
         self.open_dialog(Dialog::PartEdit(Box::new(
             crate::shell::part_dialog::PartEditor {
-                section: if bus { "bus" } else { "identity" },
+                section: if bus { ew_api::part_fields::Group::Ports } else { ew_api::part_fields::Group::Identity },
                 draft: b.draft,
                 name,
                 manufacturers,

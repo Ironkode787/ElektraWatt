@@ -42,8 +42,8 @@ fn a_terminals_sections_rows_and_tables_are_read_checked_and_saved() {
     let mut s = common::sample();
     let copy = copy_of(&s, "EW-GEN-TRM-1");
     let mut d = s.part_draft(copy).expect("the terminal's draft");
-    let words: Vec<&str> = d.sections().iter().map(|x| x.word).collect();
-    for w in ["identity", "pins", "size", "accessories", "variants"] {
+    let words: Vec<&str> = d.sections().iter().map(|x| x.name()).collect();
+    for w in ["identity", "schematic", "cabinet", "connections", "goes_with"] {
         assert!(words.contains(&w), "{words:?}");
     }
     for w in ["wire", "ferrule", "marker"] {
@@ -52,9 +52,9 @@ fn a_terminals_sections_rows_and_tables_are_read_checked_and_saved() {
     // A ferrule lists its own section and none of a mounted part's.
     let ferrule = copy_of(&s, "EW-GEN-FER-1.5");
     let ferrule = s.part_draft(ferrule).expect("the ferrule's draft");
-    let theirs: Vec<&str> = ferrule.sections().iter().map(|x| x.word).collect();
+    let theirs: Vec<&str> = ferrule.sections().iter().map(|x| x.name()).collect();
     assert!(theirs.contains(&"ferrule"), "{theirs:?}");
-    for w in ["pins", "size", "accessories", "variants", "wire", "marker"] {
+    for w in ["schematic", "cabinet", "connections", "goes_with", "wire", "marker"] {
         assert!(!theirs.contains(&w), "{theirs:?}");
     }
     // The accessories read as part numbers and words.
@@ -213,7 +213,7 @@ fn a_parts_front_view_and_holes_are_read_checked_and_saved() {
     let mut s = common::sample();
     let mut d = s.new_part_draft().expect("a new part");
     d.to_library = false;
-    assert!(d.sections().iter().any(|x| x.word == "front"));
+    assert!(d.sections().iter().any(|x| x.name() == "cabinet"));
     for (f, v) in [
         ("manufacturer", "Acme"),
         ("part_number", "OWN-LAMP"),
@@ -307,7 +307,7 @@ fn a_parts_front_view_and_holes_are_read_checked_and_saved() {
     assert!(mech.front_2d[0].contains(&ew_units::Pt2::new(mm(30), mm(30))));
     // The project's own part opens with its holes; its second fixing becomes M4, and Remove takes the outline away.
     let mut own = s.part_draft(copy).expect("its draft");
-    assert!(own.section_editable("front"));
+    assert!(own.section_editable(ew_derive::part_fields::Group::Cabinet));
     let t = own.table("mech.holes").expect("the holes");
     let at = |m: &str| t.columns.iter().position(|(c, _)| *c == m).expect(m);
     assert_eq!(
@@ -363,7 +363,7 @@ fn a_gland_of_ones_own_is_made_in_the_editor_and_proposed_for_a_cable() {
     ] {
         s.set_draft_field(&mut d, f, v).expect(f);
     }
-    assert!(d.sections().iter().any(|x| x.word == "gland"));
+    assert!(d.sections().iter().any(|x| x.name() == "gland"));
     for (f, v) in [
         ("sections.gland.thread", "m20"),
         ("sections.gland.clamp_min", "10"),
@@ -454,4 +454,60 @@ fn a_cables_outer_diameter_is_kept_in_its_cable_section() {
     // The editor opens it with its diameter.
     let draft = s.part_draft(copy_of(&s, "OWN-CBL")).expect("its draft");
     assert_eq!(draft.text("cable.diameter"), "14");
+}
+
+/// An enclosure of one's own is made in the editor from its declared rows (the cabinet surfaces' data had no place in
+/// the window): its outer size, its door and its edge margin are saved into its enclosure section, Enclosure… offers
+/// it, and it lacks nothing a cabinet's layout reads but its plate.
+#[test]
+fn an_enclosure_of_ones_own_takes_its_size_and_door_in_the_editor() {
+    use ew_api::part_fields::{Feature, Group, lacking};
+    let mut s = common::sample();
+    let mut d = s.new_part_draft().expect("a new part");
+    d.to_library = false;
+    for (f, v) in [
+        ("manufacturer", "Example"),
+        ("part_number", "ENC-8-10-3"),
+        ("kind", "enclosure"),
+    ] {
+        s.set_draft_field(&mut d, f, v).expect(f);
+    }
+    assert!(d.sections().contains(&Group::Enclosure), "{:?}", d.sections());
+    assert!(!d.sections().contains(&Group::Cabinet), "a cabinet's size is its own");
+    for (f, v) in [
+        ("sections.enclosure.width", "800"),
+        ("sections.enclosure.height", "1000"),
+        ("sections.enclosure.depth", "300"),
+        ("sections.enclosure.edge_margin", "30"),
+    ] {
+        s.set_draft_field(&mut d, f, v).expect(f);
+    }
+    assert!(d.add_table_row("sections.enclosure.doors"));
+    s.set_draft_field(&mut d, "sections.enclosure.doors[0].hinge", "left")
+        .expect("a hinge");
+    let made = s.new_part_command(&d).expect("the new part's command");
+    run(&mut s, &made.command).expect("the part is made");
+    let own = copy_of(&s, "ENC-8-10-3");
+    let q = s.query();
+    let part = &q.parts().get(ew_ids::Id::from_uuid(own)).expect("held").item;
+    let section = part.sections.enclosure.as_ref().expect("its enclosure section");
+    assert_eq!(section.width, Some(ew_units::Nm(800_000_000)));
+    assert_eq!(section.height, Some(ew_units::Nm(1_000_000_000)));
+    assert_eq!(section.edge_margin, Some(ew_units::Nm(30_000_000)));
+    assert_eq!(section.doors.len(), 1);
+    assert!(lacking(part, Feature::Cabinet).is_empty());
+    assert_eq!(
+        lacking(part, Feature::PlateFrame)
+            .iter()
+            .map(|f| f.path)
+            .collect::<Vec<_>>(),
+        ["sections.enclosure.plate"]
+    );
+    drop(q);
+    assert!(
+        s.layout_part_offers("enclosure")
+            .iter()
+            .any(|o| o.number == "ENC-8-10-3"),
+        "Enclosure… offers it"
+    );
 }

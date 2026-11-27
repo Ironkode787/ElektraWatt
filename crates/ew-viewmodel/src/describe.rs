@@ -2017,31 +2017,27 @@ fn part_choose_lines(
 /// The part editor's lines.
 fn part_edit_lines(e: &crate::shell::part_dialog::PartEditor, lines: &mut Vec<String>) {
     let d = &e.draft;
-    for f in ew_api::DRAFT_FIELDS {
+    for f in ew_api::identity_fields() {
         lines.push(format!(
             "  field \"{}\" \"{}\"",
-            strings::text(Key::run_time(&format!("part-field-{f}"))),
+            crate::shell::part_dialog::field_label(f),
             user(d.text(f))
         ));
     }
-    // The sections the editor lists and the shown one, then the declared rows and tables of the listed sections.
+    // The groups the editor lists and the shown one, then the declared rows and tables of the listed groups.
     if e.sectioned() {
-        let words: Vec<&str> = d.sections().iter().map(|s| s.word).collect();
-        lines.push(format!("  sections {} shown {}", words.join(" "), e.section));
+        let words: Vec<&str> = d.sections().iter().map(|s| s.name()).collect();
+        lines.push(format!("  sections {} shown {}", words.join(" "), e.section.name()));
     }
-    for s in d.sections() {
-        for r in s.rows {
-            if let Some(row) = d.row(r.path) {
-                lines.push(format!(
-                    "  field \"{}\" \"{}\"",
-                    strings::field_label("part", r.path),
-                    user(&row.text)
-                ));
-            }
-        }
-        let Some(table) = s.table.and_then(|t| d.table(t.path)) else {
-            continue;
-        };
+    let listed = d.sections();
+    for row in d.rows.iter().filter(|r| listed.contains(&r.group)) {
+        lines.push(format!(
+            "  field \"{}\" \"{}\"",
+            crate::shell::part_dialog::field_label(row.path),
+            user(&row.text)
+        ));
+    }
+    for table in d.tables.iter().filter(|t| listed.contains(&t.group)) {
         for (i, cells) in table.rows.iter().enumerate() {
             let cells: Vec<String> = table
                 .columns
@@ -2061,8 +2057,7 @@ fn part_edit_lines(e: &crate::shell::part_dialog::PartEditor, lines: &mut Vec<St
         lines.push(format!("  tech \"{}\" \"{}\"", user(k), user(v)));
     }
     for (i, r) in d.bus.iter().enumerate() {
-        let cells: Vec<String> = ew_api::BUS_MEMBERS
-            .iter()
+        let cells: Vec<String> = ew_api::bus_members()
             .map(|m| format!("{m} \"{}\"", user(r.text(m))))
             .collect();
         lines.push(format!("  bus {} {}", i + 1, cells.join(" ")));

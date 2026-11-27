@@ -87,6 +87,7 @@ mod numbering;
 mod own_values;
 mod pages;
 mod part_fit;
+pub mod part_fields;
 mod part_text;
 mod pattern;
 mod plc;

@@ -96,15 +96,14 @@ impl Session {
             "part_number": "-",
         }))
         .expect("a minimal part");
-        let fields = crate::part_editor::DRAFT_FIELDS
-            .iter()
+        let fields = crate::part_editor::identity_fields()
             .map(|f| {
-                let text = match *f {
+                let text = match f {
                     "kind" => "device",
                     "unit" => "piece",
                     _ => "",
                 };
-                (*f, text.to_owned())
+                (f, text.to_owned())
             })
             .collect();
         let (rows, tables) = self.part_rows(&self.query(), &original);

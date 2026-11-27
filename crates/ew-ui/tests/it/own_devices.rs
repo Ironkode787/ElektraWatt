@@ -192,7 +192,7 @@ fn the_card_of_a_corrected_part_speaks_words_and_names_a_line_that_loses_its_soc
     press(&mut d, "Description");
     d.input(&key("Ctrl+A"));
     d.input(&typed("Managed switch 6 ports"));
-    press(&mut d, "Bus interfaces section");
+    press(&mut d, "Network ports section");
     press(&mut d, "Ports 1");
     d.input(&key("Ctrl+A"));
     d.input(&typed("6"));
@@ -262,12 +262,12 @@ fn the_new_part_dialog_holds_still_while_one_types_and_adds_rows() {
             .1
     };
     let before = (at(&mut d, "Part number"), at(&mut d, "Save"));
-    fill(&mut d, "Manufacturer", "Acme");
+    fill(&mut d, "Maker", "Acme");
     fill(&mut d, "Part number", "SW-8");
     let after = (at(&mut d, "Part number"), at(&mut d, "Save"));
     assert_eq!(before, after, "the fields and the footer keep their place");
     for _ in 0..4 {
-        press(&mut d, "Bus interfaces section");
+        press(&mut d, "Network ports section");
         press(&mut d, "Add interface");
     }
     let (row, add, save) = (

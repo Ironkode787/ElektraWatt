@@ -371,7 +371,7 @@ pub(crate) fn elide_to(text: &str, room: f32, measure: impl Fn(&str) -> f32) -> 
 /// The part editor's Kind: a combo box that shows the kind's word ("Device") and offers every part kind by its
 /// word; picking one sends its value (`part.field {field: "kind", value: "end_bracket"}`).
 fn kind_field(ui: &mut Ui, label_text: &str, value: &str, events: &mut Vec<Event>) {
-    use ew_viewmodel::shell::part_dialog::{PART_KINDS, part_kind_word};
+    use ew_viewmodel::shell::part_dialog::{part_kind_word, part_kinds};
     crate::components::form_row(ui, label_text, |ui, label| {
         let mut picked = None;
         crate::components::choice(
@@ -380,8 +380,8 @@ fn kind_field(ui: &mut Ui, label_text: &str, value: &str, events: &mut Vec<Event
                 .selected_text(part_kind_word(value))
                 .width(ui.available_width()),
             |ui| {
-                for k in PART_KINDS {
-                    if ui.selectable_label(k == value, part_kind_word(k)).clicked() {
+                for k in part_kinds() {
+                    if ui.selectable_label(k == value, part_kind_word(&k)).clicked() {
                         picked = Some(k);
                     }
                 }
@@ -389,7 +389,7 @@ fn kind_field(ui: &mut Ui, label_text: &str, value: &str, events: &mut Vec<Event
         )
         .response
         .labelled_by(label);
-        if let Some(k) = picked.filter(|k| *k != value) {
+        if let Some(k) = picked.filter(|k| k != value) {
             events.push(Event::Action(
                 "part.field",
                 json!({ "field": "kind", "value": k }),
@@ -471,14 +471,17 @@ fn identity_rows(
     let fields: Vec<&str> = if small_form {
         small.to_vec()
     } else {
-        ew_viewmodel::ew_api::DRAFT_FIELDS.to_vec()
+        ew_viewmodel::ew_api::identity_fields().collect()
     };
-    for (i, f) in fields.iter().enumerate() {
+    // The first text field takes the focus when the form opens.
+    let mut first = just_opened;
+    for f in &fields {
         let label = e.identity_label(f);
         if *f == "kind" {
-            kind_field(ui, label, d.text(f), events);
+            kind_field(ui, &label, d.text(f), events);
         } else {
-            save |= labelled_field(ui, label, d.text(f), just_opened && i == 0, |text| {
+            let focus = std::mem::take(&mut first);
+            save |= labelled_field(ui, &label, d.text(f), focus, |text| {
                 events.push(Event::Action("part.field", json!({ "field": f, "value": text })));
             });
         }
@@ -495,13 +498,18 @@ fn tech_rows(ui: &mut Ui, e: &PartEditor, events: &mut Vec<Event>) -> bool {
     let d = &e.draft;
     let t = theme::current(ui.ctx());
     let mut save = false;
-    ui.label(RichText::new(strings::text(key!("part-field-tech"))).font(theme::font(&t.type_body_strong)));
+    ui.label(
+        RichText::new(strings::text(strings::Key::run_time(
+            ew_viewmodel::ew_api::part_fields::Group::Technical.word(),
+        )))
+        .font(theme::font(&t.type_body_strong)),
+    );
     // A cable's outer diameter is a row of its cable section.
     let cable = d.text("kind") == "cable";
     for (k, v) in d.tech.iter().filter(|(k, _)| !(cable && k == "outer_diameter")) {
         let field = format!("tech:{k}");
         // The key in words ("rated_current" reads "Rated current"); the field keeps the raw key.
-        let label = strings::field_label("part", &format!("tech_data.{k}"));
+        let label = ew_viewmodel::shell::part_dialog::field_label(&field);
         save |= labelled_field(ui, &label, v, false, |text| {
             events.push(Event::Action(
                 "part.field",
@@ -512,21 +520,19 @@ fn tech_rows(ui: &mut Ui, e: &PartEditor, events: &mut Vec<Event>) -> bool {
     save
 }
 
-/// Size and mounting, from the declared rows: each group with its hint, and the outline as typed, to scale over a
-/// 35 mm rail. `true` when Enter was pressed in a field.
-fn size_rows(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Vec<Event>) -> bool {
+/// In the cabinet, from the declared rows of the group: each with its hint, and the outline as typed, to scale over a
+/// 35 mm rail; the front's shape, its outline, its holes and its preview after them. `true` when Enter was pressed in a
+/// field.
+fn cabinet_rows(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, editable: bool, events: &mut Vec<Event>) -> bool {
+    use ew_viewmodel::ew_api::part_fields::Group;
     let t = theme::current(ui.ctx());
     let mut save = false;
     let hint = |ui: &mut Ui, k: strings::Key<'static>| {
         ui.add(egui::Label::new(crate::components::small_secondary(&t, strings::text(k))).wrap());
     };
-    let Some(section) = ew_viewmodel::ew_api::part_section("size") else {
-        return false;
-    };
-    for r in section.rows {
-        let Some(row) = d.row(r.path) else { continue };
-        save |= declared_row(ui, row, d.section_editable("size"), events);
-        match r.path {
+    for row in d.rows.iter().filter(|r| r.group == Group::Cabinet && r.path != "mech.front_shape") {
+        save |= declared_row(ui, row, editable, events);
+        match row.path {
             "mech.depth" => {
                 hint(ui, key!("part-size-hint-dimensions"));
                 let mm = |f: &str| {
@@ -542,7 +548,8 @@ fn size_rows(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Vec<
             _ => {}
         }
     }
-    save
+    ui.add_space(t.space_4);
+    save | front_section(ui, d, editable, events)
 }
 
 /// The words of a choice value of the part member `path`; an empty value is "Not given".
@@ -559,7 +566,16 @@ fn says_yes(text: &str) -> bool {
     matches!(text, "true" | "yes" | "Yes" | "ja" | "Ja")
 }
 
-/// One declared row of the part (doc 07 §5, `ew_api::PART_SECTIONS`): its label is the part's field label, its
+/// The label of a declared row: its declared word, a length's unit after it.
+fn row_label(row: &ew_viewmodel::ew_api::DraftRow) -> String {
+    let word = ew_viewmodel::shell::part_dialog::field_label(row.path);
+    match row.ty.inner() {
+        ew_viewmodel::ew_api::output::FieldType::Nm => strings::format(key!("part-row-mm"), &[&word]),
+        _ => word,
+    }
+}
+
+/// One declared row of the part (doc 07 §5.4, the declaration of a part's fields): its label is its declared word, its
 /// editor follows its value type (a choice for a closed list of words, a check box for a yes or no, else a text
 /// field); read-only where the section is not the person's to change. `true` when Enter was pressed in it.
 fn declared_row(
@@ -570,7 +586,7 @@ fn declared_row(
 ) -> bool {
     use ew_viewmodel::ew_api::output::FieldType;
     let t = theme::current(ui.ctx());
-    let label = strings::field_label("part", row.path);
+    let label = row_label(row);
     let field = row.path;
     if !editable {
         crate::components::form_row(ui, &label, |ui, _| {
@@ -722,7 +738,7 @@ fn declared_table(
     events: &mut Vec<Event>,
 ) {
     let t = theme::current(ui.ctx());
-    let header = |c: &str| strings::field_label("part", &format!("{}[].{c}", table.path));
+    let header = |c: &str| ew_viewmodel::shell::part_dialog::field_label(&format!("{}[].{c}", table.path));
     let small_secondary = |text: String| {
         RichText::new(text)
             .font(theme::font(&t.type_small))
@@ -798,22 +814,21 @@ fn declared_table(
     }
 }
 
-/// The section list of the sectioned editor (picture A): the sections the part's kind has, the shown one marked, a
-/// count beside a section that lists items, and the sentence that says why some are absent.
+/// The group list of the sectioned editor (picture A): the groups the part's kind has, the shown one marked, a
+/// count beside a group that lists items, and the sentence that says why some are absent.
 fn section_list(ui: &mut Ui, e: &PartEditor, events: &mut Vec<Event>) {
+    use ew_viewmodel::ew_api::part_fields::Group;
     let t = theme::current(ui.ctx());
     let d = &e.draft;
-    for s in d.sections() {
-        let count = match s.word {
-            "technical" => d.tech.len(),
-            "pins" => d.pins.len(),
-            "accessories" | "variants" => d.table(s.word).map_or(0, |x| x.rows.len()),
-            "front" => d.table("mech.holes").map_or(0, |x| x.rows.len()),
-            "bus" => d.bus.len(),
-            _ => 0,
+    for g in d.sections() {
+        let count = match g {
+            Group::Technical => d.tech.len(),
+            Group::Schematic => d.pins.len(),
+            Group::Ports => d.bus.len(),
+            _ => d.tables.iter().filter(|x| x.group == g).map(|x| x.rows.len()).sum(),
         };
-        let name = strings::text(strings::Key::run_time(&format!("part-section-{}", s.word)));
-        let shown = e.section == s.word;
+        let name = strings::text(strings::Key::run_time(g.word()));
+        let shown = e.section == g;
         ui.horizontal(|ui| {
             let font = if shown { &t.type_body_strong } else { &t.type_body };
             // Named "<section> section" for AccessKit: the shown section's title repeats its word.
@@ -821,7 +836,7 @@ fn section_list(ui: &mut Ui, e: &PartEditor, events: &mut Vec<Event>) {
             let r = ui.selectable_label(shown, RichText::new(name).font(theme::font(font)));
             r.widget_info(|| egui::WidgetInfo::selected(egui::Role::Tab, true, shown, &spoken));
             if r.clicked() && !shown {
-                events.push(Event::Action("part.section", json!({ "section": s.word })));
+                events.push(Event::Action("part.section", json!({ "section": g.name() })));
             }
             if count > 0 {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -840,22 +855,23 @@ fn section_list(ui: &mut Ui, e: &PartEditor, events: &mut Vec<Event>) {
     );
 }
 
-/// The section `e.section` of the sectioned editor (the first listed when the kind lost it). `true` when Enter was
+/// The group `e.section` of the sectioned editor (the first listed when the kind lost it). `true` when Enter was
 /// pressed in a field.
 fn section_body(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec<Event>) -> bool {
+    use ew_viewmodel::ew_api::part_fields::Group;
     let t = theme::current(ui.ctx());
     let d = &e.draft;
     let listed = d.sections();
-    let Some(section) = listed.iter().find(|s| s.word == e.section).or(listed.first()) else {
+    let Some(group) = listed.iter().copied().find(|g| *g == e.section).or(listed.first().copied()) else {
         return false;
     };
-    let title = strings::text(strings::Key::run_time(&format!("part-section-{}", section.word)));
+    let title = strings::text(strings::Key::run_time(group.word()));
     ui.label(RichText::new(title).font(theme::font(&t.type_body_strong)));
-    if let Some(text) = strings::lookup(&format!("part-section-{}-hint", section.word)) {
+    if let Some(text) = strings::lookup(&format!("part-hint-{}", group.name())) {
         ui.add(egui::Label::new(crate::components::small_secondary(&t, text)).wrap());
     }
     ui.add_space(t.space_3);
-    let editable = d.section_editable(section.word);
+    let editable = d.section_editable(group);
     if !editable {
         ui.add(
             egui::Label::new(crate::components::small_secondary(
@@ -867,54 +883,41 @@ fn section_body(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec
         ui.add_space(t.space_2);
     }
     let mut save = false;
-    match section.word {
-        "identity" => {
+    match group {
+        Group::Identity => {
             save |= identity_rows(ui, e, just_opened, false, events);
             read_only_facts(ui, e);
         }
-        "technical" => save |= tech_rows(ui, e, events),
-        "pins" => {
-            pins_section(ui, d, events);
-            if let Some(table) = d.table("cp_pattern").filter(|x| !x.rows.is_empty()) {
-                ui.add_space(t.space_3);
-                declared_table(ui, d, table, editable, events);
-            }
-        }
-        "size" => save |= size_rows(ui, d, events),
-        "front" => save |= front_section(ui, d, section, editable, events),
-        "bus" => bus_section(ui, d, just_opened, events),
-        "plc" => save |= plc_section(ui, d, events),
-        "cable" => save |= cable_section(ui, d, events),
+        Group::Technical => save |= tech_rows(ui, e, events),
+        Group::Schematic => pins_section(ui, d, events),
+        Group::Cabinet => save |= cabinet_rows(ui, d, editable, events),
+        Group::Ports => bus_section(ui, d, just_opened, events),
+        Group::Plc => save |= plc_section(ui, d, events),
+        Group::Cable => save |= cable_section(ui, d, events),
         _ => {
-            for r in section.rows {
-                if let Some(row) = d.row(r.path) {
-                    save |= declared_row(ui, row, editable, events);
-                }
+            for row in d.rows.iter().filter(|r| r.group == group) {
+                save |= declared_row(ui, row, editable, events);
             }
-            if let Some(table) = section.table.and_then(|x| d.table(x.path)) {
+            for table in d.tables.iter().filter(|x| x.group == group) {
+                if let Some(text) = strings::lookup(&format!("part-hint-{}", table.path)) {
+                    ui.add(egui::Label::new(crate::components::small_secondary(&t, text)).wrap());
+                }
                 declared_table(ui, d, table, editable, events);
+                ui.add_space(t.space_3);
             }
         }
     }
     save
 }
 
-/// Front view and holes (doc 07 §5): the Shape row, the outline line with Import outline… and Remove, the Holes table
-/// with its Kind and Size cells, and the preview of the front and its holes as the panel page draws them. `true` when
-/// Enter was pressed in a field.
-fn front_section(
-    ui: &mut Ui,
-    d: &ew_viewmodel::ew_api::PartDraft,
-    section: &ew_viewmodel::ew_api::PartSection,
-    editable: bool,
-    events: &mut Vec<Event>,
-) -> bool {
+/// The front (doc 07 §5.4): the Shape row, the outline line with Import outline… and Remove, the Holes table with its
+/// Kind and Size cells, and the preview of the front and its holes as the panel page draws them. `true` when Enter was
+/// pressed in a field.
+fn front_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, editable: bool, events: &mut Vec<Event>) -> bool {
     let t = theme::current(ui.ctx());
     let mut save = false;
-    for r in section.rows {
-        if let Some(row) = d.row(r.path) {
-            save |= declared_row(ui, row, editable, events);
-        }
+    if let Some(row) = d.row("mech.front_shape") {
+        save |= declared_row(ui, row, editable, events);
     }
     let label = strings::text(key!("part-front-outline"));
     crate::components::form_row(ui, label, |ui, _| {
@@ -935,7 +938,7 @@ fn front_section(
         }
     });
     ui.add_space(t.space_3);
-    if let Some(table) = section.table.and_then(|x| d.table(x.path)) {
+    if let Some(table) = d.table("mech.holes") {
         declared_table(ui, d, table, editable, events);
     }
     ui.add_space(t.space_3);
@@ -1123,7 +1126,7 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
                         ui.set_width(rest);
                         area("part-edit-section").show(ui, |ui| {
                             save |= section_body(ui, e, just_opened, events);
-                            if d.new && e.section == "identity" {
+                            if d.new && e.section == ew_viewmodel::ew_api::part_fields::Group::Identity {
                                 ui.add_space(t.space_3);
                                 let mut to_library = d.to_library;
                                 if ui
@@ -1151,8 +1154,10 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
             } else {
                 // A cable part of one's own (New cable type…): its identity, then the cable section.
                 ui.label(
-                    RichText::new(strings::text(key!("part-section-cable")))
-                        .font(theme::font(&t.type_body_strong)),
+                    RichText::new(strings::text(strings::Key::run_time(
+                        ew_viewmodel::ew_api::part_fields::Group::Cable.word(),
+                    )))
+                    .font(theme::font(&t.type_body_strong)),
                 );
                 save |= cable_section(ui, d, events);
             }
@@ -1698,7 +1703,8 @@ fn bus_choice(member: &str, value: &str) -> String {
 /// The bus interfaces of a draft: a grid row per interface, editable on a new part, with each row's
 /// messages under it; Add interface; the hint on roles and ports. `just_opened`: the form opens with these rows.
 fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, just_opened: bool, events: &mut Vec<Event>) {
-    use ew_viewmodel::ew_api::{BUS_MEMBERS, bus_words, role_words};
+    use ew_viewmodel::ew_api::{bus_members, bus_words, role_words};
+    let members: Vec<&str> = bus_members().collect();
     let t = theme::current(ui.ctx());
     if d.bus.is_empty() {
         ui.label(RichText::new(strings::text(key!("part-bus-none"))).color(t.text_secondary.color32()));
@@ -1708,12 +1714,12 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, just_opened: bo
         // The columns share the row; the remove button keeps its own width.
         let gap = t.space_2;
         let remove_w = if d.new || d.own { t.size_control } else { 0.0 };
-        let cell = ((ui.available_width() - remove_w - gap * BUS_MEMBERS.len() as f32)
-            / BUS_MEMBERS.len() as f32)
+        let cell = ((ui.available_width() - remove_w - gap * members.len() as f32)
+            / members.len() as f32)
             .max(t.size_control);
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = gap;
-            for m in BUS_MEMBERS {
+            for m in &members {
                 ui.add_sized(
                     vec2(cell, t.size_row),
                     egui::Label::new(crate::components::small_secondary(&t, label(m))).truncate(),
@@ -1723,7 +1729,7 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, just_opened: bo
         for (i, row) in d.bus.iter().enumerate() {
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing.x = gap;
-                for m in BUS_MEMBERS {
+                for m in members.iter().copied() {
                     let field = format!("bus.{i}.{m}");
                     let value = row.text(m);
                     let name = format!("{} {}", label(m), i + 1);

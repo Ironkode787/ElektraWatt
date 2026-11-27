@@ -15,7 +15,7 @@ use ew_schema::{
 use schemars::JsonSchema;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value, json};
+use serde_json::{Value, json};
 
 use crate::command::{Command, Outcome};
 use crate::commands::assign::embed_closure;
@@ -27,52 +27,11 @@ use crate::tx::TxBuilder;
 use ew_format::library_copy_hash;
 use ew_l10n::Text;
 
-/// The members of a part that `part.edit_copy` edits; every other member must equal the copy's.
-pub const PART_EDITABLE: [&str; 10] = [
-    "manufacturer",
-    "part_number",
-    "type_designation",
-    "order_number",
-    "gtin",
-    "description",
-    "kind",
-    "category",
-    "unit",
-    "tech_data",
-];
-
-/// The members a project-local copy may change besides [`PART_EDITABLE`]: the domain sections, the CP pattern and
-/// the function template, which the part editor's bus and PLC forms make, the device box, what the part brings
-/// with it and its variants (doc 07 §2.5), and its mechanical data, which Size and mounting and Front view and holes
-/// edit on a part of one's own (doc 07 §5). A copy from a library keeps its sections and its mechanical data; its
-/// fork takes the others ([`PART_EDITABLE_FORK`]).
-pub const PART_EDITABLE_LOCAL: [&str; 7] = [
-    "sections",
-    "mech",
-    "cp_pattern",
-    "function_template",
-    "box",
-    "accessories",
-    "variants",
-];
-
-/// The members of [`PART_EDITABLE_LOCAL`] that the fork of a copy from a library may change too: its pins
-/// (the CP pattern and the template entries that draw them), its device box, its accessories and its variants, so a
-/// library part's box, the maker's end plate or the blue terminal's own number are changed for the project as its
-/// identity is.
-pub const PART_EDITABLE_FORK: [&str; 5] = [
-    "cp_pattern",
-    "function_template",
-    "box",
-    "accessories",
-    "variants",
-];
-
 /// The order units a part takes.
 const UNITS: [&str; 3] = ["piece", "m", "set"];
 
-/// `part.edit_copy` (`EditPartCopy`): edits the identity, description, category, unit
-/// and technical data of a part copy the project holds, in one undo step. Always previewed (`Bulk`).
+/// `part.edit_copy` (`EditPartCopy`): edits a part copy the project holds, in one undo step. Always previewed
+/// (`Bulk`).
 ///
 /// - A **project-local copy** (`library_id` is the project ID, local forks included) is rewritten in place: the same
 ///   copy ID, item ID and version, the item replaced and `sha256` recomputed.
@@ -85,17 +44,13 @@ const UNITS: [&str; 3] = ["piece", "m", "set"];
 ///   part use it realises). The original copy stays, unused, until purged. The
 ///   caller mints `fork` (the session's `next_fork_item`), so a replay reproduces it.
 ///
-/// `part` is the edited part item (its members, without the copy metadata). Only `manufacturer`, `part_number`,
-/// `type_designation`, `order_number`, `gtin`, `description`, `kind`, `category`, `unit` and `tech_data` may differ
-/// from the copy's, and also `cp_pattern`, `function_template` and `box` (the part's pins and its device box),
-/// `accessories` and `variants` (what it brings with it, its variants)
-/// and of a project-local copy `sections` (the part editor's bus and PLC forms): the devices that use the
-/// copy take the new connection points; a bus port a function carries keeps its value, N5. So no edit of a library
-/// copy changes its sections, and no edit changes the contacts or the mechanical data. `copies` carries library documents the edit names that the project lacks (a manufacturer),
-/// embedded as `part.assign` embeds its closure.
+/// `part` is the edited part item (its members, without the copy metadata): any member may differ from the copy's, so
+/// a part of the project's own is corrected whole (doc 07 §5.4). The devices that use the copy take the new connection
+/// points; a bus port a function carries keeps its value, N5. `copies` carries library documents the edit names that
+/// the project lacks (a manufacturer), embedded as `part.assign` embeds its closure.
 ///
-/// Rejected, with the pointer: `/copy` not a part copy the project holds; `/part` not a part item, or one whose
-/// other members differ from the copy's; `/part/manufacturer` missing, or a changed reference to a manufacturer copy
+/// Rejected, with the pointer: `/copy` not a part copy the project holds; `/part` not a part item;
+/// `/part/manufacturer` missing, or a changed reference to a manufacturer copy
 /// the project does not hold and `copies` does not carry; `/part/part_number` empty; `/part/unit` not `piece`, `m` or
 /// `set`; `/part/tech_data/<i>` not a technical value, or a key given twice; `/part/accessories/<i>` a part the project does
 /// not hold (nor `copies` carries) or a wire, ferrule or marker; `/part/variants/<i>` a variant without its own part
@@ -122,27 +77,6 @@ pub struct EditPartCopy {
 
 fn bad(at: impl Into<String>, message: Text) -> CmdError {
     CmdError::invalid_params(EditPartCopy::NAME, at, message)
-}
-
-/// The part members without the editable ones (with `local`, also [`PART_EDITABLE_LOCAL`]), for the "other
-/// members unchanged" check.
-fn fixed_members(part: &Part, local: bool) -> Map<String, Value> {
-    let mut m = match serde_json::to_value(part) {
-        Ok(Value::Object(m)) => m,
-        _ => Map::new(),
-    };
-    for k in PART_EDITABLE {
-        m.remove(k);
-    }
-    let more: &[&str] = if local {
-        &PART_EDITABLE_LOCAL
-    } else {
-        &PART_EDITABLE_FORK
-    };
-    for k in more {
-        m.remove(*k);
-    }
-    m
 }
 
 /// The edited item of `raw`, with the checks at their pointers; the technical data are put into key order.
@@ -299,9 +233,6 @@ impl Command for EditPartCopy {
         let mut part = read_part(&self.part)?;
         let project = tx.project().id.as_uuid();
         let local = held.library_id.as_uuid() == project;
-        if fixed_members(&part, local) != fixed_members(&held.item, local) {
-            return Err(bad("/part", text!("refusal-part-edit-fixed-members")));
-        }
         let fork_copy: Option<Id<Part>> = match (local, self.fork) {
             (true, Some(_)) => {
                 return Err(bad("/fork", text!("refusal-part-edit-local-fork")));

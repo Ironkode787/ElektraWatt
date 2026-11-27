@@ -15,9 +15,14 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
-- behaviour-change: a bond made, removed or given another via connection, where it changes the wires through the via,
-  keeps each wire's own values with the wire as every other change of the wiring does; a wire it joined anew kept the
-  typed length of one it was made from (doc 13 §2.3)
+- behaviour-change: the part editor lists a part's groups as the sheet of Parts names them (Identity, On the schematic,
+  In the cabinet, Connections, the kind's own group, Technical data, Goes with it), each with the fields one declaration
+  of a part's fields gives (doc 07 §2.5); an enclosure, a mounting plate and a rail of one's own now have their
+  rows (size, plate, doors, edge margin, profile), a valve its coil and a tube its data; the GTIN is no longer asked for
+  (no list prints it) and stays as it is
+- behaviour-change: `part.edit_copy` takes a change of any member of a part; it refused the mechanical data, the
+  contacts, the sections of a library copy's fork and the free properties (doc 07 §5.4)
+- text-change: the guide's reference gains the page Parts ▸ Fields, every field of a part with what reads it
 - behaviour-change: a wire that ends open, or outside the project, at an interruption point across its pair, with a
   chain or a star behind the pair, shows and takes its ends set by hand at its clamps and keeps them through a change
   of the wiring; they read as the rule's and went at the next change (doc 13 §2.3)

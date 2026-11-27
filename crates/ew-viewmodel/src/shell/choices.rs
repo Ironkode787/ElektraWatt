@@ -82,8 +82,6 @@ closed_choices! {
     MACRO_KINDS = &super::macros::MACRO_KINDS;
     /// The revision forms' roles.
     ROLES = super::revision::ROLES;
-    /// The part editor's kinds (ew-api's list; not a form field).
-    PART_KINDS = &super::part_dialog::PART_KINDS;
     /// A fluid line's kinds (T25; not a form field).
     LINE_KINDS = crate::strings::LINE_KINDS;
     /// Supply's systems: what comes in from the mains.

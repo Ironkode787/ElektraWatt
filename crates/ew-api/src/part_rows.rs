@@ -1,17 +1,18 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The part editor's sections and their declared rows (doc 07 §5, picture A of the parts design): the editor lists
-//! [`PART_SECTIONS`] on its left and shows one at a time. A section of declared rows names the part's members by
-//! their paths; each row's value type is the part schema's ([`crate::output::library_fields`]), so a member is one
-//! line of this table and its text is read and checked by the property grid's rules. A table section names a list
-//! member and the members of its item that are its columns; an item's [`Hole`] is two cells, its Kind and its Size.
-//! Identity, Technical data, Pins, Bus, PLC and Cable keep forms of their own; Pins adds the clamp columns of the pin
-//! pattern as its table. Front view and holes adds the front's imported outline and its preview.
+//! The part editor's groups and their declared rows (doc 07 §5.4): the editor lists the groups of the part's sheet
+//! ([`ew_derive::part_fields::Group`]) on its left and shows one at a time. Its rows and tables are the declaration's
+//! ([`ew_derive::part_fields::PART_FIELDS`]): a field typed in the sheet is a row, the item members of a list are a
+//! table's columns, and each value type is the part schema's ([`crate::output::library_fields`]), so a text is read
+//! and checked by the property grid's rules; an item's [`Hole`] is two cells, its Kind and its Size. Identity,
+//! Technical data, the pins, the network ports, the PLC and the cable keep forms of their own. In the cabinet adds the
+//! front's imported outline and its preview.
 
 use std::sync::OnceLock;
 
 use ew_derive::Q;
+use ew_derive::part_fields::{Entry, Form, Group, Limit, PART_FIELDS, PartField};
 use ew_ids::Id;
 use ew_schema::{Hole, HoleKind, Kind, LibCopy, LibDocument, LibRef, Part, PartKind};
 use serde_json::{Map, Value};
@@ -22,224 +23,94 @@ use crate::output::{FieldType, InputError, format_field_value};
 use crate::part_editor::{DraftMessage, PartDraft, PartDraftError, message};
 use crate::part_offers::lib_ref;
 
-/// A declared row: the part member's path, and whether a length must be above zero (a size; a clearance may be
-/// zero).
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct PartRow {
-    /// The member's path (`mech.width`, `sections.ferrule.csa_min`).
-    pub path: &'static str,
-    /// Whether the value, a length, must be above zero.
-    pub positive: bool,
-}
-
-/// A declared table: a list member of the part and the members of its item that are its columns.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct PartTable {
-    /// The list member (`accessories`).
-    pub path: &'static str,
-    /// The item's member each row shows first and the editor does not change here (a pin's designation, which the
-    /// Pins form edits); `None`: rows are added and removed here.
-    pub key: Option<&'static str>,
-    /// The item's members the columns edit, in their order.
-    pub columns: &'static [&'static str],
-    /// Whether its items hold a [`Hole`] in `hole`, edited in two cells after the columns: its Kind ([`HOLE_KIND`],
-    /// a choice of [`HoleKind`]'s words) and its Size ([`HOLE_SIZE`], the text [`Hole::parse`] reads).
-    pub hole: bool,
-}
-
-/// The cell of a table's hole that holds its kind ([`PartTable::hole`]).
+/// The cell of a table's hole that holds its kind ([`DraftTable::hole`]).
 pub const HOLE_KIND: &str = "hole.kind";
 
 /// The cell of a table's hole that holds its size as text ("22 mm", "M5", "Ø 4.5", "92 × 92 R 2").
 pub const HOLE_SIZE: &str = "hole.size";
 
-/// A section of the part editor.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct PartSection {
-    /// Its word (`part.section`'s `section`, the `part-section-<word>` text).
-    pub word: &'static str,
-    /// Its declared rows; empty for a section with a form of its own.
-    pub rows: &'static [PartRow],
-    /// Its declared table, if any.
-    pub table: Option<PartTable>,
-    /// Which parts it is listed for.
-    pub shown: Shown,
+/// The member of a list's item that holds a [`Hole`], edited in two cells ([`HOLE_KIND`], [`HOLE_SIZE`]).
+const HOLE: &str = "hole";
+
+/// Whether the editor writes the fields of `group` through a form of its own (the identity, the technical data, the
+/// cable, the PLC and the network ports), not as declared rows.
+fn by_form(group: Group) -> bool {
+    matches!(
+        group,
+        Group::Identity | Group::Technical | Group::Cable | Group::Plc | Group::Ports
+    )
 }
 
-/// Which parts the editor lists a section for ([`PartDraft::sections`]).
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Shown {
-    /// Every part.
-    Always,
-    /// A part that is mounted: every kind but a cable and one a wire consumes ([`PartKind::is_consumable`]).
-    Mounted,
-    /// The kind's own section ([`PartKind::own_section`]): the section whose rows are that member's.
-    Own,
-    /// A cable.
-    Cable,
-    /// A part of one's own, a new part, or one that has bus interfaces.
-    Bus,
-    /// A device of one's own or a new one.
-    Plc,
-    /// A duct: its inner size, which a duct's fill reads (doc 12 §8.6).
-    Duct,
+/// The declared rows: each field typed as one value, outside the groups with forms of their own.
+fn declared_rows() -> impl Iterator<Item = &'static PartField> {
+    PART_FIELDS
+        .iter()
+        .filter(|f| f.entry == Entry::Field && !by_form(f.group) && !f.path.contains('['))
 }
 
-const fn row(path: &'static str) -> PartRow {
-    PartRow {
-        path,
-        positive: false,
+/// A declared table: a list member and the members of its item that are its columns.
+#[derive(Clone, PartialEq, Eq, Debug)]
+struct TableDecl {
+    /// The list member (`accessories`).
+    path: &'static str,
+    /// The group it stands in.
+    group: Group,
+    /// The item's members its columns edit, in the declaration's order.
+    columns: Vec<&'static str>,
+    /// Whether its items hold a [`Hole`] in `hole`.
+    hole: bool,
+}
+
+/// The declared tables: each list whose item members are columns of the sheet (the front's holes too), outside the
+/// groups with forms of their own, in the declaration's order.
+fn declared_tables() -> &'static [TableDecl] {
+    static TABLES: OnceLock<Vec<TableDecl>> = OnceLock::new();
+    TABLES.get_or_init(|| {
+        let mut out: Vec<TableDecl> = Vec::new();
+        for f in PART_FIELDS.iter().filter(|f| !by_form(f.group)) {
+            let list = match f.entry {
+                Entry::Column(list) => list,
+                Entry::Form(Form::Holes) => f.path.split_once("[].").map_or(f.path, |(l, _)| l),
+                _ => continue,
+            };
+            let Some(member) = f.path.strip_prefix(list).and_then(|m| m.strip_prefix("[].")) else {
+                continue;
+            };
+            let t = match out.iter_mut().position(|t| t.path == list) {
+                Some(i) => &mut out[i],
+                None => {
+                    out.push(TableDecl {
+                        path: list,
+                        group: f.group,
+                        columns: Vec::new(),
+                        hole: false,
+                    });
+                    out.last_mut().expect("pushed")
+                }
+            };
+            if member == HOLE {
+                t.hole = true;
+            } else {
+                t.columns.push(member);
+            }
+        }
+        out
+    })
+}
+
+/// The key column of a table whose rows a form makes (the pins' names, which the pins' form edits): its rows are
+/// neither added nor removed here.
+fn key_of(table: &str) -> Option<&'static str> {
+    (table == "cp_pattern").then_some("designation")
+}
+
+/// The group a declared row or table cell stands in.
+fn group_of(field: &str) -> Option<Group> {
+    if let Some(r) = declared_rows().find(|r| r.path == field) {
+        return Some(r.group);
     }
-}
-
-const fn size(path: &'static str) -> PartRow {
-    PartRow { path, positive: true }
-}
-
-const fn form(word: &'static str, shown: Shown) -> PartSection {
-    PartSection {
-        word,
-        rows: &[],
-        table: None,
-        shown,
-    }
-}
-
-/// The editor's sections in the order its list shows them.
-pub const PART_SECTIONS: &[PartSection] = &[
-    form("identity", Shown::Always),
-    form("technical", Shown::Always),
-    PartSection {
-        word: "pins",
-        rows: &[],
-        table: Some(PartTable {
-            path: "cp_pattern",
-            key: Some("designation"),
-            columns: &[
-                "clamp_type",
-                "csa_min",
-                "csa_max",
-                "max_conductors",
-                "twin_ferrule",
-                "face",
-            ],
-            hole: false,
-        }),
-        shown: Shown::Mounted,
-    },
-    PartSection {
-        word: "size",
-        rows: &[
-            size("mech.width"),
-            size("mech.height"),
-            size("mech.depth"),
-            row("mech.mount_kind"),
-            row("mech.mass"),
-            row("mech.clearance.top"),
-            row("mech.clearance.bottom"),
-            row("mech.clearance.left"),
-            row("mech.clearance.right"),
-            row("mech.clearance.front"),
-        ],
-        table: None,
-        shown: Shown::Mounted,
-    },
-    PartSection {
-        word: "front",
-        rows: &[row("mech.front_shape")],
-        table: Some(PartTable {
-            path: "mech.holes",
-            key: None,
-            columns: &["x", "y"],
-            hole: true,
-        }),
-        shown: Shown::Mounted,
-    },
-    PartSection {
-        word: "accessories",
-        rows: &[],
-        table: Some(PartTable {
-            path: "accessories",
-            key: None,
-            columns: &["part", "kind", "qty", "per", "optional"],
-            hole: false,
-        }),
-        shown: Shown::Mounted,
-    },
-    PartSection {
-        word: "variants",
-        rows: &[],
-        table: Some(PartTable {
-            path: "variants",
-            key: None,
-            columns: &["key", "name", "part_number", "order_number", "type_designation"],
-            hole: false,
-        }),
-        shown: Shown::Mounted,
-    },
-    PartSection {
-        word: "wire",
-        rows: &[
-            row("sections.wire.csa"),
-            row("sections.wire.colour"),
-            row("sections.wire.class"),
-            size("sections.wire.outer_diameter"),
-        ],
-        table: None,
-        shown: Shown::Own,
-    },
-    PartSection {
-        word: "duct",
-        rows: &[
-            size("sections.duct.inner_width"),
-            size("sections.duct.inner_height"),
-        ],
-        table: None,
-        shown: Shown::Duct,
-    },
-    PartSection {
-        word: "ferrule",
-        rows: &[
-            row("sections.ferrule.csa_min"),
-            row("sections.ferrule.csa_max"),
-            row("sections.ferrule.twin"),
-            row("sections.ferrule.insulated"),
-            row("sections.ferrule.sleeve"),
-            row("sections.ferrule.colour"),
-            row("sections.ferrule.stud"),
-        ],
-        table: None,
-        shown: Shown::Own,
-    },
-    PartSection {
-        word: "gland",
-        rows: &[
-            row("sections.gland.thread"),
-            size("sections.gland.clamp_min"),
-            size("sections.gland.clamp_max"),
-            size("sections.gland.nut"),
-        ],
-        table: None,
-        shown: Shown::Own,
-    },
-    PartSection {
-        word: "marker",
-        rows: &[
-            row("sections.marker.marks"),
-            row("sections.marker.lines"),
-            row("sections.marker.chars"),
-        ],
-        table: None,
-        shown: Shown::Own,
-    },
-    form("bus", Shown::Bus),
-    form("plc", Shown::Plc),
-    form("cable", Shown::Cable),
-];
-
-/// The section named `word`.
-pub fn part_section(word: &str) -> Option<&'static PartSection> {
-    PART_SECTIONS.iter().find(|s| s.word == word)
+    let (path, _, _) = cell(field)?;
+    declared_tables().iter().find(|t| t.path == path).map(|t| t.group)
 }
 
 /// The value type of the part member at `path` (`accessories[].qty`), from the part schema.
@@ -269,11 +140,13 @@ fn display(ty: &FieldType, v: &Value) -> String {
     }
 }
 
-/// One declared row of a draft: its path, its value type and its text.
+/// One declared row of a draft: its path, its group, its value type and its text.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DraftRow {
     /// The member's path.
     pub path: &'static str,
+    /// The group it stands in.
+    pub group: Group,
     /// Its value type.
     pub ty: FieldType,
     /// Its text as typed (the value's display text when opened).
@@ -287,12 +160,17 @@ pub struct DraftRow {
 pub struct DraftTable {
     /// The list member.
     pub path: &'static str,
-    /// The key column's member, if any ([`PartTable::key`]).
+    /// The group it stands in.
+    pub group: Group,
+    /// The key column's member, if any: the pins' names, whose rows the pins' form makes.
     pub key: Option<&'static str>,
     /// The key column's text per row (empty without a key column).
     pub keys: Vec<String>,
     /// The columns: the item's member and its value type.
     pub columns: Vec<(&'static str, FieldType)>,
+    /// Whether its items hold a [`Hole`], edited in two cells after the columns: its Kind ([`HOLE_KIND`], a choice of
+    /// [`HoleKind`]'s words) and its Size ([`HOLE_SIZE`], the text [`Hole::parse`] reads).
+    pub hole: bool,
     /// The texts of each row, one per column.
     pub rows: Vec<Vec<String>>,
     /// The texts when opened: a cell left so keeps its value byte for byte.
@@ -340,49 +218,50 @@ fn set_at(v: &mut Value, path: &str, value: Value) {
 }
 
 impl PartDraft {
-    /// The sections the editor lists for the draft, in [`PART_SECTIONS`]' order, each as its [`Shown`] declares: the
-    /// mounted part's sections for every kind but a cable and one a wire consumes, the kind's own section (a wire's, a
-    /// ferrule's, a marker's) for that kind alone, the bus interfaces and the PLC section of a part that is not one's
-    /// own only where it has them.
-    pub fn sections(&self) -> Vec<&'static PartSection> {
-        let kind = serde_json::from_value::<PartKind>(Value::String(self.text("kind").to_owned()))
+    /// The groups the editor lists for the draft, in the sheet's order: Identity and Technical data always; a group of
+    /// declared rows or tables where a field of it holds for a part of the draft's kind; the pins where the kind has
+    /// them; the cable's form for a cable; the network ports and the PLC section where the declaration gives the kind
+    /// them, of a part that is not one's own only where it has them.
+    pub fn sections(&self) -> Vec<Group> {
+        let mut part = self.original.clone();
+        part.kind = serde_json::from_value::<PartKind>(Value::String(self.text("kind").to_owned()))
             .unwrap_or(PartKind::Unknown(Value::Null));
-        let own = kind.own_section().map(|m| format!("sections.{m}."));
-        PART_SECTIONS
-            .iter()
-            .filter(|s| match s.shown {
-                Shown::Always => true,
-                Shown::Mounted => !kind.is_consumable() && kind != PartKind::Cable,
-                Shown::Own => own
-                    .as_ref()
-                    .is_some_and(|own| s.rows.iter().all(|r| r.path.starts_with(own.as_str()))),
-                Shown::Cable => kind == PartKind::Cable,
-                Shown::Bus => self.new || self.own || !self.bus.is_empty(),
-                Shown::Plc => (self.new || self.own) && kind == PartKind::Device,
-                Shown::Duct => kind == PartKind::Duct,
+        let mine = self.new || self.own;
+        let mut out: Vec<Group> = ew_derive::part_fields::fields_of(&part)
+            .into_iter()
+            .filter(|f| match f.group {
+                Group::Identity | Group::Technical | Group::About => false,
+                Group::Schematic | Group::Cable => true,
+                Group::Ports => mine || !self.bus.is_empty(),
+                Group::Plc => mine,
+                _ => {
+                    declared_rows().any(|r| r.path == f.path)
+                        || declared_tables().iter().any(|t| f.path.starts_with(&format!("{}[]", t.path)))
+                }
             })
-            .collect()
+            .map(|f| f.group)
+            .chain([Group::Identity, Group::Technical])
+            .collect();
+        out.sort();
+        out.dedup();
+        out
     }
 
-    /// Whether the rows of section `word` may be changed: a kind's own section (a wire's, a ferrule's, a marker's)
-    /// only on a project-local part, which `part.edit_copy` lets change them; a gland's, the size and the front view
-    /// and holes on a part of one's own or a new one (a library part's fork keeps its mechanical data and its gland
-    /// data); the others on any part the editor saves.
-    pub fn section_editable(&self, word: &str) -> bool {
-        match part_section(word) {
-            Some(s) if s.word == "gland" => self.own || self.new,
-            Some(s) if s.shown == Shown::Own => self.own && !self.fork,
-            Some(s) if s.word == "size" || s.word == "front" || s.shown == Shown::Duct => {
-                self.own || self.new
-            }
-            _ => true,
+    /// Whether the rows of group `group` may be changed: a wire's, a ferrule's and a marker's own data only on a
+    /// project-local part; the pins' clamps and what goes with the part on any part the editor saves; the others on
+    /// a part of one's own or a new one.
+    pub fn section_editable(&self, group: Group) -> bool {
+        match group {
+            Group::Connections | Group::GoesWith => true,
+            Group::Wire | Group::Ferrule | Group::Marker => self.own && !self.fork,
+            _ => self.own || self.new,
         }
     }
 
-    /// Remove of Front view and holes: the imported outline goes, and the front is drawn by its shape again; `false`
-    /// where the section is not the person's to change.
+    /// Remove of the front's outline: the imported outline goes, and the front is drawn by its shape again; `false`
+    /// where In the cabinet is not the person's to change.
     pub fn remove_outline(&mut self) -> bool {
-        if !self.section_editable("front") {
+        if !self.section_editable(Group::Cabinet) {
             return false;
         }
         self.outline.clear();
@@ -598,30 +477,39 @@ pub(crate) fn cell(field: &str) -> Option<(&str, usize, &str)> {
 }
 
 impl Session {
+    /// The text of value `v` of type `ty` in a row or a cell: a part's number for a reference to a part.
+    fn value_text(&self, q: &Q, ty: &FieldType, v: &Value) -> String {
+        if is_part_ref(ty) {
+            return serde_json::from_value::<LibRef>(v.clone())
+                .ok()
+                .and_then(|r| self.ref_number(q, &r))
+                .unwrap_or_default();
+        }
+        display(ty, v)
+    }
+
     /// The declared rows and tables of part `p`, each with its texts.
     pub(crate) fn part_rows(&self, q: &Q, p: &Part) -> (Vec<DraftRow>, Vec<DraftTable>) {
         let json = serde_json::to_value(p).unwrap_or(Value::Null);
         let mut rows = Vec::new();
-        let mut tables = Vec::new();
-        for s in PART_SECTIONS {
-            for r in s.rows {
-                let Some(ty) = field_type(r.path) else {
-                    continue;
-                };
-                let text = value_at(&json, r.path)
-                    .filter(|v| !v.is_null())
-                    .map(|v| display(&ty, v))
-                    .unwrap_or_default();
-                rows.push(DraftRow {
-                    path: r.path,
-                    ty,
-                    opened: text.clone(),
-                    text,
-                });
-            }
-            let Some(t) = s.table else {
+        for r in declared_rows() {
+            let Some(ty) = field_type(r.path) else {
                 continue;
             };
+            let text = value_at(&json, r.path)
+                .filter(|v| !v.is_null())
+                .map(|v| self.value_text(q, &ty, v))
+                .unwrap_or_default();
+            rows.push(DraftRow {
+                path: r.path,
+                group: r.group,
+                ty,
+                opened: text.clone(),
+                text,
+            });
+        }
+        let mut tables = Vec::new();
+        for t in declared_tables() {
             let mut columns: Vec<(&'static str, FieldType)> = t
                 .columns
                 .iter()
@@ -640,8 +528,8 @@ impl Session {
                 .and_then(Value::as_array)
                 .cloned()
                 .unwrap_or_default();
-            let keys = t
-                .key
+            let key = key_of(t.path);
+            let keys = key
                 .map(|k| {
                     items
                         .iter()
@@ -656,11 +544,7 @@ impl Session {
                         .iter()
                         .map(|(m, ty)| match item.get(*m).filter(|v| !v.is_null()) {
                             _ if matches!(*m, HOLE_KIND | HOLE_SIZE) => hole_cell(item, m),
-                            Some(v) if is_part_ref(ty) => serde_json::from_value::<LibRef>(v.clone())
-                                .ok()
-                                .and_then(|r| self.ref_number(q, &r))
-                                .unwrap_or_default(),
-                            Some(v) => display(ty, v),
+                            Some(v) => self.value_text(q, ty, v),
                             None => String::new(),
                         })
                         .collect()
@@ -668,9 +552,11 @@ impl Session {
                 .collect();
             tables.push(DraftTable {
                 path: t.path,
-                key: t.key,
+                group: t.group,
+                key,
                 keys,
                 columns,
+                hole: t.hole,
                 origin: (0..texts.len()).map(Some).collect(),
                 opened: texts.clone(),
                 rows: texts,
@@ -692,7 +578,7 @@ impl Session {
         draft: &mut PartDraft,
         path: &std::path::Path,
     ) -> Result<usize, String> {
-        if !draft.section_editable("front") {
+        if !draft.section_editable(Group::Cabinet) {
             return Err(text!("error-part-outline-locked").to_string());
         }
         let name = path
@@ -841,20 +727,15 @@ impl Session {
         field: &str,
         text: &str,
     ) -> Option<Result<(), PartDraftError>> {
-        let section = PART_SECTIONS.iter().find(|s| {
-            s.rows.iter().any(|r| r.path == field)
-                || s.table
-                    .is_some_and(|t| cell(field).is_some_and(|(p, _, _)| p == t.path))
-        })?;
-        if !draft.section_editable(section.word) {
+        let group = group_of(field)?;
+        if !draft.section_editable(group) {
             return Some(Err(PartDraftError::Refused(key!("error-part-field"))));
         }
         let q = self.query();
         let mut pair = None;
         let (ty, positive) = if let Some(r) = draft.rows.iter_mut().find(|r| r.path == field) {
             r.text = text.to_owned();
-            let positive = section.rows.iter().any(|x| x.path == field && x.positive);
-            (r.ty.clone(), positive)
+            (r.ty.clone(), above_zero(field))
         } else {
             let (path, row, member) = cell(field)?;
             let t = draft.tables.iter_mut().find(|t| t.path == path)?;
@@ -864,7 +745,7 @@ impl Session {
             if matches!(member, HOLE_KIND | HOLE_SIZE) {
                 pair = hole_texts(t, row).map(|(k, s)| (format!("{path}[{row}].{HOLE_SIZE}"), k, s));
             }
-            (t.columns[c].1.clone(), false)
+            (t.columns[c].1.clone(), above_zero(&format!("{path}[].{member}")))
         };
         // A hole's kind is a choice of its words; its size is read with its kind, its message under the size.
         let result = self
@@ -894,27 +775,21 @@ impl Session {
         let original = serde_json::to_value(&draft.original).unwrap_or(Value::Null);
         let mut json = serde_json::to_value(&*p).unwrap_or(Value::Null);
         let mut docs = Vec::new();
-        for s in PART_SECTIONS {
-            if !draft.section_editable(s.word) {
-                continue;
-            }
-            for r in s.rows {
-                let Some(d) = draft.row(r.path).filter(|d| d.text != d.opened) else {
-                    continue;
-                };
-                let value = self
-                    .row_value(&q, r.path, &d.ty, r.positive, &d.text, &mut docs)
-                    .map_err(PartDraftError::Field)?;
-                set_at(&mut json, r.path, value);
-            }
-            let Some(t) = s.table else { continue };
-            let Some(d) = draft
-                .table(t.path)
-                .filter(|d| d.rows != d.opened || d.origin.iter().enumerate().any(|(i, o)| *o != Some(i)))
-            else {
-                continue;
-            };
-            let held = value_at(&original, t.path)
+        for d in draft
+            .rows
+            .iter()
+            .filter(|d| d.text != d.opened && draft.section_editable(d.group))
+        {
+            let value = self
+                .row_value(&q, d.path, &d.ty, above_zero(d.path), &d.text, &mut docs)
+                .map_err(PartDraftError::Field)?;
+            set_at(&mut json, d.path, value);
+        }
+        for d in draft.tables.iter().filter(|d| {
+            draft.section_editable(d.group)
+                && (d.rows != d.opened || d.origin.iter().enumerate().any(|(i, o)| *o != Some(i)))
+        }) {
+            let held = value_at(&original, d.path)
                 .and_then(Value::as_array)
                 .cloned()
                 .unwrap_or_default();
@@ -926,20 +801,20 @@ impl Session {
                     .unwrap_or_else(|| Value::Object(Map::new()));
                 let opened = origin.and_then(|o| d.opened.get(o));
                 // A hole's row, new or changed, gives every cell; its kind and size are written together.
-                if t.hole && opened != Some(texts) {
+                if d.hole && opened != Some(texts) {
                     if let Some(c) = texts.iter().position(|x| x.trim().is_empty()) {
                         return Err(PartDraftError::Field(message(
-                            &format!("{}[{i}].{}", t.path, d.columns[c].0),
+                            &format!("{}[{i}].{}", d.path, d.columns[c].0),
                             key!("error-part-hole-incomplete"),
                             &[&(i + 1).to_string()],
                         )));
                     }
                     let (kind, size) = hole_texts(d, i).unwrap_or_default();
-                    let hole = hole_of(&format!("{}[{i}].{HOLE_SIZE}", t.path), &kind, &size)
+                    let hole = hole_of(&format!("{}[{i}].{HOLE_SIZE}", d.path), &kind, &size)
                         .map_err(PartDraftError::Field)?;
                     set_at(
                         &mut item,
-                        "hole",
+                        HOLE,
                         serde_json::to_value(hole).expect("a hole has a JSON form"),
                     );
                 }
@@ -948,20 +823,21 @@ impl Session {
                     if opened.and_then(|o| o.get(c)) == Some(text) || matches!(*m, HOLE_KIND | HOLE_SIZE) {
                         continue;
                     }
-                    let field = format!("{}[{i}].{m}", t.path);
+                    let field = format!("{}[{i}].{m}", d.path);
+                    let positive = above_zero(&format!("{}[].{m}", d.path));
                     let value = self
-                        .row_value(&q, &field, ty, false, text, &mut docs)
+                        .row_value(&q, &field, ty, positive, text, &mut docs)
                         .map_err(PartDraftError::Field)?;
                     set_at(&mut item, m, value);
                 }
                 items.push(item);
             }
-            set_at(&mut json, t.path, Value::Array(items));
+            set_at(&mut json, d.path, Value::Array(items));
         }
-        if draft.section_editable("front") {
+        if draft.section_editable(Group::Cabinet) {
             apply_front(draft, &mut json)?;
         }
-        if draft.section_editable("gland") {
+        if draft.section_editable(Group::Gland) {
             check_gland(&json)?;
         }
         *p = serde_json::from_value(json).map_err(|e| {
@@ -971,27 +847,41 @@ impl Session {
     }
 }
 
+/// Whether the declared field `path` (a list's item member as `[]`) is a length that must be above zero.
+fn above_zero(path: &str) -> bool {
+    ew_derive::part_fields::field(path).is_some_and(|f| f.limit == Limit::AboveZero)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    /// Every declared row and column names a member of the part schema: a renamed member fails here, not in the
-    /// editor.
+    /// Every member of a part's schema has its one row in the declaration ([`PART_FIELDS`]), a reference to another
+    /// part one row for its three members, and every row names a member or a named technical value: a member added to
+    /// the schema fails here until it says where a person enters it and what reads it.
     #[test]
-    fn every_declared_path_is_a_member_of_the_part() {
-        for s in PART_SECTIONS {
-            for r in s.rows {
-                assert!(field_type(r.path).is_some(), "{}", r.path);
-            }
-            if let Some(t) = s.table {
-                for c in t.columns.iter().chain(t.key.as_ref()) {
-                    assert!(
-                        field_type(&format!("{}[].{c}", t.path)).is_some(),
-                        "{}[].{c}",
-                        t.path
-                    );
-                }
-            }
+    fn every_member_of_a_part_has_its_row() {
+        let catalogue = crate::output::library_fields(Kind::Part);
+        // The part's own members, not the copy's (its IDs, version and hash).
+        let schema = serde_json::to_value(schemars::schema_for!(Part)).expect("a schema");
+        let own = schema["properties"].as_object().expect("the part's members");
+        let member = |path: &str| own.contains_key(path.split(['.', '[']).next().unwrap_or(path));
+        let part_ref = |path: &str| catalogue.iter().any(|f| f.path == path && is_part_ref(&f.ty));
+        for f in catalogue.iter().filter(|f| member(&f.path) && !f.ty.is_container()) {
+            let parent = f.path.rsplit_once('.').map(|(p, _)| p).filter(|p| part_ref(p));
+            let rows = PART_FIELDS
+                .iter()
+                .filter(|r| r.path == f.path || Some(r.path) == parent)
+                .count();
+            assert_eq!(rows, 1, "{} has {rows} rows in the declaration", f.path);
+        }
+        for r in PART_FIELDS {
+            let named = r.path.starts_with("tech_data.");
+            assert!(
+                named || catalogue.iter().any(|f| f.path == r.path),
+                "{} is no member of a part",
+                r.path
+            );
         }
     }
 

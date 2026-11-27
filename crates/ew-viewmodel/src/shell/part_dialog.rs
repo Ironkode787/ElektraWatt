@@ -36,9 +36,6 @@ mod editor;
 /// The result list shows this many rows at a time.
 pub const PART_ROWS: usize = 50;
 
-/// The part kinds of the layout tools: a device's part dialog offers one only where panel layout attaches it.
-const LAYOUT_KIND_WORDS: [&str; 5] = ["enclosure", "mounting_plate", "rail", "duct", "end_bracket"];
-
 /// The part selection dialog's state.
 #[derive(Clone, PartialEq, Debug)]
 pub struct PartChooser {
@@ -118,8 +115,8 @@ impl PartChooser {
 /// The part editor's state.
 #[derive(Clone, PartialEq, Debug)]
 pub struct PartEditor {
-    /// The section shown ([`ew_api::PART_SECTIONS`]' word): one at a time, the list on the left.
-    pub section: &'static str,
+    /// The group shown: one at a time, the list on the left.
+    pub section: ew_api::part_fields::Group,
     /// The draft.
     pub draft: PartDraft,
     /// The part's name for the title (`5SY4204-7 (Siemens)`).
@@ -161,11 +158,11 @@ impl PartEditor {
 
     /// The label of the draft field `field` in the form's identity rows ([`draft_label`]): a bus part's type
     /// designation is its part name, a cable type's its series.
-    pub fn identity_label(&self, field: &str) -> &'static str {
+    pub fn identity_label(&self, field: &str) -> String {
         if self.bus_part.is_some() && field == "type_designation" {
-            strings::text(key!("part-bus-part-name"))
+            strings::text(key!("part-bus-part-name")).to_owned()
         } else if self.cable_type && field == "type_designation" {
-            strings::text(key!("part-cable-series"))
+            strings::text(key!("part-cable-series")).to_owned()
         } else {
             draft_label(field)
         }
@@ -179,8 +176,8 @@ impl PartEditor {
             return Some(error.clone());
         }
         let m = (self.draft.messages.iter().rev()).find(|m| !m.field.starts_with("plc."))?;
-        let label = if crate::ew_api::DRAFT_FIELDS.contains(&m.field.as_str()) {
-            self.identity_label(&m.field).to_owned()
+        let label = if ew_api::identity_fields().any(|f| f == m.field) {
+            self.identity_label(&m.field)
         } else {
             field_label(&m.field)
         };
@@ -229,10 +226,12 @@ pub(crate) fn plug_description(draft: &ew_api::PartDraft, plug: BusPart) -> Stri
     words.join(", ")
 }
 
-/// The words of a draft field (`part_number` is "Part number", `bus.1.ports` "Ports", `tech:rated_current` the key).
+/// The words of a draft field: a declared field's word (`part_number` is "Part number", `mech.width` "Width", a table's
+/// cell `accessories[0].qty` its column's), a form's member by its form (`bus.1.ports` "Ports"), `tech:<key>` a named
+/// technical value's word, else the key.
 pub fn field_label(field: &str) -> String {
     if let Some(key) = field.strip_prefix("tech:") {
-        return key.to_owned();
+        return declared_word(&format!("tech_data.{key}")).unwrap_or_else(|| key.to_owned());
     }
     if let Some(member) = field.strip_prefix("plc.") {
         return plc_label(member).to_owned();
@@ -244,16 +243,28 @@ pub fn field_label(field: &str) -> String {
     if let Some((_, member)) = field.strip_prefix("bus.").and_then(|r| r.split_once('.')) {
         return bus_label(member).to_owned();
     }
-    // A declared row or a table's cell (`mech.width`, `accessories[0].qty`): the part's field label.
-    if field.contains(['.', '[']) {
-        return strings::field_label("part", field);
-    }
-    draft_label(field).to_owned()
+    // A declared field, a row or a table's cell (`mech.width`, `accessories[0].qty`): its word.
+    declared_word(field).unwrap_or_else(|| strings::field_label("part", field))
 }
 
-/// The label of the part editor's draft field `field` (`part-field-<field>`).
-pub fn draft_label(field: &str) -> &'static str {
-    strings::text(Key::run_time(&format!("part-field-{field}")))
+/// The word of the declared field `field` (a table's cell by its column: `accessories[0].qty` is
+/// `accessories[].qty`), from the declaration of a part's fields.
+pub fn declared_word(field: &str) -> Option<String> {
+    let mut generic = String::with_capacity(field.len());
+    let mut rest = field;
+    while let Some((head, tail)) = rest.split_once('[') {
+        generic.push_str(head);
+        generic.push_str("[]");
+        rest = tail.split_once(']').map_or("", |(_, t)| t);
+    }
+    generic.push_str(rest);
+    let f = ew_api::part_fields::field(&generic)?;
+    Some(strings::text(Key::run_time(f.word)).to_owned())
+}
+
+/// The label of the part editor's identity field `field`: its declared word.
+pub fn draft_label(field: &str) -> String {
+    declared_word(field).unwrap_or_default()
 }
 
 /// The label of the part editor's PLC member `member` (`part-plc-<member>`).
@@ -276,8 +287,10 @@ pub fn bus_label(member: &str) -> &'static str {
     strings::text(Key::run_time(&format!("part-bus-{member}")))
 }
 
-/// The part kinds the editor's Kind field offers ([`ew_api::PART_KINDS`], tied to the schema's part kinds by a test).
-pub use ew_api::PART_KINDS;
+/// The part kinds the editor's Kind field offers: the schema's, in its order.
+pub fn part_kinds() -> Vec<String> {
+    ew_api::part_kinds()
+}
 
 /// The word of part kind `kind` (`end_bracket` is "End bracket"; M39: the editor shows words, not raw values),
 /// through [`strings::choice_text`].
@@ -857,7 +870,7 @@ impl ShellModel {
         }
         draft.messages.clear();
         self.dialog = Some(Dialog::PartEdit(Box::new(PartEditor {
-            section: "identity",
+            section: ew_api::part_fields::Group::Identity,
             draft,
             error: None,
             ..saved
@@ -979,10 +992,9 @@ fn card_fields(fields: &[ew_api::FieldChange]) -> Vec<(String, String, String)> 
         .collect()
 }
 
-/// A member of a part as the part card names it: its `part-field-<member>` text, else its field label.
+/// A member of a part as the part card names it: its declared word, else its field label.
 fn member_label(member: &str) -> String {
-    strings::lookup(&format!("part-field-{member}"))
-        .map_or_else(|| strings::field_label("part", member), str::to_owned)
+    declared_word(member).unwrap_or_else(|| strings::field_label("part", member))
 }
 
 /// The designations of a CP pattern, joined by commas; empty for none.

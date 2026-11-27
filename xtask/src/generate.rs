@@ -48,6 +48,11 @@ const REFERENCE: &[Reference] = &[
         &["--test", "it", "help_reference::the_properties_reference"],
         "properties.json",
     ),
+    (
+        "ew-derive",
+        &["--lib", "part_fields::tests::the_part_fields_reference"],
+        "part-fields.json",
+    ),
     ACTIONS_TEST,
     // cli.json and results/index.json (each result with its subcommand).
     (

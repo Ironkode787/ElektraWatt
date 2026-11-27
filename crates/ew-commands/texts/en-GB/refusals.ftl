@@ -920,7 +920,6 @@ refusal-part-edit-no-manufacturer = a part needs a manufacturer
 refusal-part-edit-no-number = a part needs a part number
 refusal-part-edit-local-fork = a project-local copy is edited in place; give no `fork`
 refusal-part-edit-not-object = not a part item: give the part's members as an object
-refusal-part-edit-fixed-members = only the identity, the description, the category, the unit, the technical data, the pins, the function template and the device box can be edited, and of a project-local part its sections
 refusal-part-edit-tech-data-list = the technical data are a list
 refusal-part-edit-unit = the unit is piece, m or set
 # parts.import.

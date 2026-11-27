@@ -292,7 +292,7 @@ impl Rule for HolesNotKnown {
                 ew_l10n::Text::bare(ew_l10n::List::new(names, between(), between())),
             )
             .arg("surface", surface_words(q, Some(surface)))
-            .with_fix(edit_part(&part, "front"));
+            .with_fix(edit_part(&part, "cabinet"));
             out.push(shown(f, q, Some(surface)));
         }
         // A hole moved or left out whose part no longer has that hole (its holes edited, its copy replaced): the

@@ -960,14 +960,15 @@ fn a_strip_is_offered_no_end_bracket() {
             "the made strip has no terminals"
         );
     }
-    let kinds = s.chooser_layout_kinds(&[made.as_uuid()]);
-    assert!(kinds.is_empty(), "{kinds:?}");
+    let devices = [made.as_uuid()];
+    for kind in ["end_bracket", "enclosure", "mounting_plate", "rail", "duct"] {
+        assert!(!s.chooser_takes_kind(&devices, kind), "{kind}");
+    }
     let mut offers = s.part_offers(&PartOfferQuery {
         text: "EW-GEN-EB-1".into(),
         ..PartOfferQuery::default()
     });
-    let layout = ["end_bracket", "enclosure", "mounting_plate", "rail", "duct"];
-    offers.retain(|o| !layout.contains(&o.kind.as_str()) || kinds.contains(&o.kind));
+    offers.retain(|o| s.chooser_takes_kind(&devices, &o.kind));
     assert!(
         !numbers(&offers).contains(&"EW-GEN-EB-1"),
         "{:?}",

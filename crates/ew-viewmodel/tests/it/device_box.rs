@@ -199,7 +199,7 @@ fn add_bus_interface_opens_the_part_editor_on_a_new_interface() {
     done(&mut s, "part.box_details", json!({"bus": true}));
     match s.dialog() {
         Some(ew_viewmodel::shell::Dialog::PartEdit(e)) => {
-            assert_eq!(e.section, "bus");
+            assert_eq!(e.section.name(), "ports");
             assert_eq!(e.draft.bus.len(), 1, "a new interface row");
         }
         other => panic!("the part editor: {other:?}"),

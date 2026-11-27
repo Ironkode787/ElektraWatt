@@ -416,7 +416,7 @@ fn box_with_three_pins(tmp: &Tmp) -> Driver {
     );
     d.settle();
     // The pins are a section of the editor (picture A): a click shows it.
-    crate::own_parts::press(&mut d, "Pins and clamps section");
+    crate::own_parts::press(&mut d, "On the schematic section");
     d.input(&click(
         d.find("Pins and box\u{2026}").expect("the part editor's button"),
     ));

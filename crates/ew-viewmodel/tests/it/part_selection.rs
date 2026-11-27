@@ -463,10 +463,10 @@ fn the_part_editor_refuses_with_a_message() {
     assert_eq!(refused(&mut s, "part.save", json!({})), "reason-part-unchanged");
     let n = steps(&s);
     let cases: [(&str, &str, &str, &str); 4] = [
-        ("manufacturer", "", "Manufacturer", "A part needs a manufacturer"),
+        ("manufacturer", "", "Maker", "A part needs a manufacturer"),
         ("part_number", "", "Part number", "A part needs a part number"),
-        ("unit", "pcs", "Unit", ""),
-        ("tech:rated_current", "4 Amp", "rated_current", "rated_current: "),
+        ("unit", "pcs", "Sold by", ""),
+        ("tech:rated_current", "4 Amp", "Rated current", "rated_current: "),
     ];
     for (field, value, label, message) in cases {
         done(&mut s, "part.edit", json!({ "part": "EW-GEN-MCB-2" }));

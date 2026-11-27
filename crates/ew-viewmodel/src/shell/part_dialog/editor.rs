@@ -93,7 +93,7 @@ impl ShellModel {
         let name = format!("{} ({})", draft.text("part_number"), draft.text("manufacturer"));
         let manufacturers = project.session.part_manufacturers();
         let out = self.open_dialog(Dialog::PartEdit(Box::new(PartEditor {
-            section: "identity",
+            section: ew_api::part_fields::Group::Identity,
             draft,
             name,
             manufacturers,
@@ -217,7 +217,7 @@ impl ShellModel {
             }
         };
         let out = self.open_dialog(Dialog::PartEdit(Box::new(PartEditor {
-            section: "identity",
+            section: ew_api::part_fields::Group::Identity,
             draft,
             name: String::new(),
             manufacturers,
@@ -285,7 +285,7 @@ impl ShellModel {
         out
     }
 
-    /// `part.section {section}`: shows the editor's section `section` (one of those the draft lists).
+    /// `part.section {section}`: shows the editor's group `section` (by its name, one of those the draft lists).
     pub(crate) fn act_part_section(&mut self, p: &Map<String, Value>) -> Outcome {
         let word = match string_param(p, "section") {
             Ok(Some(w)) => w.to_owned(),
@@ -295,9 +295,9 @@ impl ShellModel {
         let Some(Dialog::PartEdit(editor)) = &mut self.dialog else {
             return Outcome::refused(key!("reason-no-part-editor"));
         };
-        match editor.draft.sections().into_iter().find(|s| s.word == word) {
-            Some(s) => {
-                editor.section = s.word;
+        match editor.draft.sections().into_iter().find(|g| g.name() == word) {
+            Some(g) => {
+                editor.section = g;
                 Outcome::Done
             }
             None => failed(key!("error-bad-param"), &["section"]),
@@ -326,10 +326,10 @@ impl ShellModel {
         let Some(Dialog::PartEdit(editor)) = &mut self.dialog else {
             return Outcome::refused(key!("reason-no-part-editor"));
         };
-        let editable = ew_api::PART_SECTIONS
-            .iter()
-            .find(|s| s.table.is_some_and(|t| t.path == table))
-            .is_some_and(|s| editor.draft.section_editable(s.word));
+        let editable = editor
+            .draft
+            .table(&table)
+            .is_some_and(|t| editor.draft.section_editable(t.group));
         if !editable {
             return failed(key!("error-part-field"), &[&table]);
         }

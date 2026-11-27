@@ -129,16 +129,16 @@ fn the_part_editor_by_keyboard() {
     settle(&mut h);
     assert!(matches!(h.state().shell().dialog(), Some(Dialog::PartEdit(_))));
     // Every field is named by its label.
-    for label in ["Manufacturer", "Part number", "Description", "Unit"] {
+    for label in ["Maker", "Part number", "Description", "Sold by"] {
         let _ = field(&h, label);
     }
-    // The first field has the focus; Tab moves to Description (after Part number, Type designation, Order number,
-    // GTIN), End to its end, where " C4" is typed.
+    // The first text field has the focus; Tab moves to Description (after Part number, Type and Order number), End to
+    // its end, where " C4" is typed.
     assert!(
-        field(&h, "Manufacturer").accesskit_node().is_focused(),
+        field(&h, "Maker").accesskit_node().is_focused(),
         "the first field has the focus"
     );
-    for _ in 0..5 {
+    for _ in 0..4 {
         h.key_press(Key::Tab);
         settle(&mut h);
     }

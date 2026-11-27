@@ -244,7 +244,7 @@ pub(crate) fn ps5_the_editor_refusal_script_is_deterministic_case(twice: bool) {
     assert_eq!(commands, 0, "nothing is committed");
     let d = describe(&lines[6]);
     assert!(
-        has_line(d, "invalid \"Manufacturer\" \"A part needs a manufacturer\""),
+        has_line(d, "invalid \"Maker\" \"A part needs a manufacturer\""),
         "{d}"
     );
     assert!(has_line(d, "error: A part needs a manufacturer"), "{d}");

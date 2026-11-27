@@ -25,44 +25,26 @@ use crate::output::{RowExport, row_export};
 use crate::part_offers::{PartPick, kind_word, lib_ref, text_of};
 use crate::{AnyCommand, BomMode, Session};
 
-/// The fields of a draft in the editor's order (`part.field`'s `field`; `tech:<key>` names a technical value).
-pub const DRAFT_FIELDS: [&str; 9] = [
-    "manufacturer",
-    "part_number",
-    "type_designation",
-    "order_number",
-    "gtin",
-    "description",
-    "kind",
-    "category",
-    "unit",
-];
+/// The identity fields of a draft in the sheet's order (`part.field`'s `field`): the declaration's fields of
+/// Identity that a person types or chooses ([`ew_derive::part_fields::PART_FIELDS`]); `tech:<key>` names a technical
+/// value.
+pub fn identity_fields() -> impl Iterator<Item = &'static str> {
+    use ew_derive::part_fields::{Entry, Form, Group, PART_FIELDS};
+    PART_FIELDS
+        .iter()
+        .filter(|f| f.group == Group::Identity && matches!(f.entry, Entry::Field | Entry::Form(Form::Maker)))
+        .map(|f| f.path)
+}
 
 /// The mounting words the Size and mounting section offers, as [`MountKind`] spells them.
 pub fn mount_words() -> Vec<String> {
     enum_words::<MountKind>()
 }
 
-/// The part kinds in doc 07 §2.5's order, as the `kind` field spells them (the part editor's Kind offers them; a test
-/// ties them to the schema's part kinds, both ways).
-pub const PART_KINDS: [&str; 16] = [
-    "device",
-    "terminal",
-    "cable",
-    "wire",
-    "ferrule",
-    "marker",
-    "duct",
-    "rail",
-    "busbar",
-    "end_bracket",
-    "enclosure",
-    "mounting_plate",
-    "tube",
-    "accessory",
-    "configured",
-    "gland",
-];
+/// The part kinds in doc 07 §2.5's order, as the `kind` field spells them: the schema's ([`PartKind`]).
+pub fn part_kinds() -> Vec<String> {
+    enum_words::<PartKind>()
+}
 
 /// One field's message: the strings key and its arguments (the shell words it).
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -90,7 +72,7 @@ pub enum PartDraftError {
 pub struct PartDraft {
     /// The held copy.
     pub copy: Uuid,
-    /// The texts of [`DRAFT_FIELDS`], in that order.
+    /// The texts of [`identity_fields`], in that order.
     pub fields: Vec<(&'static str, String)>,
     /// The technical data: (key, value text), in key order.
     pub tech: Vec<(String, String)>,
@@ -149,10 +131,17 @@ pub struct PartDraft {
     pub(crate) manufacturer: (LibRef, Vec<Value>),
 }
 
-/// The members of a bus interface row, in the form's order (`part.field`'s `bus.<row>.<member>`).
-pub const BUS_MEMBERS: [&str; 6] = ["interface", "port_label", "bus", "role", "ports", "termination"];
+/// The members of a bus interface row, in the form's order (`part.field`'s `bus.<row>.<member>`): the declaration's
+/// members of a network port that the ports' form writes.
+pub fn bus_members() -> impl Iterator<Item = &'static str> {
+    use ew_derive::part_fields::{Entry, Form, PART_FIELDS};
+    PART_FIELDS
+        .iter()
+        .filter(|f| f.entry == Entry::Form(Form::Ports))
+        .filter_map(|f| f.path.strip_prefix("sections.bus.ports[]."))
+}
 
-/// One bus interface of a draft (`PartBusPort`) as the texts of [`BUS_MEMBERS`]: `bus` and `role` as the file spells
+// One bus interface of a draft (`PartBusPort`) as the texts of [`bus_members`]: `bus` and `role` as the file spells
 /// them (`profinet`, `device`), `ports` a count or empty, `termination` `on`, `off` or empty (no switch).
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct BusRow {
@@ -171,7 +160,7 @@ pub struct BusRow {
 }
 
 impl BusRow {
-    /// The text of member `m` of [`BUS_MEMBERS`]; `""` for another.
+    /// The text of member `m` of [`bus_members`]; `""` for another.
     pub fn text(&self, m: &str) -> &str {
         match m {
             "interface" => &self.interface,
@@ -323,7 +312,7 @@ pub(crate) fn bus_section(rows: &[BusRow]) -> Result<Option<BusSection>, PartDra
     }
     let mut ports = Vec::with_capacity(rows.len());
     for (i, r) in rows.iter().enumerate() {
-        for m in BUS_MEMBERS {
+        for m in bus_members() {
             check_bus_member(&format!("bus.{i}.{m}"), m, r.text(m).trim()).map_err(PartDraftError::Field)?;
         }
         let word = |t: &str| Value::String(t.trim().to_owned());
@@ -351,7 +340,7 @@ pub(crate) fn bus_section(rows: &[BusRow]) -> Result<Option<BusSection>, PartDra
 }
 
 impl PartDraft {
-    /// The text of a field of [`DRAFT_FIELDS`], a declared row or table cell (`mech.width`, `accessories[0].qty`),
+    /// The text of a field of [`identity_fields`], a declared row or table cell (`mech.width`, `accessories[0].qty`),
     /// `tech:<key>` or `bus.<row>.<member>`; `""` for another.
     pub fn text(&self, field: &str) -> &str {
         if let Some(t) = self.row_text(field) {
@@ -474,7 +463,7 @@ impl PartDraft {
     fn recheck_bus(&mut self) {
         self.messages.retain(|m| bus_field(&m.field).is_none());
         for i in 0..self.bus.len() {
-            for m in BUS_MEMBERS {
+            for m in bus_members() {
                 let field = format!("bus.{i}.{m}");
                 let text = self.bus[i].text(m).trim().to_owned();
                 if let Err(e) = check_bus_member(&field, m, &text) {
@@ -506,7 +495,7 @@ impl PartDraft {
 fn bus_field(field: &str) -> Option<(usize, &'static str)> {
     let rest = field.strip_prefix("bus.")?;
     let (row, m) = rest.split_once('.')?;
-    let m = BUS_MEMBERS.into_iter().find(|x| *x == m)?;
+    let m = bus_members().find(|x| *x == m)?;
     Some((row.parse().ok()?, m))
 }
 
@@ -717,22 +706,24 @@ impl Session {
                 .find(|l| l.id == lib)
                 .map_or_else(|| lib.to_string(), |l| l.name)
         });
-        let fields = vec![
-            ("manufacturer", ew_derive::manufacturer_name(q, &p.manufacturer)),
-            ("part_number", p.part_number.as_str().to_owned()),
-            ("type_designation", opt_text(p.type_designation.as_ref())),
-            ("order_number", opt_text(p.order_number.as_ref())),
-            ("gtin", opt_text(p.gtin.as_ref())),
-            ("description", text_of(&p.description)),
-            ("kind", kind_word(&p.kind)),
-            (
-                "category",
-                p.category.as_ref().map_or_else(String::new, |(a, b, c)| {
-                    format!("{}/{}/{}", a.as_str(), b.as_str(), c.as_str())
-                }),
-            ),
-            ("unit", unit_word(&p.unit)),
-        ];
+        let fields = identity_fields()
+            .map(|f| {
+                let text = match f {
+                    "manufacturer" => ew_derive::manufacturer_name(q, &p.manufacturer),
+                    "part_number" => p.part_number.as_str().to_owned(),
+                    "type_designation" => opt_text(p.type_designation.as_ref()),
+                    "order_number" => opt_text(p.order_number.as_ref()),
+                    "description" => text_of(&p.description),
+                    "kind" => kind_word(&p.kind),
+                    "category" => p.category.as_ref().map_or_else(String::new, |(a, b, c)| {
+                        format!("{}/{}/{}", a.as_str(), b.as_str(), c.as_str())
+                    }),
+                    "unit" => unit_word(&p.unit),
+                    _ => String::new(),
+                };
+                (f, text)
+            })
+            .collect();
         let tech = p
             .tech_data
             .iter()
@@ -915,7 +906,7 @@ impl Session {
         let result = if let Some(key) = field.strip_prefix("tech:") {
             self.set_tech(draft, key, t)
         } else {
-            if !DRAFT_FIELDS.contains(&field) {
+            if !identity_fields().any(|f| f == field) {
                 return Err(PartDraftError::Refused(key!("error-part-field")));
             }
             draft.set_text(field, text);
@@ -962,7 +953,7 @@ impl Session {
                 }
                 ident(t).map(|_| ())
             }
-            "type_designation" | "order_number" | "gtin" | "description" => {
+            "type_designation" | "order_number" | "description" => {
                 if t.is_empty() || field == "description" {
                     Ok(())
                 } else {
@@ -1059,7 +1050,7 @@ impl Session {
         }
         // the checks again, so that a draft built by hand cannot bypass them
         let mut check = draft.clone();
-        for f in DRAFT_FIELDS {
+        for f in identity_fields() {
             let text = draft.text(f).trim().to_owned();
             self.check_field(&mut check, f, &text)
                 .map_err(PartDraftError::Field)?;
@@ -1074,7 +1065,6 @@ impl Session {
         p.part_number = Ident::from_input(&text("part_number")).expect("checked");
         p.type_designation = opt("type_designation");
         p.order_number = opt("order_number");
-        p.gtin = opt("gtin");
         let description = draft.text("description").trim().to_owned();
         if description != text_of(&p.description) {
             if p.description.is_neutral() {
@@ -1294,82 +1284,5 @@ pub(crate) fn bom_changes(before: &Q, after: &Q) -> (Vec<String>, Vec<String>, V
             after_rows.iter().map(|r| words(r)).collect(),
             Vec::new(),
         )
-    }
-}
-
-/// The edge the drawing gives each pin of the part `p` (copy `copy`), in its pins' order ([`PartDraft::drawn_faces`]).
-fn drawn_faces(q: &Q, copy: Uuid, p: &Part) -> Vec<String> {
-    let mut devices: Vec<ew_ids::Id<ew_schema::Device>> = q
-        .devices()
-        .iter()
-        .filter(|(_, d)| d.parts.iter().any(|u| u.part.copy.as_uuid() == copy))
-        .map(|(id, _)| id)
-        .collect();
-    devices.sort();
-    let mut faces: std::collections::BTreeMap<u16, ew_schema::PinFace> = std::collections::BTreeMap::new();
-    for d in devices {
-        for f in q.idx().functions_of_device(d) {
-            for cp in q.get::<ew_derive::FunctionCps>(f).iter() {
-                if let Some((idx, _)) = cp.pin {
-                    faces
-                        .entry(idx)
-                        .or_insert_with(|| ew_derive::layout::drawn_face(q, f, cp.idx));
-                }
-            }
-        }
-        if !faces.is_empty() {
-            break;
-        }
-    }
-    p.cp_pattern
-        .iter()
-        .map(|c| match faces.get(&c.idx) {
-            Some(ew_schema::PinFace::Top) => "top".to_owned(),
-            Some(ew_schema::PinFace::Bottom) => "bottom".to_owned(),
-            _ => String::new(),
-        })
-        .collect()
-}
-
-#[cfg(test)]
-mod part_kinds_tests {
-    use ew_schema::PartKind;
-    use serde_json::Value;
-
-    use super::{PART_KINDS, kind_word};
-
-    /// Every kind of [`PART_KINDS`] reads as a schema part kind and writes back the same word, and every schema
-    /// part kind (but the verbatim unknown one) is in the list, so the editor offers exactly the schema's kinds.
-    #[test]
-    fn the_part_kinds_are_the_schemas() {
-        let mut seen = Vec::new();
-        for k in PART_KINDS {
-            let kind: PartKind = serde_json::from_value(Value::String(k.to_owned())).expect(k);
-            assert!(!matches!(kind, PartKind::Unknown(_)), "{k}");
-            assert_eq!(kind_word(&kind), k);
-            seen.push(kind);
-        }
-        // Exhaustive: a new variant fails to compile here, a reminder to list it above.
-        for kind in &seen {
-            match kind {
-                PartKind::Device
-                | PartKind::Terminal
-                | PartKind::Cable
-                | PartKind::Wire
-                | PartKind::Ferrule
-                | PartKind::Marker
-                | PartKind::Duct
-                | PartKind::Rail
-                | PartKind::Busbar
-                | PartKind::EndBracket
-                | PartKind::Enclosure
-                | PartKind::MountingPlate
-                | PartKind::Tube
-                | PartKind::Accessory
-                | PartKind::Configured
-                | PartKind::Gland => {}
-                PartKind::Unknown(_) => unreachable!(),
-            }
-        }
     }
 }

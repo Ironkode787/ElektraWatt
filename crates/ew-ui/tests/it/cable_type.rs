@@ -63,7 +63,7 @@ fn a_cable_type_is_made_in_the_cable_form_and_chosen_there() {
     assert!(matches!(d.shell_mut().dialog(), Some(Dialog::Form(f)) if f.action == "cable.from_wires"));
     d.shell_mut().set_form_field("part", &entry.0);
     shown(&mut d);
-    fill(&mut d, "Manufacturer", "Generic");
+    fill(&mut d, "Maker", "Generic");
     fill(&mut d, "Type (series)", "CTRL");
     fill(&mut d, "Part number", "CTRL-4G1.5");
     fill(&mut d, "Number of cores", "4");

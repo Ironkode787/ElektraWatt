@@ -87,12 +87,12 @@ fn delete_is_disabled_with_nothing_selected() {
 /// The part editor's kind words: every offered kind reads as a word, never with an underscore.
 #[test]
 fn part_kinds_read_as_words() {
-    use ew_viewmodel::shell::part_dialog::{PART_KINDS, part_kind_word};
+    use ew_viewmodel::shell::part_dialog::{part_kind_word, part_kinds};
     assert_eq!(part_kind_word("device"), "Device");
     assert_eq!(part_kind_word("end_bracket"), "End bracket");
     assert_eq!(part_kind_word("mounting_plate"), "Mounting plate");
     assert_eq!(part_kind_word(""), "");
-    assert!(PART_KINDS.iter().all(|k| !part_kind_word(k).contains('_')));
+    assert!(part_kinds().iter().all(|k| !part_kind_word(k).contains('_')));
 }
 
 /// The Place tool's HUD names the symbol in words, not by its key.

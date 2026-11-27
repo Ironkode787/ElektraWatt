@@ -118,10 +118,7 @@ mod part_cable;
 mod part_editor;
 mod part_rows;
 mod stock;
-pub use part_rows::{
-    DraftRow, DraftTable, HOLE_KIND, HOLE_SIZE, PART_SECTIONS, PartRow, PartSection, PartTable, Shown,
-    part_section,
-};
+pub use part_rows::{DraftRow, DraftTable, HOLE_KIND, HOLE_SIZE};
 pub use stock::StockRow;
 mod part_new;
 mod part_offers;
@@ -172,8 +169,8 @@ pub use macros::{InsertAt, MacroConflict, MacroError, MacroScope, MacroSpec, Mac
 pub use page_copy::{CopyFolios, PageCopyPlan, PageCopySpec};
 pub use part_cable::{CABLE_MARKINGS, CABLE_MEMBERS, CableRows};
 pub use part_editor::{
-    BUS_MEMBERS, BusRow, DRAFT_FIELDS, MAX_PORTS, PART_KINDS, PartDraft, PartDraftError, RedrawnBox,
-    bus_words, mount_words, role_words,
+    BusRow, MAX_PORTS, PartDraft, PartDraftError, RedrawnBox, bus_members, bus_words, identity_fields, mount_words,
+    part_kinds, role_words,
 };
 pub use part_new::{NewPart, RemovedPart};
 pub use part_offers::{Fit, OfferMisfit, OfferView, PartOffer, PartOfferQuery, PartPick, PartTarget};
@@ -214,6 +211,7 @@ pub struct UndrawnImage {
 
 /// The check engine (`ew check`, the message panel, the migration report): rules, schemes, findings.
 pub use ew_checks as checks;
+pub use ew_derive::part_fields;
 pub use ew_derive::{BomMode, DeriveNote, MemoStore};
 pub use ew_derive::{LabelColumn, LabelSet, ReworkAction};
 /// The layout of a schematic page: the page as it sees it (`Session::page_draft`), its measure and its text placer
@@ -327,10 +325,12 @@ pub fn text_sources() -> impl Iterator<Item = (&'static str, &'static str)> {
         .copied()
 }
 
-/// Whether `key` is a key of the session's text files or of those of `ew-commands`: the window names some of them
-/// too, and its `key!` checks them when the code is built.
+/// Whether `key` is a key of the session's text files or of those of `ew-commands` and `ew-derive`: the window names
+/// some of them too (a refusal, a part's field), and its `key!` checks them when the code is built.
 pub const fn has_text(key: &str) -> bool {
-    text_english(key).is_some() || ew_commands::text_english(key).is_some()
+    text_english(key).is_some()
+        || ew_commands::text_english(key).is_some()
+        || ew_derive::text_english(key).is_some()
 }
 
 use ew_commands::commands::PurgeAssets;

@@ -412,28 +412,22 @@ impl Session {
         })
     }
 
-    /// The layout kinds a part dialog for `devices` offers: an enclosure and a mounting plate only when every device has
-    /// no main function; an end bracket never (a strip's end brackets come with its terminals' parts, doc 07 §2.5), a
-    /// rail and a duct never (they are layout items, not part uses of a device). Empty when `devices` is empty or one
-    /// names no device.
-    pub fn chooser_layout_kinds(&self, devices: &[Uuid]) -> Vec<String> {
-        if devices.is_empty() {
-            return Vec::new();
+    /// Whether a part dialog for `devices` offers a part of kind `kind` (as the file spells it): an enclosure and a
+    /// mounting plate only when every device has no main function; an end bracket never (a strip's end brackets come
+    /// with its terminals' parts, doc 07 §2.5), a rail and a duct never (they are layout items, not part uses of a
+    /// device); any other kind always. No layout kind when `devices` is empty or one names no device.
+    pub fn chooser_takes_kind(&self, devices: &[Uuid], kind: &str) -> bool {
+        match serde_json::from_value::<PartKind>(serde_json::Value::String(kind.to_owned())) {
+            Ok(PartKind::Enclosure | PartKind::MountingPlate) => {
+                let q = self.query();
+                !devices.is_empty()
+                    && devices.iter().all(|d| {
+                        q.devices().get(Id::<Device>::from_uuid(*d)).is_some() && self.main_function(*d).is_none()
+                    })
+            }
+            Ok(PartKind::EndBracket | PartKind::Rail | PartKind::Duct) => false,
+            _ => true,
         }
-        let q = self.query();
-        let exists = |d: &Uuid| {
-            let id: Id<Device> = Id::from_uuid(*d);
-            q.devices().get(id).cloned()
-        };
-        if devices.iter().map(exists).any(|d| d.is_none()) {
-            return Vec::new();
-        }
-        let mut kinds: Vec<&str> = Vec::new();
-        if devices.iter().all(|d| self.main_function(*d).is_none()) {
-            kinds.push("enclosure");
-            kinds.push("mounting_plate");
-        }
-        kinds.into_iter().map(str::to_owned).collect()
     }
 
     /// The part selection dialog's list: the project's part copies and the catalogue hits, one row per

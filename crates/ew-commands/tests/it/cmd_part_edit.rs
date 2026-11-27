@@ -268,14 +268,6 @@ fn every_refusal_has_its_pointer() {
         (edit(id(0xdead), item(), None), "/copy"),
         (edit(local.id, json!("a part"), None), "/part"),
         (
-            edit(
-                local.id,
-                with("free_props", json!([{"key": "colour", "value": "grey"}])),
-                None,
-            ),
-            "/part",
-        ),
-        (
             edit(local.id, with("manufacturer", Value::Null), None),
             "/part/manufacturer",
         ),
@@ -325,8 +317,8 @@ fn every_refusal_has_its_pointer() {
         let err = e.preview(&cmd).map(|_| ()).unwrap_err();
         assert_eq!(pointer(err), at, "{cmd:?}");
     }
-    // A project-local copy takes a new CP pattern (the part editor's PLC form) and new mechanical data (Size and
-    // mounting, Front view and holes).
+    // Any member of a part changes: a project-local copy takes a new CP pattern, new mechanical data, new contact
+    // data and new free properties, and a library copy's fork new mechanical data (no list of members is fixed).
     let pins = edit(
         local.id,
         with("cp_pattern", json!([{"idx": 1, "designation": "1"}])),
@@ -339,6 +331,24 @@ fn every_refusal_has_its_pointer() {
         None,
     );
     assert!(e.preview(&mech).is_ok(), "a local copy's size changes");
+    let contacts = edit(
+        local.id,
+        with("contacts", json!([{"kind": "no", "cps": ["13", "14"]}])),
+        None,
+    );
+    assert!(e.preview(&contacts).is_ok(), "a local copy's contacts change");
+    let props = edit(
+        local.id,
+        with("free_props", json!([{"key": "colour", "value": "grey"}])),
+        None,
+    );
+    assert!(e.preview(&props).is_ok(), "a local copy's free properties change");
+    let mut mcb = serde_json::to_value(&copy_of(&e, PART_MCB).unwrap().item).unwrap();
+    mcb["mech"] = json!({"width": 18_000_000, "height": 90_000_000});
+    assert!(
+        e.preview(&edit(PART_MCB, mcb, Some(FORK))).is_ok(),
+        "a library copy's fork takes a new size"
+    );
     // A document of `copies` that does not read as a library document.
     let mut bad_copies = edit(local.id, described(&local, "x"), None);
     bad_copies.copies = vec![json!({"$k": "part"})];

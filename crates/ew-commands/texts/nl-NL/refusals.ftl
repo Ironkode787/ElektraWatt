@@ -921,7 +921,6 @@ refusal-part-edit-no-manufacturer = een artikel heeft een fabrikant nodig
 refusal-part-edit-no-number = een artikel heeft een artikelnummer nodig
 refusal-part-edit-local-fork = een projecteigen kopie wordt ter plekke bewerkt; geef geen `fork`
 refusal-part-edit-not-object = geen artikelitem: geef de velden van het artikel als object
-refusal-part-edit-fixed-members = alleen de identiteit, de omschrijving, de categorie, de eenheid, de technische gegevens, de pennen, het functiesjabloon en de apparaatkast kunnen worden bewerkt, en van een projecteigen artikel ook zijn secties
 refusal-part-edit-tech-data-list = de technische gegevens zijn een lijst
 refusal-part-edit-unit = de eenheid is piece, m of set
 # parts.import.
