@@ -524,6 +524,12 @@ pub const ARMS: &[Arm] = &[
         weight: 1,
         build: layout_route,
     },
+    // Last, so that the arms before it keep their seeds.
+    Arm {
+        command: "part.keep",
+        weight: 1,
+        build: part_keep,
+    },
 ];
 
 /// The representation types a page type allows (`allowed_rep_types` of `ew-commands`, in JSON form).

@@ -232,8 +232,9 @@ pub(super) fn part_assign(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 }
 
 /// `part.edit_copy` (Bulk): a held project-local part copy (the fuzz runs' project holds one) edited in place with a new
-/// description. Refused: a copy the project does not hold, a fork for a project-local copy, a changed CP pattern, an
-/// empty part number, the unit `pcs`, a technical key twice, and the unchanged item.
+/// description, or with a new CP pattern (taken, or refused where something is connected to a pin it takes away).
+/// Refused: a copy the project does not hold, a copy of the starter parts (a person makes his own from it), a fork for
+/// a project-local copy, an empty part number, the unit `pcs`, a technical key twice, and the unchanged item.
 pub(super) fn part_edit_copy(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     // Only a project-local copy is edited in place: the arm picks among those, so that the share of its steps does not
     // fall as the sample holds more library copies.
@@ -273,6 +274,22 @@ pub(super) fn part_edit_copy(live: &Live, rng: &mut SplitMix64) -> Option<Step> 
         )),
         // Either: an earlier step may have edited the copy, so its own template is no longer the held item.
         6 => Some(cmd(json!({"copy": held, "part": item}))),
+        7 => {
+            let starter = ew_schema::starter::parts_library().to_string();
+            let held: Vec<&(Value, Value)> = live
+                .fixture
+                .part_json
+                .iter()
+                .filter(|(_, t)| t["library_id"].as_str() == Some(starter.as_str()))
+                .collect();
+            let (copy, template) = *rng.pick(&held)?;
+            let mut part = template.as_object()?.clone();
+            for k in ["$k", "$v", "id", "library_id", "item_id", "version", "sha256"] {
+                part.remove(k);
+            }
+            part.insert("description".to_owned(), json!("x"));
+            Some(cmd(json!({"copy": copy, "part": part, "fork": rng.uuid()})).refuse())
+        }
         _ => {
             let description = format!("fuzz {}", &rng.uuid()[..8]);
             let (id, text) = (held.clone(), description.clone());
@@ -525,4 +542,44 @@ pub(super) fn parts_import(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             )
         }
     }
+}
+
+/// `part.keep` (Keep in my parts): a part copy of the project kept as the copy of the same item in another library (the
+/// kept copy relineaged, as My parts would hold it): the project holds the kept copy, and no device's part use names
+/// the old one afterwards. Refused: an old copy the project does not hold.
+pub(super) fn part_keep(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let (held, template) = rng.pick(&live.fixture.part_json)?;
+    let to = relineaged(template, &rng.uuid(), template["item_id"].as_str()?)?;
+    let to_id = to["id"].clone();
+    if rng.below(8) == 0 {
+        return Some(
+            Step::cmd(
+                "part.keep",
+                json!({"from": rng.uuid(), "to": to_id, "copies": [to]}),
+            )
+            .refuse(),
+        );
+    }
+    let (from, kept) = (held.clone(), to_id.clone());
+    Some(
+        Step::cmd(
+            "part.keep",
+            json!({"from": held, "to": to_id, "copies": [to]}),
+        )
+        .check(move |_, after| {
+            let from = typed::<ew_schema::Part>(&from).ok_or("a copy ID")?;
+            let kept = typed::<ew_schema::Part>(&kept).ok_or("a copy ID")?;
+            if !after.parts().contains(kept) {
+                return Err("the project does not hold the kept copy".to_owned());
+            }
+            match after
+                .devices()
+                .iter()
+                .find(|(_, d)| d.parts.iter().any(|u| u.part.copy == from))
+            {
+                Some((id, _)) => Err(format!("device {id} still uses the old copy")),
+                None => Ok(()),
+            }
+        }),
+    )
 }
