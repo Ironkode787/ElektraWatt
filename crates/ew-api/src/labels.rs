@@ -290,7 +290,10 @@ impl Session {
                     .iter()
                     .filter(|l| l.set == file.set && l.marker_part == file.marker_part && keep(l))
             };
-            let misfits = of_file().filter(|l| !l.fits).map(|l| l.lines.join(" / ")).collect();
+            let misfits = of_file()
+                .filter(|l| !l.fits)
+                .map(|l| l.lines.join(" / "))
+                .collect();
             // The labels to print: each row as many times as its Copies, as the consumables order them.
             let count = of_file().map(|l| usize::from(l.copies)).sum();
             let all: Vec<Vec<String>> = std::iter::once(file.header.clone())
