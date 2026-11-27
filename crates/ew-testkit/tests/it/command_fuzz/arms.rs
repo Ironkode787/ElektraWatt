@@ -306,10 +306,11 @@ pub const ARMS: &[Arm] = &[
         weight: 1,
         build: project_company_set,
     },
-    // With the drawing settings, the frame defaults, the languages and the supply's members (weights 1, 1, 1, 2).
+    // With the drawing settings, the frame defaults, the languages, the supply's members, the cut increment and the hole
+    // settings (weights 1, 1, 1, 2, 1, 1).
     Arm {
         command: "project.settings.set",
-        weight: 6,
+        weight: 8,
         build: project_settings_set,
     },
     Arm {
@@ -529,12 +530,6 @@ pub const ARMS: &[Arm] = &[
         command: "part.keep",
         weight: 1,
         build: part_keep,
-    },
-    // After it, for the same reason: the workshop's hole settings.
-    Arm {
-        command: "project.settings.set",
-        weight: 1,
-        build: workshop_hole_set,
     },
 ];
 

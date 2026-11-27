@@ -48,14 +48,16 @@ fn member_step(member: &str, value: Value) -> Step {
 }
 
 /// `project.settings.set`: a member of the settable table, the drawing settings, the frame defaults, the languages, a
-/// member of the supply or the workshop's cut increment, by the weights 1, 1, 1, 1, 2 and 1.
+/// member of the supply, the workshop's cut increment or a hole setting of the workshop, by the weights 1, 1, 1, 1, 2, 1
+/// and 1.
 pub(super) fn project_settings_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
-    match rng.below(7) {
+    match rng.below(8) {
         0 => settings_member_set(live, rng),
         1 => project_drawing_set(live, rng),
         2 => project_frames_set(live, rng),
         3 => project_languages_set(live, rng),
         4 => workshop_cut_set(rng),
+        5 => workshop_hole_set(live, rng),
         _ => project_supply_set(live, rng),
     }
 }

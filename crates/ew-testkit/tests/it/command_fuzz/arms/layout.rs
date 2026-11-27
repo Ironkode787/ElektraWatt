@@ -872,7 +872,14 @@ pub(super) fn workshop_hole_set(_live: &Live, rng: &mut SplitMix64) -> Option<St
         0 => cmd("min_web".into(), json!(0)).refuse(),
         1 => cmd(format!("{fixing}.pitch"), json!(0)).refuse(),
         2 => cmd("datum".into(), json!("nowhere")).refuse(),
-        3 => cmd("fixing".into(), if rng.chance(2) { json!("through") } else { Value::Null }),
+        3 => cmd(
+            "fixing".into(),
+            if rng.chance(2) {
+                json!("through")
+            } else {
+                Value::Null
+            },
+        ),
         4 => cmd(
             format!("{fixing}.screw"),
             serde_json::to_value(rng.pick(&ew_schema::Screw::ALL)?).ok()?,
