@@ -891,3 +891,5 @@ change here.
 - text-change: in Dutch the cut list is the Afkortlijst everywhere it is named (the list's title and file name, Output ▸
   Werkplaats ▸ Afkortlijst openen and its bar label, the package's member, the guide), the tube cut list the
   Slangenafkortlijst, and the cut increment Afkorten op; it was the Zaaglijst and Afzagen op
+- behaviour-change: a page drawn to scale prints "Schaal 1:5" after its title in a Dutch project, also where the title
+  was typed as one text; it printed "Scale 1:5" there

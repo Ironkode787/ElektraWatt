@@ -34,7 +34,8 @@ junction-in = de aftakking in { $p0 }
 
 medium-vacuum = vacuüm (uit { $p0 })
 medium-mixed = gemengd
-title-scale = Schaal
+title-scale = Schaal { $p0 }
+title-scaled = { $p0 } · Schaal { $p1 }
 medium-exhaust = afvoer
 
 ## A PLC channel, as the fluid findings name it

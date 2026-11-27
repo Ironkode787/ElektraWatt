@@ -37,9 +37,10 @@ medium-vacuum = vacuum (from { $p0 })
 medium-exhaust = exhaust
 medium-mixed = mixed
 
-## The word before a page's scale in its title block ("Scale 1:10")
+## A page's scale after its title in its title block ("Panel layout · Scale 1:10")
 
-title-scale = Scale
+title-scale = Scale { $p0 }
+title-scaled = { $p0 } · Scale { $p1 }
 
 ## A PLC channel, as the fluid findings name it
 

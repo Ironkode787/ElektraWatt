@@ -55,7 +55,7 @@ its own memo family (`page_display_list_surface`, `_carriers`, `_placements` and
 that `ew-api` fills from the layout queries; `features` and `dims` are empty until 1.0, and the `tables` layer of a
 panel page draws its embedded blocks as on any page. The projection divides by the frame's page-to-sheet
 factor, so the page's scale holds on paper; the title block's `page.title` on a page of scale 1:n reads "<title> ·
-Scale 1:n". A placement move rebuilds `placements`, `labels` and `carriers` (the labels knock out the carriers),
+Scale 1:n" in the language the page prints in ("Schaal 1:n" in Dutch, a title typed as one text too). A placement move rebuilds `placements`, `labels` and `carriers` (the labels knock out the carriers),
 never `frame` or `tables` ([12](12-panel-layout.md) §5.1 to §5.3).
 
 The `tables` layer draws every embedded

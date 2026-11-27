@@ -231,31 +231,34 @@ fn project_scope(out: &mut Out, q: &Q, project: &Project) {
     }
 }
 
-/// The title-block title of a page drawn to scale 1:n: `"<title> · <Scale> 1:n"` in every language of
-/// the title, `"<Scale> 1:n"` for an empty title. The word (`title-scale`) follows each language entry's primary
-/// subtag: the Dutch for `nl`, else the English (a neutral title too).
+/// The title-block title of a page drawn to scale 1:n, by the texts `title-scale` (`"Scale 1:n"`, for an empty title)
+/// and `title-scaled` (`"<title> · Scale 1:n"`), each in the language it prints in: a title typed as one text gets them
+/// in every language of the program, so that a Dutch project prints "Schaal"; a title in several languages gets them in
+/// each entry's own (the Dutch for a primary subtag `nl`, else the English).
 fn scaled_title(title: &MlText, n: u32) -> MlText {
-    let words = crate::text::in_languages(&text!("title-scale"));
-    let with = |lang: &str, t: &str| {
-        let tag = if lang.eq_ignore_ascii_case("nl") {
-            "nl-NL"
+    let ratio = format!("1:{n}");
+    let words = |t: &str| {
+        crate::text::in_languages(&if t.is_empty() {
+            text!("title-scale", ratio.clone())
         } else {
-            "en-GB"
-        };
-        let word = words
-            .get(&tag.parse().expect("a language tag"))
-            .unwrap_or_default();
-        if t.is_empty() {
-            format!("{word} 1:{n}")
-        } else {
-            format!("{t} · {word} 1:{n}")
-        }
+            text!("title-scaled", t.to_owned(), ratio.clone())
+        })
     };
     match title.view() {
-        ew_mltext::MlTextView::Neutral(t) => MlText::neutral(&with("", t)),
-        ew_mltext::MlTextView::Langs(m) => {
-            MlText::from_langs(m.iter().map(|(tag, t)| (tag.clone(), with(tag.language(), t))))
-        }
+        ew_mltext::MlTextView::Neutral(t) => words(t),
+        ew_mltext::MlTextView::Langs(m) => MlText::from_langs(m.iter().map(|(tag, t)| {
+            let own = if tag.language().eq_ignore_ascii_case("nl") {
+                "nl-NL"
+            } else {
+                "en-GB"
+            };
+            let in_all = words(t);
+            let text = in_all
+                .get(&own.parse().expect("a language tag"))
+                .unwrap_or_default()
+                .to_owned();
+            (tag.clone(), text)
+        })),
     }
 }
 
@@ -609,16 +612,15 @@ mod tests {
     // The title-block value of a page drawn to scale 1:n.
     #[test]
     fn a_scaled_page_title_reads_title_dot_scale_in_every_language() {
-        assert_eq!(
-            scaled_title(&MlText::neutral("Cabinet Layout"), 10),
-            MlText::neutral("Cabinet Layout · Scale 1:10")
-        );
-        assert_eq!(
-            scaled_title(&MlText::neutral(""), 5),
-            MlText::neutral("Scale 1:5")
-        );
         let en: LangTag = "en-GB".parse().expect("a tag");
         let nl: LangTag = "nl-NL".parse().expect("a tag");
+        // A title typed as one text reads its scale in the language the page prints in.
+        let typed = scaled_title(&MlText::neutral("Cabinet Layout"), 10);
+        assert_eq!(typed.get(&en), Some("Cabinet Layout · Scale 1:10"));
+        assert_eq!(typed.get(&nl), Some("Cabinet Layout · Schaal 1:10"));
+        let empty = scaled_title(&MlText::neutral(""), 5);
+        assert_eq!(empty.get(&en), Some("Scale 1:5"));
+        assert_eq!(empty.get(&nl), Some("Schaal 1:5"));
         let title = MlText::from_langs([(en.clone(), "Cabinet Layout"), (nl.clone(), "Kastindeling")]);
         let scaled = scaled_title(&title, 10);
         assert_eq!(scaled.get(&en), Some("Cabinet Layout · Scale 1:10"));
