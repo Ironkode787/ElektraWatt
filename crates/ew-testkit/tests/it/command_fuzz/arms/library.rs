@@ -234,7 +234,8 @@ pub(super) fn part_assign(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 /// `part.edit_copy` (Bulk): a held project-local part copy (the fuzz runs' project holds one) edited in place with a new
 /// description, or with a new CP pattern (taken, or refused where something is connected to a pin it takes away).
 /// Refused: a copy the project does not hold, a copy of the starter parts (a person makes his own from it), a fork for
-/// a project-local copy, an empty part number, the unit `pcs`, a technical key twice, and the unchanged item.
+/// a project-local copy, an empty part number, the unit `pcs`, a technical key twice, the unchanged item, and a box to
+/// draw anew (`redraw`) that does not exist; a box of the page drawn anew as it stands goes with an edit or not.
 pub(super) fn part_edit_copy(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     // Only a project-local copy is edited in place: the arm picks among those, so that the share of its steps does not
     // fall as the sample holds more library copies.
@@ -257,7 +258,7 @@ pub(super) fn part_edit_copy(live: &Live, rng: &mut SplitMix64) -> Option<Step> 
         p
     };
     let cmd = |p: Value| Step::cmd("part.edit_copy", p);
-    match rng.below(10) {
+    match rng.below(12) {
         0 => Some(cmd(json!({"copy": rng.uuid(), "part": item})).refuse()),
         1 => Some(cmd(
             json!({"copy": held, "part": with("description", json!("x")), "fork": rng.uuid()}),
@@ -289,6 +290,22 @@ pub(super) fn part_edit_copy(live: &Live, rng: &mut SplitMix64) -> Option<Step> 
             }
             part.insert("description".to_owned(), json!("x"));
             Some(cmd(json!({"copy": copy, "part": part, "fork": rng.uuid()})).refuse())
+        }
+        // Refused: a box to draw anew that does not exist, whatever the edit.
+        8 => {
+            let redraw = json!([{"rep": rng.uuid(), "outline": [[0, 0], [8_000_000, 0], [8_000_000, 8_000_000], [0, 8_000_000]]}]);
+            Some(
+                cmd(json!({"copy": held, "part": with("description", json!("x")), "redraw": redraw}))
+                    .refuse(),
+            )
+        }
+        // Either: a box of the page drawn anew as it stands, in the edit's step.
+        9 => {
+            let redraw = redraw_as_it_stands(live, rng)?;
+            let description = format!("fuzz {}", &rng.uuid()[..8]);
+            Some(cmd(
+                json!({"copy": held, "part": with("description", json!(description)), "redraw": redraw}),
+            ))
         }
         _ => {
             let description = format!("fuzz {}", &rng.uuid()[..8]);
@@ -401,8 +418,9 @@ pub(super) fn macro_insert(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 /// `library.update` (Bulk): a held part copy replaced by another version with another description.
 /// Refused: no copies, a copy the project does not hold, a version that is not semantic, a copy twice, a mapping for a
 /// copy not given, a CP mapping that is not injective (an old CP twice, or two old CPs onto one new), a version that
-/// names a manufacturer the project does not hold without embedding it. The version is drawn at random, so
-/// an update may be a downgrade of an earlier one: either.
+/// names a manufacturer the project does not hold without embedding it, a box to draw anew (`redraw`) that does not
+/// exist. The version is drawn at random, so an update may be a downgrade of an earlier one: either; so is an update
+/// that draws a box of the page anew as it stands.
 pub(super) fn library_update(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let (held, template) = rng.pick(&live.fixture.part_json)?;
     let library = template["library_id"].as_str()?.to_owned();
@@ -414,7 +432,7 @@ pub(super) fn library_update(live: &Live, rng: &mut SplitMix64) -> Option<Step> 
         t["description"] = json!(format!("fuzz {}", &rng.uuid()[..8]));
         relineaged(&t, &library, &item)
     };
-    match rng.below(10) {
+    match rng.below(12) {
         0 => Some(cmd(json!({"copies": []}))),
         1 => {
             let c = relineaged(template, &rng.uuid(), &rng.uuid())?;
@@ -457,6 +475,18 @@ pub(super) fn library_update(live: &Live, rng: &mut SplitMix64) -> Option<Step> 
             t["manufacturer"]["item"] = json!(rng.uuid());
             let c = relineaged(&t, &library, &item)?;
             Some(cmd(json!({"copies": [c]})).refuse())
+        }
+        // Refused: a box to draw anew that does not exist.
+        7 => {
+            let c = next(rng, "9.0.0".to_owned())?;
+            let redraw = json!([{"rep": rng.uuid(), "outline": [[0, 0], [8_000_000, 0], [8_000_000, 8_000_000], [0, 8_000_000]]}]);
+            Some(cmd(json!({"copies": [c], "redraw": redraw})).refuse())
+        }
+        // Either: a box of the page drawn anew as it stands, after the copies are in.
+        8 => {
+            let c = next(rng, "9.0.0".to_owned())?;
+            let redraw = redraw_as_it_stands(live, rng)?;
+            Some(cmd(json!({"copies": [c], "redraw": redraw})))
         }
         _ => {
             let minor = rng.below(50);
@@ -578,4 +608,11 @@ pub(super) fn part_keep(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             }
         }),
     )
+}
+
+/// The `redraw` of `library.update` and `part.edit_copy`: a box of the page drawn anew as it stands, as `box.reshape`
+/// takes it (its outline unchanged, its pins re-projected onto it).
+fn redraw_as_it_stands(live: &Live, rng: &mut SplitMix64) -> Option<Value> {
+    let b = rng.pick(&live.box_infos)?;
+    Some(json!([{"rep": b.rep, "outline": b.outline}]))
 }
