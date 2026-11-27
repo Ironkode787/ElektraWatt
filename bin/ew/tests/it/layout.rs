@@ -150,6 +150,55 @@ fn route_routes_a_page_saves_it_and_then_has_nothing_to_do() {
     );
 }
 
+/// `ew route --page 902` after -103F1 moved to +FLD: its wires are made on site, so Route lays nothing, yet it removes
+/// their stored ways and saves (`--dry-run` says it would and stores nothing); after it only every wire has its way.
+#[test]
+fn route_that_lays_nothing_removes_the_ways_of_wires_the_cabinet_no_longer_lays() {
+    let t = Tmp::new("ew-layout-gone");
+    let p = t.sample("sample.ew").to_string_lossy().into_owned();
+    let layout = || {
+        std::fs::read_dir(Path::new(&p).join("layout"))
+            .unwrap()
+            .map(|e| std::fs::read_to_string(e.unwrap().path()).unwrap())
+            .collect::<String>()
+    };
+    let fld = std::fs::read_to_string(Path::new(&p).join("structure.jsonl"))
+        .unwrap()
+        .lines()
+        .filter_map(|l| serde_json::from_str::<serde_json::Value>(l).ok())
+        .find(|v| v["code"] == "FLD")
+        .and_then(|v| v["id"].as_str().map(str::to_owned))
+        .expect("+FLD");
+    let log = t.0.join("fld.ewcmd");
+    std::fs::write(
+        &log,
+        format!(
+            "{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"-103F1 to the field\"}}\n{}\n",
+            serde_json::json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-103F1"}],
+                "path": "structure.location", "value": fld}})
+        ),
+    )
+    .unwrap();
+    let o = t.ew(&["apply", &p, &log.to_string_lossy()]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let stored = layout();
+    let o = t.ew(&["route", &p, "--page", "902", "--dry-run"]);
+    let text = stdout(&o);
+    assert!(
+        text.starts_with("Every wire of +CAB has its way.\nWould remove ")
+            && text.ends_with(" ways of wires +CAB no longer lays.\n"),
+        "{text}{}",
+        stderr(&o)
+    );
+    assert_eq!(layout(), stored, "a dry run stores nothing");
+    let o = t.ew(&["route", &p, "--page", "902", "--json"]);
+    let json: results::RouteResult = serde_json::from_str(&stdout(&o)).unwrap();
+    assert!(json.saved, "{json:?}{}", stderr(&o));
+    assert_ne!(layout(), stored, "the leftovers are removed");
+    let o = t.ew(&["route", &p, "--page", "902"]);
+    assert_eq!(stdout(&o), "Every wire of +CAB has its way.\n", "{}", stderr(&o));
+}
+
 /// `ew route --page 902`, the sample's panel page: the sample is routed, so Route has nothing to do and the wire list
 /// prints a routed wire's length. Duct 1 made 80 mm high stales the ways through it: Route lays them again and stores
 /// them (`--dry-run` stores nothing), after which it has nothing to do again.

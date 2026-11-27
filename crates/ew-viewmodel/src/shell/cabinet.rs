@@ -217,8 +217,10 @@ impl ShellModel {
             Some(Err(e)) => return super::tools::command_failed(&e, &Value::Null),
             None => return Outcome::refused(key!("reason-route-page")),
         };
-        // Nothing is due: the toast says so and the card opens with its tick set, every wire planned again.
-        if !all && route.lengths.is_empty() && route.typed.is_empty() && route.without.is_empty() {
+        // Nothing is due: the toast says so and the card opens with its tick set, every wire planned again. Ways of wires
+        // the cabinet no longer lays are a change of their own: the card removes them.
+        let lays = route.lengths.len() + route.typed.len();
+        if !all && lays == 0 && route.without.is_empty() && route.gone == 0 {
             let text = strings::format(key!("toast-cabinet-all-hold"), &[&route.cabinet]);
             self.notify(text, false);
             return self.cabinet_route_card(folio, true);
@@ -229,11 +231,15 @@ impl ShellModel {
         } else {
             count_key!("cabinet-route-lead")
         };
-        let lead = strings::format_counted(
-            lead_key,
-            route.lengths.len() + route.typed.len(),
-            &[&route.cabinet, &route.site.len().to_string()],
-        );
+        let lead = if lays == 0 && route.gone > 0 {
+            strings::format_counted(
+                count_key!("cabinet-route-lead-gone"),
+                route.gone,
+                &[&route.cabinet],
+            )
+        } else {
+            strings::format_counted(lead_key, lays, &[&route.cabinet, &route.site.len().to_string()])
+        };
         let params = route.command.params.clone();
         self.preview_host_card_as(
             "layout.route",
@@ -270,16 +276,22 @@ impl ShellModel {
         self.cabinet_route_card(&folio, all)
     }
 
-    /// Apply on a cabinet card: the plan is stored in one step, and the toast says what it routed.
+    /// Apply on a cabinet card: the plan is stored in one step, and the toast says what it routed, or the ways it
+    /// removed when it routed nothing.
     pub(super) fn apply_cabinet_card(&mut self, card: Card) -> Outcome {
         let CardOrigin::Cabinet(c) = &card.origin else {
             return Outcome::Done;
         };
         let routed = c.route.lengths.len() + c.route.typed.len();
+        let gone = c.route.gone;
         let cabinet = c.route.cabinet.clone();
         let out = self.apply_bulk_card(card);
         if out == Outcome::Done {
-            let text = strings::format_counted(count_key!("toast-cabinet-routed"), routed, &[&cabinet]);
+            let text = if routed == 0 && gone > 0 {
+                strings::format_counted(count_key!("toast-cabinet-gone"), gone, &[&cabinet])
+            } else {
+                strings::format_counted(count_key!("toast-cabinet-routed"), routed, &[&cabinet])
+            };
             self.notify(text, true);
         }
         out

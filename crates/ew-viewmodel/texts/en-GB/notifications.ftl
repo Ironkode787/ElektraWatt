@@ -581,6 +581,10 @@ toast-cabinet-routed = { $p0 ->
         [one] Routed 1 wire of { $p1 }
        *[other] Routed { $p0 } wires of { $p1 }
     }.
+toast-cabinet-gone = { $p0 ->
+        [one] Removed 1 way of a wire { $p1 } no longer lays
+       *[other] Removed { $p0 } ways of wires { $p1 } no longer lays
+    }.
 toast-cabinet-all-hold = Every wire of { $p0 } has its way.
 toast-layout-turned = Turned { $p0 }.
 toast-layout-moved = Moved { $p0 }.

@@ -533,6 +533,10 @@ toast-cabinet-routed = { $p0 ->
         [one] 1 draad van { $p1 } gerouteerd
        *[other] { $p0 } draden van { $p1 } gerouteerd
     }.
+toast-cabinet-gone = { $p0 ->
+        [one] 1 loop verwijderd van een draad die { $p1 } niet meer legt
+       *[other] { $p0 } lopen verwijderd van draden die { $p1 } niet meer legt
+    }.
 toast-cabinet-all-hold = Elke draad van { $p0 } heeft zijn loop.
 toast-layout-turned = { $p0 } gedraaid.
 toast-layout-moved = { $p0 } verplaatst.

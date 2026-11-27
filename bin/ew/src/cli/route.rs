@@ -234,8 +234,22 @@ fn route_cabinet(mut session: ew_api::Session, folio: &str, a: &RouteArgs, io: &
             name(w)
         ));
     }
+    // The ways of wires the cabinet no longer lays go with this run, whatever else it does.
+    if card.gone > 0 {
+        let verb = if a.dry_run { "Would remove" } else { "Removed" };
+        let ways = if card.gone == 1 {
+            "1 way of a wire".to_owned()
+        } else {
+            format!("{} ways of wires", card.gone)
+        };
+        text.push_str(&format!(
+            "{verb} {ways} {} no longer lays.
+",
+            card.cabinet
+        ));
+    }
     let mut saved = false;
-    if !a.dry_run && !routed.is_empty() {
+    if !a.dry_run && (!routed.is_empty() || card.gone > 0) {
         if let Err(e) = session.commit(preview) {
             io.error(format_args!("folio {folio}: {e}; nothing was saved"));
             return 2;

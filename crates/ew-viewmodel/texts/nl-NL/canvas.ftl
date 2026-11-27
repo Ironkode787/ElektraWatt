@@ -681,6 +681,10 @@ cabinet-route-lead-one-site = { $p0 ->
         [one] Routeren: kast { $p1 }. 1 draad krijgt een loop door de kabelgoot; 1 wordt ter plaatse gemaakt. Er is nog niets veranderd.
        *[other] Routeren: kast { $p1 }. { $p0 } draden krijgen een loop door de kabelgoot; 1 wordt ter plaatse gemaakt. Er is nog niets veranderd.
     }
+cabinet-route-lead-gone = { $p0 ->
+        [one] Routeren: kast { $p1 }. 1 loop van een draad die deze kast niet meer legt, wordt verwijderd. Er is nog niets veranderd.
+       *[other] Routeren: kast { $p1 }. { $p0 } lopen van draden die deze kast niet meer legt, worden verwijderd. Er is nog niets veranderd.
+    }
 cabinet-route-ducts = Per kabelgoot
 cabinet-route-lengths = Lengtes
 cabinet-route-typed = Met de hand getypt

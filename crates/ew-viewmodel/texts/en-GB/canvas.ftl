@@ -729,6 +729,10 @@ cabinet-route-lead-one-site = { $p0 ->
         [one] Route: cabinet { $p1 }. 1 wire gets a way through the ducts; 1 is made on site. Nothing has changed yet.
        *[other] Route: cabinet { $p1 }. { $p0 } wires get a way through the ducts; 1 is made on site. Nothing has changed yet.
     }
+cabinet-route-lead-gone = { $p0 ->
+        [one] Route: cabinet { $p1 }. 1 way of a wire this cabinet no longer lays is removed. Nothing has changed yet.
+       *[other] Route: cabinet { $p1 }. { $p0 } ways of wires this cabinet no longer lays are removed. Nothing has changed yet.
+    }
 cabinet-route-ducts = Ducts
 cabinet-route-lengths = Lengths
 cabinet-route-typed = Typed by hand

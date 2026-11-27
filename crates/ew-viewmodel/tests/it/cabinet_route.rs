@@ -30,6 +30,64 @@ fn toasts(shell: &ShellModel) -> Vec<String> {
         .collect()
 }
 
+/// -103F1 moved to +FLD: its wires are made on site, so Route lays nothing, yet their stored ways go with its next run.
+/// Route opens the card, whose lead says how many ways it removes, and Apply removes them in one step with its toast;
+/// after it nothing is due again.
+#[test]
+fn route_that_lays_nothing_removes_the_ways_of_wires_the_cabinet_no_longer_lays() {
+    let tmp = Tmp::new("vm-cabinet-gone");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "902");
+    let (session, _) = ew_api::Session::open_read_only(&tmp.sample_copy(), "test").expect("the sample");
+    let f1 = session.resolve_reference("tag:-103F1").expect("-103F1");
+    let fld = session
+        .query()
+        .structure_nodes()
+        .iter()
+        .find(|(_, n)| n.code.as_str() == "FLD")
+        .map(|(id, _)| id.as_uuid())
+        .expect("+FLD");
+    drop(session);
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [f1.to_string()],
+            "path": "structure.location", "value": fld.to_string()}}),
+    );
+    done(&mut shell, "layout.route", json!({}));
+    let card = cabinet_card(&shell).expect("the card");
+    assert!(
+        !card.route.all && card.route.lengths.is_empty() && card.route.gone > 0,
+        "{:?}",
+        card.route
+    );
+    assert!(
+        card.lead.starts_with("Route: cabinet +CAB. ")
+            && card
+                .lead
+                .contains(" of wires this cabinet no longer lays are removed. "),
+        "{}",
+        card.lead
+    );
+    let before = shell.revision();
+    done(&mut shell, "preview.apply", json!({}));
+    assert_eq!(shell.revision(), before.map(|r| r + 1), "one step");
+    assert!(
+        toasts(&shell)
+            .iter()
+            .any(|t| t.starts_with("Removed ") && t.ends_with(" ways of wires +CAB no longer lays.")),
+        "{:?}",
+        toasts(&shell)
+    );
+    done(&mut shell, "layout.route", json!({}));
+    assert!(
+        toasts(&shell)
+            .iter()
+            .any(|t| t == "Every wire of +CAB has its way."),
+        "{:?}",
+        toasts(&shell)
+    );
+}
+
 #[test]
 fn route_on_902_opens_the_cabinets_card_and_apply_stores_the_ways() {
     let tmp = Tmp::new("vm-cabinet-route");

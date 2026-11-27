@@ -283,7 +283,11 @@ release mode), with Route as its quick fix.
 
 **A record whose wire is gone.** A junction edit can make another connection the carrier of a wire: the wire is then
 a wire without a way, and its old record is not read. A record whose wire or space is gone (an older build keeps the
-kind verbatim and does not delete it) is not read either; the next Route removes such records.
+kind verbatim and does not delete it) is not read either; the next Route on its cabinet removes such records, whatever
+else it does. A Route that lays nothing and only removes them is still a change: its card opens with the lead "Route:
+cabinet +CAB. 3 ways of wires this cabinet no longer lays are removed. Nothing has changed yet.", Apply is its own undo
+step and its toast says "Removed 3 ways of wires +CAB no longer lays."; `ew route --page` removes them, says so and
+saves.
 
 ### 8.6 Duct fill
 

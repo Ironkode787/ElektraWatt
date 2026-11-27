@@ -159,6 +159,9 @@ pub struct CabinetRoute {
     pub without: Vec<CardWire>,
     /// The ways the plan lays.
     pub ways: Vec<CardWay>,
+    /// The stored ways of wires the cabinet no longer lays (doc 12-3d §8.5), which the plan removes whatever else it
+    /// does.
+    pub gone: usize,
 }
 
 /// The layout space and plate of the panel page `page`: the space of the enclosure whose plate it shows.
@@ -516,6 +519,11 @@ fn card(
         site: Vec::new(),
         without: Vec::new(),
         ways: Vec::new(),
+        gone: now
+            .table::<ew_schema::CommittedRoute>()
+            .iter()
+            .filter(|(id, c)| c.space == space && !after.table::<ew_schema::CommittedRoute>().contains(*id))
+            .count(),
     };
     // The lanes: each duct's planned ways side by side across its width, in the plan's order.
     let mut lanes: std::collections::BTreeMap<

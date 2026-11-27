@@ -600,7 +600,7 @@ fn ew_lay_006_reports_what_the_closed_door_meets() {
 
 /// A routed wire its cabinet no longer routes has no way read anywhere (doc 12-3d §8.5): re-wired to a field device, to
 /// an external point, or become a core, 101.8 has no length (made on site, or its cable's), its duct no longer counts
-/// it, and Route's next run removes its record in its one undo step.
+/// it, and Route's next run removes its record in its one undo step, its card counting it.
 #[test]
 fn a_wire_the_cabinet_no_longer_routes_keeps_no_way() {
     use ew_schema::{ConnectionKind, Endpoint, Record};
@@ -686,8 +686,11 @@ fn a_wire_the_cabinet_no_longer_routes_keeps_no_way() {
         );
         assert!(!in_duct(&q), "{what}: the duct no longer counts it");
         drop(q);
-        let space = s.cabinet_of_folio("902").unwrap();
-        run(&mut s, "layout.route", json!({"space": space})).expect("Route");
+        let (card, preview) = s.cabinet_route("902", false).unwrap().expect("a plan");
+        assert!(card.gone > 0, "{what}: the card counts the leftover");
+        let before = s.history().cursor();
+        s.commit(preview).expect("Apply");
+        assert_eq!(s.history().cursor(), before + 1, "{what}: one undo step");
         assert!(
             !s.query().table::<ew_schema::CommittedRoute>().contains(route),
             "{what}: Route removed the leftover"
