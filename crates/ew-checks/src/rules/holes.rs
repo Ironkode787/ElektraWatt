@@ -292,7 +292,7 @@ impl Rule for HolesNotKnown {
                 ew_l10n::Text::bare(ew_l10n::List::new(names, between(), between())),
             )
             .arg("surface", surface_words(q, Some(surface)))
-            .with_fix(edit_part(&part, "cabinet"));
+            .with_fix(edit_part(&part, "mech.holes[].hole"));
             out.push(shown(f, q, Some(surface)));
         }
         // A hole moved or left out whose part no longer has that hole (its holes edited, its copy replaced): the
@@ -339,12 +339,17 @@ impl Rule for HolesNotKnown {
     }
 }
 
-/// The quick fix Edit part…: the part editor on `part`, at its section `section` (window action `part.edit`).
-fn edit_part(part: &ew_schema::PartRef, section: &str) -> QuickFix {
+/// The quick fix Edit part…: Parts on `part` (window action `parts.open`), at the group of its sheet where the field
+/// at `path` is entered, as the declaration of a part's fields places it.
+fn edit_part(part: &ew_schema::PartRef, path: &str) -> QuickFix {
+    let mut params = serde_json::json!({"part": part.copy.as_uuid().to_string()});
+    if let Some(group) = ew_derive::part_fields::Group::of(path) {
+        params["section"] = group.name().into();
+    }
     QuickFix {
         label: text!("fix-edit-part"),
         command: "parts.open".to_owned(),
-        params: serde_json::json!({"part": part.copy.as_uuid().to_string(), "section": section}),
+        params,
     }
 }
 
@@ -409,13 +414,13 @@ impl Rule for CableGland {
                 let section = match &g.part {
                     Err(ew_derive::layout::NoGland::NoDiameter) => {
                         let mut f = base("no_diameter", "no_diameter".to_owned());
-                        // The cable's part gives its outer diameter in the part editor's Cable section.
+                        // Edit part… opens the cable's part where its outer diameter is entered.
                         if let Some(part) = q
                             .devices()
                             .get(g.cable)
                             .and_then(|d| ew_derive::layout::cable_part_use(q, d))
                         {
-                            f = f.with_fix(edit_part(&part, "cable"));
+                            f = f.with_fix(edit_part(&part, "sections.cable.outer_diameter"));
                         }
                         out.push(f);
                         continue;

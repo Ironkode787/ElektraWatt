@@ -118,6 +118,12 @@ impl Group {
     pub fn named(name: &str) -> Option<Group> {
         PART_FIELDS.iter().map(|f| f.group).find(|g| g.name() == name)
     }
+
+    /// The group the field at `path` stands in: what a check's Edit part… names to open the sheet where the person
+    /// enters what it lacks.
+    pub fn of(path: &str) -> Option<Group> {
+        PART_FIELDS.iter().find(|f| f.path == path).map(|f| f.group)
+    }
 }
 
 /// Which parts have a field, or which parts a reader reads it of: a predicate over the part.

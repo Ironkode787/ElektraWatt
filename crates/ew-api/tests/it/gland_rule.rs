@@ -62,8 +62,8 @@ fn a_gland_not_placed_is_an_error_at_a_release_and_its_fix_opens_the_bottom() {
     );
 }
 
-/// A cable whose part gives no outer diameter: EW-LAY-018's Edit part… opens that part at a section its editor shows,
-/// the Cable section where the diameter is typed (doc 12 §3.9).
+/// A cable whose part gives no outer diameter: EW-LAY-018's Edit part… opens that part in Parts at a group its sheet
+/// shows, the Cable group where the diameter is typed (doc 12 §3.9).
 #[test]
 fn edit_part_of_a_cable_without_a_diameter_opens_its_cable_section() {
     let (project, records, mut lib) = common::sample_records();
@@ -89,7 +89,7 @@ fn edit_part_of_a_cable_without_a_diameter_opens_its_cable_section() {
         .into_iter()
         .filter(|f| f.rule == "EW-LAY-018")
         .filter_map(|f| f.fix)
-        .filter(|x| x.command == "part.edit")
+        .filter(|x| x.command == "parts.open")
         .collect();
     assert!(
         !fixes.is_empty(),
@@ -105,8 +105,8 @@ fn edit_part_of_a_cable_without_a_diameter_opens_its_cable_section() {
         let draft = s.part_draft(copy).expect("the cable's part");
         assert_eq!(draft.text("kind"), "cable");
         assert!(
-            draft.sections().iter().any(|x| x.word == section),
-            "the editor of a cable part has no section `{section}`"
+            draft.sections().iter().any(|g| g.name() == section),
+            "the sheet of a cable part has no group `{section}`"
         );
     }
 }
