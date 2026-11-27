@@ -810,7 +810,6 @@ impl Rule for Collision {
     }
 }
 
-
 /// A rectangle of `surface` in its enclosure's front view (`to_enclosure`); `None` for a face that is no plate or door.
 fn in_front(q: &Q, surface: Id<MountingSurface>, r: Rect) -> Option<Rect> {
     let to = |p| ew_derive::layout::to_enclosure(q, surface, p);

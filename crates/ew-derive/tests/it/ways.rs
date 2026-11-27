@@ -652,7 +652,10 @@ fn a_fill_of_sizes_at_the_formats_edge_is_exact_and_does_not_overflow() {
     let base = routed(fx);
     let m = base.build();
     let q = Q::new(&m);
-    assert!(matches!(planned(&plan(&q, &RouteScope::All), W1), Planned::Way(_)));
+    assert!(matches!(
+        planned(&plan(&q, &RouteScope::All), W1),
+        Planned::Way(_)
+    ));
     let fill = q.get::<DuctFill>(id(D1)).as_ref().clone().expect("a fill");
     let full = fill.pieces[fill.fullest.unwrap()];
     // W1 of the part, and W4 beside it by the table's 3.3 mm for 1.5 mm².

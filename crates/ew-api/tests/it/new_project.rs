@@ -248,11 +248,18 @@ fn a_copy_of_a_routed_project_reads_its_ways() {
     let sample = open_sample();
     let copy = copy_of_sample(5);
     let (was, now) = (lengths(&sample), lengths(&copy));
-    assert!(was.iter().any(|(_, _, from)| from == "routed"), "the sample is routed");
+    assert!(
+        was.iter().any(|(_, _, from)| from == "routed"),
+        "the sample is routed"
+    );
     assert_eq!(now, was);
     let q = copy.query();
     for (id, way) in q.table::<ew_schema::CommittedRoute>().iter() {
-        assert_eq!(id, ew_ids::v5::route_id(way.wire), "a stored way's ID follows its wire's");
+        assert_eq!(
+            id,
+            ew_ids::v5::route_id(way.wire),
+            "a stored way's ID follows its wire's"
+        );
     }
 }
 

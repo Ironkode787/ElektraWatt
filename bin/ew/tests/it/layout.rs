@@ -226,6 +226,12 @@ fn route_on_the_panel_page_stores_the_cabinets_ways() {
     let o = t.ew(&["route", &p, "--page", "902"]);
     let text = stdout(&o);
     assert_eq!(o.status.code(), Some(1), "{text}{}", stderr(&o));
-    assert!(text.starts_with("No wire of +CAB gets a way on folio 902; "), "{text}");
-    assert!(!text.contains("has its way") && text.contains("  No way for "), "{text}");
+    assert!(
+        text.starts_with("No wire of +CAB gets a way on folio 902; "),
+        "{text}"
+    );
+    assert!(
+        !text.contains("has its way") && text.contains("  No way for "),
+        "{text}"
+    );
 }
