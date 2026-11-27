@@ -104,7 +104,8 @@ fn widest(ui: &Ui, font: &egui::FontId, texts: &mut dyn Iterator<Item = &str>) -
 fn goes_in(ui: &mut Ui, t: &Tokens, d: &PackageDialog, events: &mut Vec<Event>) {
     ui.set_width(ui.available_width());
     heading(ui, t, key!("package-goes-in"));
-    let gap = t.space_3;
+    // The columns stand apart as the Labels… and Rework list… tables' do.
+    let gap = t.space_4;
     let full = ui.available_width();
     let body = crate::theme::font(&t.type_body);
     let tick = ui.spacing().icon_width + ui.spacing().icon_spacing;

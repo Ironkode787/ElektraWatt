@@ -265,7 +265,9 @@ fn view_language_nederlands_and_back_in_the_window() {
 }
 
 /// Package… at 1920 × 1080 (doc 13-package §8.5): what each member holds stands on one line in English, Dutch and the
-/// pseudo-locale; only the label files' row, which adds the profile and what it lacks, takes more.
+/// pseudo-locale; only the label files' row, which adds the profile and what it lacks, takes more. The member's words
+/// keep the gap of the columns (`space.4`, as Labels… and Rework list… keep it) to what it holds, the longest words
+/// too ("Drawings for drilling", "Verbruiksmaterialen").
 #[test]
 fn what_a_member_holds_stands_on_one_line_in_every_language() {
     let tmp = support::Tmp::new();
@@ -274,7 +276,7 @@ fn what_a_member_holds_stands_on_one_line_in_every_language() {
         assert!(strings::set_locale(tag));
         support::dispatch(&mut h, "package.export", json!({}));
         support::settle(&mut h);
-        let rows: Vec<(String, bool)> = match h.state().shell().dialog() {
+        let rows: Vec<(String, bool, String)> = match h.state().shell().dialog() {
             Some(ew_viewmodel::shell::Dialog::Package(d)) => d
                 .rows
                 .iter()
@@ -282,6 +284,7 @@ fn what_a_member_holds_stands_on_one_line_in_every_language() {
                     (
                         r.holds.clone(),
                         r.member == ew_viewmodel::ew_api::PackageMember::Labels,
+                        r.words.clone(),
                     )
                 })
                 .collect(),
@@ -294,7 +297,25 @@ fn what_a_member_holds_stands_on_one_line_in_every_language() {
             .and_then(|n| n.accesskit_node().raw_bounds())
             .map(|b| b.height())
             .expect("the heading");
-        for (holds, _) in rows.iter().filter(|(_, labels)| !labels) {
+        for (holds, _, words) in &rows {
+            let tick = h
+                .get_by_role_and_label(egui::accesskit::Role::CheckBox, words)
+                .accesskit_node()
+                .raw_bounds()
+                .expect("the member's bounds");
+            let what = h
+                .get_all_by_label(holds)
+                .next()
+                .and_then(|n| n.accesskit_node().raw_bounds())
+                .expect("what it holds");
+            assert!(
+                what.x0 - tick.x1 >= 11.5,
+                "{tag}: \"{words}\" ends at {}, what it holds starts at {}",
+                tick.x1,
+                what.x0
+            );
+        }
+        for (holds, _, _) in rows.iter().filter(|(_, labels, _)| !labels) {
             let height = h
                 .get_all_by_label(holds)
                 .next()
