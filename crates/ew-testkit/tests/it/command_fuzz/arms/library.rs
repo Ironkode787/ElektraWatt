@@ -562,11 +562,7 @@ pub(super) fn part_keep(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     }
     let (from, kept) = (held.clone(), to_id.clone());
     Some(
-        Step::cmd(
-            "part.keep",
-            json!({"from": held, "to": to_id, "copies": [to]}),
-        )
-        .check(move |_, after| {
+        Step::cmd("part.keep", json!({"from": held, "to": to_id, "copies": [to]})).check(move |_, after| {
             let from = typed::<ew_schema::Part>(&from).ok_or("a copy ID")?;
             let kept = typed::<ew_schema::Part>(&kept).ok_or("a copy ID")?;
             if !after.parts().contains(kept) {

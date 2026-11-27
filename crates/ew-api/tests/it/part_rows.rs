@@ -535,7 +535,8 @@ fn a_gtin_is_typed_saved_and_finds_the_part() {
     let copy = copy_of(&s, "EW-GEN-TRM-1");
     let mut d = s.part_draft(copy).expect("its draft");
     assert_eq!(d.text("gtin"), "", "no GTIN yet");
-    s.set_draft_field(&mut d, "gtin", "4011111222233").expect("a GTIN");
+    s.set_draft_field(&mut d, "gtin", "4011111222233")
+        .expect("a GTIN");
     let cmd = s.part_edit_command(&d).expect("Save");
     run(&mut s, &cmd).expect("saved");
     let found: Vec<String> = s
@@ -558,7 +559,10 @@ fn a_gtin_is_typed_saved_and_finds_the_part() {
         .find(|(_, c)| c.item.gtin.as_ref().map(|g| g.as_str()) == Some("4011111222233"))
         .map(|(id, _)| id.as_uuid())
         .expect("the saved part has its GTIN");
-    assert_eq!(s.part_draft(saved).expect("its draft").text("gtin"), "4011111222233");
+    assert_eq!(
+        s.part_draft(saved).expect("its draft").text("gtin"),
+        "4011111222233"
+    );
 }
 
 /// A member that is no field (a maker's free property) is shown under Also stored and written back unchanged when the
@@ -626,7 +630,15 @@ fn a_starter_plc_card_shows_its_plc_group() {
     let card = sheet("EW-GEN-DI-1");
     assert!(!card.own && !card.new, "a starter part");
     assert!(card.sections().contains(&Group::Plc), "{:?}", card.sections());
-    assert!(!card.plc.role.trim().is_empty(), "its PLC data is read: {:?}", card.plc);
+    assert!(
+        !card.plc.role.trim().is_empty(),
+        "its PLC data is read: {:?}",
+        card.plc
+    );
     let breaker = sheet("EW-GEN-MCB-1");
-    assert!(!breaker.sections().contains(&Group::Plc), "{:?}", breaker.sections());
+    assert!(
+        !breaker.sections().contains(&Group::Plc),
+        "{:?}",
+        breaker.sections()
+    );
 }
