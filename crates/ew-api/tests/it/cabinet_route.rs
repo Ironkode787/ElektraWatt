@@ -709,7 +709,9 @@ fn routes_card_names_an_unfinished_wire_without_a_way() {
         let mut s = common::session_of(project, records, lib);
         s.cabinet_route("902", false).unwrap().expect("a plan").0
     };
-    let words = |w: &ew_api::cabinet_route::CardWire| w.reason.as_ref().map(|(_, t)| t.to_string()).unwrap_or_default();
+    let words = |w: &ew_api::cabinet_route::CardWire| {
+        w.reason.as_ref().map(|(_, t)| t.to_string()).unwrap_or_default()
+    };
     let card = card_of(&|r| match r {
         Record::Device(d) if d.id == f1 => {
             d.structure.location = Some(Slot::None);
@@ -717,9 +719,17 @@ fn routes_card_names_an_unfinished_wire_without_a_way() {
         }
         _ => false,
     });
-    let w = card.without.iter().find(|w| w.number == "101.8").expect("101.8 without a way");
+    let w = card
+        .without
+        .iter()
+        .find(|w| w.number == "101.8")
+        .expect("101.8 without a way");
     assert_eq!(w.reason_key(), Some("no_location"));
-    assert!(words(w).contains("-103F1:1 is on a device without a location"), "{}", words(w));
+    assert!(
+        words(w).contains("-103F1:1 is on a device without a location"),
+        "{}",
+        words(w)
+    );
     assert!(!card.site.iter().any(|x| x.number == "101.8"), "not made on site");
     // The first interruption point of the sample renamed: its wires end open.
     let once = std::cell::Cell::new(false);
@@ -739,7 +749,11 @@ fn routes_card_names_an_unfinished_wire_without_a_way() {
         .iter()
         .find(|w| w.reason_key() == Some("open_end"))
         .expect("a wire with an open end");
-    assert!(words(open).contains("interruption point LOOSE is open"), "{}", words(open));
+    assert!(
+        words(open).contains("interruption point LOOSE is open"),
+        "{}",
+        words(open)
+    );
     assert!(!card.site.iter().any(|x| x.wire == open.wire), "not made on site");
 }
 

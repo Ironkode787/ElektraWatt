@@ -89,12 +89,18 @@ fn the_shops_hole_settings_are_rows_a_person_sets() {
     assert_eq!(workshop.datum, Some(ew_schema::Corner::TopLeft));
     assert_eq!(workshop.min_web, Some(ew_units::Nm(8 * MM)));
     let rail = workshop.rail_fixing.expect("the rail fixing set");
-    assert_eq!((rail.screw, rail.pitch.0, rail.from_end.0), (ew_schema::Screw::M5, 200 * MM, 25 * MM));
+    assert_eq!(
+        (rail.screw, rail.pitch.0, rail.from_end.0),
+        (ew_schema::Screw::M5, 200 * MM, 25 * MM)
+    );
     assert_eq!(row(&s, "rail_fixing.pitch").0, "200 mm");
     assert!(refusal(&mut s, &set("min_web", json!(0))).contains("0 mm is no web between holes"));
-    assert!(refusal(&mut s, &set("rail_fixing.pitch", json!(0))).contains("is no distance between fixing holes"));
     assert!(
-        refusal(&mut s, &set("rail_fixing.pitch", json!(5_000 * MM))).contains("is longer than the longest rail"),
+        refusal(&mut s, &set("rail_fixing.pitch", json!(0))).contains("is no distance between fixing holes")
+    );
+    assert!(
+        refusal(&mut s, &set("rail_fixing.pitch", json!(5_000 * MM)))
+            .contains("is longer than the longest rail"),
         "a pitch no rail of the project holds"
     );
     assert!(refusal(&mut s, &set("duct_fixing.from_end", json!(-MM))).contains("less than nothing"));
@@ -129,7 +135,10 @@ fn own_carrier(s: &mut Session, kind: &str, v: i64) -> Id<Carrier> {
     };
     let receipt = s.execute(&add).expect("the carrier");
     let carrier: Id<Carrier> = Id::from_uuid(receipt.outcome.primary.expect("the new carrier").1.as_uuid());
-    for choice in [json!({"index": 0, "omit": true}), json!({"index": 1, "offset": [5 * MM, 0]})] {
+    for choice in [
+        json!({"index": 0, "omit": true}),
+        json!({"index": 1, "offset": [5 * MM, 0]}),
+    ] {
         let mut params = choice;
         params["carrier"] = json!(carrier);
         run(
@@ -162,9 +171,16 @@ fn a_changed_fixing_resets_the_holes_moved_on_its_rails_and_says_so() {
     let duct = own_carrier(&mut s, "duct", 15);
     let pitch = set("rail_fixing.pitch", json!(200 * MM));
     let preview = s.preview(&pitch).expect("a preview");
-    let notices: Vec<String> = preview.outcome().notices.iter().map(ToString::to_string).collect();
+    let notices: Vec<String> = preview
+        .outcome()
+        .notices
+        .iter()
+        .map(ToString::to_string)
+        .collect();
     assert!(
-        notices.iter().any(|n| n.starts_with("1 hole moved or left out on rail ") && n.contains(" is reset")),
+        notices
+            .iter()
+            .any(|n| n.starts_with("1 hole moved or left out on rail ") && n.contains(" is reset")),
         "{notices:?}"
     );
     let before = s.history().cursor();
@@ -186,7 +202,12 @@ fn a_changed_fixing_resets_the_holes_moved_on_its_rails_and_says_so() {
 fn measured_from_changes_the_numbers_not_the_holes() {
     let mut s = common::sample();
     let surface = plate(&s);
-    let holes = |s: &Session| s.query().get::<ew_derive::layout::SurfaceFeatures>(surface).as_ref().clone();
+    let holes = |s: &Session| {
+        s.query()
+            .get::<ew_derive::layout::SurfaceFeatures>(surface)
+            .as_ref()
+            .clone()
+    };
     let table = |s: &Session| {
         row_export(&s.query(), &RowExport::Kind("hole_table".to_owned()), None)
             .expect("the hole table")
@@ -195,7 +216,11 @@ fn measured_from_changes_the_numbers_not_the_holes() {
     let (was, was_table) = (holes(&s), table(&s));
     assert!(!was.is_empty(), "the plate has holes");
     run(&mut s, &set("datum", json!("top_right"))).expect("measured from the top right");
-    assert_eq!(holes(&s), was, "the holes stay where they are, with their numbers");
+    assert_eq!(
+        holes(&s),
+        was,
+        "the holes stay where they are, with their numbers"
+    );
     let now_table = table(&s);
     assert_eq!(now_table.lines().count(), was_table.lines().count());
     assert_ne!(now_table, was_table, "the numbers change");

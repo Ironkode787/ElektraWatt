@@ -841,7 +841,9 @@ fn classify(q: &Q, wire: &PhysicalWire, loc: Id<ew_schema::StructureNode>) -> Op
         _ if wire.core.is_some() => CabinetWire::Core,
         [EndPlace::Inside, EndPlace::Inside] => CabinetWire::Routed,
         _ => match wire.ends.iter().zip(at).find(|(_, p)| *p == EndPlace::Unknown) {
-            Some((e, _)) if e.kind == EndKind::Open => CabinetWire::Unfinished(NoWay::OpenEnd((e.cp.function, e.cp.idx))),
+            Some((e, _)) if e.kind == EndKind::Open => {
+                CabinetWire::Unfinished(NoWay::OpenEnd((e.cp.function, e.cp.idx)))
+            }
             Some((e, _)) => CabinetWire::Unfinished(NoWay::NoLocation((e.cp.function, e.cp.idx))),
             None => CabinetWire::Site,
         },

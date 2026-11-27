@@ -136,7 +136,10 @@ fn fixing_changed(tx: &mut TxBuilder<'_>) -> Result<bool, CmdError> {
             continue;
         }
         went += c.hole_choices.len() - kept.len();
-        on.extend(ew_derive::layout::carrier_label(&q, c.id).map(|l| ew_derive::text::carrier_in_sentence(l).into()));
+        on.extend(
+            ew_derive::layout::carrier_label(&q, c.id)
+                .map(|l| ew_derive::text::carrier_in_sentence(l).into()),
+        );
         tx.update::<Carrier>(c.id, move |x| x.hole_choices = kept)?;
     }
     if went == 0 {

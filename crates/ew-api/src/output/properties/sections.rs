@@ -174,8 +174,12 @@ impl SectionCx<'_, '_> {
                 // The workshop's Rail fixing and Duct fixing show their members while unset, at their defaults:
                 // setting one sets the fixing (doc 12-3d §10.3).
                 let fixing = self.kind == "project"
-                    && matches!(rpath, "settings.workshop.rail_fixing" | "settings.workshop.duct_fixing");
-                if value == RowValue::Absent && (spec.ty.is_optional() || device_aspect) && !supply && !fixing {
+                    && matches!(
+                        rpath,
+                        "settings.workshop.rail_fixing" | "settings.workshop.duct_fixing"
+                    );
+                if value == RowValue::Absent && (spec.ty.is_optional() || device_aspect) && !supply && !fixing
+                {
                     return;
                 }
                 if device_aspect && values.iter().any(Option::is_none) {
@@ -309,14 +313,26 @@ fn workshop_defaults(cx: &SheetCx<'_>, built: &mut [Built]) {
             "project/settings.workshop.rail_fixing.screw",
             serde_json::to_value(&rail.screw),
         ),
-        ("project/settings.workshop.rail_fixing.pitch", Ok(Value::from(rail.pitch.0))),
-        ("project/settings.workshop.rail_fixing.from_end", Ok(Value::from(rail.from_end.0))),
+        (
+            "project/settings.workshop.rail_fixing.pitch",
+            Ok(Value::from(rail.pitch.0)),
+        ),
+        (
+            "project/settings.workshop.rail_fixing.from_end",
+            Ok(Value::from(rail.from_end.0)),
+        ),
         (
             "project/settings.workshop.duct_fixing.screw",
             serde_json::to_value(&duct.screw),
         ),
-        ("project/settings.workshop.duct_fixing.pitch", Ok(Value::from(duct.pitch.0))),
-        ("project/settings.workshop.duct_fixing.from_end", Ok(Value::from(duct.from_end.0))),
+        (
+            "project/settings.workshop.duct_fixing.pitch",
+            Ok(Value::from(duct.pitch.0)),
+        ),
+        (
+            "project/settings.workshop.duct_fixing.from_end",
+            Ok(Value::from(duct.from_end.0)),
+        ),
         (
             "project/settings.workshop.min_web",
             Ok(Value::from(crate::checks::rules::holes::DEFAULT_WEB.0)),

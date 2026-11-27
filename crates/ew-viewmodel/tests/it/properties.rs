@@ -1403,6 +1403,9 @@ fn a_changed_fixing_lists_the_reset_holes_on_its_card_before_apply() {
     assert_eq!(steps(&shell), steps_before, "nothing applied yet");
     done(&mut shell, "preview.apply", json!({}));
     assert_eq!(steps(&shell), steps_before + 1, "one step");
-    assert_eq!(text(&shell, "project/settings.workshop.rail_fixing.pitch"), "200 mm");
+    assert_eq!(
+        text(&shell, "project/settings.workshop.rail_fixing.pitch"),
+        "200 mm"
+    );
     shell.shutdown();
 }
