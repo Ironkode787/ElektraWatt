@@ -322,13 +322,21 @@ Example;CY-7x1.5;cable;Control cable, 7 cores 1.5 mm2;7
     .unwrap();
     let mut shell = with_my_parts(&tmp, Mode::Gui);
     common::make_project(&mut shell, &tmp.0.join("proj.ew"), &[]);
-    done(&mut shell, "parts.import", json!({"path": file.to_string_lossy()}));
+    done(
+        &mut shell,
+        "parts.import",
+        json!({"path": file.to_string_lossy()}),
+    );
     let columns = lines_with(&shell, "column ");
     assert!(
         columns.contains(&"column \"Cores\" \"7\" cable.cores".to_owned()),
         "{columns:?}"
     );
-    done(&mut shell, "parts.map", json!({"column": "Article", "member": "part_number"}));
+    done(
+        &mut shell,
+        "parts.map",
+        json!({"column": "Article", "member": "part_number"}),
+    );
     assert_eq!(
         lines_with(&shell, "set \""),
         ["set \"cables.csv\" new 1 changed 0 same 0 refused 0"]

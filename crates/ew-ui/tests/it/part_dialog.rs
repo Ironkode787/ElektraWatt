@@ -142,7 +142,11 @@ fn the_part_editor_by_keyboard() {
         let _ = field(&h, label);
     }
     // Sold by is a choice of its words.
-    assert!(h.get_all_by_role_and_label(egui::Role::ComboBox, "Sold by").next().is_some());
+    assert!(
+        h.get_all_by_role_and_label(egui::Role::ComboBox, "Sold by")
+            .next()
+            .is_some()
+    );
     // The first text field has the focus; Tab moves to Description (after Part number, Type, Order number and GTIN),
     // End to its end, where " C4" is typed.
     assert!(

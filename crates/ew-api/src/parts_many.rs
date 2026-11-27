@@ -188,10 +188,17 @@ impl Session {
                 .find(|l| l.id == *lib)
                 .map_or_else(String::new, |l| l.name.clone())
         };
-        if let Some(lib) = written.keys().find(|l| !infos.iter().any(|i| i.id == **l && i.writable)) {
+        if let Some(lib) = written
+            .keys()
+            .find(|l| !infos.iter().any(|i| i.id == **l && i.writable))
+        {
             return Err((
                 0,
-                PartDraftError::Field(message("part", key!("error-part-library"), &[&name(lib), &crate::library::LibraryError::ReadOnly.to_string()])),
+                PartDraftError::Field(message(
+                    "part",
+                    key!("error-part-library"),
+                    &[&name(lib), &crate::library::LibraryError::ReadOnly.to_string()],
+                )),
             ));
         }
         // Two libraries are no one write: when a later one fails, the message names the parts written and those not.
@@ -266,7 +273,13 @@ pub fn table_columns(sheets: &[PartSheet]) -> Vec<(String, Vec<String>)> {
         let cells = |f: fn(&PartSheet) -> &str| -> Vec<String> {
             sheets
                 .iter()
-                .map(|s| if plain(s) { f(s).trim().to_owned() } else { String::new() })
+                .map(|s| {
+                    if plain(s) {
+                        f(s).trim().to_owned()
+                    } else {
+                        String::new()
+                    }
+                })
                 .collect()
         };
         let [count, csa] = crate::parts_set::CABLE_CORES;

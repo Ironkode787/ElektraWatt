@@ -131,7 +131,12 @@ fn a_maker_s_table_brings_new_parts_one_the_same_and_one_refused_with_its_reason
     );
     // The cable's row has seven numbered cores, as its Cores form makes them.
     let cable = row("CY-7x1.5").part.clone().expect("a part");
-    let cores: Vec<&str> = cable.sections.cable_cores.iter().map(|c| c.core.as_str()).collect();
+    let cores: Vec<&str> = cable
+        .sections
+        .cable_cores
+        .iter()
+        .map(|c| c.core.as_str())
+        .collect();
     assert_eq!(cores, ["1", "2", "3", "4", "5", "6", "7"]);
     // Saved: the twelve new parts are in My parts, the one the same is not written again.
     assert_eq!(s.save_set(&set).expect("saved"), (12, 0));
@@ -231,10 +236,18 @@ Example;CY-12;cable;12;0.75
     .expect("the map");
     let set = s.table_set(&input, &map).expect("the set");
     let part = |i: usize| set.rows[i].part.clone().expect("a part");
-    assert!(part(0).sections.cable_cores.is_empty(), "{:?}", part(0).sections.cable_cores);
+    assert!(
+        part(0).sections.cable_cores.is_empty(),
+        "{:?}",
+        part(0).sections.cable_cores
+    );
     let twelve = part(1).sections.cable_cores;
     assert_eq!(twelve.len(), 12);
-    assert!(twelve.iter().all(|c| c.csa == Some(ew_schema::Csa::Mm2("0.75".parse().unwrap()))));
+    assert!(
+        twelve
+            .iter()
+            .all(|c| c.csa == Some(ew_schema::Csa::Mm2("0.75".parse().unwrap())))
+    );
 }
 
 /// A table of any parts he can read, read back unchanged, is the same for every row and writes nothing: a starter part,
@@ -242,14 +255,18 @@ Example;CY-12;cable;12;0.75
 /// own is changed with what changes, and it keeps what the table does not carry (its pins).
 #[test]
 fn a_table_of_parts_he_can_read_is_the_same_and_a_change_to_one_not_his_is_refused() {
-    use ew_api::parts::{Lives, PartScope};
     use ew_api::PartPick;
+    use ew_api::parts::{Lives, PartScope};
     let tmp = ew_testdir::Tmp::new("parts-set-readable");
     let mut s = project(&tmp.0);
-    let mut made = |s: &mut Session, number: &str, to_library: bool| {
+    let made = |s: &mut Session, number: &str, to_library: bool| {
         let mut sheet = s.new_part_draft().expect("a new part");
         sheet.to_library = to_library;
-        for (f, v) in [("manufacturer", "Example"), ("part_number", number), ("kind", "terminal")] {
+        for (f, v) in [
+            ("manufacturer", "Example"),
+            ("part_number", number),
+            ("kind", "terminal"),
+        ] {
             s.set_draft_field(&mut sheet, f, v).expect(f);
         }
         let cmd = s.new_part_command(&sheet).expect("its command").command;
@@ -282,11 +299,22 @@ fn a_table_of_parts_he_can_read_is_the_same_and_a_change_to_one_not_his_is_refus
     let pins_before = sheets[2].pins.len();
     let columns = ew_api::parts_many::table_columns(&sheets);
     let table = |change: bool| {
-        let mut text = columns.iter().map(|(m, _)| m.as_str()).collect::<Vec<_>>().join(";") + "\n";
+        let mut text = columns
+            .iter()
+            .map(|(m, _)| m.as_str())
+            .collect::<Vec<_>>()
+            .join(";")
+            + "\n";
         for i in 0..sheets.len() {
             let cells: Vec<String> = columns
                 .iter()
-                .map(|(m, t)| if change && m == "type_designation" { "changed".to_owned() } else { t[i].clone() })
+                .map(|(m, t)| {
+                    if change && m == "type_designation" {
+                        "changed".to_owned()
+                    } else {
+                        t[i].clone()
+                    }
+                })
                 .collect();
             text += &(cells.join(";") + "\n");
         }
@@ -297,20 +325,44 @@ fn a_table_of_parts_he_can_read_is_the_same_and_a_change_to_one_not_his_is_refus
     assert_eq!(same.counts(), (0, 0, 3, 0), "{:#?}", same.rows);
     assert_eq!(s.save_set(&same).expect("saved"), (0, 0));
     let changed = s.table_set(&table(true), &map).expect("the set");
-    let status = |n: &str| changed.rows.iter().find(|r| r.number == n).expect(n).status.clone();
+    let status = |n: &str| {
+        changed
+            .rows
+            .iter()
+            .find(|r| r.number == n)
+            .expect(n)
+            .status
+            .clone()
+    };
     assert!(
-        matches!(status("EW-GEN-TRM-1"), SetStatus::Refused(SetRefusal::NotHis { lives: Lives::NotMine { starter: true, .. }, .. })),
+        matches!(
+            status("EW-GEN-TRM-1"),
+            SetStatus::Refused(SetRefusal::NotHis {
+                lives: Lives::NotMine { starter: true, .. },
+                ..
+            })
+        ),
         "{:?}",
         status("EW-GEN-TRM-1")
     );
     assert!(
-        matches!(status("DL-2.5"), SetStatus::Refused(SetRefusal::NotHis { lives: Lives::OnlyHere, .. })),
+        matches!(
+            status("DL-2.5"),
+            SetStatus::Refused(SetRefusal::NotHis {
+                lives: Lives::OnlyHere,
+                ..
+            })
+        ),
         "{:?}",
         status("DL-2.5")
     );
     let own = changed.rows.iter().find(|r| r.number == "FT-4").expect("FT-4");
     assert_eq!(own.status, SetStatus::Changed);
-    assert!(own.changes.iter().any(|c| c.member == "type_designation"), "{:?}", own.changes);
+    assert!(
+        own.changes.iter().any(|c| c.member == "type_designation"),
+        "{:?}",
+        own.changes
+    );
     assert_eq!(s.save_set(&changed).expect("saved"), (0, 1));
     let now = s.part_draft(copy(&s, "FT-4")).expect("his own");
     assert_eq!(now.pins.len(), pins_before);
@@ -327,7 +379,14 @@ fn save_refuses_a_set_my_parts_changed_under() {
     s.save_set(&first).expect("saved");
     // Read again: FT-4 is the same; then its width is changed in My parts before the Save.
     let set = s.table_set(&input, &map()).expect("the set");
-    let row = |set: &ew_api::parts_set::PartsSet| set.rows.iter().find(|r| r.number == "FT-4").expect("FT-4").status.clone();
+    let row = |set: &ew_api::parts_set::PartsSet| {
+        set.rows
+            .iter()
+            .find(|r| r.number == "FT-4")
+            .expect("FT-4")
+            .status
+            .clone()
+    };
     assert_eq!(row(&set), SetStatus::Same);
     let (lib, item) = match s
         .parts_find("FT-4", ew_api::parts::PartScope::Mine, None, false, None, 5)

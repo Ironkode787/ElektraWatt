@@ -1642,7 +1642,12 @@ pub enum PartKind {
 
 /// The kinds a workshop stock holds (doc 07 §2.5), in the order Parts' Workshop stock lists them: wires, ferrules and
 /// lugs, markers, cable glands.
-pub const STOCK_KINDS: [PartKind; 4] = [PartKind::Wire, PartKind::Ferrule, PartKind::Marker, PartKind::Gland];
+pub const STOCK_KINDS: [PartKind; 4] = [
+    PartKind::Wire,
+    PartKind::Ferrule,
+    PartKind::Marker,
+    PartKind::Gland,
+];
 
 impl PartKind {
     /// Whether a part of the kind may stand in the workshop stock ([`STOCK_KINDS`]).

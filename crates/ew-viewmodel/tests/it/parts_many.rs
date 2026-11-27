@@ -186,13 +186,26 @@ fn a_cable_with_its_own_cores_is_exported_and_read_back_the_same() {
     done(&mut s, "parts.save", json!({}));
     let part = row(&mut s, "CY-4-OWN");
     done(&mut s, "parts.open", json!({"part": part}));
-    let cores = |s: &ShellModel| s.parts_place().unwrap().sheet.as_ref().unwrap().sheet.cable.table.clone();
+    let cores = |s: &ShellModel| {
+        s.parts_place()
+            .unwrap()
+            .sheet
+            .as_ref()
+            .unwrap()
+            .sheet
+            .cable
+            .table
+            .clone()
+    };
     let made = cores(&s);
     assert_eq!(made.len(), 4);
     let path = tmp.0.join("cables.csv");
     done(&mut s, "parts.export", json!({"path": path.to_string_lossy()}));
     let written = std::fs::read_to_string(&path).unwrap();
-    assert!(written.lines().nth(1).is_some_and(|l| l.contains("CY-4-OWN")), "{written}");
+    assert!(
+        written.lines().nth(1).is_some_and(|l| l.contains("CY-4-OWN")),
+        "{written}"
+    );
     done(&mut s, "parts.import", json!({"path": path.to_string_lossy()}));
     assert_eq!(
         lines_with(&s, "set \""),

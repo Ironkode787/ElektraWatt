@@ -214,7 +214,8 @@ impl PartsMap {
             Ok(catalog::Member::Like) => strings::text(key!("parts-member-like")).to_owned(),
             Ok(catalog::Member::Description(lang)) => {
                 // The language named in the window's language ("Dutch", in Dutch "Nederlands").
-                let name = strings::lookup(&format!("language-in-{lang}")).map_or_else(|| lang.clone(), str::to_owned);
+                let name = strings::lookup(&format!("language-in-{lang}"))
+                    .map_or_else(|| lang.clone(), str::to_owned);
                 let word = Self::plain_word("description").unwrap_or_default();
                 in_group(
                     ew_api::part_fields::Group::Identity,
@@ -223,9 +224,10 @@ impl PartsMap {
             }
             Ok(catalog::Member::FreeProp(_)) => strings::format(key!("parts-member-free-prop"), &[header]),
             // A cable's cores, as its Cores form names them.
-            Ok(catalog::Member::Field(_)) if Self::cable_word(member).is_some() => {
-                in_group(ew_api::part_fields::Group::Cable, Self::cable_word(member).unwrap_or_default())
-            }
+            Ok(catalog::Member::Field(_)) if Self::cable_word(member).is_some() => in_group(
+                ew_api::part_fields::Group::Cable,
+                Self::cable_word(member).unwrap_or_default(),
+            ),
             Ok(catalog::Member::TechData(_)) | Ok(catalog::Member::Field(_)) => {
                 match ew_api::part_fields::field(member) {
                     Some(f) => in_group(f.group, &strings::render(&ew_api::part_fields::word(f.word))),

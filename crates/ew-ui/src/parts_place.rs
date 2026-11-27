@@ -689,12 +689,7 @@ fn group_fields(
 
 /// The list (doc 07 §5.3): the search, the scopes, the filters and the rows; with no project (`alone`) no scope or
 /// count of a project.
-fn list_column(
-    ui: &mut Ui,
-    place: &PartsPlace,
-    alone: bool,
-    events: &mut Vec<Event>,
-) {
+fn list_column(ui: &mut Ui, place: &PartsPlace, alone: bool, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
     let rect = ui.max_rect();
     ui.painter()
@@ -1609,7 +1604,10 @@ fn row_cell<'a>(
                 ui.add_space(t.space_3);
                 let mut on = says_yes(&row.text);
                 let r = ui
-                    .add_enabled(editable, egui::Checkbox::without_text(&mut on).indeterminate(hint.is_some()))
+                    .add_enabled(
+                        editable,
+                        egui::Checkbox::without_text(&mut on).indeterminate(hint.is_some()),
+                    )
                     .disabled_tip(strings::text(key!("reason-part-not-yours")));
                 r.widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, editable, on, &label));
                 if r.changed() {

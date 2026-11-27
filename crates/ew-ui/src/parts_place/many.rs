@@ -113,9 +113,11 @@ fn groups(ui: &mut Ui, many: &ManySheet, editable: bool, mixed: &str, events: &m
         let mut cells: Vec<crate::parts_sheet::Cell<'_>> = Vec::new();
         match group {
             Group::Identity => {
-                for (f, text) in many.fields.iter().filter(|(f, _)| {
-                    ew_viewmodel::ew_api::identity_fields().any(|i| i == f.as_str())
-                }) {
+                for (f, text) in many
+                    .fields
+                    .iter()
+                    .filter(|(f, _)| ew_viewmodel::ew_api::identity_fields().any(|i| i == f.as_str()))
+                {
                     let Some(f) = ew_viewmodel::ew_api::identity_fields().find(|i| *i == f.as_str()) else {
                         continue;
                     };
@@ -138,12 +140,19 @@ fn groups(ui: &mut Ui, many: &ManySheet, editable: bool, mixed: &str, events: &m
                 }
             }
         }
-        let table = (group == Group::Connections).then(|| shared_table(many)).flatten();
+        let table = (group == Group::Connections)
+            .then(|| shared_table(many))
+            .flatten();
         if cells.is_empty() && table.is_none() {
             continue;
         }
         let line = strings::lookup(&format!("part-line-{}", group.name().replace('_', "-")));
-        crate::parts_sheet::group_heading(ui, strings::text(strings::Key::run_time(group.word())), line, None);
+        crate::parts_sheet::group_heading(
+            ui,
+            strings::text(strings::Key::run_time(group.word())),
+            line,
+            None,
+        );
         let _ = crate::parts_sheet::grid(ui, cells, events);
         if let Some((sheet, table)) = table {
             ui.label(components::small_secondary(

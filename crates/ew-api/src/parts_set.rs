@@ -171,7 +171,12 @@ impl PartsSet {
     /// parts a read makes are made anew each time).
     pub fn judged_as(&self, other: &PartsSet) -> bool {
         let judged = |r: &SetRow| (r.line, r.number.clone(), r.status.clone(), r.changes.clone());
-        self.rows.len() == other.rows.len() && self.rows.iter().zip(&other.rows).all(|(a, b)| judged(a) == judged(b))
+        self.rows.len() == other.rows.len()
+            && self
+                .rows
+                .iter()
+                .zip(&other.rows)
+                .all(|(a, b)| judged(a) == judged(b))
     }
 }
 
@@ -370,7 +375,9 @@ impl Session {
         let build = |texts: &BTreeMap<Member, String>, held: Option<&LibCopy<Part>>| {
             let text = |m: &str| texts.get(&Member::field(m)).map_or("", String::as_str);
             if held.is_some() && texts.contains_key(&Member::Like) {
-                likes_unused.borrow_mut().push(text("part_number").trim().to_owned());
+                likes_unused
+                    .borrow_mut()
+                    .push(text("part_number").trim().to_owned());
             }
             // A row of a part he can read that is not his: the same, or refused with the way in.
             if held.is_none()
@@ -379,7 +386,8 @@ impl Session {
                 && lives != crate::parts::Lives::Mine
             {
                 if self.row_reads_as(texts, &other, in_project) {
-                    host.borrow_mut().push(HostRow::Same(Box::new(other.item.clone())));
+                    host.borrow_mut()
+                        .push(HostRow::Same(Box::new(other.item.clone())));
                     return Err("the same as a part he can read".to_owned());
                 }
                 return Err(refuse(SetRefusal::NotHis {
@@ -427,14 +435,17 @@ impl Session {
         let mut sheet: PartSheet = match (held, texts.get(&Member::Like)) {
             (Some(h), _) => self.unheld_draft(&q, h.clone()),
             (None, Some(number)) => {
-                let maker = texts.get(&Member::field("manufacturer")).map_or("", String::as_str);
+                let maker = texts
+                    .get(&Member::field("manufacturer"))
+                    .map_or("", String::as_str);
                 let liked = self
                     .part_by_maker_number(maker, number)
                     .and_then(|(c, _, held)| {
                         if held {
                             self.part_draft(c.id.as_uuid()).ok()
                         } else {
-                            self.library_part_draft(c.library_id.as_uuid(), c.item_id.as_uuid()).ok()
+                            self.library_part_draft(c.library_id.as_uuid(), c.item_id.as_uuid())
+                                .ok()
                         }
                     })
                     .ok_or_else(|| SetRefusal::Like(number.clone()))?;
@@ -473,7 +484,12 @@ impl Session {
         // A cable's cores: a count gives that many numbered cores of the cross-section's column, as the sheet's Cores
         // form makes them ("Cores: n, Named: Numbers"); an empty count leaves the cores as they are.
         let cable = shape.kind == ew_schema::PartKind::Cable;
-        let cell = |m: &str| texts.get(&Member::field(m)).map(|t| t.trim()).filter(|t| !t.is_empty());
+        let cell = |m: &str| {
+            texts
+                .get(&Member::field(m))
+                .map(|t| t.trim())
+                .filter(|t| !t.is_empty())
+        };
         let (count, csa) = (cell(CABLE_CORES[0]), cell(CABLE_CORES[1]));
         if cable && let Some(n) = count {
             let cores = Member::field(CABLE_CORES[0]);
@@ -483,7 +499,8 @@ impl Session {
                 ("cable.shield", "false"),
                 ("cable.cores", n),
             ] {
-                self.set_draft_field(&mut sheet, f, v).map_err(|e| refused(&cores, e))?;
+                self.set_draft_field(&mut sheet, f, v)
+                    .map_err(|e| refused(&cores, e))?;
             }
         }
         if cable && let Some(c) = csa {
@@ -583,11 +600,17 @@ impl Session {
 
     /// Whether every cell of a row reads as the table Export writes of part `other` (held by the project where
     /// `in_project`) reads it: the row is that part, unchanged.
-    fn row_reads_as(&self, texts: &BTreeMap<Member, String>, other: &LibCopy<Part>, in_project: bool) -> bool {
+    fn row_reads_as(
+        &self,
+        texts: &BTreeMap<Member, String>,
+        other: &LibCopy<Part>,
+        in_project: bool,
+    ) -> bool {
         let sheet = if in_project {
             self.part_draft(other.id.as_uuid()).ok()
         } else {
-            self.library_part_draft(other.library_id.as_uuid(), other.item_id.as_uuid()).ok()
+            self.library_part_draft(other.library_id.as_uuid(), other.item_id.as_uuid())
+                .ok()
         };
         let Some(sheet) = sheet else {
             return false;
@@ -608,7 +631,11 @@ impl Session {
                 let name = m.name();
                 columns.iter().find(|(c, _)| *c == name).is_some_and(|(_, v)| {
                     let held = v.first().map_or("", |h| h.trim());
-                    if name == "kind" { kind(held) == kind(t) } else { held == t.trim() }
+                    if name == "kind" {
+                        kind(held) == kind(t)
+                    } else {
+                        held == t.trim()
+                    }
                 })
             }
         })
@@ -617,7 +644,11 @@ impl Session {
     /// The part of maker `maker` (its key or its name, any case) and number `number` (as `pn_norm` reads it) he can read:
     /// one of My parts first, then one the project holds, then one of the other libraries; with where it lives and
     /// whether the project holds it. The one match of a row's part and of its Like column.
-    pub(crate) fn part_by_maker_number(&self, maker: &str, number: &str) -> Option<(LibCopy<Part>, crate::parts::Lives, bool)> {
+    pub(crate) fn part_by_maker_number(
+        &self,
+        maker: &str,
+        number: &str,
+    ) -> Option<(LibCopy<Part>, crate::parts::Lives, bool)> {
         let norm = ew_interop_api::pn_norm(number);
         if norm.is_empty() {
             return None;
@@ -635,7 +666,8 @@ impl Session {
             };
             by_library || ew_derive::manufacturer_name(&q, m).to_lowercase() == maker
         };
-        let matches = |p: &Part| ew_interop_api::pn_norm(p.part_number.as_str()) == norm && named(&p.manufacturer);
+        let matches =
+            |p: &Part| ew_interop_api::pn_norm(p.part_number.as_str()) == norm && named(&p.manufacturer);
         let mine = crate::eplan::find_user_parts_library(reg);
         let in_library = |lib: Uuid| {
             reg.documents(lib, Kind::Part).into_iter().find_map(|d| match d {
@@ -696,7 +728,13 @@ impl Session {
     }
 
     /// The rows of `import`, the sheet's refusals (`refused`) given in order to the rows refused for them.
-    fn set_of(&self, file: &str, import: PartsImport, (host, likes): (&[HostRow], &[String]), source: SetSource) -> PartsSet {
+    fn set_of(
+        &self,
+        file: &str,
+        import: PartsImport,
+        (host, likes): (&[HostRow], &[String]),
+        source: SetSource,
+    ) -> PartsSet {
         let reg = self.libraries();
         let makers: BTreeMap<(Uuid, Uuid), String> = manufacturer_master(reg)
             .into_iter()
@@ -744,11 +782,24 @@ impl Session {
                     RowStatus::Rejected(why) => SetStatus::Refused(SetRefusal::Read(why.clone())),
                 };
                 // A changed row's members that change: My parts' item beside the row's.
-                let changes = match (&status, r.item.and_then(|i| import.parts.iter().find(|d| d.copy_meta().is_some() && matches!(d, LibDocument::Part(p) if p.item_id.as_uuid() == i)))) {
+                let changes = match (
+                    &status,
+                    r.item.and_then(|i| {
+                        import.parts.iter().find(|d| {
+                            d.copy_meta().is_some()
+                                && matches!(d, LibDocument::Part(p) if p.item_id.as_uuid() == i)
+                        })
+                    }),
+                ) {
                     (SetStatus::Changed, Some(LibDocument::Part(new))) => {
-                        let held = reg.resolve(&crate::part_offers::lib_ref(new.library_id.as_uuid(), new.item_id.as_uuid()));
+                        let held = reg.resolve(&crate::part_offers::lib_ref(
+                            new.library_id.as_uuid(),
+                            new.item_id.as_uuid(),
+                        ));
                         match held {
-                            Ok(old @ LibDocument::Part(_)) => crate::classify_update(&old, &LibDocument::Part(new.clone())).fields,
+                            Ok(old @ LibDocument::Part(_)) => {
+                                crate::classify_update(&old, &LibDocument::Part(new.clone())).fields
+                            }
                             _ => Vec::new(),
                         }
                     }
