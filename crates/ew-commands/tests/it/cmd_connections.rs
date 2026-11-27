@@ -1300,3 +1300,86 @@ fn a_wire_left_open_beyond_an_interruption_point_keeps_its_end_at_its_clamp() {
         Some((None, colour("BU"), [None, Some("ring_lug".into())]))
     );
 }
+
+/// The page 103 of the wire through two pairs of interruption points.
+const PAGE_103: Id<ew_schema::Page> = id(0x4400);
+/// The pair L-2: its source on page 102, its target on page 103.
+const FN_L2_SRC: Id<Function> = id(0x4401);
+const FN_L2_TGT: Id<Function> = id(0x4402);
+/// The wire's constituent on page 102 between the pairs, and its last on page 103.
+const CON_MID: Id<Connection> = id(0x4403);
+const CON_LAST: Id<Connection> = id(0x4404);
+
+/// One wire through two pairs of interruption points: -101F1:1 on page 101 to L-1, from L-1's partner on page 102 to
+/// L-2 (the middle constituent, drawn from L-1's side, or from L-2's with `reversed`), from L-2's partner on page 103
+/// to -102F2:4.
+fn wire_through_two_pairs(reversed: bool) -> Model {
+    let (p, mut records, lib) = mini_project_parts();
+    records.retain(|r| !matches!(r, Record::Connection(c) if c.id == CON_W11B));
+    let (a, b) = (cp(FN_IP_102, 0), cp(FN_L2_SRC, 0));
+    let (a, b) = if reversed { (b, a) } else { (a, b) };
+    records.extend([
+        Record::Page(page(PAGE_103, Some(SEC1), 103, "Control 2")),
+        Record::Function(ip_function(FN_L2_SRC, "L-2", IpDirection::Source)),
+        Record::Function(ip_function(FN_L2_TGT, "L-2", IpDirection::Target)),
+        Record::Representation(rep(id(0x4405), PAGE_102, vec![FN_L2_SRC])),
+        Record::Representation(rep(id(0x4406), PAGE_103, vec![FN_L2_TGT])),
+        Record::Connection(connection(CON_MID, Some(PAGE_102), a, b)),
+        Record::Connection(connection(
+            CON_LAST,
+            Some(PAGE_103),
+            cp(FN_L2_TGT, 0),
+            cp(FN_102F2, 4),
+        )),
+    ]);
+    Model::from_records(p, records, lib).expect("a wire through two pairs")
+}
+
+/// The middle constituent of a wire between two pairs of interruption points lands on neither end, and neither
+/// neighbour shares an endpoint with it: its ends are read from the order the path passes the points (the rule of
+/// `end_through` the mend `ebf311c46` added). Through its endpoint on L-1's side it leads to the end at -101F1:1, through
+/// its endpoint on L-2's side to the end at -102F2:4, whichever way round it is drawn.
+#[test]
+fn the_middle_of_a_wire_between_two_pairs_leads_to_the_end_on_its_side() {
+    for reversed in [false, true] {
+        let model = wire_through_two_pairs(reversed);
+        let q = ew_derive::Q::new(&model);
+        let records = q.get::<ew_derive::WireRecordSet>(());
+        let r = records
+            .iter()
+            .find(|r| r.wire.constituents.contains(&CON_MID))
+            .expect("one wire through both pairs");
+        let k = r.wire.constituents.iter().position(|c| *c == CON_MID).expect("the middle");
+        let feed = (0..2)
+            .find(|i| r.wire.ends[*i].cp == ew_derive::CpRef { function: FN_101F1, idx: 1 })
+            .expect("an end at -101F1:1");
+        let clamp = 1 - feed;
+        let (l1_side, l2_side) = (!reversed, reversed);
+        assert_eq!(ew_derive::end_through(&q, &r.wire, k, l1_side), Some(feed), "reversed {reversed}");
+        assert_eq!(ew_derive::end_through(&q, &r.wire, k, l2_side), Some(clamp), "reversed {reversed}");
+    }
+}
+
+/// The ends set by hand at both clamps of a wire through two pairs of interruption points stay when its middle, on
+/// page 102 between the pairs, is drawn again (doc 13 §2.3).
+#[test]
+fn a_wire_through_two_pairs_keeps_its_ends_when_its_middle_is_drawn_again() {
+    let (feed, clamp) = (cp(FN_101F1, 1), cp(FN_102F2, 4));
+    let model = with_wire_values(
+        &wire_through_two_pairs(false),
+        (&feed, &clamp),
+        400,
+        Some("BU"),
+        [Some("bare"), Some("ring_lug")],
+    );
+    let ends = || Some([Some("bare".to_owned()), Some("ring_lug".to_owned())]);
+    assert_eq!(wire_seen(&model, &feed, &clamp).map(|w| w.2), ends());
+    let mut e = engine(model);
+    e.execute(&DeleteConnections {
+        connections: vec![CON_MID],
+    })
+    .expect("the middle deleted");
+    e.execute(&draw(cp_param(FN_IP_102, 0), cp_param(FN_L2_SRC, 0), Some(PAGE_102)))
+        .expect("the middle drawn again");
+    assert_eq!(wire_seen(e.model(), &feed, &clamp).map(|w| w.2), ends());
+}
