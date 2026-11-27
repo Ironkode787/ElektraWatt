@@ -139,6 +139,8 @@ mod release_run;
 mod rework;
 // The label files.
 mod labels;
+// The package for the workshop.
+mod package;
 // Route on a panel page: the card of a cabinet's plan (doc 12 §12.5).
 pub mod cabinet_route;
 // The router the canvas tools call.
@@ -285,6 +287,10 @@ pub use external_change::{DiskPoll, ExternalApplied, ExternalError};
 pub use labels::{LabelError, LabelFile, LabelProfile, LabelScope, label_column_words, label_set_text};
 pub use new_project::{
     NewProjectKind, ProjectTemplate, SaveAsBasicError, TemplateSummary, shipped_frames, template_summary,
+};
+pub use package::{
+    NoLength, NoLengthWhy, Package, PackageAsk, PackageError, PackageJob, PackageMember, PackagePlan,
+    PlannedMember, write_package,
 };
 pub use release::{Approval, ApproveError, FOUR_EYES_RULE, Gate, GateError, role_name};
 pub use release_run::{

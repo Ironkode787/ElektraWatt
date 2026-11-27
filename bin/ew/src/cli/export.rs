@@ -1248,6 +1248,138 @@ impl ReworkCli {
     }
 }
 
+/// `ew export package`.
+#[derive(Args, Clone, PartialEq, Eq, Debug)]
+pub(crate) struct PackageCli {
+    /// The project directory: the positional one or `--project`.
+    #[command(flatten)]
+    pub project: ProjectArg,
+    /// A member to leave out, by its kind (`pages`, `wire_list`, `labels`, `drilling`, …); repeatable.
+    #[arg(long, value_name = "member", allow_hyphen_values = true)]
+    pub(super) leave_out: Vec<String>,
+    /// Leave out the name and the address of each party marked as personal data.
+    #[arg(long)]
+    pub(super) omit_personal_data: bool,
+    /// The ZIP file to write (required).
+    #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
+    pub(super) out: Option<PathBuf>,
+}
+
+impl PackageCli {
+    /// The members `--leave-out` names; a word that names no member that may be left out is a usage error naming those
+    /// that may.
+    fn left_out(&self) -> Result<Vec<ew_api::PackageMember>, clap::Error> {
+        self.leave_out
+            .iter()
+            .map(|w| {
+                ew_api::PackageMember::parse(w.trim())
+                    .filter(|m| m.optional())
+                    .ok_or_else(|| {
+                        let kinds: Vec<&str> = ew_api::PackageMember::all()
+                            .into_iter()
+                            .filter(|m| m.optional())
+                            .map(ew_api::PackageMember::key)
+                            .collect();
+                        usage_error(
+                            &["export", "package"],
+                            format!("--leave-out {w}: the members are {}", kinds.join(", ")),
+                        )
+                    })
+            })
+            .collect()
+    }
+}
+
+impl Leaf for PackageCli {
+    const EXITS: &'static [Exit] = &[
+        exit(0, "written"),
+        exit(
+            2,
+            "usage, open errors, a release package with an open error of the release check, write errors",
+        ),
+    ];
+
+    fn check(&self) -> Result<(), clap::Error> {
+        self.left_out()?;
+        self.out.as_ref().map(drop).ok_or_else(|| {
+            usage_error(
+                &["export", "package"],
+                "`ew export package` writes a file: give `--out <file.zip>`",
+            )
+        })
+    }
+}
+
+/// `ew export package`: the package for the workshop of the project as it is saved, written to `--out` whole; each
+/// finding of the release check printed first (an error as an error, a warning as a warning, an info as a notice).
+pub(super) fn run_export_package(a: &PackageCli, io: &mut Io<'_>) -> i32 {
+    let leave_out = match a.left_out() {
+        Ok(m) => m,
+        Err(e) => return usage(&e, io),
+    };
+    let Some(out) = a.out.as_ref() else {
+        return 2;
+    };
+    let date = match source_date(io.env) {
+        Ok(d) => d,
+        Err(e) => {
+            io.error(e);
+            return 2;
+        }
+    };
+    let Some(dir) = project_dir(a.project.as_ref(), io) else {
+        return 2;
+    };
+    let (session, opened) = match open_reader(&dir, "export package", io) {
+        Ok(r) => r,
+        Err(e) => {
+            io.error(format_args!("{}: {e}", dir.display()));
+            return 2;
+        }
+    };
+    let ask = ew_api::PackageAsk {
+        leave_out,
+        omit_personal: a.omit_personal_data,
+        date,
+        integrity: ew_api::integrity_items(&opened),
+    };
+    let plan = session.package_plan(&ask);
+    for f in plan.findings() {
+        let line = format_args!("{}: {}", f.rule, f.message());
+        match f.severity {
+            ew_api::checks::Severity::Error => io.error(line),
+            ew_api::checks::Severity::Warning => io.warning(line),
+            ew_api::checks::Severity::Info => io.notice(line),
+        }
+    }
+    let job = match session.package_job(&ask) {
+        Ok(j) => j,
+        Err(e) => {
+            io.error(format_args!("{}: {e}", dir.display()));
+            return 2;
+        }
+    };
+    let package = match job.run(None) {
+        Ok(p) => p,
+        Err(e) => {
+            io.error(format_args!("{}: {e}", dir.display()));
+            return 2;
+        }
+    };
+    if let Err(e) = ew_api::write_package(out, &package) {
+        io.error(format_args!("{}: {e}", out.display()));
+        return 2;
+    }
+    outln!(
+        io,
+        "{} written to {}: {}",
+        if plan.draft() { "draft package" } else { "package" },
+        out.display(),
+        plural(package.paths.len(), "file", "files")
+    );
+    0
+}
+
 /// `ew export drilling`.
 #[derive(Args, Clone, PartialEq, Eq, Debug)]
 pub(crate) struct DrillingCli {
@@ -1355,6 +1487,7 @@ pub(super) fn run_export_drilling(a: &DrillingCli, io: &mut Io<'_>) -> i32 {
         paper,
         template: !a.no_template,
         dxf: !a.no_dxf,
+        date: None,
     };
     let files = match session.drilling_files(&ask) {
         Ok(f) => f,

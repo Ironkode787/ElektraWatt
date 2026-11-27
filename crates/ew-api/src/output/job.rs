@@ -153,7 +153,7 @@ impl PrintSetJob {
     /// [`JobError::Cancelled`] at a checkpoint after [`ew_jobs::Job::cancel`].
     pub fn run_typed(self, ctl: &JobCtl) -> Result<Result<PrintSet, OutputError>, JobError> {
         let q = Q::new(&self.world.model).with_report_pages(self.reports);
-        let set = match print_set_hooked(&q, &self.options, &self.assets, Some(ctl)) {
+        let set = match print_set_hooked(&q, &self.options, &self.assets, Some(ctl), None) {
             Ok(set) => set,
             Err(Halt::Cancelled) => return Err(JobError::Cancelled),
             Err(Halt::Output(e)) => return Ok(Err(e)),

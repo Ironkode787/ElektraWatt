@@ -607,6 +607,94 @@ fn export_labels_writes_a_file_per_set_and_marker_part() {
     assert!(stderr(&o).contains("--dir <folder>"), "{}", stderr(&o));
 }
 
+/// `ew export package` writes the sample's draft package whole and exits 0; `--leave-out` a word that names no member is
+/// a usage error naming those that are; on a copy released as V1.0 whose -X1031 has moved since its wires were laid, it
+/// prints EW-LAY-011 as an error and exits 2 without writing.
+#[test]
+fn export_package_writes_the_draft_and_refuses_a_release_with_an_error() {
+    let t = Tmp::new("ew-outputs");
+    let p = t.sample("sample.ew");
+    let out = t.0.join("package.zip");
+    let o = t.ew(&args([&"export", &"package", &p, &"--out", &out]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert!(
+        stdout(&o).starts_with("draft package written to "),
+        "{}",
+        stdout(&o)
+    );
+    let zip = std::fs::read(&out).expect("the package");
+    assert!(zip.starts_with(b"PK"));
+    let o = t.ew(&args([
+        &"export",
+        &"package",
+        &p,
+        &"--out",
+        &out,
+        &"--leave-out",
+        &"nothing",
+    ]));
+    assert_eq!(o.status.code(), Some(2));
+    assert!(stderr(&o).contains("wire_list"), "{}", stderr(&o));
+    // The released copy: V1.0 released, -X1031 10 mm further along its rail, the manifest's hashes made again.
+    let x1031 = ew_api::Session::open_read_only(Path::new(SAMPLE), "test")
+        .expect("the sample")
+        .0
+        .resolve_reference("tag:-X1031")
+        .expect("-X1031")
+        .to_string();
+    let edit = |file: &Path, f: &dyn Fn(&str) -> String| {
+        let text = std::fs::read_to_string(file).expect("a record file");
+        let lines: Vec<String> = text.lines().map(f).collect();
+        std::fs::write(file, lines.join("\n") + "\n").expect("written");
+    };
+    edit(&p.join("revisions.jsonl"), &|l| {
+        l.replace(
+            "\"state\":\"open\"",
+            "\"date\":\"2026-11-28\",\"state\":\"released\"",
+        )
+    });
+    let mut moved = 0;
+    for f in std::fs::read_dir(p.join("layout")).expect("the layout") {
+        let path = f.expect("a file").path();
+        let text = std::fs::read_to_string(&path).expect("a record file");
+        if let Some(line) = text
+            .lines()
+            .find(|l| l.contains("\"$k\":\"placement\"") && l.contains(&format!("\"device\":\"{x1031}\"")))
+        {
+            let at = line.find("\"t\":[").expect("a pose") + 5;
+            let end = at + line[at..].find(',').expect("its x");
+            let x: i64 = line[at..end].parse().expect("a number");
+            let changed = format!("{}{}{}", &line[..at], x + 10_000_000, &line[end..]);
+            let line = line.to_owned();
+            edit(&path, &|l| if l == line { changed.clone() } else { l.to_owned() });
+            moved += 1;
+        }
+    }
+    assert_eq!(moved, 1, "-X1031's placement");
+    let manifest_path = p.join("manifest.json");
+    let mut manifest: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&manifest_path).expect("the manifest")).expect("JSON");
+    let files = manifest["files"].as_object_mut().expect("its files");
+    for (name, hash) in files.iter_mut() {
+        let bytes = std::fs::read(p.join(name)).expect("a file");
+        let hex: String = <sha2::Sha256 as sha2::Digest>::digest(&bytes)
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect();
+        *hash = serde_json::Value::String(format!("sha256:{hex}"));
+    }
+    std::fs::write(
+        &manifest_path,
+        serde_json::to_string_pretty(&manifest).expect("JSON") + "\n",
+    )
+    .expect("written");
+    let refused = t.0.join("refused.zip");
+    let o = t.ew(&args([&"export", &"package", &p, &"--out", &refused]));
+    assert_eq!(o.status.code(), Some(2), "{}{}", stdout(&o), stderr(&o));
+    assert!(stderr(&o).contains("error: EW-LAY-011"), "{}", stderr(&o));
+    assert!(!refused.exists(), "nothing is written");
+}
+
 /// Without `--strip` `ew export terminals` writes the sample's three strips -X1011, -X1021 and -X1031 one after
 /// the other, each after a heading row, with the rows `--strip` writes for it: 5, 8 and 5 terminals.
 #[test]

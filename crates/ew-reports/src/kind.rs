@@ -83,6 +83,12 @@ pub trait ReportKindDef: Send + Sync {
     fn offered(&self) -> bool {
         self.page_oriented()
     }
+
+    /// Whether the package for the workshop carries this list as a file of its own (doc 13-package §8.2): the lists
+    /// the workshop builds the cabinet from. `false` by default.
+    fn workshop(&self) -> bool {
+        false
+    }
 }
 
 /// One declared block parameter of a kind ([`ReportKindDef::params`]).
@@ -248,5 +254,15 @@ impl Registry {
     /// The registered names, in order.
     pub fn names(&self) -> impl Iterator<Item = &'static str> + '_ {
         self.kinds.keys().copied()
+    }
+
+    /// The names of the kinds the package for the workshop carries ([`ReportKindDef::workshop`]), in the order the
+    /// kinds are declared: the order the package lists them in.
+    pub fn workshop(&self) -> Vec<&'static str> {
+        kinds::builtin()
+            .into_iter()
+            .filter(|k| k.workshop())
+            .filter_map(|k| k.kind().name())
+            .collect()
     }
 }

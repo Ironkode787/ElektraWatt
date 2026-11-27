@@ -57,6 +57,7 @@ fn door_dxf(s: &Session, door: Id<MountingSurface>) -> String {
         paper: Paper::A4,
         template: false,
         dxf: true,
+        date: None,
     };
     let files = s.drilling_files(&ask).expect("the drawings");
     let dxf = files.iter().find(|f| f.name.ends_with(".dxf")).expect("the DXF");
@@ -77,6 +78,7 @@ fn the_door_s_template_lies_in_its_top_left_corner_and_its_dxf_holds_its_holes()
         paper: Paper::A4,
         template: true,
         dxf: true,
+        date: None,
     };
     let files = s.drilling_files(&ask).expect("the drawings");
     assert_eq!(files, s.drilling_files(&ask).expect("again"), "the same bytes");
@@ -139,6 +141,7 @@ fn a_sheet_beyond_the_drawing_range_gets_no_drawings() {
         paper: Paper::A4,
         template: true,
         dxf: true,
+        date: None,
     };
     assert_eq!(s.drilling_files(&ask).expect("no file"), Vec::new());
 }

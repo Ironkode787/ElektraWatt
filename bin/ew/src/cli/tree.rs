@@ -27,7 +27,7 @@ use ew_api::import::migration::ReportFormat;
 use ew_api::output::print::Paper;
 use ew_api::output::{CsvOptions, LineEnd, PageSelection, Preset};
 
-use super::export::{DrillingCli, LabelsCli, ReworkCli};
+use super::export::{DrillingCli, LabelsCli, PackageCli, ReworkCli};
 use super::io::Io;
 use super::{
     CheckFormat, ExportArgs, ExportKind, ExportPagesArgs, ImportCsvArgs, ImportPartsArgs, ImportQetArgs,
@@ -991,6 +991,18 @@ pub(crate) enum ExportCli {
     /// or their ID; without it every surface with holes. `--no-template` and `--no-dxf` leave one kind out. Exit 0 when
     /// written, 2 on everything else (usage, open errors, no surface with holes, an unknown surface, write errors).
     Drilling(DrillingCli),
+    /// Write the package for the workshop: one ZIP with the drawings, the lists, the label files and the drawings for
+    /// drilling.
+    ///
+    /// Writes the package of the project as it is saved (doc 13-package §8) to `--out` (required), whole or not at all:
+    /// the drawings as one PDF (a draft's pages marked "Draft V1.0: not released"), each workshop list as its Excel
+    /// export, the label files in the label file's form and the drawings for drilling, in folders by kind, with
+    /// `Contents.txt` and `manifest.json`. The revision decides draft or release: a draft while a revision is open.
+    /// `--leave-out <member>` (repeatable) leaves out a member by its kind (`pages`, `wire_list`, `labels`, `drilling`,
+    /// …); `--omit-personal-data` leaves out the name and the address of each party marked as personal data. Prints each
+    /// finding of the release check, then what it wrote. Exit 0 when written, 2 on everything else (usage, open errors,
+    /// a release package with an open error of the release check, which it names, write errors).
+    Package(PackageCli),
     /// Write one PNG file per page.
     ///
     /// Writes one `<folio>.png` per page into the directory `--out` (empty, or one an earlier PNG export wrote, which

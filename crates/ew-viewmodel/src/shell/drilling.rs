@@ -154,6 +154,7 @@ impl ShellModel {
             paper,
             template,
             dxf,
+            date: None,
         };
         let Some(project) = &self.project else {
             return Outcome::refused(key!("reason-no-project"));

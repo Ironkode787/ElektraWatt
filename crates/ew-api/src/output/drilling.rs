@@ -60,6 +60,8 @@ pub struct DrillingAsk {
     pub template: bool,
     /// Make the DXFs.
     pub dxf: bool,
+    /// The templates' creation date; `None`: the model's (the package's date, doc 13-package §8.8).
+    pub date: Option<super::PdfDate>,
 }
 
 /// The layer of a way of making a hole (doc 13 §9.1): `HOLE_4.5`, `TAP_M5`, `CUT_22.3`, `CUT_RECT`.
@@ -487,7 +489,8 @@ impl Session {
                     });
                 }
                 let stem = words(&ew_derive::text::template_file(&location, &surface_words));
-                let mut options = ew_export::PdfOptions::new(super::model_date(&q));
+                let mut options =
+                    ew_export::PdfOptions::new(ask.date.unwrap_or_else(|| super::model_date(&q)));
                 options.title = Some(stem.clone());
                 options.creator = Some(format!("ElektraWatt {}", env!("CARGO_PKG_VERSION")));
                 options.document_id =

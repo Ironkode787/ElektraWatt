@@ -20,6 +20,11 @@
 //! house font, black, 2 mm cap height, its baseline 4 mm above the paper's bottom edge and its end 5 mm from the right
 //! edge.
 //!
+//! **The draft mark.** A draft of the package for the workshop (doc 13-package §8.4) stamps every page with its mark
+//! ("Draft V1.0: not released") in the sheet's margin above the frame, right-aligned to the frame's right edge, in
+//! the house font, black, its cap height 2.5 mm or half that margin where that is less; a sheet with no margin above
+//! its frame takes it inside the frame's top right corner.
+//!
 //! **The document ID.** A set whose every page lies on its own sheet unscaled with no stamp is the export's
 //! document, byte for byte; any other set adds ` print <paper> <fit>` to the export's document ID text.
 
@@ -31,7 +36,7 @@ use ew_dl::{DisplayList, Item};
 use ew_export::{Parallelism, PdfPage, PdfReport};
 use ew_mltext::LangTag;
 use ew_text::TextStyle;
-use ew_units::{Nm, Pt2, arith};
+use ew_units::{Nm, Pt2, Rect, arith};
 
 pub use ew_render_cpu::PagePlacement;
 
@@ -321,16 +326,54 @@ pub const STAMP_END: Nm = Nm(5_000_000);
 /// The stamp's glyph run on a `pw` × `ph` paper: the house font, black, [`STAMP_CAP_HEIGHT`], its baseline
 /// [`STAMP_BASELINE`] above the bottom edge and its end [`STAMP_END`] from the right edge.
 fn stamp(text: &str, pw: Nm, ph: Nm) -> Item {
+    run_ending_at(
+        text,
+        STAMP_CAP_HEIGHT,
+        Pt2::new(pw - STAMP_END, ph - STAMP_BASELINE),
+    )
+}
+
+/// `text` in the house font, black, at cap height `cap`, its baseline's end at `end`.
+fn run_ending_at(text: &str, cap: Nm, end: Pt2) -> Item {
     let fonts = ew_text::bundled();
-    // The em height whose cap height is 2 mm, from the face's cap height at a 1 mm em.
+    // The em height whose cap height is `cap`, from the face's cap height at a 1 mm em.
     let unit = TextStyle::regular(Nm::from_mm(1));
-    let cap = fonts.vertical_metrics(&unit).cap_height.0.max(1);
-    let em = i128::from(STAMP_CAP_HEIGHT.0) * i128::from(Nm::from_mm(1).0) / i128::from(cap);
-    let style = unit.with_size(Nm(i64::try_from(em).unwrap_or(STAMP_CAP_HEIGHT.0)));
+    let face_cap = fonts.vertical_metrics(&unit).cap_height.0.max(1);
+    let em = i128::from(cap.0) * i128::from(Nm::from_mm(1).0) / i128::from(face_cap);
+    let style = unit.with_size(Nm(i64::try_from(em).unwrap_or(cap.0)));
     let shaped = fonts.shape(text, &style, None);
     let mut run = (*shaped.run).clone();
-    run.origin = Pt2::new(pw - STAMP_END - shaped.advance(), ph - STAMP_BASELINE);
+    run.origin = Pt2::new(end.x - shaped.advance(), end.y);
     Item::glyphs(Arc::new(run))
+}
+
+/// The draft mark's largest cap height.
+pub const MARK_CAP_HEIGHT: Nm = Nm(2_500_000);
+/// The draft mark's inset from the frame's top right corner on a sheet with no margin above its frame.
+const MARK_INSET: Nm = Nm(2_000_000);
+
+/// The draft mark `text` of a page whose frame is `frame` (sheet coordinates, y down) on a paper placed by `at`: in the
+/// margin above the frame, right-aligned to its right edge, its cap height 2.5 mm or half the margin where that is less,
+/// centred in the margin; inside the frame's top right corner where the sheet has no margin above it.
+fn draft_mark(text: &str, frame: Rect, at: &PagePlacement) -> Item {
+    let on_paper = |n: Nm| {
+        let v = i128::from(n.0) * i128::from(at.scale.0) / i128::from(at.scale.1.max(1));
+        Nm(i64::try_from(v).unwrap_or(i64::MAX))
+    };
+    let right = at.offset.x + on_paper(frame.max().x);
+    let margin = on_paper(frame.min().y);
+    let top = at.offset.y + margin;
+    if margin.0 > 0 {
+        let cap = Nm(MARK_CAP_HEIGHT.0.min(margin.0 / 2));
+        // The cap height's middle at the margin's.
+        run_ending_at(text, cap, Pt2::new(right, Nm(top.0 - (margin.0 - cap.0) / 2)))
+    } else {
+        run_ending_at(
+            text,
+            MARK_CAP_HEIGHT,
+            Pt2::new(right - MARK_INSET, top + MARK_INSET + MARK_CAP_HEIGHT),
+        )
+    }
 }
 
 /// The print set of the pages `options` selects over `q`: the export's pages, placed and stamped, written by
@@ -340,7 +383,7 @@ fn stamp(text: &str, pw: Nm, ph: Nm) -> Item {
 ///
 /// [`OutputError`] for a selection the page order does not have or pages the writer refuses.
 pub fn print_set_with(q: &Q, options: &PrintOptions, assets: &ExportAssets) -> Result<PrintSet, OutputError> {
-    print_set_hooked(q, options, assets, None).map_err(|h| match h {
+    print_set_hooked(q, options, assets, None, None).map_err(|h| match h {
         Halt::Output(e) => e,
         // Without the job's controller nothing cancels.
         Halt::Cancelled => OutputError::Selection("the print set was cancelled".to_owned()),
@@ -361,12 +404,14 @@ pub fn sections(q: &Q) -> Vec<(u16, String)> {
 }
 
 /// [`print_set_with`] with the job's controller `ctl` (the print job): the export's phases with
-/// their reports and checkpoints, then `report(0, 0, "writing")` before the placement and the writer.
+/// their reports and checkpoints, then `report(0, 0, "writing")` before the placement and the writer; with `mark`, every
+/// page stamped with the draft mark of that text (the module documentation).
 pub(crate) fn print_set_hooked(
     q: &Q,
     options: &PrintOptions,
     assets: &ExportAssets,
     ctl: Option<&ew_jobs::JobCtl>,
+    mark: Option<&str>,
 ) -> Result<PrintSet, Halt> {
     let export = export_pages_hooked(
         q,
@@ -390,20 +435,40 @@ pub(crate) fn print_set_hooked(
         });
     }
     let lang = ew_derive::print_language(q);
+    // The frame of each page of the selection on its sheet, which the draft mark stands above.
+    let frames: Vec<Rect> = match mark {
+        None => Vec::new(),
+        Some(_) => {
+            let order = q.get::<ew_derive::PageOrder>(());
+            let picked = options.pages.resolve(&order, q.sections())?;
+            picked
+                .iter()
+                .map(|&i| {
+                    let frame = q.get::<super::view::PageFrameOf>(order.entries[i].page);
+                    let forms = frame.as_ref().as_ref();
+                    let map = ew_scene::page::sheet_of(forms.map(|f| &*f.form)).2;
+                    let rect =
+                        ew_scene::page::frame_rect(forms.map(|f| (&*f.form, f.title_block.as_deref())));
+                    Rect::from_points(map.apply(rect.min()), map.apply(rect.max()))
+                })
+                .collect()
+        }
+    };
     let mut set = print_pages(
         export.pages,
         export.options,
         options.paper,
         options.fit,
         lang.as_ref(),
+        mark.map(|m| (m, frames.as_slice())),
     )?;
     set.findings = export.findings;
     Ok(set)
 }
 
 /// The print set of export `pages` written with their export `options`: each page placed on `paper` with
-/// `fit` and stamped when scaled (in the print's language `lang`), then written by [`ew_export::pdf`] with the bundled
-/// fonts; no findings.
+/// `fit` and stamped when scaled (in the print's language `lang`), and with `mark` (its text, and each page's frame on
+/// its sheet) the draft mark, then written by [`ew_export::pdf`] with the bundled fonts; no findings.
 ///
 /// # Errors
 ///
@@ -414,12 +479,19 @@ pub fn print_pages(
     paper: Paper,
     fit: Fit,
     lang: Option<&LangTag>,
+    mark: Option<(&str, &[Rect])>,
 ) -> Result<PrintSet, OutputError> {
     let mut stamps = Vec::with_capacity(pages.len());
     let mut notices = Vec::new();
     let mut as_exported = true;
-    for page in &mut pages {
-        let (placement, clipped) = placement(page.width, page.height, paper, fit, lang);
+    for (i, page) in pages.iter_mut().enumerate() {
+        let (mut placement, clipped) = placement(page.width, page.height, paper, fit, lang);
+        if let Some((text, frames)) = mark
+            && let Some(frame) = frames.get(i)
+        {
+            let item = draft_mark(text, *frame, &placement);
+            placement.overlay.items.push(item);
+        }
         if clipped {
             notices.push(PrintNotice::Clipped {
                 folio: page.label.clone(),
@@ -558,12 +630,28 @@ mod tests {
             placement: None,
         };
         let options = ew_export::PdfOptions::new(PdfDate::ymd(2026, 1, 1));
-        let fitted = print_pages(vec![page.clone()], options.clone(), Paper::A4, Fit::ToPaper, None).unwrap();
+        let fitted = print_pages(
+            vec![page.clone()],
+            options.clone(),
+            Paper::A4,
+            Fit::ToPaper,
+            None,
+            None,
+        )
+        .unwrap();
         assert_eq!(fitted.stamps, [Some("scaled 71 %".to_owned())]);
         assert!(fitted.notices.is_empty());
         assert_eq!(fitted.percent(0), 71);
         assert_eq!(fitted.pages[0].content, page.content);
-        let clipped = print_pages(vec![page.clone()], options.clone(), Paper::A4, Fit::Actual, None).unwrap();
+        let clipped = print_pages(
+            vec![page.clone()],
+            options.clone(),
+            Paper::A4,
+            Fit::Actual,
+            None,
+            None,
+        )
+        .unwrap();
         assert_eq!(clipped.stamps, [None]);
         let notices: Vec<String> = clipped.notices.iter().map(ToString::to_string).collect();
         assert_eq!(
@@ -575,6 +663,7 @@ mod tests {
             options.clone(),
             Paper::Sheet,
             Fit::Actual,
+            None,
             None,
         )
         .unwrap();
@@ -601,5 +690,48 @@ mod tests {
             .vertical_metrics(&TextStyle::regular(run.size))
             .cap_height;
         assert!((cap.0 - STAMP_CAP_HEIGHT.0).abs() <= 1, "{cap:?}");
+    }
+
+    /// The draft mark stands in the margin above the frame, right-aligned to its right edge, 2.5 mm high where the
+    /// margin is 5 mm or more, half the margin where it is less; inside the frame's top right corner without a margin.
+    #[test]
+    fn the_draft_mark_stands_above_the_frame_at_its_right() {
+        let (at, _) = placement(
+            Nm::from_mm(420),
+            Nm::from_mm(297),
+            Paper::Sheet,
+            Fit::Actual,
+            None,
+        );
+        let run = |frame: Rect| {
+            let ew_dl::ItemKind::Glyphs(run) = draft_mark("Draft V1.0: not released", frame, &at).kind else {
+                panic!("the mark is a glyph run")
+            };
+            run
+        };
+        let cap = |run: &ew_dl::ShapedRun| {
+            ew_text::bundled()
+                .vertical_metrics(&TextStyle::regular(run.size))
+                .cap_height
+        };
+        let frame = |top: i64| {
+            Rect::from_points(
+                Pt2::new(Nm::from_mm(10), Nm::from_mm(top)),
+                Pt2::new(Nm::from_mm(410), Nm::from_mm(287)),
+            )
+        };
+        let wide = run(frame(10));
+        assert_eq!(wide.origin.x + wide.layout_box.max().x, Nm::from_mm(410));
+        assert!(
+            wide.origin.y < Nm::from_mm(10) && wide.origin.y > Nm(0),
+            "{:?}",
+            wide.origin
+        );
+        assert!((cap(&wide).0 - MARK_CAP_HEIGHT.0).abs() <= 1);
+        let narrow = run(frame(3));
+        assert!((cap(&narrow).0 - 1_500_000).abs() <= 1, "half the margin");
+        let none = run(frame(0));
+        assert!(none.origin.y > Nm(0), "inside the frame");
+        assert!(none.origin.x + none.layout_box.max().x < Nm::from_mm(410));
     }
 }

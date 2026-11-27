@@ -41,6 +41,10 @@ impl ReportKindDef for CutList {
         ReportKind::CutList
     }
 
+    fn workshop(&self) -> bool {
+        true
+    }
+
     fn columns(&self) -> Vec<ColumnDef> {
         cut_columns()
     }

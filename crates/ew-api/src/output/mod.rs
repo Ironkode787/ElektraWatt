@@ -79,7 +79,7 @@ pub(crate) mod properties;
 mod rack;
 // Page rasters and the row exports: their XLSX and CSV presets.
 mod raster;
-mod rows;
+pub(crate) mod rows;
 // Page digests and the page change status.
 mod revisions;
 // A page's geometry for the router and the layout measures of `ew layout`.
@@ -821,7 +821,7 @@ pub fn date_from_epoch(seconds: i64) -> Option<PdfDate> {
 }
 
 /// The model's date (FR-OUT-026): edited, else created, else 1980-01-01.
-fn model_date(q: &Q) -> PdfDate {
+pub(crate) fn model_date(q: &Q) -> PdfDate {
     let m = &q.project().master;
     m.edited.or(m.created).map_or(PdfDate::ymd(1980, 1, 1), |d| {
         PdfDate::ymd(d.year(), d.month(), d.day())

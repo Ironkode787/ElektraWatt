@@ -722,3 +722,127 @@ label-file-csv-comma = CSV with commas
 label-file-csv-semicolon = CSV with semicolons
 label-file-csv-other = CSV with { $p0 }
 label-file-change = Change…
+
+## The package for the workshop (doc 13-package §8). A `$count` is `one` or `many`, `$n` its number; `$count2` and `$m`
+## a second count.
+package-member-contents = Contents
+package-member-pages = Drawings
+package-member-labels = Label files
+package-member-drilling = Drawings for drilling
+package-form-text = Text
+package-form-pdf = PDF
+package-form-drilling = PDF, DXF
+package-folder-lists = Lists
+package-folder-labels = Labels
+package-folder-drilling = Drilling
+package-refused = { $count ->
+        [one] 1 error stops a release package
+       *[many] { $n } errors stop a release package
+    }
+package-file-name = { $p0 } { $p1 } package.zip
+package-file-name-draft = { $p0 } { $p1 } draft package.zip
+package-holds-pages = every page in page order, as Export PDF writes them
+package-no-holes = No surface of this project has holes yet
+package-no-rows = Nothing to list yet
+package-no-labels = The project has no labels yet
+package-lacks-marker = { $p0 }: no marker part in the stock marks { $p1 }; the label program asks which to print on
+package-holds-labels = { $count ->
+        [one] 1 file
+       *[many] { $n } files
+    }, { $count2 ->
+        [one] 1 label
+       *[many] { $m } labels
+    }
+package-holds-drilling = { $count ->
+        [one] 1 surface · 1 template on A4 and 1 DXF
+       *[many] { $n } surfaces · { $n } templates on A4 and { $n } DXF
+    }
+package-holds-wire-list = { $count ->
+        [one] 1 wire
+       *[many] { $n } wires
+    }, { $count2 ->
+        [one] 1 bridge
+       *[many] { $m } bridges
+    }
+package-holds-assembly-list = { $count ->
+        [one] 1 strip
+       *[many] { $n } strips
+    }
+package-holds-hole-table = { $count ->
+        [one] 1 surface
+       *[many] { $n } surfaces
+    }, { $count2 ->
+        [one] 1 hole
+       *[many] { $m } holes
+    }
+package-holds-cut-list = rails, ducts, cables, wires and tubes
+package-holds-consumables = wire, ferrules and markers to order
+package-holds-rows = { $count ->
+        [one] 1 row
+       *[many] { $n } rows
+    }
+package-marks-wires = wire ends
+package-marks-terminals = terminals
+package-marks-strips = strips
+package-marks-cables = cables
+package-marks-devices = devices
+package-marks-tubes = tubes
+package-marks-plates = the plates of the devices in the door
+package-draft-mark = Draft { $p0 }: not released
+package-draft-mark-none = Draft: no revision
+package-drawings-file = { $p0 } drawings.pdf
+package-about-pages = Every page of the drawings in page order, the list pages among them.
+package-about-labels = { $count ->
+        [one] 1 label.
+       *[many] { $n } labels.
+    }
+package-about-labels-no-part = { $count ->
+        [one] 1 label
+       *[many] { $n } labels
+    }; no marker part: choose the marker in the label program.
+package-about-dxf = { $count ->
+        [one] 1 hole
+       *[many] { $n } holes
+    }, for a machine; 0,0 at the surface's corner its holes are measured from.
+package-about-template = { $count ->
+        [one] 1 hole
+       *[many] { $n } holes
+    } on { $count2 ->
+        [one] 1 sheet
+       *[many] { $m } sheets
+    } of A4, to print at 100 %.
+package-contents-file = Contents.txt
+package-contents-released-on = Package for the workshop, revision { $p0 }, released on { $p1 }
+package-contents-made-on = Package for the workshop, revision { $p0 }, made on { $p1 }
+package-contents-made-on-none = Package for the workshop, made on { $p0 }
+package-contents-draft = DRAFT: revision { $p0 } is open, not released. Every page of the drawings says "{ $p1 }".
+package-contents-draft-none = DRAFT: the project has no revision. Every page of the drawings says "{ $p0 }".
+package-contents-release = The package of the release: its pages carry no mark.
+package-contents-ready = Before it went to the workshop the project was checked: nothing stood in the way.
+package-contents-stood = Before it went to the workshop the project was checked: { $count ->
+        [one] 1 thing stood
+       *[many] { $n } things stood
+    }. An error stops a release; a warning or an info stops nothing.
+package-contents-no-length-site = { $count ->
+        [one] 1 wire has no length: one end of it is made on site
+       *[many] { $n } wires have no length: one end of each is made on site
+    } ({ $wires }).
+package-contents-no-length-not-laid = { $count ->
+        [one] 1 wire has no length yet: Route gives it one, or type it
+       *[many] { $n } wires have no length yet: Route gives them one, or type it
+    } ({ $wires }).
+package-contents-no-length-stale = { $count ->
+        [one] 1 wire has a length along a way that no longer holds, printed after "≈": Route gives it a new one
+       *[many] { $n } wires have a length along a way that no longer holds, printed after "≈": Route gives them new ones
+    } ({ $wires }).
+package-contents-every-length = Every wire has its length in the wire list; a cable core has its cable's.
+package-contents-other-lengths = Every other wire has its length in the wire list; a cable core has its cable's.
+package-contents-what = What is in it
+package-about-labels-folder = One file per kind of label and marker, for the label program: { $count ->
+        [one] 1 label.
+       *[many] { $n } labels.
+    }
+package-about-drilling-folder = Per surface with holes: a template to print at 100 % and lay on it, and a DXF for a machine.
+package-about-lists-folder = The workshop lists, each as the list's Excel export.
+package-about-manifest = The same list for a program, with a SHA-256 of each file.
+package-contents-made-by = Made by ElektraWatt { $p0 }.

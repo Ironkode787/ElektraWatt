@@ -33,6 +33,10 @@ impl ReportKindDef for Consumables {
         ReportKind::Consumables
     }
 
+    fn workshop(&self) -> bool {
+        true
+    }
+
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
             ColumnDef::new("part_number", CellType::Ident, text!("column-part-number")).weighted(14),

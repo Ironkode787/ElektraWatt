@@ -64,6 +64,11 @@ pub use terminal_overview::TerminalOverview;
 pub use toc::Toc;
 pub use wire_list::WireList;
 
+/// How many bridges the project has, as the wire list lists them under its own heading (doc 08 §6.5).
+pub fn bridge_count(q: &ew_derive::Q) -> usize {
+    conn::bridges(q).len()
+}
+
 /// Every built-in kind of this build.
 pub(crate) fn builtin() -> Vec<&'static dyn ReportKindDef> {
     vec![

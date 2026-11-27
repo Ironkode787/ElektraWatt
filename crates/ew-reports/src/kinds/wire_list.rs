@@ -52,6 +52,10 @@ impl ReportKindDef for WireList {
         ReportKind::WireList
     }
 
+    fn workshop(&self) -> bool {
+        true
+    }
+
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
             ColumnDef::new("no", CellType::Ident, text!("column-no")).weighted(7),

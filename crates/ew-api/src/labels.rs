@@ -109,6 +109,16 @@ fn named_by(q: &ew_derive::Q, items: &[ReworkItem], l: &LabelRecord) -> bool {
     })
 }
 
+/// The drawing's name a file for the workshop starts with: the drawing number, else the object's, else `project`.
+pub(crate) fn drawing_stem(q: &ew_derive::Q) -> String {
+    q.project()
+        .master
+        .drawing_id
+        .as_ref()
+        .or(q.project().master.object_id.as_ref())
+        .map_or_else(|| "project".to_owned(), |d| d.as_str().to_owned())
+}
+
 /// A label set in words (`Wire markers`), for the window's language.
 pub fn label_set_text(set: LabelSet) -> crate::Text {
     ew_derive::text::label_set(set)
@@ -258,13 +268,7 @@ impl Session {
         let profile = ew_derive::label_profile(&q);
         let csv = form.or_else(|| profile.file.clone()) == Some(FileForm::Csv);
         let lang = ew_derive::print_language(&q);
-        let drawing = q
-            .project()
-            .master
-            .drawing_id
-            .as_ref()
-            .or(q.project().master.object_id.as_ref())
-            .map_or_else(|| "project".to_owned(), |d| d.as_str().to_owned());
+        let drawing = drawing_stem(&q);
         let keep = |l: &LabelRecord| items.as_ref().is_none_or(|items| named_by(&q, items, l));
         let labels = q.get::<ew_derive::LabelRows>(());
         let mut out = Vec::new();

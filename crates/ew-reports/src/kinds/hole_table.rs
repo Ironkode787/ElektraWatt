@@ -24,6 +24,10 @@ impl ReportKindDef for HoleTable {
         ReportKind::HoleTable
     }
 
+    fn workshop(&self) -> bool {
+        true
+    }
+
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
             ColumnDef::new("surface", CellType::Text, text!("column-surface")).weighted(20),

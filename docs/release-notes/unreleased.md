@@ -623,3 +623,12 @@ change here.
   (a pin its part or drawing put elsewhere, the duct or the door changed); EW-LAY-011 has these forms; `ew route
   --json` names them `ducts_apart`, `other_plate`, `two_doors` and `door_size`
 - text-change: Dutch: "vulgraad" and "maximale vulgraad" for a duct's fill and its limit, "deurlus" for the door loop
+- api-add: `ew export package --out <file.zip> [--leave-out <member>]… [--omit-personal-data]` writes the package for
+  the workshop (doc 13-package §8): one ZIP with the drawings as one PDF, each workshop list as its Excel export
+  (`Lists/`), the label files in the label file's form (`Labels/`) and the drawings for drilling (`Drilling/`), with
+  `Contents.txt` and `manifest.json` (`elektrawatt-package/1`: each entry's kind, size and SHA-256). The revision
+  decides draft or release: while a revision is open every page of a draft carries "Draft V1.0: not released"; a
+  release package with an open error of the release check is refused naming it (exit 2). The same project gives the
+  same bytes.
+- api-add: `ew_checks::release_check`, the release scheme in release mode, which the release gate runs first and the
+  package asks; `ReportKindDef::workshop` marks the lists the package carries; the print set can stamp a draft mark

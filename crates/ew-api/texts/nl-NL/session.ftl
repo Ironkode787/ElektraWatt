@@ -707,3 +707,127 @@ label-file-csv-comma = CSV met komma's
 label-file-csv-semicolon = CSV met puntkomma's
 label-file-csv-other = CSV met { $p0 }
 label-file-change = Wijzigen…
+
+## The package for the workshop (doc 13-package §8). A `$count` is `one` or `many`, `$n` its number; `$count2` and `$m`
+## a second count.
+package-member-contents = Inhoud
+package-member-pages = Tekeningen
+package-member-labels = Labelbestanden
+package-member-drilling = Boortekeningen
+package-form-text = Tekst
+package-form-pdf = PDF
+package-form-drilling = PDF, DXF
+package-folder-lists = Lijsten
+package-folder-labels = Labels
+package-folder-drilling = Boortekeningen
+package-refused = { $count ->
+        [one] 1 fout houdt een vrijgavepakket tegen
+       *[many] { $n } fouten houden een vrijgavepakket tegen
+    }
+package-file-name = { $p0 } { $p1 } pakket.zip
+package-file-name-draft = { $p0 } { $p1 } conceptpakket.zip
+package-holds-pages = elke pagina in paginavolgorde, zoals PDF exporteren ze schrijft
+package-no-holes = Geen vlak van dit project heeft al gaten
+package-no-rows = Nog niets te vermelden
+package-no-labels = Het project heeft nog geen labels
+package-lacks-marker = { $p0 }: geen markeringsartikel in de voorraad markeert { $p1 }; het labelprogramma vraagt waarop het afdrukt
+package-holds-labels = { $count ->
+        [one] 1 bestand
+       *[many] { $n } bestanden
+    }, { $count2 ->
+        [one] 1 label
+       *[many] { $m } labels
+    }
+package-holds-drilling = { $count ->
+        [one] 1 vlak · 1 boorsjabloon op A4 en 1 DXF
+       *[many] { $n } vlakken · { $n } boorsjablonen op A4 en { $n } DXF
+    }
+package-holds-wire-list = { $count ->
+        [one] 1 draad
+       *[many] { $n } draden
+    }, { $count2 ->
+        [one] 1 brug
+       *[many] { $m } bruggen
+    }
+package-holds-assembly-list = { $count ->
+        [one] 1 klemmenstrook
+       *[many] { $n } klemmenstroken
+    }
+package-holds-hole-table = { $count ->
+        [one] 1 vlak
+       *[many] { $n } vlakken
+    }, { $count2 ->
+        [one] 1 gat
+       *[many] { $m } gaten
+    }
+package-holds-cut-list = rails, kabelgoten, kabels, draden en slangen
+package-holds-consumables = draad, adereindhulzen en markeringen om te bestellen
+package-holds-rows = { $count ->
+        [one] 1 regel
+       *[many] { $n } regels
+    }
+package-marks-wires = draadeinden
+package-marks-terminals = klemmen
+package-marks-strips = klemmenstroken
+package-marks-cables = kabels
+package-marks-devices = apparaten
+package-marks-tubes = slangen
+package-marks-plates = de frontplaatjes van de apparaten in de deur
+package-draft-mark = Concept { $p0 }: niet vrijgegeven
+package-draft-mark-none = Concept: geen revisie
+package-drawings-file = { $p0 } tekeningen.pdf
+package-about-pages = Elke pagina van de tekeningen in paginavolgorde, de lijstpagina's ertussen.
+package-about-labels = { $count ->
+        [one] 1 label.
+       *[many] { $n } labels.
+    }
+package-about-labels-no-part = { $count ->
+        [one] 1 label
+       *[many] { $n } labels
+    }; geen markeringsartikel: kies de markering in het labelprogramma.
+package-about-dxf = { $count ->
+        [one] 1 gat
+       *[many] { $n } gaten
+    }, voor een machine; 0,0 in de hoek van het vlak waarvan de gaten gemeten zijn.
+package-about-template = { $count ->
+        [one] 1 gat
+       *[many] { $n } gaten
+    } op { $count2 ->
+        [one] 1 vel
+       *[many] { $m } vellen
+    } A4, af te drukken op 100 %.
+package-contents-file = Inhoud.txt
+package-contents-released-on = Pakket voor de werkplaats, revisie { $p0 }, vrijgegeven op { $p1 }
+package-contents-made-on = Pakket voor de werkplaats, revisie { $p0 }, gemaakt op { $p1 }
+package-contents-made-on-none = Pakket voor de werkplaats, gemaakt op { $p0 }
+package-contents-draft = CONCEPT: revisie { $p0 } is open, niet vrijgegeven. Elke pagina van de tekeningen zegt "{ $p1 }".
+package-contents-draft-none = CONCEPT: het project heeft geen revisie. Elke pagina van de tekeningen zegt "{ $p0 }".
+package-contents-release = Het pakket van de vrijgave: de pagina's dragen geen merkteken.
+package-contents-ready = Voor het naar de werkplaats ging is het project gecontroleerd: niets stond in de weg.
+package-contents-stood = Voor het naar de werkplaats ging is het project gecontroleerd: { $count ->
+        [one] 1 punt stond open
+       *[many] { $n } punten stonden open
+    }. Een fout houdt een vrijgave tegen; een waarschuwing of een melding houdt niets tegen.
+package-contents-no-length-site = { $count ->
+        [one] 1 draad heeft geen lengte: één einde ervan wordt op locatie gemaakt
+       *[many] { $n } draden hebben geen lengte: van elk wordt één einde op locatie gemaakt
+    } ({ $wires }).
+package-contents-no-length-not-laid = { $count ->
+        [one] 1 draad heeft nog geen lengte: Routeren geeft hem er een, of typ hem
+       *[many] { $n } draden hebben nog geen lengte: Routeren geeft ze er een, of typ ze
+    } ({ $wires }).
+package-contents-no-length-stale = { $count ->
+        [one] 1 draad heeft een lengte langs een weg die niet meer klopt, afgedrukt na "≈": Routeren geeft hem een nieuwe
+       *[many] { $n } draden hebben een lengte langs een weg die niet meer klopt, afgedrukt na "≈": Routeren geeft ze nieuwe
+    } ({ $wires }).
+package-contents-every-length = Elke draad heeft zijn lengte in de draadlijst; een kabelader heeft die van zijn kabel.
+package-contents-other-lengths = Elke andere draad heeft zijn lengte in de draadlijst; een kabelader heeft die van zijn kabel.
+package-contents-what = Wat erin zit
+package-about-labels-folder = Eén bestand per soort label en markering, voor het labelprogramma: { $count ->
+        [one] 1 label.
+       *[many] { $n } labels.
+    }
+package-about-drilling-folder = Per vlak met gaten: een boorsjabloon om op 100 % af te drukken en erop te leggen, en een DXF voor een machine.
+package-about-lists-folder = De werkplaatslijsten, elk als de Excel-export van de lijst.
+package-about-manifest = Dezelfde lijst voor een programma, met een SHA-256 van elk bestand.
+package-contents-made-by = Gemaakt door ElektraWatt { $p0 }.

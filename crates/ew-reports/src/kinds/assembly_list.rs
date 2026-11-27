@@ -40,6 +40,10 @@ impl ReportKindDef for AssemblyList {
         ReportKind::AssemblyList
     }
 
+    fn workshop(&self) -> bool {
+        true
+    }
+
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
             ColumnDef::new("pos", CellType::Number, text!("column-pos")).weighted(4),
