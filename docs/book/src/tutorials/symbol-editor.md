@@ -14,9 +14,9 @@ with a test copy, ready to wire.
 
 1. Choose **File ▸ New project…** (`Ctrl+N`) and pick an empty folder named `symbol-scratch.ew`.
 2. Choose **Project ▸ Parts** (`F9`). Parts takes the place of the page.
-3. Choose **New symbol** on the Part tab (`Ctrl+I`). The drawing opens at once on the Drawing tab, on the 4 mm
-   connection grid, with the device tag's text at the upper left. On the short sheet at the left, type **Power
-   block** as its **Name** and choose **Device box** as **What it is**.
+3. Choose **New symbol** on the Part tab (**Draw ▸ Place ▸ New symbol** (`Ctrl+I`) in the app menu). The drawing
+   opens at once on the Drawing tab, on the 4 mm connection grid, with the device tag's text at the upper left. On
+   the short sheet at the left, type **Power block** as its **Name** and choose **Device box** as **What it is**.
 4. Choose **Rectangle** and draw the body from `(4, 0)` to `(24, 28)` mm: drag from corner to corner, or click both
    corners. The rectangle is selected, and its rows in **Properties** (x, y, width, height) take exact numbers.
 5. Choose **Pin**. The card at the drawing's top left holds its **Designation** and **Direction**: set the direction to

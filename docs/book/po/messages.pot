@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-27T16:58:18Z\n"
+"POT-Creation-Date: 2026-11-27T17:04:38Z\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -1079,10 +1079,11 @@ msgstr ""
 
 #: src/tutorials/symbol-editor.md:17
 msgid ""
-"Choose **New symbol** on the Part tab (`Ctrl+I`). The drawing opens at once "
-"on the Drawing tab, on the 4 mm connection grid, with the device tag's text "
-"at the upper left. On the short sheet at the left, type **Power block** as "
-"its **Name** and choose **Device box** as **What it is**."
+"Choose **New symbol** on the Part tab (**Draw ▸ Place ▸ New symbol** "
+"(`Ctrl+I`) in the app menu). The drawing opens at once on the Drawing tab, "
+"on the 4 mm connection grid, with the device tag's text at the upper left. "
+"On the short sheet at the left, type **Power block** as its **Name** and "
+"choose **Device box** as **What it is**."
 msgstr ""
 
 #: src/tutorials/symbol-editor.md:20
