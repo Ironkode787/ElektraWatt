@@ -30,11 +30,20 @@ pub(super) fn middle(ui: &mut Ui, many: &ManySheet, width: f32, events: &mut Vec
             .auto_shrink([false, false])
             .show(ui, |ui| {
                 let count = many.sheets.len().to_string();
-                ui.label(RichText::new(strings::format(key!("parts-many-title"), &[&count])).font(theme::font(&t.type_title)));
+                ui.label(
+                    RichText::new(strings::format(key!("parts-many-title"), &[&count]))
+                        .font(theme::font(&t.type_title)),
+                );
                 let numbers: Vec<String> = many.numbers().into_iter().map(|(n, _)| n).collect();
                 ui.label(components::body_secondary(&t, numbers.join(" \u{b7} ")));
                 ui.add_space(t.space_2);
-                ui.add(egui::Label::new(components::small_secondary(&t, strings::format(key!("parts-many-line"), &[&count]))).wrap());
+                ui.add(
+                    egui::Label::new(components::small_secondary(
+                        &t,
+                        strings::format(key!("parts-many-line"), &[&count]),
+                    ))
+                    .wrap(),
+                );
                 let not_his = many.not_his();
                 if !not_his.is_empty() {
                     ui.add_space(t.space_2);
@@ -56,9 +65,12 @@ pub(super) fn middle(ui: &mut Ui, many: &ManySheet, width: f32, events: &mut Vec
                                         continue;
                                     }
                                     let number = sheet.text("part_number");
-                                    let words = strings::format(key!("parts-many-own"), &[&number]);
+                                    let words = strings::format(key!("parts-many-own"), &[number]);
                                     if ui.button(words).clicked() {
-                                        events.push(Event::Action("parts.open", serde_json::json!({ "part": param })));
+                                        events.push(Event::Action(
+                                            "parts.open",
+                                            serde_json::json!({ "part": param }),
+                                        ));
                                         events.push(Event::Action("parts.own", serde_json::json!({})));
                                     }
                                 }
@@ -137,7 +149,7 @@ pub(super) fn middle(ui: &mut Ui, many: &ManySheet, width: f32, events: &mut Vec
                         Some(strings::text(key!("parts-many-cells"))),
                         None,
                     );
-                    super::connections_table(ui, first, &table, editable, events);
+                    super::pins::connections_table(ui, first, &table, editable, events);
                 }
                 if let Some(e) = &many.error {
                     ui.add_space(t.space_3);
@@ -149,7 +161,9 @@ pub(super) fn middle(ui: &mut Ui, many: &ManySheet, width: f32, events: &mut Vec
 
 /// The Connections table the parts selected share (doc 07 §5.9), as the first part's with each cell's shared text; a
 /// cell they differ in is empty. `None` where their pins differ.
-fn shared_table(many: &ManySheet) -> Option<(&ew_viewmodel::ew_api::PartSheet, ew_viewmodel::ew_api::DraftTable)> {
+fn shared_table(
+    many: &ManySheet,
+) -> Option<(&ew_viewmodel::ew_api::PartSheet, ew_viewmodel::ew_api::DraftTable)> {
     let (first, _) = many.sheets.first()?;
     let mut table = first.table("cp_pattern")?.clone();
     let prefix = format!("{}[", table.path);
