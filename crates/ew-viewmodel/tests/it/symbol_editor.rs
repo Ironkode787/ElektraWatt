@@ -1437,8 +1437,15 @@ fn the_rows_of_properties_follow_the_selection_and_set_every_selected_thing() {
     );
     let editor = shell.symbol_editor().unwrap();
     assert_eq!(editor.what().as_deref(), Some("ew.fn.pressure-switch"));
-    assert!(editor.draft.function_ref.is_some(), "it draws the starter's function");
-    assert!(editor.outline().what.starts_with("Pressure switch"), "{}", editor.outline().what);
+    assert!(
+        editor.draft.function_ref.is_some(),
+        "it draws the starter's function"
+    );
+    assert!(
+        editor.outline().what.starts_with("Pressure switch"),
+        "{}",
+        editor.outline().what
+    );
     // A box of its own, from the two-pin contact: its pins say what they carry.
     for what in ["ew.fn.contact-no", "box"] {
         done(

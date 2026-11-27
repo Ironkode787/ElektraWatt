@@ -57,14 +57,18 @@ pub const MOST_LEVELS: usize = 3;
 /// piece's pins. Where the starter draws two pieces with one function (a main and an auxiliary contact), that
 /// function's one word: their pins tell them apart.
 pub fn piece_kinds() -> Vec<PieceKind> {
-    crate::output::starter_piece_fndefs().filter_map(kind_of).collect()
+    crate::output::starter_piece_fndefs()
+        .filter_map(kind_of)
+        .collect()
 }
 
 /// What a symbol can stand for (its What it is, doc 07 §5.6): every starter function with pins, the pieces' and also
 /// the power supply, the terminals, the bus ports and the other functions that are not pieces, in the words of
 /// [`piece_kinds`].
 pub fn symbol_kinds() -> Vec<PieceKind> {
-    crate::output::starter_pinned_fndefs().filter_map(kind_of).collect()
+    crate::output::starter_pinned_fndefs()
+        .filter_map(kind_of)
+        .collect()
 }
 
 /// Starter function `c` of key `key` in a person's words ([`piece_kinds`]).
@@ -83,7 +87,12 @@ fn kind_of((key, c): (&'static str, &'static ew_schema::LibCopy<ew_schema::FnDef
         let words = Text::bare(TextArg::Ml(ew_mltext::MlText::from_langs(named)));
         return Some(PieceKind { key, words });
     }
-    let cps: Vec<String> = c.item.cps.iter().map(|cp| cp.designation.as_str().to_owned()).collect();
+    let cps: Vec<String> = c
+        .item
+        .cps
+        .iter()
+        .map(|cp| cp.designation.as_str().to_owned())
+        .collect();
     let words = crate::output::navigators::kind_text(&c.item, &cps)?;
     // The function's words end in its own pins (`Coil A1-A2`); the piece's pins are the row's.
     let pins = cps.join("-");

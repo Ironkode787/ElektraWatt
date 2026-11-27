@@ -91,8 +91,8 @@ stand for the function's in the order they are drawn, and a part on that functio
 is drawn with your symbol. It decides how the program lists and checks the symbol's device (a contact is listed with
 its coil, a terminal in the terminal diagram) and where the browsers list it, which **Listed under** follows; the
 discipline follows from it and the page, and is not asked. A first symbol on an electrical page is a normally open
-contact, elsewhere a device box. **Other marks ▸ Cross-reference point at the drawing's centre** keeps that point at
-the centre whatever the drawing holds.
+contact, elsewhere a device box. In **Other marks** on the Drawing tab, *Cross-reference point at the drawing's
+centre* keeps that point at the centre whatever the drawing holds.
 
 ## Saving, testing and leaving
 

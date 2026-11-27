@@ -199,7 +199,8 @@ fn a_gland_of_a_cable_without_an_outer_diameter_is_refused_with_the_lack() {
             if let Some(cable) = c.item.sections.cable.as_mut() {
                 cable.outer_diameter = None;
             }
-            let kept = (c.item.tech_data.clone().into_vec().into_iter()).filter(|t| t.key.as_str() != "outer_diameter");
+            let kept = (c.item.tech_data.clone().into_vec().into_iter())
+                .filter(|t| t.key.as_str() != "outer_diameter");
             c.item.tech_data = ew_schema::KeyedList::from_vec(kept.collect()).expect("still keyed");
         }
     }
@@ -208,7 +209,10 @@ fn a_gland_of_a_cable_without_an_outer_diameter_is_refused_with_the_lack() {
     let fld_bottom = field_cabinet(&mut s);
     let part = {
         let q = s.query();
-        let device = q.table::<ew_schema::Device>().get(Id::from_uuid(cable)).expect("the cable");
+        let device = q
+            .table::<ew_schema::Device>()
+            .get(Id::from_uuid(cable))
+            .expect("the cable");
         ew_derive::layout::cable_part_use(&q, &device).expect("its cable part")
     };
     // Its gland in +FLD, where it waits: not known.

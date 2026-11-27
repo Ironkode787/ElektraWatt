@@ -116,7 +116,13 @@ impl Session {
     /// `except` (the part being drawn, a library item), with a piece of function `fndef` and `pins` pins that
     /// `symbol` does not draw yet. Never a starter part; a project's copy only through the library's update, which
     /// its card names.
-    pub fn parts_with_piece(&self, fndef: &LibRef, pins: usize, symbol: &LibRef, except: Option<Uuid>) -> Vec<DrawnPart> {
+    pub fn parts_with_piece(
+        &self,
+        fndef: &LibRef,
+        pins: usize,
+        symbol: &LibRef,
+        except: Option<Uuid>,
+    ) -> Vec<DrawnPart> {
         let mut out = self.parts_drawing(&|t| {
             same(&t.fndef, fndef) && t.cps.len() == pins && t.symbol.as_ref().is_none_or(|s| !same(s, symbol))
         });
@@ -142,10 +148,14 @@ impl Session {
         let mut held: Vec<LibDocument> = Vec::new();
         for d in &parts {
             let Some(library) = d.library else { continue };
-            let current = self.libraries().documents(library, Kind::Part).into_iter().find_map(|doc| match doc {
-                LibDocument::Part(c) if c.item_id.as_uuid() == d.item => Some(c),
-                _ => None,
-            });
+            let current = self
+                .libraries()
+                .documents(library, Kind::Part)
+                .into_iter()
+                .find_map(|doc| match doc {
+                    LibDocument::Part(c) if c.item_id.as_uuid() == d.item => Some(c),
+                    _ => None,
+                });
             let Some(c) = current else { continue };
             let mut item = c.item.clone();
             for i in &d.entries {

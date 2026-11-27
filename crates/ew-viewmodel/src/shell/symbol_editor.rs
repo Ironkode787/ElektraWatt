@@ -867,8 +867,11 @@ impl ShellModel {
             .cloned()
             .ok_or_else(|| strings::text(key!("eplan-no-symbols")).to_owned())?;
         // An import opened on a drawing for a page or a piece is drawn for the same errand.
-        let purpose = (self.symbol_editor.as_ref().filter(|e| e.shown && e.device_box.is_none()))
-            .map_or(Drawing::Symbol, |e| e.purpose.clone());
+        let purpose = (self
+            .symbol_editor
+            .as_ref()
+            .filter(|e| e.shown && e.device_box.is_none()))
+        .map_or(Drawing::Symbol, |e| e.purpose.clone());
         self.open_drawing(draft, purpose, None, None);
         if let Some(editor) = &mut self.symbol_editor {
             editor.candidates = candidates;
@@ -1170,7 +1173,13 @@ impl ShellModel {
         let free = (editor.draft.function_ref.is_some())
             .then(|| {
                 let drawn: Vec<u16> = editor.draft.symbol.cps.iter().map(|c| c.fn_cp).collect();
-                editor.draft.function.cps.iter().map(|c| c.idx).find(|i| !drawn.contains(i))
+                editor
+                    .draft
+                    .function
+                    .cps
+                    .iter()
+                    .map(|c| c.idx)
+                    .find(|i| !drawn.contains(i))
             })
             .flatten()
             .map_or(index, u64::from);

@@ -431,8 +431,10 @@ pub(crate) fn drawing_strip(
     let Some(sentence) = editor.strip() else {
         return rect.top();
     };
-    let piece = matches!(editor.purpose, ew_viewmodel::shell::symbol_editor::Drawing::Piece(_))
-        && editor.device_box().is_none();
+    let piece = matches!(
+        editor.purpose,
+        ew_viewmodel::shell::symbol_editor::Drawing::Piece(_)
+    ) && editor.device_box().is_none();
     ui.scope_builder(UiBuilder::new().max_rect(rect), |ui| {
         if piece {
             // A piece's symbol: the way to make it the symbol of that kind of piece for his parts (the way back is
@@ -453,7 +455,11 @@ pub(crate) fn drawing_strip(
 
 /// The card of Use it for every part with this piece… (doc 07 §5.6): the parts it would change, by number, and how
 /// many the project holds, before Apply; Cancel closes it.
-fn use_for_all_card(ui: &mut Ui, parts: &[ew_viewmodel::ew_api::piece_symbols::DrawnPart], events: &mut Vec<Event>) {
+fn use_for_all_card(
+    ui: &mut Ui,
+    parts: &[ew_viewmodel::ew_api::piece_symbols::DrawnPart],
+    events: &mut Vec<Event>,
+) {
     let t = theme::current(ui.ctx());
     egui::Frame::NONE
         .fill(t.surface_raised.color32())
@@ -465,21 +471,42 @@ fn use_for_all_card(ui: &mut Ui, parts: &[ew_viewmodel::ew_api::piece_symbols::D
                 ui.label(strings::text(key!("parts-use-for-all-none")));
             } else {
                 let names: Vec<&str> = parts.iter().map(|p| p.number.as_str()).collect();
-                ui.add(egui::Label::new(strings::format(key!("parts-use-for-all-card"), &[&names.join(", ")])).wrap());
+                ui.add(
+                    egui::Label::new(strings::format(
+                        key!("parts-use-for-all-card"),
+                        &[&names.join(", ")],
+                    ))
+                    .wrap(),
+                );
                 let held = parts.iter().filter(|p| p.held).count();
                 if held > 0 {
-                    ui.label(strings::format(key!("parts-use-for-all-held"), &[&held.to_string()]));
+                    ui.label(strings::format(
+                        key!("parts-use-for-all-held"),
+                        &[&held.to_string()],
+                    ));
                 }
             }
             ui.horizontal(|ui| {
                 if !parts.is_empty()
-                    && components::button(ui, components::Kind::Primary, strings::text(key!("parts-apply")), None, 0.0)
-                        .clicked()
+                    && components::button(
+                        ui,
+                        components::Kind::Primary,
+                        strings::text(key!("parts-apply")),
+                        None,
+                        0.0,
+                    )
+                    .clicked()
                 {
                     events.push(Event::Action("parts.use_for_all", json!({ "apply": true })));
                 }
-                if components::button(ui, components::Kind::Secondary, strings::text(key!("parts-cancel")), None, 0.0)
-                    .clicked()
+                if components::button(
+                    ui,
+                    components::Kind::Secondary,
+                    strings::text(key!("parts-cancel")),
+                    None,
+                    0.0,
+                )
+                .clicked()
                 {
                     events.push(Event::Action("parts.use_for_all", json!({ "cancel": true })));
                 }
@@ -508,7 +535,11 @@ fn strip_with(
             ui.set_width(ui.available_width());
             // The sentence wraps in what the button leaves; it never runs under it.
             let font = theme::font(&t.type_body);
-            let reserve = ui.painter().layout_no_wrap(button.to_owned(), font.clone(), theme::NONE).size().x
+            let reserve = ui
+                .painter()
+                .layout_no_wrap(button.to_owned(), font.clone(), theme::NONE)
+                .size()
+                .x
                 + 4.0 * t.space_4;
             ui.horizontal(|ui| {
                 let room = egui::vec2((ui.available_width() - reserve).max(0.0), 0.0);

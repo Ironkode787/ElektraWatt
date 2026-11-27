@@ -613,7 +613,10 @@ fn changing_one_piece_keeps_another_piece_s_symbol_the_project_alone_holds() {
         if let ew_schema::LibDocument::Part(c) = doc
             && copy_id.is_none()
             && c.item.function_template.len() >= 2
-            && c.item.function_template.iter().all(|t| t.fndef.extra.get("key").is_some())
+            && c.item
+                .function_template
+                .iter()
+                .all(|t| t.fndef.extra.get("key").is_some())
         {
             c.library_id = ew_ids::Id::from_uuid(gone);
             c.item.function_template[0].symbol = Some(symbol.clone());
@@ -621,13 +624,24 @@ fn changing_one_piece_keeps_another_piece_s_symbol_the_project_alone_holds() {
         }
     }
     let s = common::session_of(project, records, lib);
-    let mut sheet = s.part_draft(copy_id.expect("a part of two pieces")).expect("its sheet");
+    let mut sheet = s
+        .part_draft(copy_id.expect("a part of two pieces"))
+        .expect("its sheet");
     assert!(sheet.pieces.len() >= 2, "{:?}", sheet.pieces);
     let pins: Vec<String> = sheet.pieces[1].pins.split(", ").map(str::to_owned).collect();
     let changed = pins[..pins.len() - 1].join(", ");
-    s.set_draft_field(&mut sheet, "pieces[1].pins", &changed).expect("its second piece's pins");
+    s.set_draft_field(&mut sheet, "pieces[1].pins", &changed)
+        .expect("its second piece's pins");
     let cmd = s.part_edit_command(&sheet).expect("the change");
     let part: ew_schema::Part = serde_json::from_value(cmd.params["part"].clone()).expect("the part");
-    assert_eq!(part.function_template[1].cps.len(), pins.len() - 1, "its second piece changed");
-    assert_eq!(part.function_template[0].symbol, Some(symbol), "the first piece keeps its symbol");
+    assert_eq!(
+        part.function_template[1].cps.len(),
+        pins.len() - 1,
+        "its second piece changed"
+    );
+    assert_eq!(
+        part.function_template[0].symbol,
+        Some(symbol),
+        "the first piece keeps its symbol"
+    );
 }

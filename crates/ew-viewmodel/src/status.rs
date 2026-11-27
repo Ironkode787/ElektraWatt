@@ -467,7 +467,10 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
     });
     if let Some(editor) = model.symbol_editor() {
         // The drawing's name and its state: not saved yet, changed, saved; a box arranged, its part's.
-        let state = match (editor.device_box(), model.parts_place().and_then(|p| p.sheet.as_ref())) {
+        let state = match (
+            editor.device_box(),
+            model.parts_place().and_then(|p| p.sheet.as_ref()),
+        ) {
             (Some(b), Some(open)) => {
                 let changed = if b.dirty() || open.changed || open.sheet.new {
                     crate::key!("status-part-changed")
@@ -476,7 +479,11 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
                 };
                 strings::format(
                     crate::key!("status-box"),
-                    &[&b.title(), strings::text(changed), &b.pin_table().len().to_string()],
+                    &[
+                        &b.title(),
+                        strings::text(changed),
+                        &b.pin_table().len().to_string(),
+                    ],
                 )
             }
             _ => strings::format(

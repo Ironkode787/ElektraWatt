@@ -85,7 +85,10 @@ impl SymbolEditor {
                 );
                 Some(format!("{errand} {other}"))
             }
-            Drawing::Piece(p) => Some(strings::format(key!("parts-strip-symbol-piece"), &[&p.piece, &p.part])),
+            Drawing::Piece(p) => Some(strings::format(
+                key!("parts-strip-symbol-piece"),
+                &[&p.piece, &p.part],
+            )),
         }
     }
 
@@ -161,7 +164,10 @@ fn new_draft(grid: (u64, u64), what: &str) -> Result<SymbolDraft, String> {
     let mut d = serde_json::to_value(&draft).map_err(|e| e.to_string())?;
     d["symbol"]["grid"] = json!({"num": grid.0, "den": grid.1});
     // A starter function: the symbol draws it; a box: a function of its own, its pins as drawn.
-    match (ew_api::symbols::starter_function(what), ew_api::symbols::piece_function(what)) {
+    match (
+        ew_api::symbols::starter_function(what),
+        ew_api::symbols::piece_function(what),
+    ) {
         (Some(def), Some(r)) => {
             d["function"] = serde_json::to_value(def).map_err(|e| e.to_string())?;
             d["function_ref"] = serde_json::to_value(r).map_err(|e| e.to_string())?;
@@ -171,7 +177,10 @@ fn new_draft(grid: (u64, u64), what: &str) -> Result<SymbolDraft, String> {
             d["function"]["category"] = json!(["Assembly", "Generic", "Generic"]);
         }
     }
-    let kind = d["function"]["contact_kind"].as_str().unwrap_or_default().to_owned();
+    let kind = d["function"]["contact_kind"]
+        .as_str()
+        .unwrap_or_default()
+        .to_owned();
     // One text line under another: 6 mm, 4 mm on the QET grid (doc 07a).
     let line: i64 = if grid == (ew_units::Grid::QET_10PX.num(), ew_units::Grid::QET_10PX.den()) {
         4_000_000
@@ -612,7 +621,10 @@ impl ShellModel {
         let Some(editor) = self.symbol_editor() else {
             return Vec::new();
         };
-        let address = editor.published().map(str::to_owned).or_else(|| editor.opened_from.clone());
+        let address = editor
+            .published()
+            .map(str::to_owned)
+            .or_else(|| editor.opened_from.clone());
         let Some(session) = self.parts_session() else {
             return Vec::new();
         };
@@ -647,14 +659,18 @@ impl ShellModel {
         };
         let except = open.sheet.source.map(|(_, item)| item);
         // The symbol is his and saved first: the parts name it by its address.
-        let address = match self.symbol_editor().and_then(|e| e.published().map(str::to_owned)) {
+        let address = match self
+            .symbol_editor()
+            .and_then(|e| e.published().map(str::to_owned))
+        {
             Some(a) => a,
             None => match self.symbol_save_checked() {
                 Ok(a) => a,
                 Err(message) => return Outcome::Failed { message },
             },
         };
-        let (Some(symbol), Some(fndef)) = (address_ref(&address), ew_api::symbols::piece_function(&row.what)) else {
+        let (Some(symbol), Some(fndef)) = (address_ref(&address), ew_api::symbols::piece_function(&row.what))
+        else {
             return failed(key!("error-bad-param"), &["piece"]);
         };
         let pins = row.pins.split(',').filter(|s| !s.trim().is_empty()).count();
@@ -686,7 +702,10 @@ impl ShellModel {
                 return out;
             }
         }
-        self.notify(strings::format(key!("toast-symbol-used-for"), &[&count.to_string()]), false);
+        self.notify(
+            strings::format(key!("toast-symbol-used-for"), &[&count.to_string()]),
+            false,
+        );
         Outcome::Done
     }
 
@@ -778,7 +797,10 @@ impl ShellModel {
     /// [`ShellModel::save_drawing`], a question's Save, Use it for every part): refused in words while it is not his
     /// (Make my own from it) or To do lists a step, the refusal shown on the drawing. Its address.
     pub(crate) fn symbol_save_checked(&mut self) -> Result<String, String> {
-        let editor = self.symbol_editor.as_ref().ok_or_else(|| words(key!("reason-no-drawing-in-hand")))?;
+        let editor = self
+            .symbol_editor
+            .as_ref()
+            .ok_or_else(|| words(key!("reason-no-drawing-in-hand")))?;
         let saved = match editor.save_refusal() {
             Some(why) => Err(why),
             None => self.symbol_save(),
@@ -975,7 +997,9 @@ impl ShellModel {
     /// Whether leaving the drawing (Back, Save and place) leaves Parts too: it is a page's drawing, Parts was opened
     /// for it from the project, and no part is open in Parts; else Parts stays, a part open in it with its typing.
     fn drawing_leaves_parts(&self) -> bool {
-        self.symbol_editor.as_ref().is_some_and(|e| matches!(e.purpose, Drawing::Page(_)))
+        self.symbol_editor
+            .as_ref()
+            .is_some_and(|e| matches!(e.purpose, Drawing::Page(_)))
             && (self.parts.as_deref()).is_some_and(|p| p.origin == Origin::Project && p.sheet.is_none())
     }
 }

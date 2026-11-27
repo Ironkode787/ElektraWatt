@@ -380,7 +380,11 @@ fn a_new_symbol_from_a_page_asks_a_name_keeps_the_last_and_warns_of_another_grid
     done(&mut s, "parts.new_symbol", json!({}));
     let editor = s.symbol_editor().expect("the drawing");
     assert!(editor.unnamed, "no name of his yet");
-    let name = editor.symbol_rows().into_iter().find(|r| r.key == "name").expect("Name");
+    let name = editor
+        .symbol_rows()
+        .into_iter()
+        .find(|r| r.key == "name")
+        .expect("Name");
     assert_eq!(
         name.value,
         ew_viewmodel::shell::symbol_editor::RowValue::Text(Some(String::new())),
@@ -434,10 +438,15 @@ fn a_piece_s_symbol_is_named_by_its_part_and_is_used_for_every_part_with_the_pie
     let editor = s.symbol_editor().expect("the drawing");
     let name = ew_viewmodel::shell::symbol_editor::display_name(&editor.draft);
     assert!(name.ends_with(" A1, A2 of MY-CON-9"), "{name}");
-    assert!(editor.draft.key.ends_with("-a1-a2-of-my-con-9"), "{}", editor.draft.key);
+    assert!(
+        editor.draft.key.ends_with("-a1-a2-of-my-con-9"),
+        "{}",
+        editor.draft.key
+    );
     let strip = editor.strip().unwrap_or_default();
     assert!(
-        strip.starts_with("You are changing the symbol of the piece ") && strip.contains(" A1, A2 of MY-CON-9."),
+        strip.starts_with("You are changing the symbol of the piece ")
+            && strip.contains(" A1, A2 of MY-CON-9."),
         "{strip}"
     );
     assert_eq!(s.drawing_sample_tag(), "-K1");
@@ -456,13 +465,27 @@ fn a_piece_s_symbol_is_named_by_its_part_and_is_used_for_every_part_with_the_pie
         .collect();
     assert_eq!(card, ["MY-CON-8"], "his other part with the piece, not this one");
     done(&mut s, "parts.use_for_all", json!({"apply": true}));
-    assert!(s.symbol_editor().unwrap().use_for_all.is_none(), "the card is spent");
-    let address = s.settings().symbols_recent.first().cloned().expect("the saved symbol");
+    assert!(
+        s.symbol_editor().unwrap().use_for_all.is_none(),
+        "the card is spent"
+    );
+    let address = s
+        .settings()
+        .symbols_recent
+        .first()
+        .cloned()
+        .expect("the saved symbol");
     done(&mut s, "parts.draw", json!({"done": true}));
     done(&mut s, "parts.open", json!({"part": "MY-CON-8", "discard": true}));
-    let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the other part");
+    let open = s
+        .parts_place()
+        .and_then(|p| p.sheet.as_ref())
+        .expect("the other part");
     assert_eq!(open.sheet.pieces[0].symbol, address, "its coil names the symbol");
-    assert!(open.sheet.pieces[1].symbol.is_empty(), "its contact keeps its own");
+    assert!(
+        open.sheet.pieces[1].symbol.is_empty(),
+        "its contact keeps its own"
+    );
 }
 
 /// A symbol a library holds lists the parts a page draws with it (its sheet's Parts drawn with it): the starter coil
@@ -496,9 +519,14 @@ fn a_box_speaks_of_its_part_and_its_ports() {
         done(&mut s, "parts.field", json!({"field": field, "value": value}));
     }
     done(&mut s, "parts.draw", json!({"what": "box"}));
-    let status: Vec<String> = ew_viewmodel::status::bar(&s, false).into_iter().map(|f| f.text).collect();
+    let status: Vec<String> = ew_viewmodel::status::bar(&s, false)
+        .into_iter()
+        .map(|f| f.text)
+        .collect();
     assert!(
-        status.iter().any(|f| f == "PN-SW2 · changed, not saved · the box: 2 pins"),
+        status
+            .iter()
+            .any(|f| f == "PN-SW2 · changed, not saved · the box: 2 pins"),
         "{status:?}"
     );
     let line = s
@@ -532,7 +560,11 @@ fn own_box_placed(s: &mut ShellModel, number: &str) -> String {
     }
     done(s, "ui.dismiss", json!({}));
     done(s, "tool.select", json!({}));
-    let rep = tables(s).reps.iter().find(|r| r.black_box.is_some()).map(|r| r.id.to_string());
+    let rep = tables(s)
+        .reps
+        .iter()
+        .find(|r| r.black_box.is_some())
+        .map(|r| r.id.to_string());
     rep.expect("the box on the page")
 }
 
@@ -547,16 +579,25 @@ fn the_ways_into_parts_drawing_work_from_a_page() {
     let rep = own_box_placed(&mut s, "PN-SW3");
     crate::common::select_ids(&mut s, &[rep]);
     let menu = canvas_menu(&s, MenuSpot::Object, None);
-    let arrange = menu.iter().find(|i| i.label == "Arrange its box…").expect("Arrange its box…");
+    let arrange = menu
+        .iter()
+        .find(|i| i.label == "Arrange its box…")
+        .expect("Arrange its box…");
     assert!(arrange.enabled, "{:?}", arrange.reason);
     done(&mut s, arrange.id, arrange.params.clone());
-    assert!(s.symbol_editor().and_then(|e| e.device_box()).is_some(), "the box in Parts");
+    assert!(
+        s.symbol_editor().and_then(|e| e.device_box()).is_some(),
+        "the box in Parts"
+    );
     done(&mut s, "parts.draw", json!({"done": true}));
     done(&mut s, "parts.back", json!({"discard": true}));
     // The device browser's Arrange…, Parts not open.
     assert!(s.parts_place().is_none());
     done(&mut s, "parts.draw", json!({"what": "box", "part": "PN-SW3"}));
-    assert!(s.symbol_editor().and_then(|e| e.device_box()).is_some(), "the box in Parts");
+    assert!(
+        s.symbol_editor().and_then(|e| e.device_box()).is_some(),
+        "the box in Parts"
+    );
     done(&mut s, "parts.draw", json!({"done": true}));
     done(&mut s, "parts.back", json!({"discard": true}));
     // Draw one like it… of a placed symbol.
@@ -565,10 +606,17 @@ fn the_ways_into_parts_drawing_work_from_a_page() {
     done(&mut s, "place.pick", json!({"symbol": coil}));
     click(&mut s, (30, 10));
     done(&mut s, "tool.select", json!({}));
-    let placed = tables(&s).reps.iter().find(|r| r.symbol_key == coil).map(|r| r.id.to_string());
+    let placed = tables(&s)
+        .reps
+        .iter()
+        .find(|r| r.symbol_key == coil)
+        .map(|r| r.id.to_string());
     crate::common::select_ids(&mut s, &[placed.expect("the coil")]);
     let menu = canvas_menu(&s, MenuSpot::Object, None);
-    let like = menu.iter().find(|i| i.label == "Draw one like it…").expect("Draw one like it…");
+    let like = menu
+        .iter()
+        .find(|i| i.label == "Draw one like it…")
+        .expect("Draw one like it…");
     assert!(like.enabled, "{:?}", like.reason);
     done(&mut s, like.id, like.params.clone());
     assert!(s.symbol_editor().is_some(), "the drawing");
@@ -592,9 +640,15 @@ fn file_save_on_the_drawing_is_the_strip_s_save() {
     let mut s = project(&tmp);
     let coil = ew_viewmodel::ew_api::output::starter_piece_symbol("ew.fn.coil").expect("the starter coil");
     done(&mut s, "parts.open", json!({"symbol": coil}));
-    let locked = s.symbol_editor().and_then(|e| e.locked.clone()).expect("a starter symbol is not his");
+    let locked = s
+        .symbol_editor()
+        .and_then(|e| e.locked.clone())
+        .expect("a starter symbol is not his");
     assert_eq!(crate::common::failed(&mut s, "file.save", json!({})), locked);
-    assert!(s.settings().symbols_recent.is_empty(), "nothing published into My parts");
+    assert!(
+        s.settings().symbols_recent.is_empty(),
+        "nothing published into My parts"
+    );
     done(&mut s, "parts.back", json!({"discard": true}));
     // A symbol in hand, unnamed, under a box he arranges: Ctrl+S is the box's Done.
     done(&mut s, "parts.new_symbol", json!({}));
@@ -604,7 +658,10 @@ fn file_save_on_the_drawing_is_the_strip_s_save() {
     done(&mut s, "parts.draw", json!({"what": "box"}));
     done(&mut s, "part.pin", json!({"pin": 0, "side": "top"}));
     done(&mut s, "file.save", json!({}));
-    assert!(s.symbol_editor().and_then(|e| e.device_box()).is_none(), "the box is done");
+    assert!(
+        s.symbol_editor().and_then(|e| e.device_box()).is_none(),
+        "the box is done"
+    );
     let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the part");
     assert!(open.sheet.box_.is_some(), "its sheet took the box");
 }
@@ -617,19 +674,34 @@ fn save_and_place_keeps_a_part_sheet_open_in_parts() {
     let tmp = Tmp::new("drawing-place-keeps-sheet");
     let mut s = project(&tmp);
     done(&mut s, "parts.new", json!({"start": "device"}));
-    done(&mut s, "parts.field", json!({"field": "part_number", "value": "HALF-TYPED"}));
+    done(
+        &mut s,
+        "parts.field",
+        json!({"field": "part_number", "value": "HALF-TYPED"}),
+    );
     done(&mut s, "parts.new_symbol", json!({}));
-    done(&mut s, "parts.field", json!({"field": "symbol.name", "value": "Tested"}));
+    done(
+        &mut s,
+        "parts.field",
+        json!({"field": "symbol.name", "value": "Tested"}),
+    );
     draw_contact(&mut s);
     done(&mut s, "symbol.scratch", json!({}));
     assert!(s.symbol_editor().is_none(), "the page shows");
     done(&mut s, "parts.new_symbol", json!({"discard": true}));
-    done(&mut s, "parts.field", json!({"field": "symbol.name", "value": "Placed"}));
+    done(
+        &mut s,
+        "parts.field",
+        json!({"field": "symbol.name", "value": "Placed"}),
+    );
     draw_contact(&mut s);
     done(&mut s, "parts.save", json!({}));
     assert!(s.symbol_editor().is_none(), "the page shows to place it");
     done(&mut s, "parts.open", json!({}));
-    let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the part is still open");
+    let open = s
+        .parts_place()
+        .and_then(|p| p.sheet.as_ref())
+        .expect("the part is still open");
     assert!(open.changed, "with its typing");
     assert_eq!(open.title(), "HALF-TYPED");
 }
@@ -652,9 +724,20 @@ fn a_piece_s_new_symbol_is_given_to_it_with_no_project_open() {
     done(&mut s, "parts.save", json!({}));
     let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the part");
     let symbol = open.sheet.pieces[0].symbol.clone();
-    assert!(symbol.starts_with("library:"), "the coil names its new symbol: {:?}", open.sheet.pieces);
-    done(&mut s, "parts.find", json!({"shelf": "symbols", "text": "MY-CON-5"}));
-    let shelf: Vec<String> = s.parts_place().map(|p| p.symbols.iter().map(|f| f.address.clone()).collect()).unwrap_or_default();
+    assert!(
+        symbol.starts_with("library:"),
+        "the coil names its new symbol: {:?}",
+        open.sheet.pieces
+    );
+    done(
+        &mut s,
+        "parts.find",
+        json!({"shelf": "symbols", "text": "MY-CON-5"}),
+    );
+    let shelf: Vec<String> = s
+        .parts_place()
+        .map(|p| p.symbols.iter().map(|f| f.address.clone()).collect())
+        .unwrap_or_default();
     assert!(shelf.contains(&symbol), "the shelf lists it: {shelf:?}");
 }
 
@@ -668,14 +751,30 @@ fn his_own_symbol_of_a_black_box_part_s_function_draws_the_part() {
     done(&mut s, "parts.open", json!({}));
     done(&mut s, "parts.new_symbol", json!({}));
     let editor = s.symbol_editor().expect("the drawing");
-    let what = editor.symbol_rows().into_iter().find(|r| r.key == "what").expect("What it is");
+    let what = editor
+        .symbol_rows()
+        .into_iter()
+        .find(|r| r.key == "what")
+        .expect("What it is");
     let ew_viewmodel::shell::symbol_editor::RowValue::Choice { options, .. } = what.value else {
         panic!("a choice: {:?}", what.value);
     };
-    for key in ["ew.fn.psu-ac-dc", "ew.fn.terminal", "ew.fn.pn-port", "ew.fn.valve-5-2-sol-spring"] {
-        assert!(options.iter().any(|(k, _)| k == key), "{key} offered: {options:?}");
+    for key in [
+        "ew.fn.psu-ac-dc",
+        "ew.fn.terminal",
+        "ew.fn.pn-port",
+        "ew.fn.valve-5-2-sol-spring",
+    ] {
+        assert!(
+            options.iter().any(|(k, _)| k == key),
+            "{key} offered: {options:?}"
+        );
     }
-    let supply = options.iter().find(|(k, _)| k == "ew.fn.psu-ac-dc").map(|(_, w)| w.clone()).unwrap();
+    let supply = options
+        .iter()
+        .find(|(k, _)| k == "ew.fn.psu-ac-dc")
+        .map(|(_, w)| w.clone())
+        .unwrap();
     assert!(!supply.contains("ew."), "in words: {supply}");
     for (field, value) in [("symbol.what", "ew.fn.psu-ac-dc"), ("symbol.name", "Own supply")] {
         done(&mut s, "parts.field", json!({"field": field, "value": value}));
@@ -685,7 +784,15 @@ fn his_own_symbol_of_a_black_box_part_s_function_draws_the_part() {
         "symbol.draw",
         json!({"tool": "rectangle", "x": -4, "y": 4, "x2": 20, "y2": 28}),
     );
-    let pins = [(0, 0, "up"), (8, 0, "up"), (16, 0, "up"), (0, 32, "down"), (4, 32, "down"), (12, 32, "down"), (16, 32, "down")];
+    let pins = [
+        (0, 0, "up"),
+        (8, 0, "up"),
+        (16, 0, "up"),
+        (0, 32, "down"),
+        (4, 32, "down"),
+        (12, 32, "down"),
+        (16, 32, "down"),
+    ];
     for (fn_cp, (x, y, direction)) in pins.into_iter().enumerate() {
         done(
             &mut s,
@@ -716,20 +823,30 @@ fn a_symbol_s_version_licence_source_and_centre_are_kept() {
     let mut s = project(&tmp);
     let row = |s: &ShellModel, key: &str| {
         let rows = s.symbol_editor().expect("the drawing").symbol_rows();
-        rows.into_iter().find(|r| r.key == key).unwrap_or_else(|| panic!("{key}"))
+        rows.into_iter()
+            .find(|r| r.key == key)
+            .unwrap_or_else(|| panic!("{key}"))
     };
     // Make my own from it: the starter's terms come along.
     let coil = ew_viewmodel::ew_api::output::starter_piece_symbol("ew.fn.coil").expect("the starter coil");
     done(&mut s, "parts.open", json!({"symbol": coil}));
     let starter = row(&s, "licence").value;
-    assert_ne!(starter, RowValue::Text(Some(String::new())), "the starter has its terms");
+    assert_ne!(
+        starter,
+        RowValue::Text(Some(String::new())),
+        "the starter has its terms"
+    );
     done(&mut s, "parts.own", json!({}));
     assert_eq!(row(&s, "licence").value, starter, "kept by Make my own from it");
     assert!(row(&s, "version").locked.is_some(), "Save gives the version");
     for (field, value) in [("symbol.licence", "CC0-1.0"), ("symbol.source", "my own drawing")] {
         done(&mut s, "parts.field", json!({"field": field, "value": value}));
     }
-    done(&mut s, "symbol.draw", json!({"tool": "anchor", "x": 0, "y": 0, "centre": true}));
+    done(
+        &mut s,
+        "symbol.draw",
+        json!({"tool": "anchor", "x": 0, "y": 0, "centre": true}),
+    );
     assert!(matches!(
         s.symbol_editor().unwrap().draft.symbol.anchor,
         ew_viewmodel::ew_api::symbols::schema::AnchorPolicy::GraphicCentre
@@ -739,7 +856,10 @@ fn a_symbol_s_version_licence_source_and_centre_are_kept() {
     done(&mut s, "parts.back", json!({"discard": true}));
     done(&mut s, "parts.open", json!({"symbol": address}));
     assert_eq!(row(&s, "licence").value, RowValue::Text(Some("CC0-1.0".into())));
-    assert_eq!(row(&s, "source").value, RowValue::Text(Some("my own drawing".into())));
+    assert_eq!(
+        row(&s, "source").value,
+        RowValue::Text(Some("my own drawing".into()))
+    );
 }
 
 /// A pin's function pin is chosen in its Properties (Function pin, under More; it was Map to pin): the two pins of a
@@ -751,11 +871,25 @@ fn a_pin_s_function_pin_is_chosen_in_its_properties() {
     done(&mut s, "parts.open", json!({}));
     done(&mut s, "parts.new_symbol", json!({}));
     draw_contact(&mut s);
-    let fn_of = |s: &ShellModel, i: usize| s.symbol_editor().unwrap().draft.symbol.cps.iter().nth(i).unwrap().fn_cp;
+    let fn_of = |s: &ShellModel, i: usize| {
+        s.symbol_editor()
+            .unwrap()
+            .draft
+            .symbol
+            .cps
+            .iter()
+            .nth(i)
+            .unwrap()
+            .fn_cp
+    };
     let (a, b) = (fn_of(&s, 0), fn_of(&s, 1));
     assert_ne!(a, b, "each pin stands for one of the contact's");
     done(&mut s, "symbol.select", json!({"items": ["cp:0"]}));
-    done(&mut s, "symbol.prop", json!({"key": "pin", "value": b.to_string()}));
+    done(
+        &mut s,
+        "symbol.prop",
+        json!({"key": "pin", "value": b.to_string()}),
+    );
     assert_eq!((fn_of(&s, 0), fn_of(&s, 1)), (b, a), "swapped");
     done(&mut s, "symbol.undo", json!({}));
     assert_eq!((fn_of(&s, 0), fn_of(&s, 1)), (a, b), "Undo takes it back");
@@ -773,11 +907,19 @@ fn an_older_version_of_his_symbol_is_refused_in_both_languages() {
     let mut s = project(&tmp);
     done(&mut s, "parts.open", json!({}));
     done(&mut s, "parts.new_symbol", json!({}));
-    done(&mut s, "parts.field", json!({"field": "symbol.name", "value": "Older"}));
+    done(
+        &mut s,
+        "parts.field",
+        json!({"field": "symbol.name", "value": "Older"}),
+    );
     draw_contact(&mut s);
     done(&mut s, "parts.save", json!({}));
     let file = tmp.0.join("older.symbol.json");
-    std::fs::write(&file, serde_json::to_vec(&s.symbol_editor().unwrap().draft).unwrap()).unwrap();
+    std::fs::write(
+        &file,
+        serde_json::to_vec(&s.symbol_editor().unwrap().draft).unwrap(),
+    )
+    .unwrap();
     done(
         &mut s,
         "symbol.draw",

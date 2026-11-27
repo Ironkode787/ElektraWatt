@@ -345,7 +345,10 @@ impl EditorView {
                     shortcut: String::new(),
                     enabled: editor.locked.is_none(),
                     reason: editor.locked.clone(),
-                    checked: matches!(editor.draft.symbol.anchor, ew_viewmodel::ew_api::symbols::schema::AnchorPolicy::GraphicCentre),
+                    checked: matches!(
+                        editor.draft.symbol.anchor,
+                        ew_viewmodel::ew_api::symbols::schema::AnchorPolicy::GraphicCentre
+                    ),
                     topic: None,
                 });
                 egui::Popup::menu(&menu).show(|ui| crate::menu::items(ui, &items, events));
@@ -874,7 +877,10 @@ impl EditorView {
                 }
             }
             if outline.groups.iter().all(|g| g.rows.is_empty()) {
-                ui.label(crate::components::small_tertiary(&t, label(key!("symbol-nothing-drawn"))));
+                ui.label(crate::components::small_tertiary(
+                    &t,
+                    label(key!("symbol-nothing-drawn")),
+                ));
             }
             if !outline.import_notes.is_empty() {
                 let id = ui.make_persistent_id("symbol-outline-import");
@@ -1025,7 +1031,10 @@ fn short_sheet(ui: &mut Ui, shell: &ShellModel, editor: &SymbolEditor, events: &
     }
     // What it is taken from the symbol he drew last says so, under it.
     if editor.kept_what {
-        ui.label(crate::components::small_tertiary(&t, label(key!("symbol-what-kept"))));
+        ui.label(crate::components::small_tertiary(
+            &t,
+            label(key!("symbol-what-kept")),
+        ));
     }
     let grid = editor.draft.symbol.grid;
     let mut pins_on = ew_viewmodel::status::grid_words(grid.num() as i64, grid.den() as i64);
@@ -1058,14 +1067,19 @@ fn short_sheet(ui: &mut Ui, shell: &ShellModel, editor: &SymbolEditor, events: &
         action(events, "parts.new", json!({ "symbol": address }));
     }
     // Parts drawn with it: the parts a page draws with this symbol, of his libraries and of the project.
-    if matches!(editor.purpose, ew_viewmodel::shell::symbol_editor::Drawing::Symbol)
-        && (editor.published().is_some() || editor.opened_from.is_some())
+    if matches!(
+        editor.purpose,
+        ew_viewmodel::shell::symbol_editor::Drawing::Symbol
+    ) && (editor.published().is_some() || editor.opened_from.is_some())
     {
         let parts = shell.drawing_parts();
         ui.add_space(t.space_2);
         ui.label(egui::RichText::new(label(key!("parts-drawn-with"))).strong());
         if parts.is_empty() {
-            ui.label(crate::components::small_tertiary(&t, label(key!("parts-drawn-with-none"))));
+            ui.label(crate::components::small_tertiary(
+                &t,
+                label(key!("parts-drawn-with-none")),
+            ));
         }
         for p in &parts {
             ui.horizontal(|ui| {
@@ -1082,7 +1096,10 @@ fn table_head(ui: &mut Ui, first: &str, second: &str) {
     let t = theme::current(ui.ctx());
     ui.horizontal(|ui| {
         let half = ui.available_width() * 0.55;
-        ui.add_sized([half, t.size_row], egui::Label::new(crate::components::small_secondary(&t, first)));
+        ui.add_sized(
+            [half, t.size_row],
+            egui::Label::new(crate::components::small_secondary(&t, first)),
+        );
         ui.label(crate::components::small_secondary(&t, second));
     });
 }
@@ -1112,39 +1129,51 @@ fn piece_head(
     let kinds = ew_viewmodel::ew_api::part_pieces::piece_kinds();
     // Each column a third of the pane, a cell cut at it (its whole text on hover): the table never widens the pane.
     let col = ((ui.available_width() - 2.0 * ui.spacing().item_spacing.x) / 3.0).max(0.0);
-    egui::Grid::new("piece-head-drawn-as").num_columns(3).striped(true).max_col_width(col).show(ui, |ui| {
-        for head in [key!("parts-piece-what"), key!("parts-piece-pins"), key!("parts-piece-symbol")] {
-            ui.label(crate::components::small_secondary(&t, label(head)));
-        }
-        ui.end_row();
-        for (i, row) in d.pieces.iter().enumerate() {
-            let what = kinds
-                .iter()
-                .find(|k| k.key == row.what)
-                .map_or_else(|| row.what.clone(), |k| strings::render(&k.words));
-            let symbol = if i == piece.index {
-                if editor.stored() && !editor.dirty() {
-                    ew_viewmodel::shell::symbol_editor::display_name(&editor.draft)
-                } else {
-                    label(key!("parts-piece-mine-not-saved")).to_owned()
-                }
-            } else {
-                open.piece_symbols
-                    .get(i)
-                    .and_then(|c| c.iter().find(|(a, _)| *a == row.symbol))
-                    .map(|(_, n)| n.clone())
-                    .unwrap_or_default()
-            };
-            let mark = |s: String| {
-                let text = egui::RichText::new(s);
-                if i == piece.index { text.color(t.accent.color32()) } else { text }
-            };
-            for cell in [what, row.pins.clone(), symbol] {
-                ui.add(egui::Label::new(mark(cell)).truncate());
+    egui::Grid::new("piece-head-drawn-as")
+        .num_columns(3)
+        .striped(true)
+        .max_col_width(col)
+        .show(ui, |ui| {
+            for head in [
+                key!("parts-piece-what"),
+                key!("parts-piece-pins"),
+                key!("parts-piece-symbol"),
+            ] {
+                ui.label(crate::components::small_secondary(&t, label(head)));
             }
             ui.end_row();
-        }
-    });
+            for (i, row) in d.pieces.iter().enumerate() {
+                let what = kinds
+                    .iter()
+                    .find(|k| k.key == row.what)
+                    .map_or_else(|| row.what.clone(), |k| strings::render(&k.words));
+                let symbol = if i == piece.index {
+                    if editor.stored() && !editor.dirty() {
+                        ew_viewmodel::shell::symbol_editor::display_name(&editor.draft)
+                    } else {
+                        label(key!("parts-piece-mine-not-saved")).to_owned()
+                    }
+                } else {
+                    open.piece_symbols
+                        .get(i)
+                        .and_then(|c| c.iter().find(|(a, _)| *a == row.symbol))
+                        .map(|(_, n)| n.clone())
+                        .unwrap_or_default()
+                };
+                let mark = |s: String| {
+                    let text = egui::RichText::new(s);
+                    if i == piece.index {
+                        text.color(t.accent.color32())
+                    } else {
+                        text
+                    }
+                };
+                for cell in [what, row.pins.clone(), symbol] {
+                    ui.add(egui::Label::new(mark(cell)).truncate());
+                }
+                ui.end_row();
+            }
+        });
 }
 
 /// The drawing grid's step and Snap to grid; the tooltip names the connection grid that connection points

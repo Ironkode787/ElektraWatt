@@ -135,7 +135,8 @@ pub const BOX: &str = "box";
 pub fn what_kinds() -> Vec<(String, String)> {
     let mut out = vec![(BOX.to_owned(), label("symbol-what-box"))];
     out.extend(
-        (ew_api::part_pieces::symbol_kinds().into_iter()).map(|k| (k.key.to_owned(), strings::render(&k.words))),
+        (ew_api::part_pieces::symbol_kinds().into_iter())
+            .map(|k| (k.key.to_owned(), strings::render(&k.words))),
     );
     // After the box, by their words in the window's language.
     out[1..].sort_by(|a, b| a.1.cmp(&b.1));
@@ -383,13 +384,19 @@ impl SymbolEditor {
     pub fn what(&self) -> Option<String> {
         match &self.draft.function_ref {
             Some(r) => ew_api::symbols::starter_function_key(r).map(str::to_owned),
-            None => matches!(self.draft.function.contact_kind, symbols::schema::ContactKind::BlackBox).then(|| BOX.to_owned()),
+            None => matches!(
+                self.draft.function.contact_kind,
+                symbols::schema::ContactKind::BlackBox
+            )
+            .then(|| BOX.to_owned()),
         }
     }
 
     /// What the symbol is, in a panel builder's words: its [`what_kinds`] words, else its function type's own.
     fn what_words(&self) -> String {
-        let kind = self.what().and_then(|w| what_kinds().into_iter().find(|(k, _)| *k == w));
+        let kind = self
+            .what()
+            .and_then(|w| what_kinds().into_iter().find(|(k, _)| *k == w));
         match kind {
             Some((_, words)) => words,
             None => {
@@ -795,7 +802,8 @@ impl SymbolEditor {
     pub fn symbol_rows(&self) -> Vec<SheetRow> {
         let d = &self.draft;
         // Locked only for another library's function: a starter function is changed here.
-        let locked = (d.function_ref.is_some() && self.what().is_none()).then(|| label("symbol-function-locked"));
+        let locked =
+            (d.function_ref.is_some() && self.what().is_none()).then(|| label("symbol-function-locked"));
         let mut what = what_kinds();
         // A symbol of a function no entry is shows as what its type is, the list's last line.
         let current = match self.what().filter(|w| what.iter().any(|(k, _)| k == w)) {
@@ -810,7 +818,11 @@ impl SymbolEditor {
             row(
                 "name",
                 "symbol-name",
-                text(&if self.unnamed { String::new() } else { name_words(&d.symbol.name) }),
+                text(&if self.unnamed {
+                    String::new()
+                } else {
+                    name_words(&d.symbol.name)
+                }),
             ),
             SheetRow {
                 locked,
@@ -821,8 +833,16 @@ impl SymbolEditor {
                 locked: Some(label("symbol-version-given")),
                 ..row("version", "symbol-version", text(&d.version))
             },
-            row("licence", "symbol-licence", text(d.symbol.meta.licence.as_deref().unwrap_or(""))),
-            row("source", "symbol-source", text(d.symbol.meta.sources.first().map_or("", String::as_str))),
+            row(
+                "licence",
+                "symbol-licence",
+                text(d.symbol.meta.licence.as_deref().unwrap_or("")),
+            ),
+            row(
+                "source",
+                "symbol-source",
+                text(d.symbol.meta.sources.first().map_or("", String::as_str)),
+            ),
         ]
     }
 
@@ -1082,9 +1102,10 @@ impl SymbolEditor {
                     doc["function"]["contact_kind"] = json!("black_box");
                     doc["function"]["category"] = json!(["Assembly", "Generic", "Generic"]);
                 } else {
-                    let (Some(def), Some(r)) =
-                        (ew_api::symbols::starter_function(word), ew_api::symbols::piece_function(word))
-                    else {
+                    let (Some(def), Some(r)) = (
+                        ew_api::symbols::starter_function(word),
+                        ew_api::symbols::piece_function(word),
+                    ) else {
                         return false;
                     };
                     // The points drawn stand for its pins in order; one more than it has is To do's.
@@ -1103,7 +1124,11 @@ impl SymbolEditor {
             }
             ("licence", Some(s), _) => doc["symbol"]["meta"]["licence"] = json!(s.trim()),
             ("source", Some(s), _) => {
-                doc["symbol"]["meta"]["sources"] = if s.trim().is_empty() { json!([]) } else { json!([s.trim()]) };
+                doc["symbol"]["meta"]["sources"] = if s.trim().is_empty() {
+                    json!([])
+                } else {
+                    json!([s.trim()])
+                };
             }
             ("reviewed", _, Value::Bool(on)) => doc["import_reviewed"] = json!(on),
             _ => return false,

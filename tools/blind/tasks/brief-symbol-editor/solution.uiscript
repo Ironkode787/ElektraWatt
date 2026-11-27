@@ -2,7 +2,7 @@
 {"action": "parts.open"}
 {"action": "parts.new_symbol"}
 {"action": "parts.field", "params": {"field": "symbol.name", "value": "Supply block"}}
-{"action": "parts.field", "params": {"field": "symbol.what", "value": "supply"}}
+{"action": "parts.field", "params": {"field": "symbol.what", "value": "box"}}
 {"action": "symbol.draw", "params": {"tool": "line", "x": 0, "y": 0, "x2": 11, "y2": 0}}
 {"action": "symbol.draw", "params": {"tool": "line", "x": 13, "y": 0, "x2": 19, "y2": 0}}
 {"action": "symbol.draw", "params": {"tool": "line", "x": 21, "y": 0, "x2": 27, "y2": 0}}

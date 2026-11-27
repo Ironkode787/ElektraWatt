@@ -458,7 +458,10 @@ fn a_box_nobody_arranged_is_saved_without_a_layout_and_redraws_no_placed_box() {
     page_150(&mut s);
     own_open(&mut s, "EW-GEN-PSU-1", "PSU-OLD");
     let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("his part");
-    assert!(open.sheet.box_.is_none(), "Save wrote no layout into a box nobody arranged");
+    assert!(
+        open.sheet.box_.is_none(),
+        "Save wrote no layout into a box nobody arranged"
+    );
     leave_parts(&mut s);
     // His box, drawn by its two corners in a shape of his own, as 0.3.5 drew a box nobody arranged.
     done(&mut s, "tool.place", json!({}));
@@ -470,7 +473,11 @@ fn a_box_nobody_arranged_is_saved_without_a_layout_and_redraws_no_placed_box() {
     }
     done(&mut s, "ui.dismiss", json!({}));
     let drawn = |s: &ShellModel| -> Vec<ew_api::output::TableBox> {
-        tables(s).reps.iter().filter_map(|r| r.black_box.clone()).collect()
+        tables(s)
+            .reps
+            .iter()
+            .filter_map(|r| r.black_box.clone())
+            .collect()
     };
     let before = drawn(&s);
     assert_eq!(before.len(), 1, "one box: {before:?}");
