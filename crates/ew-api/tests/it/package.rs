@@ -41,6 +41,28 @@ fn entry(entries: &[Entry], kind_path: impl Fn(&str) -> bool) -> &Entry {
     entries.iter().find(|e| kind_path(&e.name)).expect("the entry")
 }
 
+/// The entries the manifest names of the member kind `kind` (`wire_list`, `pages`), in byte order of their paths.
+fn of_kind<'a>(entries: &'a [Entry], kind: &str) -> Vec<&'a Entry> {
+    let manifest: serde_json::Value =
+        serde_json::from_slice(&entry(entries, |n| n == "manifest.json").data).expect("JSON");
+    let paths: Vec<&str> = manifest["members"]
+        .as_array()
+        .expect("members")
+        .iter()
+        .filter(|m| m["kind"] == kind)
+        .filter_map(|m| m["path"].as_str())
+        .collect();
+    entries.iter().filter(|e| paths.contains(&e.name.as_str())).collect()
+}
+
+/// The one entry of the member kind `kind`.
+fn one_of_kind<'a>(entries: &'a [Entry], kind: &str) -> &'a Entry {
+    match of_kind(entries, kind).as_slice() {
+        [e] => e,
+        other => panic!("{} entries of {kind}", other.len()),
+    }
+}
+
 /// The text of every page of the PDF `bytes`.
 fn pdf_texts(bytes: &[u8]) -> Vec<String> {
     let bytes: Arc<[u8]> = Arc::from(bytes);
@@ -101,6 +123,30 @@ fn the_package_is_the_same_bytes_twice_and_its_manifest_names_each_entry() {
     let (one, entries) = package(&s, &ask());
     let (two, _) = package(&s, &ask());
     assert!(one == two, "the same bytes");
+    // No member holds the clock, which two writes in one second would not show: given a day far from today, every
+    // workbook's core properties and every PDF's creation date are that day at midnight.
+    let dated = PackageAsk {
+        date: Some(PdfDate::ymd(2001, 2, 3)),
+        ..PackageAsk::default()
+    };
+    let (_, old) = package(&s, &dated);
+    let (mut books, mut pdfs) = (0, 0);
+    for e in &old {
+        if e.name.ends_with(".xlsx") {
+            let parts = ew_zip::read(&e.data, &ZipLimits::default()).expect("a workbook");
+            let core = String::from_utf8(entry(&parts, |n| n == "docProps/core.xml").data.clone()).expect("UTF-8");
+            for tag in ["created", "modified"] {
+                let at = format!("<dcterms:{tag} xsi:type=\"dcterms:W3CDTF\">2001-02-03T00:00:00Z</dcterms:{tag}>");
+                assert!(core.contains(&at), "{}: {core}", e.name);
+            }
+            books += 1;
+        } else if e.name.ends_with(".pdf") {
+            let date = b"D:20010203000000";
+            assert!(e.data.windows(date.len()).any(|w| w == date), "{}", e.name);
+            pdfs += 1;
+        }
+    }
+    assert!(books > 0 && pdfs > 0, "{books} workbooks, {pdfs} PDFs");
     let names: Vec<&str> = entries.iter().map(|e| e.name.as_str()).collect();
     let mut sorted = names.clone();
     sorted.sort_unstable();
@@ -129,10 +175,7 @@ fn the_package_is_the_same_bytes_twice_and_its_manifest_names_each_entry() {
     for m in PackageMember::all() {
         assert!(kinds.contains(&m.key()), "{} in the package", m.key());
     }
-    assert!(names.contains(&"Lists/SAMPLE-E Wire list.xlsx"), "{names:?}");
-    assert!(
-        names.iter().any(|n| n.starts_with("Labels/")) && names.iter().any(|n| n.starts_with("Drilling/"))
-    );
+    // Their names and folders are the blessed Contents'.
     let contents = String::from_utf8(entry(&entries, |n| n == "Contents.txt").data.clone()).expect("UTF-8");
     let contents = contents.replace(env!("CARGO_PKG_VERSION"), "<version>");
     let expected =
@@ -164,9 +207,9 @@ fn the_lists_are_the_lists_exports_and_contents_counts_the_wires_without_a_lengt
         panic!("a workbook")
     };
     drop(q);
-    let member = entry(&entries, |n| n == "Lists/SAMPLE-E Wire list.xlsx");
+    let member = one_of_kind(&entries, "wire_list");
     assert_eq!(sheet(&member.data), sheet(&wires));
-    let assembly = sheet(&entry(&entries, |n| n.starts_with("Lists/") && n.contains("Assembly")).data);
+    let assembly = sheet(&one_of_kind(&entries, "assembly_list").data);
     for strip in ["-X1011", "-X1021", "-X1031"] {
         assert!(assembly.contains(strip), "{strip}");
     }
@@ -194,7 +237,7 @@ fn the_lists_are_the_lists_exports_and_contents_counts_the_wires_without_a_lengt
 fn a_drafts_pages_carry_the_mark_and_a_releases_none() {
     let draft = common::sample();
     let (_, entries) = package(&draft, &ask());
-    let pages = pdf_texts(&entry(&entries, |n| n.ends_with("drawings.pdf")).data);
+    let pages = pdf_texts(&one_of_kind(&entries, "pages").data);
     assert!(!pages.is_empty());
     assert!(pages.iter().all(|p| p.contains("Draft V1.0: not released")));
     let release = released(|_, _| {}, true);
@@ -202,8 +245,7 @@ fn a_drafts_pages_carry_the_mark_and_a_releases_none() {
     assert!(!plan.draft() && !plan.refused(), "{:?}", plan.errors());
     assert!(plan.findings().iter().any(|f| f.rule == "EW-MFG-001"));
     let (_, entries) = package(&release, &ask());
-    let pdf = entry(&entries, |n| n.ends_with("drawings.pdf"));
-    assert!(pdf.name == "SAMPLE-E V1.0 drawings.pdf");
+    let pdf = one_of_kind(&entries, "pages");
     assert!(pdf_texts(&pdf.data).iter().all(|p| !p.contains("Draft")));
     let manifest: serde_json::Value =
         serde_json::from_slice(&entry(&entries, |n| n == "manifest.json").data).expect("JSON");
@@ -309,12 +351,11 @@ fn a_cable_marker_of_ones_own_prints_the_cable_markers() {
     );
     assert!(lacks(&s).is_empty());
     let (_, entries) = package(&s, &ask());
+    let labels = of_kind(&entries, "labels");
     assert!(
-        entries
-            .iter()
-            .any(|e| e.name == "Labels/SAMPLE-E Cable markers MY-CM-16.xlsx"),
+        labels.iter().any(|e| e.name.contains("MY-CM-16")),
         "{:?}",
-        entries.iter().map(|e| &e.name).collect::<Vec<_>>()
+        labels.iter().map(|e| &e.name).collect::<Vec<_>>()
     );
 }
 
