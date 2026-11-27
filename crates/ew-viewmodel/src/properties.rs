@@ -2383,14 +2383,6 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
     ("wire numbering", None, key!("chip-via-wire-numbering")),
     // A wire's length (doc 13 §3.3).
     ("typed by hand", None, key!("chip-via-typed-by-hand")),
-    // A cable's gland (doc 12 §3.9).
-    ("proposed for ", Some(" mm"), key!("chip-via-gland-proposed")),
-    ("proposed", None, key!("chip-via-proposed")),
-    ("no outer diameter", None, key!("chip-via-gland-no-diameter")),
-    ("no gland seals ", Some(" mm"), key!("chip-via-gland-none-seals")),
-    ("on page ", Some(""), key!("chip-via-on-page")),
-    ("placed", None, key!("chip-via-placed")),
-    ("not placed", None, key!("chip-via-not-placed")),
     // A wire's end (doc 13 §4.2, §4.5).
     ("set by hand", None, key!("chip-via-set-by-hand")),
     (
@@ -2575,6 +2567,7 @@ pub fn chip_text(p: &Provenance) -> String {
         Provenance::Authored => strings::text(key!("chip-authored")).to_owned(),
         Provenance::Inherited { from } => strings::format(key!("chip-inherited"), &[&chip_words(from)]),
         Provenance::Derived { via } => strings::format(key!("chip-derived"), &[&chip_words(via)]),
+        Provenance::Told { via } => strings::format(key!("chip-derived"), &[&strings::render(via)]),
         Provenance::Overridden { note } => strings::format(key!("chip-overridden"), &[&chip_words(note)]),
         Provenance::Frozen { note } => strings::format(key!("chip-frozen"), &[&chip_words(note)]),
         Provenance::Library { item } => strings::format(key!("chip-library"), &[item]),
@@ -2612,7 +2605,7 @@ pub fn chip_word(p: &Provenance) -> &'static str {
         Provenance::Derived { via } if via == "project default" || via.starts_with("built-in default") => {
             strings::text(key!("chip-word-default"))
         }
-        Provenance::Derived { .. } => strings::text(key!("chip-word-derived")),
+        Provenance::Derived { .. } | Provenance::Told { .. } => strings::text(key!("chip-word-derived")),
         Provenance::Overridden { .. } => strings::text(key!("chip-word-override")),
         Provenance::Frozen { .. } => strings::text(key!("chip-word-frozen")),
         Provenance::Library { .. } => strings::text(key!("chip-word-library")),

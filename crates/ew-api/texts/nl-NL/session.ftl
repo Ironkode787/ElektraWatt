@@ -642,3 +642,12 @@ misfit-function-kinds = Een artikel van een andere soort: { $p0 }, geen { $p1 }
 misfit-pin = Het heeft geen aansluiting { $p0 }; { $p1 }:{ $p0 } is bedraad
 misfit-clamp = Zijn klem { $p0 } neemt { DECIMAL($p1) } tot { DECIMAL($p2) } mm²; draad { $p3 } is { DECIMAL($p4) } mm²
 misfit-clamp-unnumbered = Zijn klem { $p0 } neemt { DECIMAL($p1) } tot { DECIMAL($p2) } mm²; een draad erop is { DECIMAL($p3) } mm²
+
+## Hoe de wartel van een kabel en zijn gat afgeleid zijn (doc 12 §3.9): de woorden van een herkomstlabel
+via-gland-proposed = voorgesteld
+via-gland-proposed-for = voorgesteld voor { $p0 } mm
+via-gland-no-diameter = de kabel geeft geen buitendiameter
+via-gland-none-seals = geen wartel van de voorraad dicht { $p0 } mm af
+via-gland-hole-on-page = op pagina { $p0 }
+via-gland-hole-placed = geplaatst
+via-gland-hole-not-placed = niet geplaatst

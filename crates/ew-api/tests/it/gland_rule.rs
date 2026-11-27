@@ -103,3 +103,35 @@ fn edit_part_of_a_cable_without_a_diameter_opens_its_cable_section() {
         );
     }
 }
+
+/// A cable's Gland and Gland hole rows say how they are had as texts a window renders in its language (architecture
+/// §18), not as English it would read back: -103W1's gland is proposed for its 12.5 mm and sits in a hole on page 905.
+#[test]
+fn a_cable_s_gland_rows_say_how_in_texts() {
+    let s = common::sample();
+    let cable: ew_ids::Uuid = s.resolve_reference("tag:-103W1").expect("-103W1");
+    let sheet = s.property_sheet(&[cable]);
+    let via = |key: &str| {
+        let row = sheet
+            .sections
+            .iter()
+            .flat_map(|x| &x.rows)
+            .find(|r| r.key == key)
+            .unwrap_or_else(|| panic!("no row {key}"));
+        match &row.provenance {
+            ew_api::output::Provenance::Told { via } => (
+                via.key(),
+                via.args().iter().map(ToString::to_string).collect::<Vec<_>>(),
+            ),
+            other => panic!("{key}: {other:?}"),
+        }
+    };
+    assert_eq!(
+        via("device/derived.gland"),
+        ("via-gland-proposed-for", vec!["12.5".to_owned()])
+    );
+    assert_eq!(
+        via("device/derived.gland_hole"),
+        ("via-gland-hole-on-page", vec!["905".to_owned()])
+    );
+}

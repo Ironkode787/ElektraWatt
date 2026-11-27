@@ -298,6 +298,13 @@ pub enum Provenance {
         /// How (the chip text).
         via: String,
     },
+    /// Computed, how in words a window renders in its language (architecture §18): a key with its arguments, never
+    /// read back out of a sentence. A row whose how is new says it so; the older rows' `Derived` English is
+    /// still turned into words by the viewmodel's phrase table.
+    Told {
+        /// How.
+        via: crate::Text,
+    },
     /// A stored override of a derived value.
     Overridden {
         /// The chip text.

@@ -468,20 +468,19 @@ impl Session {
             && let Some(g) = cable_gland(q, *one)
         {
             let mm = |n: ew_units::Nm| crate::output::layout_edit::mm_text(q, i128::from(n.0));
+            // How the gland is had, in words the window renders (a key and its arguments).
             let (part, via) = match &g.part {
                 Ok(p) if g.chosen => (ew_derive::printed_number(q, p), None),
                 Ok(p) => (
                     ew_derive::printed_number(q, p),
                     Some(g.od.map_or_else(
-                        || "proposed".to_owned(),
-                        |od| format!("proposed for {} mm", mm(od)),
+                        || text!("via-gland-proposed"),
+                        |od| text!("via-gland-proposed-for", mm(od)),
                     )),
                 ),
-                Err(ew_derive::layout::NoGland::NoDiameter) => {
-                    (String::new(), Some("no outer diameter".to_owned()))
-                }
+                Err(ew_derive::layout::NoGland::NoDiameter) => (String::new(), Some(text!("via-gland-no-diameter"))),
                 Err(ew_derive::layout::NoGland::NoneSeals { od }) => {
-                    (String::new(), Some(format!("no gland seals {} mm", mm(*od))))
+                    (String::new(), Some(text!("via-gland-none-seals", mm(*od))))
                 }
             };
             out.push(derived(DerivedRow {
@@ -500,7 +499,7 @@ impl Session {
                     json: Value::String(part.clone()),
                     text: part,
                 },
-                provenance: via.map_or(Provenance::Authored, |via| Provenance::Derived { via }),
+                provenance: via.map_or(Provenance::Authored, |via| Provenance::Told { via }),
                 actions: vec![RowAction::Edit],
             }));
             let hole = g.placed.and_then(|f| {
@@ -518,9 +517,9 @@ impl Session {
                 Some((format!("H{no}"), page))
             });
             let (text, via) = match hole {
-                Some((no, Some(page))) => (no, format!("on page {page}")),
-                Some((no, None)) => (no, "placed".to_owned()),
-                None => (String::new(), "not placed".to_owned()),
+                Some((no, Some(page))) => (no, text!("via-gland-hole-on-page", page)),
+                Some((no, None)) => (no, text!("via-gland-hole-placed")),
+                None => (String::new(), text!("via-gland-hole-not-placed")),
             };
             out.push(derived(DerivedRow {
                 kind: "device",
@@ -532,7 +531,7 @@ impl Session {
                     json: Value::String(text.clone()),
                     text,
                 },
-                provenance: Provenance::Derived { via },
+                provenance: Provenance::Told { via },
                 actions: Vec::new(),
             }));
         }
