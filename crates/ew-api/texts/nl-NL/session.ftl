@@ -727,10 +727,10 @@ package-refused = { $count ->
 package-file-name = { $p0 } { $p1 } pakket.zip
 package-file-name-draft = { $p0 } { $p1 } conceptpakket.zip
 package-holds-pages = elke pagina in paginavolgorde, zoals bij PDF exporteren
-package-no-holes = Geen vlak van dit project heeft al gaten
+package-no-holes = Nog geen vlak van dit project heeft gaten
 package-no-rows = Nog niets te vermelden
 package-no-labels = Het project heeft nog geen labels
-package-lacks-marker = { $p0 }: geen markeringsartikel in de voorraad markeert { $p1 }; het labelprogramma vraagt waarop het afdrukt
+package-lacks-marker = { $p0 }: de voorraad heeft geen markeringsartikel voor { $p1 }; het labelprogramma vraagt waarop het afdrukt
 package-holds-labels = { $count ->
         [one] 1 bestand
        *[many] { $n } bestanden
@@ -788,7 +788,7 @@ package-about-labels-no-part = { $count ->
 package-about-dxf = { $count ->
         [one] 1 gat
        *[many] { $n } gaten
-    }, voor een machine; 0,0 in de hoek van het vlak waarvan de gaten gemeten zijn.
+    }, voor een machine; 0,0 in de hoek van het vlak van waaruit de gaten gemeten zijn.
 package-about-template = { $count ->
         [one] 1 gat
        *[many] { $n } gaten
@@ -800,17 +800,17 @@ package-contents-file = Inhoud.txt
 package-contents-released-on = Pakket voor de werkplaats, revisie { $p0 }, vrijgegeven op { $p1 }
 package-contents-made-on = Pakket voor de werkplaats, revisie { $p0 }, gemaakt op { $p1 }
 package-contents-made-on-none = Pakket voor de werkplaats, gemaakt op { $p0 }
-package-contents-draft = CONCEPT: revisie { $p0 } is open, niet vrijgegeven. Elke pagina van de tekeningen zegt "{ $p1 }".
-package-contents-draft-none = CONCEPT: het project heeft geen revisie. Elke pagina van de tekeningen zegt "{ $p0 }".
+package-contents-draft = CONCEPT: revisie { $p0 } is open, niet vrijgegeven. Op elke pagina van de tekeningen staat "{ $p1 }".
+package-contents-draft-none = CONCEPT: het project heeft geen revisie. Op elke pagina van de tekeningen staat "{ $p0 }".
 package-contents-release = Het pakket van de vrijgave: de pagina's dragen geen merkteken.
-package-contents-ready = Voor het naar de werkplaats ging is het project gecontroleerd: niets stond in de weg.
-package-contents-stood = Voor het naar de werkplaats ging is het project gecontroleerd: { $count ->
+package-contents-ready = Voordat het naar de werkplaats ging, is het project gecontroleerd: niets stond in de weg.
+package-contents-stood = Voordat het naar de werkplaats ging, is het project gecontroleerd: { $count ->
         [one] 1 punt stond open
        *[many] { $n } punten stonden open
     }. Een fout houdt een vrijgave tegen; een waarschuwing of een melding houdt niets tegen.
 package-no-length-site = { $count ->
-        [one] 1 draad heeft geen lengte: één einde ervan wordt op locatie gemaakt
-       *[many] { $n } draden hebben geen lengte: van elk wordt één einde op locatie gemaakt
+        [one] 1 draad heeft geen lengte: één einde ervan wordt ter plaatse gemaakt
+       *[many] { $n } draden hebben geen lengte: van elk wordt één einde ter plaatse gemaakt
     }
 package-no-length-not-laid-in = { $count ->
         [one] 1 draad van { $cabinet } heeft nog geen lengte: Routeren geeft hem er een, of typ hem
