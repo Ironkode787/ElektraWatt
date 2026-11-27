@@ -837,7 +837,10 @@ pub(super) fn edit_delete_layout(live: &Live, rng: &mut SplitMix64) -> Option<St
 pub(super) fn setup_stale_ways(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let duct = rng.pick(&live.layout.ducts)?;
     let params = json!({"duct": {"width": 40 * LAY_MM, "height": 80 * LAY_MM}});
-    Some(Step::cmd("layout.carrier.edit", json!({"carrier": duct, "params": params})))
+    Some(Step::cmd(
+        "layout.carrier.edit",
+        json!({"carrier": duct, "params": params}),
+    ))
 }
 
 /// `layout.route`: the cabinet of a space routed, its due wires or every one (accepted: the ways of its wires stored,

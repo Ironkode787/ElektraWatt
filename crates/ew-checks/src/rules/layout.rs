@@ -821,6 +821,9 @@ fn in_front(q: &Q, surface: Id<MountingSurface>, r: Rect) -> Option<Rect> {
     Some(Rect::from_points(to(r.min())?, to(r.max())?))
 }
 
+/// What stands on the plate and what it takes out of it: its targets, its name, its surface, its footprint, its take.
+type OnPlate = (Vec<Target>, Named, Id<MountingSurface>, Rect, ew_units::Nm);
+
 /// EW-LAY-006, the closed door (doc 12 §7): per cabinet whose enclosure part gives the room between the plate and the
 /// closed door (`usable_depth`), a device or a duct of the plate that takes more than that room (`door_reach`: a
 /// device its rail's height, its depth and its front clearance, `reach`; a duct its height), and a device or a duct of
@@ -845,8 +848,7 @@ fn closed_door(q: &Q) -> Vec<Finding> {
                 .map(|(id, _)| id)
                 .collect()
         };
-        // What stands on the plate and what it takes: (its targets, its name, its surface, its footprint, its take).
-        let mut plate: Vec<(Vec<Target>, Named, Id<MountingSurface>, Rect, ew_units::Nm)> = Vec::new();
+        let mut plate: Vec<OnPlate> = Vec::new();
         for s in of_kind(SurfaceKind::Plate) {
             for (id, pl) in placements.iter() {
                 let Some(g) = q.get::<PlacementGeometry>(id).as_ref().clone() else {

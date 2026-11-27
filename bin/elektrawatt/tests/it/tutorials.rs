@@ -575,7 +575,7 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
     assert!(
         toast.len() == 1
             && toast[0].starts_with(
-                "toast \"Exported reports.pdf: 10 drawing pages, 3 section divider pages and 32 report pages, "
+                "toast \"Exported reports.pdf: 10 drawing pages, 3 section divider pages and 33 report pages, "
             ),
         "{toast:?}"
     );

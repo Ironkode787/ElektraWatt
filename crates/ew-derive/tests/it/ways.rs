@@ -667,9 +667,11 @@ fn door_cabinet(hinge: &str) -> Fx {
     let mut fx = cabinet(false);
     let sheet = |w: i64, h: i64| json!([[0, 0], [mm(w), 0], [mm(w), mm(h)], [0, mm(h)]]);
     fx.record(PLATE)["usable"] = sheet(500, 800);
-    fx.push(json!({"$k": "mounting_surface", "id": uid(DOOR), "enclosure": uid(ENCL), "kind": "door",
+    fx.push(
+        json!({"$k": "mounting_surface", "id": uid(DOOR), "enclosure": uid(ENCL), "kind": "door",
                    "frame": {"t": [0, 0, mm(250)], "q": [1_000_000_000, 0, 0, 0]}, "hinge": hinge,
-                   "usable": sheet(600, 800)}));
+                   "usable": sheet(600, 800)}),
+    );
     let lamp = json!({"width": mm(30), "height": mm(30), "depth": mm(40), "mount_kind": "door_cutout"});
     part(
         &mut fx,
@@ -681,11 +683,15 @@ fn door_cabinet(hinge: &str) -> Fx {
     device(&mut fx, L2, 7, Some(PART_LAMP), SYM_DOWN);
     device(&mut fx, K6, 8, Some(PART_K), SYM_DOWN);
     for (d, u) in [(L1, 300), (L2, 360)] {
-        fx.push(json!({"$k": "placement", "id": uid(pl(d)), "device": uid(d), "carrier": {"surface": uid(DOOR)},
-                       "pose": {"t": [mm(u), mm(560), 0], "q": [1_000_000_000, 0, 0, 0]}}));
+        fx.push(
+            json!({"$k": "placement", "id": uid(pl(d)), "device": uid(d), "carrier": {"surface": uid(DOOR)},
+                       "pose": {"t": [mm(u), mm(560), 0], "q": [1_000_000_000, 0, 0, 0]}}),
+        );
     }
-    fx.push(json!({"$k": "placement", "id": uid(pl(K6)), "device": uid(K6), "carrier": {"carrier": uid(R2)},
-                   "pose": pose(mm(300), false)}));
+    fx.push(
+        json!({"$k": "placement", "id": uid(pl(K6)), "device": uid(K6), "carrier": {"carrier": uid(R2)},
+                   "pose": pose(mm(300), false)}),
+    );
     wire(&mut fx, W7, cp(K2, 0), cp(L1, 0));
     wire(&mut fx, W8, cp(L1, 1), cp(L2, 0));
     wire(&mut fx, W9, cp(L2, 1), cp(K6, 0));
@@ -767,8 +773,5 @@ fn a_wire_into_the_door_crosses_the_hinge_and_runs_along_the_door() {
     };
     assert!(matches!(&right.steps[..], [WayStep::Duct(d), WayStep::Door(_)] if d.to == Nm(mm(500))));
     let along = (x1 - mm(600)).abs() + (y1 - mm(440)).abs();
-    assert_eq!(
-        right.run,
-        Nm(mm(180) + 7_500_000 + mm(340) + along + mm(20))
-    );
+    assert_eq!(right.run, Nm(mm(180) + 7_500_000 + mm(340) + along + mm(20)));
 }

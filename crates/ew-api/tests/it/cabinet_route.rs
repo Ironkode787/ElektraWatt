@@ -74,7 +74,11 @@ fn routes_card_on_902_and_its_apply() {
     assert_eq!(typed.typed, Some(ew_units::Nm::from_mm(400)));
     assert!(typed.length.is_some());
     assert!(row(&card.site, "104.4").is_some(), "a field wire is made on site");
-    let duct = card.ducts.iter().find(|d| d.label.to_string() == "Duct 1").expect("duct 1");
+    let duct = card
+        .ducts
+        .iter()
+        .find(|d| d.label.to_string() == "Duct 1")
+        .expect("duct 1");
     assert!(duct.size == "40×60" && !duct.over && duct.limit == 60, "{duct:?}");
     assert!(card.ways.iter().any(|w| w.wire == wire(&s, "101.8")));
     assert!(
@@ -447,7 +451,9 @@ fn ew_lay_006_reports_what_the_closed_door_meets() {
     use ew_schema::{LibDocument, Record};
     let s = common::sample();
     assert!(
-        !findings(&s, "EW-LAY-006").iter().any(|f| f.discriminator.starts_with("door_")),
+        !findings(&s, "EW-LAY-006")
+            .iter()
+            .any(|f| f.discriminator.starts_with("door_")),
         "the sample's door closes"
     );
     let reaches = |s: &Session, tag: &str| {
@@ -519,8 +525,10 @@ fn ew_lay_006_reports_what_the_closed_door_meets() {
     );
     assert!(
         f.iter().any(|f| f.discriminator == "door_meet"
-            && f.message().contains(" in the door meet when the door is closed: they take ")
-            && f.message().ends_with(" of the 100 mm between the plate and the door")),
+            && f.message()
+                .contains(" in the door meet when the door is closed: they take ")
+            && f.message()
+                .ends_with(" of the 100 mm between the plate and the door")),
         "{f:#?}"
     );
     assert_eq!(

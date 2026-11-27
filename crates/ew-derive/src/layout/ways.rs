@@ -266,7 +266,7 @@ fn way_exit(q: &Q, way: &[WayStep], first: bool) -> Option<(Id<MountingSurface>,
         WayStep::Duct(d) => Some(d),
         _ => None,
     });
-    let s = if first { ducts.next() } else { ducts.last() }?;
+    let s = if first { ducts.next() } else { ducts.next_back() }?;
     let line = DuctLine::of(q, s.carrier)?;
     let (_, p) = line.at(i128::from(if first { s.from.0 } else { s.to.0 }))?;
     Some((q.table::<Carrier>().get(s.carrier)?.surface, p))
