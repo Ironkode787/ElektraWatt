@@ -478,7 +478,9 @@ impl Session {
                         |od| text!("via-gland-proposed-for", mm(od)),
                     )),
                 ),
-                Err(ew_derive::layout::NoGland::NoDiameter) => (String::new(), Some(text!("via-gland-no-diameter"))),
+                Err(ew_derive::layout::NoGland::NoDiameter) => {
+                    (String::new(), Some(text!("via-gland-no-diameter")))
+                }
                 Err(ew_derive::layout::NoGland::NoneSeals { od }) => {
                     (String::new(), Some(text!("via-gland-none-seals", mm(*od))))
                 }

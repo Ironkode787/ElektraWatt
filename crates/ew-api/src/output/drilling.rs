@@ -12,8 +12,7 @@ use std::path::Path;
 
 use ew_derive::layout::{
     Made, Paper, SurfaceFeatures, TEMPLATE_OVERLAP, carrier_labels, drawable, face_of, surface_datum,
-    surface_page,
-    template_sheets,
+    surface_page, template_sheets,
 };
 use ew_derive::{Q, print_language};
 use ew_export::{DrillEntity, DrillSheet, PdfPage};

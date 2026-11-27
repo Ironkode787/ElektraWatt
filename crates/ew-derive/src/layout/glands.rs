@@ -183,7 +183,11 @@ pub fn cable_part_use(q: &Q, device: &Device) -> Option<PartRef> {
     device
         .parts
         .iter()
-        .find(|u| copies.get(u.part.copy).is_some_and(|c| c.item.kind == PartKind::Cable))
+        .find(|u| {
+            copies
+                .get(u.part.copy)
+                .is_some_and(|c| c.item.kind == PartKind::Cable)
+        })
         .map(|u| u.part.clone())
 }
 

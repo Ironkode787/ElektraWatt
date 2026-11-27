@@ -91,9 +91,16 @@ fn edit_part_of_a_cable_without_a_diameter_opens_its_cable_section() {
         .filter_map(|f| f.fix)
         .filter(|x| x.command == "part.edit")
         .collect();
-    assert!(!fixes.is_empty(), "the sample's cables that leave lack a diameter");
+    assert!(
+        !fixes.is_empty(),
+        "the sample's cables that leave lack a diameter"
+    );
     for fix in fixes {
-        let copy: ew_ids::Uuid = fix.params["part"].as_str().expect("a part").parse().expect("an ID");
+        let copy: ew_ids::Uuid = fix.params["part"]
+            .as_str()
+            .expect("a part")
+            .parse()
+            .expect("an ID");
         let section = fix.params["section"].as_str().expect("a section");
         let draft = s.part_draft(copy).expect("the cable's part");
         assert_eq!(draft.text("kind"), "cable");

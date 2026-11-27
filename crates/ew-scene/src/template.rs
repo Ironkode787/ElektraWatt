@@ -296,7 +296,8 @@ pub fn template_sheet(v: &TemplateView, fonts: &FontSet, styles: &ew_text::TextS
             .map(|(_, r)| *r)
             .chain(taken.iter().copied())
             .collect();
-        let (anchor, align, words_box) = words_place(c, (hw, hh), (advance.0, WORDS_HEIGHT.0), &others, content);
+        let (anchor, align, words_box) =
+            words_place(c, (hw, hh), (advance.0, WORDS_HEIGHT.0), &others, content);
         taken.push(words_box);
         text(&mut b, &h.words, anchor, Angle2::ZERO, &align);
     }
@@ -395,7 +396,13 @@ fn map_cell(rows: u32, cols: u32) -> i64 {
 /// and height. The first of above right, below right, above left and below left whose box meets no box of `others`
 /// (the other holes, the words placed before) and lies on the sheet's `content`; else the first that meets none; else
 /// above right. Its anchor, its alignment and its box.
-fn words_place(c: Pt2, half: (i64, i64), size: (i64, i64), others: &[Rect], content: Rect) -> (Pt2, Align, Rect) {
+fn words_place(
+    c: Pt2,
+    half: (i64, i64),
+    size: (i64, i64),
+    others: &[Rect],
+    content: Rect,
+) -> (Pt2, Align, Rect) {
     let (hw, hh) = half;
     let (w, h) = size;
     let (right, left) = (c.x.0 + hw + WORDS_GAP, c.x.0 - hw - WORDS_GAP);
@@ -436,9 +443,15 @@ mod tests {
     /// H1's words, 30 mm long, would run into H8 above its right; they stand above its left instead.
     #[test]
     fn a_hole_s_words_stand_clear_of_the_hole_beside_it() {
-        let content = Rect::from_points(Pt2::new(Nm(10 * MM), Nm(10 * MM)), Pt2::new(Nm(200 * MM), Nm(275 * MM)));
+        let content = Rect::from_points(
+            Pt2::new(Nm(10 * MM), Nm(10 * MM)),
+            Pt2::new(Nm(200 * MM), Nm(275 * MM)),
+        );
         let h1 = Pt2::new(Nm(113 * MM), Nm(150 * MM));
-        let h8 = Rect::from_points(Pt2::new(Nm(126 * MM), Nm(139 * MM)), Pt2::new(Nm(149 * MM), Nm(161 * MM)));
+        let h8 = Rect::from_points(
+            Pt2::new(Nm(126 * MM), Nm(139 * MM)),
+            Pt2::new(Nm(149 * MM), Nm(161 * MM)),
+        );
         let half = (2_250_000, 2_250_000);
         let (_, align, words) = words_place(h1, half, (30 * MM, 2_600_000), &[h8], content);
         assert!(!words.intersects(h8), "{words:?}");
@@ -455,7 +468,10 @@ mod tests {
     fn the_map_of_many_sheets_fits_the_band() {
         assert_eq!(map_cell(2, 3), MAP_CELL);
         for rows in [5, 9, 30] {
-            assert!(map_cell(rows, 3) * i64::from(rows) <= BAND.0 - 2 * MM, "{rows} rows");
+            assert!(
+                map_cell(rows, 3) * i64::from(rows) <= BAND.0 - 2 * MM,
+                "{rows} rows"
+            );
         }
         assert!(map_cell(2, 40) * 40 <= MAP_WIDTH);
     }

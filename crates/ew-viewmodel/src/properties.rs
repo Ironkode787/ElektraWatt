@@ -1869,14 +1869,21 @@ pub fn command_choice_text(path: &str, option: &str) -> String {
 /// Writes the surfaces of a sheet in the UI language's words, as `words` names a surface's ID
 /// (`Session::surface_choices`, "-UC1 deur"): a panel page's Surface row and a placement's Carrier row on a door, a
 /// wall, the top or the bottom, whose values are the surface's ID, and the header of one selected surface.
-pub fn surfaces_in_words(sheet: &mut PropertySheet, selected: &[ew_api::output::Uuid], words: impl Fn(&str) -> Option<String>) {
+pub fn surfaces_in_words(
+    sheet: &mut PropertySheet,
+    selected: &[ew_api::output::Uuid],
+    words: impl Fn(&str) -> Option<String>,
+) {
     if let [one] = selected
         && let Some(w) = words(&one.to_string())
     {
         sheet.header.title = w;
     }
     for row in sheet.sections.iter_mut().flat_map(|s| s.rows.iter_mut()) {
-        if !matches!(row.key.as_str(), "page/derived.surface" | "placement/derived.carrier") {
+        if !matches!(
+            row.key.as_str(),
+            "page/derived.surface" | "placement/derived.carrier"
+        ) {
             continue;
         }
         if let RowValue::One { json, text } = &mut row.value

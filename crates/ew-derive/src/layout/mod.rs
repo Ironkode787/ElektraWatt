@@ -66,7 +66,8 @@ pub use assembly::{member_order, member_slot};
 pub use carrier::{PathError, RailAxis, check_path, path_length};
 pub use fit::{Fit, Profile, RAIL_FITS, fits_rail, fits_surface};
 pub use glands::{
-    CableGland, CableGlands, NoGland, cable_outer_diameter, cable_part_use, gland_nut, gland_pitch, gland_section,
+    CableGland, CableGlands, NoGland, cable_outer_diameter, cable_part_use, gland_nut, gland_pitch,
+    gland_section,
 };
 pub use holes::{
     Feature, HOLE_SIZES, HoleSizes, Made, Owner, SizeFamily, SurfaceFeatures, carrier_fixings, choice_for,
@@ -91,9 +92,8 @@ pub use snap::{
     end_gap, free_length, min_gap, next_fit, resolve, runs, start_gap,
 };
 pub use surfaces::{
-    Face, behind_door, door_count, door_hinge, door_index, door_left, enclosure_section, face_of, face_size, from_datum,
-    sheet_size,
-    surface_datum, surface_frame, surface_page, surfaces, to_enclosure,
+    Face, behind_door, door_count, door_hinge, door_index, door_left, enclosure_section, face_of, face_size,
+    from_datum, sheet_size, surface_datum, surface_frame, surface_page, surfaces, to_enclosure,
 };
 pub use template::{
     Paper, TEMPLATE_BAND, TEMPLATE_MARGIN, TEMPLATE_OVERLAP, TEMPLATE_PAST, TemplateSheets, TemplateTile,

@@ -1349,14 +1349,33 @@ fn the_middle_of_a_wire_between_two_pairs_leads_to_the_end_on_its_side() {
             .iter()
             .find(|r| r.wire.constituents.contains(&CON_MID))
             .expect("one wire through both pairs");
-        let k = r.wire.constituents.iter().position(|c| *c == CON_MID).expect("the middle");
+        let k = r
+            .wire
+            .constituents
+            .iter()
+            .position(|c| *c == CON_MID)
+            .expect("the middle");
         let feed = (0..2)
-            .find(|i| r.wire.ends[*i].cp == ew_derive::CpRef { function: FN_101F1, idx: 1 })
+            .find(|i| {
+                r.wire.ends[*i].cp
+                    == ew_derive::CpRef {
+                        function: FN_101F1,
+                        idx: 1,
+                    }
+            })
             .expect("an end at -101F1:1");
         let clamp = 1 - feed;
         let (l1_side, l2_side) = (!reversed, reversed);
-        assert_eq!(ew_derive::end_through(&q, &r.wire, k, l1_side), Some(feed), "reversed {reversed}");
-        assert_eq!(ew_derive::end_through(&q, &r.wire, k, l2_side), Some(clamp), "reversed {reversed}");
+        assert_eq!(
+            ew_derive::end_through(&q, &r.wire, k, l1_side),
+            Some(feed),
+            "reversed {reversed}"
+        );
+        assert_eq!(
+            ew_derive::end_through(&q, &r.wire, k, l2_side),
+            Some(clamp),
+            "reversed {reversed}"
+        );
     }
 }
 
@@ -1379,7 +1398,11 @@ fn a_wire_through_two_pairs_keeps_its_ends_when_its_middle_is_drawn_again() {
         connections: vec![CON_MID],
     })
     .expect("the middle deleted");
-    e.execute(&draw(cp_param(FN_IP_102, 0), cp_param(FN_L2_SRC, 0), Some(PAGE_102)))
-        .expect("the middle drawn again");
+    e.execute(&draw(
+        cp_param(FN_IP_102, 0),
+        cp_param(FN_L2_SRC, 0),
+        Some(PAGE_102),
+    ))
+    .expect("the middle drawn again");
     assert_eq!(wire_seen(e.model(), &feed, &clamp).map(|w| w.2), ends());
 }
