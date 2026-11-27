@@ -418,6 +418,49 @@ fn ew_lay_011_is_one_finding_per_cause_whatever_its_wires() {
     assert!(again[0].targets.len() < f[0].targets.len());
 }
 
+/// The release check (doc 13-package §8.6), which the release gate and the package ask: a way that no longer holds
+/// stops a release (EW-LAY-011 at error); wires without a length do not (EW-MFG-001 an info, not among the blockers).
+#[test]
+fn the_release_check_stops_at_a_stale_way_and_not_at_a_missing_length() {
+    let check = |s: &Session| {
+        let q = s.query();
+        ew_checks::release_check(
+            &q,
+            ew_checks::release_scheme_of(&q),
+            ew_checks::Evidence::default(),
+        )
+    };
+    let mut s = common::sample();
+    let space = s.cabinet_of_folio("902").unwrap();
+    run(&mut s, "layout.route", json!({"space": space})).expect("Route");
+    turn_x1031(&mut s);
+    let report = check(&s);
+    let stale: Vec<_> = report
+        .findings
+        .iter()
+        .filter(|f| f.rule == "EW-LAY-011")
+        .collect();
+    assert!(!stale.is_empty() && stale.iter().all(|f| f.severity == ew_checks::Severity::Error));
+    assert!(
+        ew_checks::blockers(&report)
+            .iter()
+            .any(|f| f.rule == "EW-LAY-011")
+    );
+    let s = common::sample_without_ways();
+    let report = check(&s);
+    let lengths: Vec<_> = report
+        .findings
+        .iter()
+        .filter(|f| f.rule == "EW-MFG-001")
+        .collect();
+    assert!(!lengths.is_empty() && lengths.iter().all(|f| f.severity == ew_checks::Severity::Info));
+    assert!(
+        !ew_checks::blockers(&report)
+            .iter()
+            .any(|f| f.rule == "EW-MFG-001")
+    );
+}
+
 /// EW-LAY-008: with a fill limit of 1 % duct 1 is over it once Route has laid its wires, in words.
 #[test]
 fn ew_lay_008_reports_a_duct_over_the_fill_limit() {

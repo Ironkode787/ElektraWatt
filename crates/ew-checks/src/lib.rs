@@ -29,7 +29,9 @@
 //! - **Open items** ([`open_items`]): the open findings of the open-item rules
 //!   ([`OPEN_ITEM_RULES`]) in release mode of the project's release scheme ([`release_scheme_of`]), through
 //!   [`run_table_rules`], the path of [`run`] over a subset that returns a query cycle instead of panicking.
-//! - **The release gate** ([`gate`]): the release scheme in release mode together with the gate-only
+//! - **The release check** ([`release_check`]): the release scheme in release mode, the one check of whether a project
+//!   is ready for the workshop, which the release gate and the package for the workshop ask (doc 13-package §8.6).
+//! - **The release gate** ([`gate`]): the release check together with the gate-only
 //!   EW-REL rules (mode `g`, which no plain run evaluates), with the saved generation's content digest handed in
 //!   ([`GateInput`]); [`blockers`] are the release's refusal list, [`safety_waivers`] what a checker acknowledges, and
 //!   [`pack_versions`] the `{id, version, sha256}` of every evaluated pack (doc 15 §3.9).
@@ -67,7 +69,7 @@ pub use engine::{
 pub use finding::{Finding, FindingState, Fingerprint, QuickFix, Severity, Target, sort_findings};
 pub use gate::{
     GateInput, PackVersion, SHIPPED_PACK_VERSION, blockers, gate, pack_definition, pack_versions,
-    safety_waivers,
+    release_check, safety_waivers,
 };
 pub use messages::render;
 pub use open_items::{OPEN_ITEM_RULES, OpenItemRule, open_item_of, open_items};

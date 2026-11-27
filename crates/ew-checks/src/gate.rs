@@ -23,12 +23,19 @@ use crate::scheme::{CheckMode, Scheme};
 
 pub use crate::rules::rel::GateInput;
 
-/// The release gate over the snapshot of `q` (doc 15 §5.5): [`run_with`] of `scheme` in release mode with `evidence`, as
-/// for `ew check`, then the EW-REL rules with `input` (EW-REL-001 against the content digest, EW-REL-004's gate half),
-/// joined into one report in canonical order with its totals. The EW-REL findings are integrity findings:
-/// never waived. The report's rules list the EW-REL rules too.
+/// The release check over `q` (doc 13-package §8.6): [`run_with`] of `scheme` in release mode with `evidence`, as for
+/// `ew check`. The one check of whether a project is ready for the workshop: the release gate runs it first, and the
+/// package for the workshop, its dialog and `ew export package` ask it; its open errors stop a release package as they
+/// stop the release.
+pub fn release_check(q: &Q, scheme: &Scheme, evidence: Evidence) -> CheckReport {
+    run_with(q, scheme, CheckMode::Release, evidence)
+}
+
+/// The release gate over the snapshot of `q` (doc 15 §5.5): the [`release_check`], then the EW-REL rules with `input`
+/// (EW-REL-001 against the content digest, EW-REL-004's gate half), joined into one report in canonical order with its
+/// totals. The EW-REL findings are integrity findings: never waived. The report's rules list the EW-REL rules too.
 pub fn gate(q: &Q, scheme: &Scheme, input: &GateInput, evidence: Evidence) -> CheckReport {
-    let mut report = run_with(q, scheme, CheckMode::Release, evidence);
+    let mut report = release_check(q, scheme, evidence);
     let mut rel: Vec<Finding> = four_eyes(q, input);
     rel.extend(label_order(q));
     for r in rules() {
