@@ -70,7 +70,7 @@ impl ReportKindDef for WireList {
             ColumnDef::new("via", CellType::Text, text!("column-via")).weighted(22),
             ColumnDef::new("part", CellType::Ident, text!("column-wire-part")).weighted(8),
             ColumnDef::new("pages", CellType::Folios, text!("column-pages")).weighted(8),
-            ColumnDef::new("length", CellType::Qty, text!("column-length-mm")).weighted(7),
+            ColumnDef::new("length", CellType::Qty, text!("column-length-mm")).weighted(9),
             ColumnDef::new("length_source", CellType::Text, text!("column-length-from")).weighted(7),
             ColumnDef::new("from_end", CellType::Text, text!("column-from-end")).weighted(12),
             ColumnDef::new("to_end", CellType::Text, text!("column-to-end")).weighted(12),
