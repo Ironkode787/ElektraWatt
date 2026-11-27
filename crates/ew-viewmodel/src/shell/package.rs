@@ -195,9 +195,11 @@ impl ShellModel {
                     rule: f.rule,
                     severity: f.severity,
                     message: ew_api::checks::render(f, lang),
+                    // Its wires and devices; the cabinet a finding is about (its layout space) is in its message.
                     targets: f
                         .targets
                         .iter()
+                        .filter(|t| t.kind.name() != "layout_space")
                         .filter_map(|t| session.record_label(t.kind, t.id.as_uuid()))
                         .collect(),
                     // The quick fix's words, else Edit part… of a finding from a part's missing datum, as Messages.
