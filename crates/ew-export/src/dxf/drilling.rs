@@ -48,14 +48,16 @@ pub enum DrillEntity {
     },
 }
 
-/// A drilling DXF: its file name, the extent of the surface (from the origin) and its layers with their entities, in
-/// the order they are written.
+/// A drilling DXF: its file name, the extent of the surface (its lowest and its highest corner, measured from the
+/// origin) and its layers with their entities, in the order they are written.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DrillSheet {
     /// The file name, `.dxf` included.
     pub name: String,
-    /// The surface's width and height from the origin.
-    pub extent: (Nm, Nm),
+    /// The surface's sheet from the origin: its lowest and its highest corner. With the origin at the datum corner the
+    /// sheet lies wholly at negative `x` from a right-hand datum and at negative `y` from a top datum; the header's
+    /// extents and limits and the view are this rectangle, so a reader opens on the drawing.
+    pub extent: (Pt2, Pt2),
     /// The layers in order, each with its entities in order.
     pub layers: Vec<(String, Vec<DrillEntity>)>,
 }
@@ -122,10 +124,12 @@ pub fn drilling_dxf(d: &DrillSheet) -> DxfFile {
         links: BTreeMap::new(),
         names: BTreeMap::new(),
     };
+    let (lo, hi) = d.extent;
+    let span = |a: Nm, b: Nm| Nm(b.0.saturating_sub(a.0));
     let sheet = DxfSheet {
         label: String::new(),
-        width: d.extent.0,
-        height: d.extent.1,
+        width: span(lo.x, hi.x),
+        height: span(lo.y, hi.y),
         destination: Destination::Page(Uuid::nil()),
         layers: Vec::new(),
         geometry: BTreeMap::new(),
@@ -138,7 +142,7 @@ pub fn drilling_dxf(d: &DrillSheet) -> DxfFile {
         set: &set,
         sheet: &sheet,
         pictures: &mut pictures,
-        height: d.extent.1,
+        height: sheet.height,
         next: 0x20,
         dashes: Vec::new(),
         faces: Vec::new(),
@@ -165,6 +169,44 @@ pub fn drilling_dxf(d: &DrillSheet) -> DxfFile {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The value of header variable `var`'s group `code`.
+    fn header(text: &str, var: &str, code: &str) -> String {
+        let lines: Vec<&str> = text.lines().collect();
+        let at = lines.iter().position(|l| *l == var).expect("the variable");
+        let rest = &lines[at + 1..];
+        let i = rest
+            .iter()
+            .step_by(2)
+            .position(|c| c.trim() == code)
+            .expect("the group");
+        rest[2 * i + 1].to_owned()
+    }
+
+    /// A sheet measured from its top-right corner lies at negative `x` and `y`: the header's extents and limits are
+    /// that rectangle, not (0, 0) to its size, so a reader's view opens on the drawing.
+    #[test]
+    fn the_header_holds_a_sheet_measured_from_its_top_right_corner() {
+        let mm = |n: i64| Nm::from_mm(n);
+        let d = DrillSheet {
+            name: "door.dxf".to_owned(),
+            extent: (Pt2::new(mm(-600), mm(-800)), Pt2::ORIGIN),
+            layers: vec![(
+                "CUT_22.3".to_owned(),
+                vec![DrillEntity::Circle {
+                    c: Pt2::new(mm(-330), mm(-320)),
+                    d: Nm(22_300_000),
+                }],
+            )],
+        };
+        let text = drilling_dxf(&d).text;
+        assert_eq!(header(&text, "$EXTMIN", "10"), "-600");
+        assert_eq!(header(&text, "$EXTMIN", "20"), "-800");
+        assert_eq!(header(&text, "$EXTMAX", "10"), "0");
+        assert_eq!(header(&text, "$EXTMAX", "20"), "0");
+        assert_eq!(header(&text, "$LIMMIN", "20"), "-800");
+        assert_eq!(header(&text, "$LIMMAX", "10"), "0");
+    }
 
     #[test]
     fn a_bulge_is_written_without_trailing_zeros() {

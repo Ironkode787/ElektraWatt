@@ -1109,7 +1109,7 @@ fn page(sheet: &DxfSheet, opts: &DxfOptions, set: &Set, pictures: &mut Pictures)
         model,
         blocks,
         opts.layers.all(),
-        (sheet.width, sheet.height),
+        (Pt2::ORIGIN, Pt2::new(sheet.width, sheet.height)),
     );
     DxfFile {
         name: dxf_file_name(&sheet.label),
@@ -1118,15 +1118,16 @@ fn page(sheet: &DxfSheet, opts: &DxfOptions, set: &Set, pictures: &mut Pictures)
     }
 }
 
-/// The file of `model`'s entities and the `blocks` they insert, with the layers `layer_names` and the extents
-/// (0, 0)–(`width`, `height`): the header, the tables, the blocks, the entities and the objects every file of the
-/// writer has (handles from the writer's, the styles and line types it collected).
+/// The file of `model`'s entities and the `blocks` they insert, with the layers `layer_names` and the extents `lo`–`hi`
+/// (a page's (0, 0)–(width, height); a drilling sheet's from its datum, which may lie at any corner): the header, the
+/// tables, the blocks, the entities and the objects every file of the writer has (handles from the writer's, the
+/// styles and line types it collected). The extents, the limits, the layouts and the active view hold the drawing.
 fn assemble(
     w: &mut Writer<'_>,
     model: Vec<Ent>,
     blocks: Vec<(String, Vec<Ent>, bool)>,
     layer_names: Vec<String>,
-    (width, height): (Nm, Nm),
+    (lo, hi): (Pt2, Pt2),
 ) -> String {
     let mut s = String::new();
     let p = |s: &mut String, code: i32, v: &str| {
@@ -1134,7 +1135,10 @@ fn assemble(
     };
     // Handles: the tables, the block records, the layouts and dictionaries first, so that the header's seed is
     // known when the file is assembled.
-    let (wd, ht) = (mm(width.0), mm(height.0));
+    let (x0, y0, wd, ht) = (mm(lo.x.0), mm(lo.y.0), mm(hi.x.0), mm(hi.y.0));
+    // The active view's centre and height: the drawing's middle and its height.
+    let mid = |a: Nm, b: Nm| mm(a.0 / 2 + b.0 / 2);
+    let view_h = mm(hi.y.0.saturating_sub(lo.y.0));
     let mut tables = String::new();
     let table = |w: &mut Writer<'_>, tables: &mut String, name: &str, entries: Vec<String>| {
         let h = w.handle();
@@ -1156,15 +1160,14 @@ fn assemble(
         }
         tables.push_str("  0\nENDTAB\n");
     };
-    let half = |n: Nm| mm(n.0 / 2);
     table(
         w,
         &mut tables,
         "VPORT",
         vec![format!(
-            "100\nAcDbViewportTableRecord\n  2\n*Active\n 70\n0\n 10\n0\n 20\n0\n 11\n1\n 21\n1\n 12\n{}\n 22\n{}\n 13\n0\n 23\n0\n 14\n10\n 24\n10\n 15\n10\n 25\n10\n 16\n0\n 26\n0\n 36\n1\n 17\n0\n 27\n0\n 37\n0\n 40\n{ht}\n 41\n1.414\n 42\n50\n 43\n0\n 44\n0\n 50\n0\n 51\n0\n 71\n0\n 72\n100\n 73\n1\n 74\n3\n 75\n0\n 76\n0\n 77\n0\n 78\n0\n",
-            half(width),
-            half(height)
+            "100\nAcDbViewportTableRecord\n  2\n*Active\n 70\n0\n 10\n0\n 20\n0\n 11\n1\n 21\n1\n 12\n{}\n 22\n{}\n 13\n0\n 23\n0\n 14\n10\n 24\n10\n 15\n10\n 25\n10\n 16\n0\n 26\n0\n 36\n1\n 17\n0\n 27\n0\n 37\n0\n 40\n{view_h}\n 41\n1.414\n 42\n50\n 43\n0\n 44\n0\n 50\n0\n 51\n0\n 71\n0\n 72\n100\n 73\n1\n 74\n3\n 75\n0\n 76\n0\n 77\n0\n 78\n0\n",
+            mid(lo.x, hi.x),
+            mid(lo.y, hi.y)
         )],
     );
     let mut ltypes = vec![
@@ -1341,7 +1344,7 @@ fn assemble(
     ] {
         let _ = write!(
             objects,
-            "  0\nLAYOUT\n  5\n{h}\n330\n{dict_layout}\n100\nAcDbPlotSettings\n  1\n\n  2\nnone_device\n  4\n\n  6\n\n 40\n0\n 41\n0\n 42\n0\n 43\n0\n 44\n0\n 45\n0\n 46\n0\n 47\n0\n 48\n0\n 49\n0\n140\n0\n141\n0\n142\n1\n143\n1\n 70\n1712\n 72\n1\n 73\n0\n 74\n5\n  7\n\n 75\n16\n147\n1\n148\n0\n149\n0\n100\nAcDbLayout\n  1\n{name}\n 70\n{flags}\n 71\n{tab}\n 10\n0\n 20\n0\n 11\n{wd}\n 21\n{ht}\n 12\n0\n 22\n0\n 32\n0\n 14\n0\n 24\n0\n 34\n0\n 15\n{wd}\n 25\n{ht}\n 35\n0\n146\n0\n 13\n0\n 23\n0\n 33\n0\n 16\n1\n 26\n0\n 36\n0\n 17\n0\n 27\n1\n 37\n0\n 76\n0\n330\n{record}\n"
+            "  0\nLAYOUT\n  5\n{h}\n330\n{dict_layout}\n100\nAcDbPlotSettings\n  1\n\n  2\nnone_device\n  4\n\n  6\n\n 40\n0\n 41\n0\n 42\n0\n 43\n0\n 44\n0\n 45\n0\n 46\n0\n 47\n0\n 48\n0\n 49\n0\n140\n0\n141\n0\n142\n1\n143\n1\n 70\n1712\n 72\n1\n 73\n0\n 74\n5\n  7\n\n 75\n16\n147\n1\n148\n0\n149\n0\n100\nAcDbLayout\n  1\n{name}\n 70\n{flags}\n 71\n{tab}\n 10\n{x0}\n 20\n{y0}\n 11\n{wd}\n 21\n{ht}\n 12\n0\n 22\n0\n 32\n0\n 14\n{x0}\n 24\n{y0}\n 34\n0\n 15\n{wd}\n 25\n{ht}\n 35\n0\n146\n0\n 13\n0\n 23\n0\n 33\n0\n 16\n1\n 26\n0\n 36\n0\n 17\n0\n 27\n1\n 37\n0\n 76\n0\n330\n{record}\n"
         );
     }
     objects.push_str(&w.page_pictures.objects(&dict_root, &dict_images, &raster_vars));
@@ -1359,13 +1362,13 @@ fn assemble(
         ),
         (
             "$EXTMIN",
-            vec![(10, "0".to_owned()), (20, "0".to_owned()), (30, "0".to_owned())],
+            vec![(10, x0.clone()), (20, y0.clone()), (30, "0".to_owned())],
         ),
         (
             "$EXTMAX",
             vec![(10, wd.clone()), (20, ht.clone()), (30, "0".to_owned())],
         ),
-        ("$LIMMIN", vec![(10, "0".to_owned()), (20, "0".to_owned())]),
+        ("$LIMMIN", vec![(10, x0.clone()), (20, y0.clone())]),
         ("$LIMMAX", vec![(10, wd.clone()), (20, ht.clone())]),
         ("$LTSCALE", vec![(40, "1".to_owned())]),
         ("$INSUNITS", vec![(70, "4".to_owned())]),

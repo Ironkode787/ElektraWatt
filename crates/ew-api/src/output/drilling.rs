@@ -314,7 +314,7 @@ impl Session {
                 ));
                 let file = ew_export::drilling_dxf(&DrillSheet {
                     name: format!("{} {surface_words}.dxf", location).trim().to_owned(),
-                    extent: (sheet.width(), sheet.height()),
+                    extent: (lo, hi),
                     layers,
                 });
                 out.push(DrillingFile {
