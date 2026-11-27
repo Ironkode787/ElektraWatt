@@ -71,6 +71,16 @@ pub(super) fn writable_columns(m: &ShellModel) -> Result<(), Text> {
     }
 }
 
+/// A list page is on show (Export list…), else why not in words.
+pub(super) fn list_shown(m: &ShellModel) -> Result<(), Text> {
+    project_open(m)?;
+    if m.shows_list() {
+        Ok(())
+    } else {
+        Err(key!("reason-no-list").into())
+    }
+}
+
 /// The selection is one valve terminal (Generate overview… without a row), else why not in words.
 pub(super) fn valve_terminal_selected(m: &ShellModel) -> Result<(), Text> {
     writable(m)?;

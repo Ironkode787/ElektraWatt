@@ -9,8 +9,10 @@ count are §2 to §5 of [13](13-manufacturing-outputs.md).
 **Where they are in the window.** The Output tab's Workshop group holds Assembly lists, Cut list and Consumables. Each
 opens the project's list page of that kind; a project without one opens Report block… on that kind, whose Create
 makes it (one undo step, [09](09-reports-forms-output.md) §3.8). A list page prints on the set's frame like every
-list, follows the project when it changes, and exports from its page's menu as CSV and XLSX (`ew export report
---kind assembly_list | cut_list | consumables --format csv | xlsx`). None of the three needs a layout: without one the
+list, follows the project when it changes, and exports as a file by **Export list…** (`lists.export`), in its page's
+menu and in Output ▸ Workshop (greyed with its reason where no list page is shown): a `.csv` name writes the CSV in
+English, any other the Excel file in the project's language, by the writer of `ew export report --kind assembly_list |
+cut_list | consumables --format csv | xlsx` and the package; the file dialog asks before a file is replaced. None of the three needs a layout: without one the
 assembly list names no rail and the cut list holds no rails or ducts. Their findings stand in the Messages pane under
 Check ▸ Check project (§6.3).
 

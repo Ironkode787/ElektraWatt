@@ -758,8 +758,8 @@ pub fn menu_spot(canvas: &crate::canvas::CanvasModel, over: Option<ew_dl::Entity
 ///   its other variants), Move to page… and Keep in place, over a legend List columns…, then Cut, Copy, Paste, Paste
 ///   in place, Delete and Properties of selection. Over a placement of a panel page: Turn, Flip, Lock or Unlock, Reset label position and Delete.
 /// - Over the frame or the title block: Title block fields…, then what an empty spot offers.
-/// - Over an empty spot: Paste, Paste in place, Page properties, New page… and, on a page that is not a panel layout, Print wire
-///   numbers; on a panel layout, Add legend and Reset label positions.
+/// - Over an empty spot: Paste, Paste in place, Page properties, New page…, on a list's page Export list… and, on a page
+///   that is not a panel layout, Print wire numbers; on a panel layout, Add legend and Reset label positions.
 ///
 /// An entry that cannot run now is disabled and carries its reason, as the bar's button does. `at` is the sheet point
 /// the menu was opened at (a right-click's; `None` from the keyboard): a valve terminal's cell there offers its own
@@ -778,6 +778,10 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot, at: Option<(i64, i64)>) -
             i
         }));
         items.extend(item("page.new"));
+        // A list's page exports its list as a file (doc 13-workshop-lists).
+        if model.shows_list() {
+            items.extend(item("lists.export"));
+        }
         if model.canvas().is_some_and(|c| c.page().panel.is_none()) {
             items.extend(item("project.wire_numbers"));
         } else if model.legend_offer() != ew_api::output::LegendOffer::NoLayout {

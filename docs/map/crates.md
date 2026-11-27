@@ -1274,7 +1274,7 @@ Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command 
 | `src/actions/table/file.rs` |  | The action table, section `file`. |
 | `src/actions/table/page.rs` |  | The action table, section `page`. |
 | `src/actions/table/panes.rs` |  | The action table, section `panes`. |
-| `src/actions/table/view.rs` |  | The action table, section `view`. |
+| `src/actions/table/view.rs` | large | The action table, section `view`. |
 | `src/actions/table/window.rs` |  | The action table, section `window`. |
 | `src/alias.rs` |  | The ID alias `@n`: the one grammar for record IDs in machine text. |
 | `src/area.rs` |  | The canvas area: the open pages as tabs in one or two tab groups side by side, toolkit-neutral. |

@@ -415,12 +415,30 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_open_list("consumables"),
         ),
     ),
+    // Output ▸ Workshop ▸ Export list…: the list on show as an Excel or CSV file (doc 13-workshop-lists), after the
+    // lists; greyed with its reason where no list page is shown. A list page's menu offers it too.
+    with_params(
+        "path?:path, replace?:bool",
+        placed(
+            place(Group::Workshop, 5, CommandSize::Small, None),
+            "table-export",
+            act(
+                "lists.export",
+                Command,
+                Menu::Output,
+                &[],
+                list_shown,
+                None,
+                |s, p| s.act_list_export(p),
+            ),
+        ),
+    ),
     // Output ▸ Workshop ▸ Rework list…: what the fitter changes since a release (doc 13 §3.5); the dialog's Archive
     // file… and Export….
     with_params(
         "revision?:text",
         placed(
-            place(Group::Workshop, 5, CommandSize::Small, None),
+            place(Group::Workshop, 6, CommandSize::Small, None),
             "refresh",
             act(
                 "rework.show",
@@ -438,7 +456,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_params(
         "since?:text, archive?:path",
         placed(
-            place(Group::Workshop, 6, CommandSize::Small, None),
+            place(Group::Workshop, 7, CommandSize::Small, None),
             "sticker",
             act(
                 "labels.show",
@@ -501,7 +519,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     // Output ▸ Workshop ▸ Hole tables opens the project's hole table, else Report block… on that kind (doc 13 §9).
     placed(
-        place(Group::Workshop, 7, CommandSize::Small, None),
+        place(Group::Workshop, 8, CommandSize::Small, None),
         "circles",
         act(
             "lists.holes",
@@ -517,7 +535,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_params(
         "surfaces?:json, template?:json, dxf?:json, paper?:text, dir?:path",
         placed(
-            place(Group::Workshop, 9, CommandSize::Small, None),
+            place(Group::Workshop, 10, CommandSize::Small, None),
             "crosshair",
             act(
                 "drilling.export",
@@ -535,7 +553,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_params(
         "leave_out?:json, personal?:bool, path?:path, replace?:bool, wait?:bool",
         placed(
-            place(Group::Workshop, 10, CommandSize::Large, Some(key!("bar-package"))),
+            place(Group::Workshop, 11, CommandSize::Large, Some(key!("bar-package"))),
             "package-export",
             act(
                 "package.export",
@@ -619,7 +637,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     // Output ▸ Workshop ▸ Workshop settings: the project's Properties at its Workshop rows (doc 13 §12).
     placed(
-        place(Group::Workshop, 8, CommandSize::Small, None),
+        place(Group::Workshop, 9, CommandSize::Small, None),
         "file-settings",
         act(
             "workshop.settings",

@@ -504,6 +504,7 @@ toast-parts-unlisted = { $p0 ->
 toast-parts-list-opened = Opened the set's parts list on page { $p0 }; it makes no second one. Report… on the Output tab adds another list.
 toast-list-opened = Opened the { $p0 } on page { $p1 }.
 toast-rework-written = Wrote the rework list to { $p0 }.
+toast-list-written = Wrote the list to { $p0 }.
 toast-labels-written = { $p0 ->
         [one] Wrote 1 label file to { $p1 }
        *[other] Wrote { $p0 } label files to { $p1 }

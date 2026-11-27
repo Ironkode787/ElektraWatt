@@ -15,12 +15,22 @@
 //! The forms' table carries its cells under the window's words for its columns, so a script sets the same members with
 //! `fields.set` on the block (paths `columns`, `caption`, `legend`, `added_rows`). Neither form shows on a page that is
 //! not a list's, and a table of contents takes no rows of its own.
+//!
+//! **Export list…** (`lists.export`, doc 13-workshop-lists) writes the list on show as a file, Excel or CSV by its name,
+//! by the one writer of `ew export report --block` and the package (`ew_api::output::row_output`): the Excel file in
+//! the project's language, the CSV in English.
+
+use std::path::PathBuf;
 
 use ew_api::AnyCommand;
-use ew_api::output::ListLook;
+use ew_api::output::{CsvOptions, ListLook, Preset, RowExport, RowsFormat, RowsOutput, row_output};
 use serde_json::{Map, Value, json};
 
-use super::{Dialog, FormDialog, FormField, FormRow, FormTable, Outcome, ShellModel, TICK, TICKED};
+use super::jobs::{absolute_target, bool_param, inside};
+use super::{
+    Dialog, FormDialog, FormField, FormRow, FormTable, Outcome, Prompt, ShellModel, TICK, TICKED, failed,
+    string_param,
+};
 use crate::key;
 use crate::strings::{self, Key};
 
@@ -140,6 +150,62 @@ impl ShellModel {
             }
         }
         self.form_done(action, Outcome::Done)
+    }
+
+    /// `lists.export {path?, replace?}` (Output ▸ Workshop ▸ Export list…, and a list page's menu): the list on show as
+    /// a file, a `.csv` name a CSV in English, any other an Excel file in the project's language, written whole or not
+    /// at all. Without `path` the window asks for the file, whose dialog asks about a file that exists; a script's file
+    /// that exists is replaced only with `replace`. Refused in words: no list on show, a file inside the project, a
+    /// file that exists.
+    pub(crate) fn act_list_export(&mut self, p: &Map<String, Value>) -> Outcome {
+        let Some(block) = self.list_on_show(false).map(|l| l.block) else {
+            return Outcome::refused(key!("reason-no-list"));
+        };
+        let path = match string_param(p, "path") {
+            Err(e) => return e,
+            Ok(Some(path)) => absolute_target(PathBuf::from(path)),
+            // The native save dialog asks about an existing file itself, so its answer carries `replace`.
+            Ok(None) => {
+                let mut rest = p.clone();
+                rest.insert("replace".to_owned(), Value::Bool(true));
+                return self.need_path("lists.export", Prompt::SaveTable, "path", &rest);
+            }
+        };
+        let replace = match bool_param(p, "replace", false) {
+            Ok(r) => r,
+            Err(e) => return e,
+        };
+        let project = or_return!(crate::shell::gated(&self.project));
+        let Some(name) = path.file_name().map(|n| n.to_string_lossy().into_owned()) else {
+            return failed(key!("error-bad-param"), &["path"]);
+        };
+        if inside(&project.dir, &path) {
+            return Outcome::refused(key!("reason-export-into-project"));
+        }
+        if path.exists() && !replace {
+            return Outcome::refused(key!("reason-file-exists"));
+        }
+        let csv = path.extension().is_some_and(|e| e.eq_ignore_ascii_case("csv"));
+        let format = if csv {
+            RowsFormat::Csv(CsvOptions::preset(Preset::ExcelEn))
+        } else {
+            RowsFormat::Xlsx(project.session.workbook_meta(None))
+        };
+        let q = project.session.query();
+        let block = block.to_string();
+        let file = match row_output(&q, &RowExport::Report, Some(&block), &format) {
+            Ok(f) => f,
+            Err(e) => return failed(key!("error-export"), &[&e.to_string()]),
+        };
+        let bytes = match file.output {
+            RowsOutput::Csv(text) => text.into_bytes(),
+            RowsOutput::Xlsx(bytes) => bytes,
+        };
+        if let Err(e) = ew_api::file::write_replacing(&path, &bytes) {
+            return failed(key!("error-export"), &[&crate::jobs::io_cause(&e)]);
+        }
+        self.notify(strings::format(key!("toast-list-written"), &[&name]), false);
+        Outcome::Done
     }
 
     /// `report_block.columns {caption?, legend?, columns?}` (Output ▸ List columns…): without a parameter the

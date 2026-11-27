@@ -336,6 +336,12 @@ In the Workshop group. Shows the first page of the project's consumables: the me
 lugs per part and the markers per label set, what to order beside the parts list. A project without one opens Report
 block… on it.
 
+### Export list…
+
+In the Workshop group, and in the menu of a list's page. Writes the list on show as a file: an Excel file in the
+project's language, or, for a name that ends in `.csv`, a CSV in English for a program, the same file `ew export
+report --block` writes. Greyed while no list page is shown.
+
 ### Rework list…
 
 In the Workshop group. Compares the project as it is with a release and lists what the fitter changes in the built

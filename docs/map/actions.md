@@ -114,6 +114,7 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `lists.assembly` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_open_list` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-lists-assembly`, `bar-lists-assembly` |
 | `lists.cut` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_open_list` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-lists-cut`, `bar-lists-cut` |
 | `lists.consumables` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_open_list` `crates/ew-viewmodel/src/shell/navigation.rs` | `action-lists-consumables`, `bar-lists-consumables` |
+| `lists.export` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_list_export` `crates/ew-viewmodel/src/shell/list_look.rs` | `action-lists-export` |
 | `rework.show` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_rework_show` `crates/ew-viewmodel/src/shell/rework.rs` | `action-rework-show` |
 | `labels.show` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_labels_show` `crates/ew-viewmodel/src/shell/labels.rs` | `action-labels-show`, `labels-show` |
 | `labels.tick` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_labels_tick` `crates/ew-viewmodel/src/shell/labels.rs` | `action-labels-tick` |

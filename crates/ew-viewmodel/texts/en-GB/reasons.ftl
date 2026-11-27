@@ -689,6 +689,7 @@ error-list-order = The order of { $p0 } is a whole number: "{ $p1 }" is not.
 error-list-no-column = Tick at least one column to print.
 reason-no-list-page = Show a page of a list first
 reason-no-list-or-legend = Show a page of a list, or select a legend on its page, first
+reason-no-list = Show a page of a list first
 reason-list-contents = A table of contents lists the pages and takes no rows of your own
 reason-field-gone = The project no longer has this field of its own
 reason-frame-open-page = Open a page: a frame is changed on a page that prints it

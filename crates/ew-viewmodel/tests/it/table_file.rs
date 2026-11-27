@@ -900,3 +900,84 @@ fn a_file_of_another_project_is_refused() {
     );
     other.shutdown();
 }
+
+/// Output ▸ Workshop ▸ Export list… writes the list on show by the one writer the command line and the package call:
+/// greyed with its reason on a schematic page; on the wire list's page an Excel file equal to `ew export report --block`'s
+/// workbook of that block, in Dutch for a Dutch project, and a CSV in English; a file that exists is replaced only
+/// when asked; a list page's menu offers it.
+#[test]
+fn export_list_writes_the_list_on_show() {
+    let tmp = Tmp::new("export-list");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
+    let out = tmp.0.join("out");
+    std::fs::create_dir_all(&out).unwrap();
+    let xlsx = out.join("wires.xlsx");
+    assert_eq!(
+        refused(&mut shell, "lists.export", json!({"path": text(&xlsx)})),
+        "reason-no-list"
+    );
+    done(&mut shell, "lists.wires", json!({}));
+    let menu =
+        ew_viewmodel::command_bar::canvas_menu(&shell, ew_viewmodel::command_bar::MenuSpot::Sheet, None);
+    assert!(
+        menu.iter().any(|i| i.id == "lists.export"),
+        "a list page's menu offers it"
+    );
+    done(&mut shell, "lists.export", json!({"path": text(&xlsx)}));
+    let (reader, _) = ew_api::Session::open_reader(&tmp.sample_copy(), "0.0.0-test", "export").unwrap();
+    let block = (reader.query().report_blocks().iter())
+        .find(|(_, b)| ew_api::output::block_kind(b) == "wire_list")
+        .map(|(id, _)| id.to_string())
+        .expect("the wire list's block");
+    let format = ew_api::output::RowsFormat::Xlsx(reader.workbook_meta(None));
+    let cli = ew_api::output::row_output(
+        &reader.query(),
+        &ew_api::output::RowExport::Report,
+        Some(&block),
+        &format,
+    )
+    .unwrap();
+    let ew_api::output::RowsOutput::Xlsx(cli) = cli.output else {
+        panic!("a workbook");
+    };
+    assert!(
+        std::fs::read(&xlsx).unwrap() == cli,
+        "the window's file is the command line's"
+    );
+    assert_eq!(
+        refused(&mut shell, "lists.export", json!({"path": text(&xlsx)})),
+        "reason-file-exists"
+    );
+    let sheet = |path: &Path| {
+        ew_api::output::sheet::read_sheet(
+            &std::fs::read(path).unwrap(),
+            ew_api::catalog::SourceFormat::Xlsx,
+            None,
+            &ew_api::catalog::table_limits(),
+        )
+        .unwrap()
+    };
+    assert!(sheet(&xlsx).headers.iter().any(|h| h == "Colour"));
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "project.settings.set", "params": {"member": "languages", "value": {"source": "nl-NL"}}}),
+    );
+    done(
+        &mut shell,
+        "lists.export",
+        json!({"path": text(&xlsx), "replace": true}),
+    );
+    assert!(
+        sheet(&xlsx).headers.iter().any(|h| h == "Kleur"),
+        "the Excel file in Dutch"
+    );
+    let csv = out.join("wires.csv");
+    done(&mut shell, "lists.export", json!({"path": text(&csv)}));
+    let first = std::fs::read_to_string(&csv).unwrap();
+    assert!(
+        first.contains("Colour") && !first.contains("Kleur"),
+        "the CSV in English"
+    );
+    shell.shutdown();
+}

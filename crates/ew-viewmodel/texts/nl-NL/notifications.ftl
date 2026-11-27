@@ -456,6 +456,7 @@ toast-parts-unlisted = { $p0 ->
 toast-parts-list-opened = De stuklijst van de set op pagina { $p0 } geopend; er komt geen tweede. Rapport… op het tabblad Uitvoer voegt nog een lijst toe.
 toast-list-opened = De { $p0 } geopend op pagina { $p1 }.
 toast-rework-written = De wijzigingslijst geschreven naar { $p0 }.
+toast-list-written = De lijst geschreven naar { $p0 }.
 toast-labels-written = { $p0 ->
         [one] 1 labelbestand naar { $p1 } geschreven
        *[other] { $p0 } labelbestanden naar { $p1 } geschreven

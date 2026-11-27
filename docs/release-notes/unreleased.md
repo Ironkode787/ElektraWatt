@@ -852,3 +852,7 @@ change here.
   headings and the program's words in the cells (the list's Excel export, `ew export report --format xlsx` and the
   package's lists alike); numbers stay numbers. Their CSV stays English, and the label files keep their headings in
   both forms. A script that read the English headings of a Dutch project's Excel list reads its CSV instead
+- behaviour-change: Export list… (Output ▸ Workshop, and the menu of a list's page) writes the list on show as an Excel
+  file in the project's language or, for a `.csv` name, a CSV in English, by the writer of `ew export report` and the
+  package; a list could be had as a file only through the package or the command line
+- api-add: `lists.export {path?, replace?}`
