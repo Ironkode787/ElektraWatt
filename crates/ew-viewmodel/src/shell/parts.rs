@@ -213,10 +213,8 @@ impl PartsMap {
         match catalog::Member::parse(member) {
             Ok(catalog::Member::Like) => strings::text(key!("parts-member-like")).to_owned(),
             Ok(catalog::Member::Description(lang)) => {
-                let name = strings::languages()
-                    .into_iter()
-                    .find(|(tag, _)| *tag == lang)
-                    .map_or_else(|| lang.clone(), |(_, n)| n.to_owned());
+                // The language named in the window's language ("Dutch", in Dutch "Nederlands").
+                let name = strings::lookup(&format!("language-in-{lang}")).map_or_else(|| lang.clone(), str::to_owned);
                 let word = Self::plain_word("description").unwrap_or_default();
                 in_group(
                     ew_api::part_fields::Group::Identity,

@@ -344,3 +344,17 @@ Example;CY-7x1.5;cable;Control cable, 7 cores 1.5 mm2;7
     assert!(offered, "{:?}", common::form(&shell).fields);
     shell.shutdown();
 }
+
+/// A description's column names its language in the window's language.
+#[test]
+fn a_description_s_language_is_named_in_the_window_s_language() {
+    use ew_viewmodel::shell::PartsMap;
+    assert_eq!(
+        PartsMap::member_text("description.nl", "Text NL"),
+        "Identity \u{25b8} Description, Dutch"
+    );
+    assert!(ew_viewmodel::strings::set_locale("nl"));
+    let dutch = PartsMap::member_text("description.en", "Text EN");
+    assert!(ew_viewmodel::strings::set_locale("en"));
+    assert!(dutch.ends_with(", Engels"), "{dutch}");
+}

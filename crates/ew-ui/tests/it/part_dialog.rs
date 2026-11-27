@@ -138,9 +138,11 @@ fn the_part_editor_by_keyboard() {
     settle(&mut h);
     settle(&mut h);
     // Every field is named by its label.
-    for label in ["Maker", "Part number", "Description", "Sold by"] {
+    for label in ["Maker", "Part number", "Description"] {
         let _ = field(&h, label);
     }
+    // Sold by is a choice of its words.
+    assert!(h.get_all_by_role_and_label(egui::Role::ComboBox, "Sold by").next().is_some());
     // The first text field has the focus; Tab moves to Description (after Part number, Type, Order number and GTIN),
     // End to its end, where " C4" is typed.
     assert!(

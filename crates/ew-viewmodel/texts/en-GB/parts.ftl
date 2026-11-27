@@ -418,6 +418,7 @@ parts-connections-pins = Pins
 parts-connections-open = Open the row of pins { $p0 }
 parts-connections-close = Close the row of pins { $p0 }
 parts-unit-mm = mm
+parts-unit-mm2 = mm²
 part-face-drawing = From the drawing
 part-face-drawn = { $p0 } · drawing
 parts-import = Import

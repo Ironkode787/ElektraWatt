@@ -804,3 +804,9 @@ change here.
   Cores form makes them; an empty cell leaves a cable's cores as they are, and a new cable without a count has none.
   Export as a table writes the count and the cross-section of a cable with plain numbered cores and leaves both empty
   for other cores, so a table read back is the same
+- behaviour-change: the sheet of several parts reads as the sheet of one: the shared fields under the same group
+  headings in the same order, drawn as there, and mixed as the greyed placeholder in the field, which typing replaces
+- behaviour-change: on a part's sheet Sold by is a choice of its words (Piece, Metre, Set), a cross-section shows its
+  unit (mm²), and a saved part opens with no field in focus (a new part still starts in its first field)
+- text-change: a parts table's description columns name their language in the window's language ("Description,
+  Dutch"); an import's chips are tinted: new in the accent's tint, refused in the warning's

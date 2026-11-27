@@ -72,6 +72,8 @@ pub(crate) struct Value<'a> {
     pub help: Option<&'a str>,
     /// What stands under it.
     pub under: Option<Under>,
+    /// The greyed placeholder of an empty value (several parts selected: "mixed", which typing replaces).
+    pub hint: Option<&'a str>,
     /// Whether the person may change it; else plain text.
     pub editable: bool,
     /// Whether it takes the keyboard focus.
@@ -102,7 +104,7 @@ pub(crate) fn label(ui: &mut Ui, text: &str, help: Option<&str>) -> egui::Respon
 /// text cannot be read. A part that is not the person's own shows plain text. `true` when Enter was pressed in it.
 pub(crate) fn text_value(ui: &mut Ui, v: Value<'_>, events: &mut Vec<Event>) -> bool {
     let field = v.field;
-    let (changed, enter) = line(ui, v.label, v.text, v.unit, v.help, v.editable, v.focus);
+    let (changed, enter) = line(ui, v.label, (v.text, v.hint), v.unit, v.help, v.editable, v.focus);
     if let Some(text) = changed {
         events.push(Event::Action(
             "parts.field",
@@ -119,7 +121,7 @@ pub(crate) fn text_value(ui: &mut Ui, v: Value<'_>, events: &mut Vec<Event>) -> 
 pub(crate) fn line(
     ui: &mut Ui,
     label_text: &str,
-    value: &str,
+    (value, hint): (&str, Option<&str>),
     unit: Option<&str>,
     help: Option<&str>,
     editable: bool,
@@ -132,7 +134,7 @@ pub(crate) fn line(
         ui.add_space(t.space_3);
         if !editable {
             let shown = match (value.trim(), unit) {
-                ("", _) => "\u{2014}".to_owned(),
+                ("", _) => hint.unwrap_or("\u{2014}").to_owned(),
                 (x, Some(u)) => format!("{x} {u}"),
                 (x, None) => x.to_owned(),
             };
@@ -154,6 +156,7 @@ pub(crate) fn line(
         let edit = ui
             .add(
                 TextEdit::singleline(&mut text)
+                    .hint_text(hint.unwrap_or_default())
                     .frame(egui::Frame::NONE)
                     .desired_width((ui.available_width() - unit_w).max(t.size_control))
                     .min_size(vec2(0.0, t.size_control)),
@@ -216,10 +219,15 @@ pub(crate) fn choice(
             return None;
         }
         let mut picked = None;
+        // An empty value of several parts that differ reads as its greyed placeholder.
+        let shown = match v.hint.filter(|_| value.is_empty()) {
+            Some(h) => RichText::new(h).color(t.text_tertiary.color32()),
+            None => RichText::new(word(value)),
+        };
         let combo = crate::components::choice(
             ui,
             egui::ComboBox::from_id_salt(id)
-                .selected_text(word(value))
+                .selected_text(shown)
                 .width(ui.available_width()),
             |ui| {
                 for c in choices {

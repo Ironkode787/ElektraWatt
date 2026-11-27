@@ -453,10 +453,13 @@ impl Session {
         })?;
         let mut json = serde_json::to_value(&part).unwrap_or(Value::Null);
         // A new cable a row gives no cores has none: the form's three cores are the window's start, not the row's.
-        if cable && count.is_none() && held.is_none() && !texts.contains_key(&Member::Like) {
-            if let Some(sections) = json.get_mut("sections").and_then(Value::as_object_mut) {
-                sections.remove("cable_cores");
-            }
+        if cable
+            && count.is_none()
+            && held.is_none()
+            && !texts.contains_key(&Member::Like)
+            && let Some(sections) = json.get_mut("sections").and_then(Value::as_object_mut)
+        {
+            sections.remove("cable_cores");
         }
         // A description per language, where it reads otherwise than the part's neutral one.
         let langs: Vec<(&String, &String)> = texts

@@ -108,16 +108,13 @@ fn list_row(ui: &mut Ui, row: &SetRow, open: bool) -> egui::Response {
     let chip = row_chip(&row.status);
     let (galley, size) = components::caption_chip_layout(ui, &t, chip);
     let chip_rect = egui::Rect::from_min_size(pos2(rect.right() - t.space_2 - size.x, top), size);
-    if refused {
-        painter.rect_filled(chip_rect, theme::radius(t.radius_sm), t.warning_subtle.color32());
-        painter.galley(
-            chip_rect.center() - galley.size() / 2.0,
-            galley,
-            t.warning.color32(),
-        );
-    } else {
-        components::paint_caption_chip(&painter, &t, chip_rect, galley);
-    }
+    // New in the accent's tint, refused in the warning's, the others plain (doc 16a §6.16, picture v9).
+    let tint = match &row.status {
+        _ if refused => (t.warning_subtle, t.warning),
+        ew_viewmodel::ew_api::parts_set::SetStatus::New => (t.accent_subtle, t.accent),
+        _ => (t.surface_sunken, t.text_secondary),
+    };
+    components::paint_tinted_chip(&painter, &t, chip_rect, galley, tint);
     if row.lacks() {
         painter.circle_filled(
             pos2(chip_rect.left() - t.space_2 - 3.5, chip_rect.center().y),
@@ -234,14 +231,15 @@ fn heading(ui: &mut Ui, shown: &ImportSet) {
             };
             let (new, changed, same, refused) = set.counts();
             // Right to left: refused last, so that it stands at the right edge.
-            for (n, k) in [
-                (refused, key!("parts-set-refused")),
-                (same, key!("parts-set-same")),
-                (changed, key!("parts-set-changed")),
-                (new, key!("parts-set-new")),
+            let plain = (t.surface_sunken, t.text_secondary);
+            for (n, k, tint) in [
+                (refused, key!("parts-set-refused"), (t.warning_subtle, t.warning)),
+                (same, key!("parts-set-same"), plain),
+                (changed, key!("parts-set-changed"), plain),
+                (new, key!("parts-set-new"), (t.accent_subtle, t.accent)),
             ] {
                 if n > 0 {
-                    components::caption_chip(ui, &strings::format(k, &[&n.to_string()]));
+                    components::tinted_chip(ui, &strings::format(k, &[&n.to_string()]), tint);
                 }
             }
         });

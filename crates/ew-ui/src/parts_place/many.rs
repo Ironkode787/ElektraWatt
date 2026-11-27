@@ -6,7 +6,6 @@
 //! selected, each with where it lives.
 
 use egui::{RichText, ScrollArea, Ui, UiBuilder, pos2, vec2};
-use ew_viewmodel::ew_api::output::FieldType;
 use ew_viewmodel::shell::parts_many::ManySheet;
 use ew_viewmodel::{key, strings};
 
@@ -80,83 +79,80 @@ pub(super) fn middle(ui: &mut Ui, many: &ManySheet, width: f32, events: &mut Vec
                 ui.add_space(t.space_3);
                 let editable = not_his.is_empty();
                 let mixed = strings::text(key!("parts-many-mixed"));
-                // The Connections table's cells stand in its own table below.
-                let cells: Vec<crate::parts_sheet::Cell<'_>> = many
-                    .fields
-                    .iter()
-                    .filter(|(field, _)| !field.contains('['))
-                    .map(|(field, text)| {
-                        let label = many.words(field);
-                        // As the sheet of one part writes it: a length with its unit after the value, a closed list
-                        // of words as a choice.
-                        let ty = many.sheets.first().and_then(|(s, _)| s.row(field)).map(|r| &r.ty);
-                        let nm = ty.is_some_and(|ty| matches!(ty.inner(), FieldType::Nm));
-                        let unit = nm.then(|| strings::text(key!("parts-unit-mm")));
-                        let choices: Option<Vec<String>> = ty.and_then(|ty| match ty.inner() {
-                            FieldType::Enum { options } => Some(
-                                ty.is_optional()
-                                    .then(String::new)
-                                    .into_iter()
-                                    .chain(options.iter().cloned())
-                                    .collect(),
-                            ),
-                            _ => None,
-                        });
-                        let cell: crate::parts_sheet::Cell<'_> = Box::new(move |ui, ev| {
-                            let v = crate::parts_sheet::Value {
-                                field,
-                                label: &label,
-                                text: text.as_deref().unwrap_or_default(),
-                                unit,
-                                help: None,
-                                under: None,
-                                editable,
-                                focus: false,
-                            };
-                            let enter = match &choices {
-                                Some(choices) => {
-                                    let words = |w: &str| super::choice_words(field, w);
-                                    if let Some(c) = crate::parts_sheet::choice(ui, &v, choices, words) {
-                                        ev.push(Event::Action(
-                                            "parts.field",
-                                            serde_json::json!({ "field": field, "value": c }),
-                                        ));
-                                    }
-                                    false
-                                }
-                                None => crate::parts_sheet::text_value(ui, v, ev),
-                            };
-                            // A field they differ in: "mixed" under it, never a value of its own.
-                            if text.is_none() {
-                                let t = theme::current(ui.ctx());
-                                ui.horizontal(|ui| {
-                                    ui.add_space(crate::parts_sheet::LABEL + t.space_3);
-                                    ui.label(components::small_tertiary(&t, mixed));
-                                });
-                            }
-                            enter
-                        });
-                        cell
-                    })
-                    .collect();
-                let _ = crate::parts_sheet::grid(ui, cells, events);
-                // Where they have the same pins: the sheet's own Connections table.
-                if let Some((first, table)) = shared_table(many) {
-                    let group = ew_viewmodel::ew_api::part_fields::Group::Connections;
-                    crate::parts_sheet::group_heading(
-                        ui,
-                        strings::text(strings::Key::run_time(group.word())),
-                        Some(strings::text(key!("parts-many-cells"))),
-                        None,
-                    );
-                    super::pins::connections_table(ui, first, &table, editable, events);
-                }
+                groups(ui, many, editable, mixed, events);
                 if let Some(e) = &many.error {
                     ui.add_space(t.space_3);
                     ui.label(RichText::new(e).color(t.error.color32()));
                 }
             });
     });
+}
+
+/// The fields the parts share under the headings of a single part's sheet, in its order, each drawn by the cell that
+/// draws it there: a value they all have, or `mixed` as its greyed placeholder; the Connections table where they have
+/// the same pins.
+fn groups(ui: &mut Ui, many: &ManySheet, editable: bool, mixed: &str, events: &mut Vec<Event>) {
+    use ew_viewmodel::ew_api::part_fields::Group;
+    let Some((first, _)) = many.sheets.first() else {
+        return;
+    };
+    let shown = |f: &str| many.fields.iter().find(|(x, _)| x == f).map(|(_, t)| t);
+    // The declared rows they share, as the first part's rows with the shared text.
+    let rows: Vec<(ew_viewmodel::ew_api::DraftRow, bool)> = first
+        .rows
+        .iter()
+        .filter_map(|r| {
+            let text = shown(r.path)?;
+            let mut row = r.clone();
+            row.text = text.clone().unwrap_or_default();
+            Some((row, text.is_none()))
+        })
+        .collect();
+    for group in first.sections() {
+        let hint = |is_mixed: bool| is_mixed.then_some(mixed);
+        let mut cells: Vec<crate::parts_sheet::Cell<'_>> = Vec::new();
+        match group {
+            Group::Identity => {
+                for (f, text) in many.fields.iter().filter(|(f, _)| {
+                    ew_viewmodel::ew_api::identity_fields().any(|i| i == f.as_str())
+                }) {
+                    let Some(f) = ew_viewmodel::ew_api::identity_fields().find(|i| *i == f.as_str()) else {
+                        continue;
+                    };
+                    let label = ew_viewmodel::shell::part_dialog::draft_label(f);
+                    let text = (text.as_deref().unwrap_or_default(), hint(text.is_none()));
+                    cells.push(super::identity_cell(text, None, f, label, editable, false));
+                }
+            }
+            Group::Technical => {
+                for (f, text) in &many.fields {
+                    if let Some(k) = f.strip_prefix("tech:") {
+                        let text = (text.as_deref().unwrap_or_default(), hint(text.is_none()));
+                        cells.push(super::tech_cell(first, k, text, editable));
+                    }
+                }
+            }
+            _ => {
+                for (row, is_mixed) in rows.iter().filter(|(r, _)| r.group == group) {
+                    cells.push(super::row_cell(None, (row, hint(*is_mixed)), editable, None));
+                }
+            }
+        }
+        let table = (group == Group::Connections).then(|| shared_table(many)).flatten();
+        if cells.is_empty() && table.is_none() {
+            continue;
+        }
+        let line = strings::lookup(&format!("part-line-{}", group.name().replace('_', "-")));
+        crate::parts_sheet::group_heading(ui, strings::text(strings::Key::run_time(group.word())), line, None);
+        let _ = crate::parts_sheet::grid(ui, cells, events);
+        if let Some((sheet, table)) = table {
+            ui.label(components::small_secondary(
+                &theme::current(ui.ctx()),
+                strings::text(key!("parts-many-cells")),
+            ));
+            super::pins::connections_table(ui, sheet, &table, editable, events);
+        }
+    }
 }
 
 /// The Connections table the parts selected share (doc 07 §5.9), as the first part's with each cell's shared text; a

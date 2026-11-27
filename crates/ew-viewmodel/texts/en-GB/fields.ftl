@@ -1363,6 +1363,10 @@ choice-part-mech-holes-item-hole-kind-cutout = Cut-out
 choice-part-mech-holes-item-hole-kind-gland = Gland
 choice-part-mech-holes-item-hole-kind-rect = Rectangle
 choice-part-accessories-item-per-unit = per piece
+# Sold by: the order units of a part.
+choice-part-unit-piece = Piece
+choice-part-unit-m = Metre
+choice-part-unit-set = Set
 choice-part-accessories-item-per-strip = per strip
 choice-part-accessories-item-per-rail-group = per rail group
 choice-part-sections-marker-marks-wire = Wires

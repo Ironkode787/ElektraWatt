@@ -658,7 +658,7 @@ fn group_fields(
                 .rows
                 .iter()
                 .filter(|r| r.group == group && d.shows(r.path))
-                .map(|row| row_cell(open, row, editable, None))
+                .map(|row| row_cell(Some(open), (row, None), editable, None))
                 .collect();
             save |= crate::parts_sheet::grid(ui, cells, events);
             // A cabinet's mounting plate made in passing (doc 07 §5.5): Save returns here with it chosen.
@@ -1236,6 +1236,7 @@ fn kind_field(ui: &mut Ui, label_text: &str, value: &str, editable: bool, events
         unit: None,
         help: None,
         under: None,
+        hint: None,
         editable,
         focus: false,
     };
@@ -1264,7 +1265,7 @@ fn labelled_field(
     focus: bool,
     on_change: impl FnOnce(String),
 ) -> bool {
-    let (changed, enter) = crate::parts_sheet::line(ui, label_text, value, None, None, true, focus);
+    let (changed, enter) = crate::parts_sheet::line(ui, label_text, (value, None), None, None, true, focus);
     if let Some(text) = changed {
         on_change(text);
     }
@@ -1302,7 +1303,7 @@ fn shown_as_field(d: &ew_viewmodel::ew_api::PartSheet, path: &str) -> bool {
 /// The identity fields of the sheet in its grid, the drawing symbol of a part made for one first; the Maker offered
 /// from the makers known. `true` when Enter was pressed in a field.
 fn identity_rows(ui: &mut Ui, e: &OpenSheet, just_opened: bool, events: &mut Vec<Event>) -> bool {
-    use crate::parts_sheet::{Cell, Value, grid, line, text_value};
+    use crate::parts_sheet::{Cell, grid, line};
     let d = &e.sheet;
     let editable = e.editable();
     let mut cells: Vec<Cell<'_>> = Vec::new();
@@ -1311,7 +1312,7 @@ fn identity_rows(ui: &mut Ui, e: &OpenSheet, just_opened: bool, events: &mut Vec
             line(
                 ui,
                 strings::text(key!("part-drawn-with")),
-                symbol,
+                (symbol, None),
                 None,
                 None,
                 false,
@@ -1320,8 +1321,8 @@ fn identity_rows(ui: &mut Ui, e: &OpenSheet, just_opened: bool, events: &mut Vec
             false
         }));
     }
-    // The first text field takes the focus when the sheet opens.
-    let mut first = just_opened && editable;
+    // A new part's first text field takes the focus when its sheet opens; a saved part's none.
+    let mut first = just_opened && editable && d.new;
     for f in ew_viewmodel::ew_api::identity_fields() {
         let label = identity_label(e, f);
         if f == "kind" {
@@ -1332,29 +1333,63 @@ fn identity_rows(ui: &mut Ui, e: &OpenSheet, just_opened: bool, events: &mut Vec
             continue;
         }
         let focus = std::mem::take(&mut first);
-        let under = under_of(e, f);
-        let ring = ringed_at(e, f);
-        cells.push(Box::new(move |ui, ev| {
-            crate::parts_sheet::ringed(ui, ring, |ui| {
-                text_value(
-                    ui,
-                    Value {
-                        field: f,
-                        label: &label,
-                        text: d.text(f),
-                        unit: None,
-                        help: None,
-                        under,
-                        editable,
-                        focus,
-                    },
-                    ev,
-                )
-            })
-        }));
+        cells.push(identity_cell(
+            (d.text(f), None),
+            Some(e),
+            f,
+            label,
+            editable,
+            focus,
+        ));
     }
     grid(ui, cells, events)
 }
+
+/// One identity field of a sheet as a cell of its grid (the one renderer of the sheet of one part and of several): its
+/// text, or the greyed `hint` of several parts that differ; Sold by a choice of its words; under it what the part
+/// lacks, ringed where an outcome opened the sheet at it (`e`, a single part's sheet).
+fn identity_cell<'a>(
+    (text, hint): (&'a str, Option<&'a str>),
+    e: Option<&'a OpenSheet>,
+    f: &'static str,
+    label: String,
+    editable: bool,
+    focus: bool,
+) -> crate::parts_sheet::Cell<'a> {
+    use crate::parts_sheet::{Value, text_value};
+    let under = e.and_then(|e| under_of(e, f));
+    let ring = e.is_some_and(|e| ringed_at(e, f));
+    Box::new(move |ui, ev| {
+        crate::parts_sheet::ringed(ui, ring, |ui| {
+            let v = Value {
+                field: f,
+                label: &label,
+                text,
+                unit: None,
+                help: None,
+                under,
+                hint,
+                editable,
+                focus,
+            };
+            if f == ORDER_UNIT {
+                let choices: Vec<String> = ORDER_UNITS.iter().map(|u| (*u).to_owned()).collect();
+                if let Some(c) = crate::parts_sheet::choice(ui, &v, &choices, |w| choice_words(f, w)) {
+                    ev.push(Event::Action("parts.field", json!({ "field": f, "value": c })));
+                }
+                crate::parts_sheet::under(ui, e.and_then(|e| under_of(e, f)));
+                return false;
+            }
+            text_value(ui, v, ev)
+        })
+    })
+}
+
+/// The order unit, Sold by: a choice of [`ORDER_UNITS`].
+const ORDER_UNIT: &str = "unit";
+
+/// The order units a part is sold by, as the file spells them.
+const ORDER_UNITS: [&str; 3] = ["piece", "m", "set"];
 
 /// The label of the identity field `field`: a bus part's type designation is its part name.
 fn identity_label(e: &OpenSheet, field: &str) -> String {
@@ -1367,18 +1402,33 @@ fn identity_label(e: &OpenSheet, field: &str) -> String {
 
 /// The technical data of a draft in the sheet's grid, each a `tech:<key>` field.
 fn tech_rows(ui: &mut Ui, e: &OpenSheet, events: &mut Vec<Event>) -> bool {
-    use crate::parts_sheet::{Cell, Value, grid, text_value};
+    use crate::parts_sheet::{Cell, grid};
     let d = &e.sheet;
     let editable = e.editable();
     // A cable's outer diameter is a row of its cable section.
     let cable = d.text("kind") == "cable";
     let mut cells: Vec<Cell<'_>> = Vec::new();
     for (k, v) in d.tech.iter().filter(|(k, _)| !(cable && k == "outer_diameter")) {
+        cells.push(tech_cell(d, k, (v, None), editable));
+    }
+    grid(ui, cells, events)
+}
+
+/// One technical value of a sheet as a cell of its grid (`tech:<key>`), its text or the greyed `hint` of several parts
+/// that differ.
+fn tech_cell<'a>(
+    d: &'a ew_viewmodel::ew_api::PartSheet,
+    k: &str,
+    (v, hint): (&'a str, Option<&'a str>),
+    editable: bool,
+) -> crate::parts_sheet::Cell<'a> {
+    use crate::parts_sheet::{Value, text_value};
+    {
         let field = format!("tech:{k}");
         // The key in words ("rated_current" reads "Rated current"); the field keeps the raw key.
         let label = ew_viewmodel::shell::part_dialog::field_label(&field);
         let under = field_message(d, &field).map(crate::parts_sheet::Under::Error);
-        cells.push(Box::new(move |ui, ev| {
+        Box::new(move |ui, ev| {
             text_value(
                 ui,
                 Value {
@@ -1388,14 +1438,14 @@ fn tech_rows(ui: &mut Ui, e: &OpenSheet, events: &mut Vec<Event>) -> bool {
                     unit: None,
                     help: None,
                     under,
+                    hint,
                     editable,
                     focus: false,
                 },
                 ev,
             )
-        }));
+        })
     }
-    grid(ui, cells, events)
 }
 
 /// What the cabinet's field at `path` is for: its tooltip.
@@ -1423,7 +1473,7 @@ fn cabinet_rows(ui: &mut Ui, e: &OpenSheet, editable: bool, events: &mut Vec<Eve
                 && r.path != "mech.front_shape"
                 && !r.path.starts_with("mech.clearance.")
         })
-        .map(|row| row_cell(e, row, editable, cabinet_help(row.path)))
+        .map(|row| row_cell(Some(e), (row, None), editable, cabinet_help(row.path)))
         .collect();
     let mut save = crate::parts_sheet::grid(ui, cells, events);
     save |= keep_free(ui, e, editable, events);
@@ -1535,8 +1585,8 @@ fn says_yes(text: &str) -> bool {
 /// closed list of words, a check box for a yes or no, else a text); plain text where the group is not the person's to
 /// change; `help` its tooltip.
 fn row_cell<'a>(
-    e: &'a OpenSheet,
-    row: &'a ew_viewmodel::ew_api::DraftRow,
+    e: Option<&'a OpenSheet>,
+    (row, hint): (&'a ew_viewmodel::ew_api::DraftRow, Option<&'a str>),
     editable: bool,
     help: Option<&'static str>,
 ) -> crate::parts_sheet::Cell<'a> {
@@ -1560,6 +1610,7 @@ fn row_cell<'a>(
                     unit: None,
                     help,
                     under: None,
+                    hint,
                     editable,
                     focus: false,
                 };
@@ -1569,7 +1620,7 @@ fn row_cell<'a>(
                         json!({ "field": field, "value": c }),
                     ));
                 }
-                crate::parts_sheet::under(ui, under_of(e, field));
+                crate::parts_sheet::under(ui, e.and_then(|e| under_of(e, field)));
                 false
             })
         }
@@ -1594,8 +1645,15 @@ fn row_cell<'a>(
             false
         }),
         ty => {
-            let unit = matches!(ty, FieldType::Nm).then(|| strings::text(key!("parts-unit-mm")));
-            let under = under_of(e, field);
+            // A length in mm, a cross-section in mm².
+            let last = field.rsplit('.').next().unwrap_or(field);
+            let unit = match ty {
+                FieldType::Nm => Some(strings::text(key!("parts-unit-mm"))),
+                FieldType::Csa => Some(strings::text(key!("parts-unit-mm2"))),
+                FieldType::Dec3 if last.starts_with("csa") => Some(strings::text(key!("parts-unit-mm2"))),
+                _ => None,
+            };
+            let under = e.and_then(|e| under_of(e, field));
             Box::new(move |ui, ev| {
                 crate::parts_sheet::text_value(
                     ui,
@@ -1606,6 +1664,7 @@ fn row_cell<'a>(
                         unit,
                         help,
                         under,
+                        hint,
                         editable,
                         focus: false,
                     },
@@ -1614,7 +1673,7 @@ fn row_cell<'a>(
             })
         }
     };
-    if ringed_at(e, field) {
+    if e.is_some_and(|e| ringed_at(e, field)) {
         Box::new(move |ui, ev| crate::parts_sheet::ringed(ui, true, |ui| cell(ui, ev)))
     } else {
         cell
@@ -1802,7 +1861,7 @@ fn front_section(ui: &mut Ui, e: &OpenSheet, editable: bool, events: &mut Vec<Ev
     let d = &e.sheet;
     let mut cells: Vec<crate::parts_sheet::Cell<'_>> = Vec::new();
     if let Some(row) = d.row("mech.front_shape") {
-        cells.push(row_cell(e, row, editable, None));
+        cells.push(row_cell(Some(e), (row, None), editable, None));
     }
     cells.push(Box::new(move |ui, ev| {
         let t = theme::current(ui.ctx());
@@ -2148,6 +2207,7 @@ fn labelled_combo(
         unit: None,
         help: None,
         under: None,
+        hint: None,
         editable: true,
         focus: false,
     };

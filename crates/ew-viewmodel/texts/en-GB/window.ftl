@@ -83,6 +83,9 @@ workspace-plc = PLC
 workspace-fluid = Fluid power
 language-en = English
 language-nl = Nederlands
+# A language named in the window's language (a description's column of a parts table).
+language-in-en = English
+language-in-nl = Dutch
 theme-system = Follow the system
 theme-light = Light
 theme-dark = Dark

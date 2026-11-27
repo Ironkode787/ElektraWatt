@@ -738,23 +738,38 @@ pub(crate) fn paint_caption_chip(
     rect: egui::Rect,
     galley: std::sync::Arc<egui::Galley>,
 ) {
-    painter.rect_filled(rect, theme::radius(t.radius_sm), t.surface_sunken.color32());
-    painter.galley(
-        rect.center() - galley.size() / 2.0,
-        galley,
-        t.text_secondary.color32(),
-    );
+    paint_tinted_chip(painter, t, rect, galley, (t.surface_sunken, t.text_secondary));
+}
+
+/// Paints a chip laid out by [`caption_chip_layout`] in a status badge's tint (doc 16a §6.16): the semantic subtle
+/// `fill` with the semantic `text` (`color.accent.subtle` with `color.accent`, `color.warning.subtle` with
+/// `color.warning`), `radius.sm`.
+pub(crate) fn paint_tinted_chip(
+    painter: &egui::Painter,
+    t: &Tokens,
+    rect: egui::Rect,
+    galley: std::sync::Arc<egui::Galley>,
+    (fill, text): (Rgba, Rgba),
+) {
+    painter.rect_filled(rect, theme::radius(t.radius_sm), fill.color32());
+    painter.galley(rect.center() - galley.size() / 2.0, galley, text.color32());
 }
 
 /// A caption chip, the badge of a tree row and a canvas tab (doc 16a §6.6, §6.16; "QET grid", "generated"):
 /// `type.caption` in `color.text.secondary` on `color.surface.sunken`, `radius.sm`; a `Label` node named by the text.
 pub(crate) fn caption_chip(ui: &mut Ui, text: &str) -> Response {
     let t = tokens(ui);
+    tinted_chip(ui, text, (t.surface_sunken, t.text_secondary))
+}
+
+/// A caption chip in a status badge's tint ([`paint_tinted_chip`]); a `Label` node named by the text.
+pub(crate) fn tinted_chip(ui: &mut Ui, text: &str, tint: (Rgba, Rgba)) -> Response {
+    let t = tokens(ui);
     let (galley, size) = caption_chip_layout(ui, &t, text);
     let (rect, response) = ui.allocate_exact_size(size, Sense::hover());
     let name = text.to_owned();
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Label, true, &name));
-    paint_caption_chip(ui.painter(), &t, rect, galley);
+    paint_tinted_chip(ui.painter(), &t, rect, galley, tint);
     response
 }
 
