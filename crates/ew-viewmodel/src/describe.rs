@@ -2075,6 +2075,24 @@ fn parts_lines(place: &crate::shell::parts_place::PartsPlace, lines: &mut Vec<St
     if let Some(shown) = place.set.as_deref() {
         set_lines(shown, place.set_shown(), lines);
     }
+    // Several parts selected: each by its number, the fields they share with the value or `mixed`.
+    if let Some(many) = place.many.as_deref() {
+        let numbers: Vec<String> = many.numbers().into_iter().map(|(n, _)| format!("\"{}\"", user(&n))).collect();
+        lines.push(format!(
+            "  many {}{}",
+            numbers.join(" "),
+            if many.changed { " changed" } else { "" }
+        ));
+        for (field, text) in &many.fields {
+            match text {
+                Some(t) => lines.push(format!("    field {field} \"{}\"", user(t))),
+                None => lines.push(format!("    field {field} mixed")),
+            }
+        }
+        if let Some(e) = &many.error {
+            lines.push(format!("    error \"{}\"", user(e)));
+        }
+    }
     let Some(open) = &place.sheet else {
         // New part…'s question: each card by its start's name and title, or the part to start from.
         match place.asking {

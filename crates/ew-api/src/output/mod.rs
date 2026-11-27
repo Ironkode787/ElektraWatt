@@ -170,6 +170,7 @@ pub use ew_import_catalog::sheet;
 /// The table writers of `ew-reports` the row exports name: the CSV presets and their options, the
 /// table model, the workbook's metadata and writer.
 pub use ew_reports::csv::{CsvOptions, LineEnd, Preset, restyle, table_csv};
+pub use ew_reports::CellType;
 pub use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
 pub use ew_reports::xlsx::{WorkbookMeta, base_text, xlsx};
 pub use ew_scene::forms::SheetMap;

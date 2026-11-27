@@ -24,6 +24,7 @@ use crate::icons::IconId;
 use crate::part_dialog::elide_to;
 use crate::theme;
 
+mod many;
 mod set;
 mod strip;
 mod symbols;
@@ -170,6 +171,18 @@ pub(crate) fn toolbar(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) 
         {
             push(events, "parts.import");
         }
+        if place_command(
+            ui,
+            "parts.export",
+            strings::text(key!("parts-export")),
+            "table",
+            CommandSize::Large,
+            refusal(shell, "parts.export"),
+        )
+        .clicked()
+        {
+            push(events, "parts.export");
+        }
         bar_divider(ui);
         for (id, key, icon) in [
             ("parts.own", key!("parts-own"), "file-plus"),
@@ -308,6 +321,14 @@ impl PlaceView {
                 .available_width()
                 .min(SHEET_WIDTH[usize::from(two)] + CONTENTS_WIDTH);
             set::middle(ui, shown, width, events);
+            return;
+        }
+        // Several parts selected: the fields they share (doc 07 §5.9).
+        if let Some(many) = place.many.as_deref() {
+            let width = ui
+                .available_width()
+                .min(SHEET_WIDTH[usize::from(two)] + CONTENTS_WIDTH);
+            many::middle(ui, many, width, events);
             return;
         }
         let Some(open) = &place.sheet else {
@@ -875,8 +896,17 @@ fn list_column(
                         }
                         if !shut {
                             for row in rows {
-                                if list_row(ui, row, open == Some(row.copy)).clicked() {
-                                    events.push(Event::Action("parts.open", json!({ "part": row.param() })));
+                                let param = row.param();
+                                let chosen = open == Some(row.copy)
+                                    || place.many.as_ref().is_some_and(|m| m.parts.contains(&param));
+                                let r = list_row(ui, row, chosen);
+                                if r.clicked() {
+                                    // Ctrl takes a row into or out of a selection of several, Shift the rows up to it.
+                                    let mods = ui.input(|i| i.modifiers);
+                                    events.push(Event::Action(
+                                        "parts.open",
+                                        json!({ "part": param, "add": mods.command, "range": mods.shift }),
+                                    ));
                                 }
                             }
                         }
@@ -1035,6 +1065,20 @@ fn pictures_column(ui: &mut Ui, shell: &ShellModel, place: &PartsPlace, events: 
                     ui.add_space(t.space_4);
                 }
                 set::as_it_will_be(ui, shown);
+            });
+        return;
+    }
+    if let Some(many) = place.many.as_deref() {
+        ScrollArea::vertical()
+            .id_salt("parts-pictures")
+            .auto_shrink([false, false])
+            .show(ui, |ui| {
+                // The card of what the Save changes for the project's devices, while it waits.
+                if shell.properties().card().is_some() {
+                    crate::preview::show(ui, shell, events);
+                    ui.add_space(t.space_4);
+                }
+                many::parts(ui, many);
             });
         return;
     }

@@ -131,6 +131,25 @@ number"), and a dot where the part lacks something. A row shows on the right as 
 the map and the list follows. Nothing is saved until **Save 12 to My parts**, which writes the new and the changed
 parts; a project takes a part when a device uses it. **Discard** drops the set.
 
+## Change many parts at once
+
+1. In the list of Parts, hold **Ctrl** and click each part to take it in or out of the selection, or hold **Shift** and
+   click to take the rows from the open part to that one.
+2. The sheet shows the fields the parts share: a value they all have, or **mixed** under a field they differ in. Where
+   they have the same pins, the **Connections** table's cells are there too ("Pin 1 · Clamp").
+3. Type a value: it goes to all of them. A field you leave **mixed** stays as each part has it.
+4. **Save** saves each part as its next version in My parts. Where the open project uses them, the card beside the
+   sheet names how many parts and which fields change, with the devices; **Apply** brings the project's copies to them
+   in one step, which one **Undo** takes back in the project (My parts keeps what you saved).
+
+A starter part among them is not yours to change: a line names it, and **Make my own from** it starts a part of your
+own from it. A part only in this project is kept in My parts first (**Keep in my parts**).
+
+**Export** in the bar of Parts writes the selected parts, or the open one, as a table (CSV, or Excel for a name ending
+in `.xlsx`), one column per field in the window's words. A family of fifty terminals is made in a spreadsheet from it:
+copy a row, change its number and its values, and **Import** reads the table back, its new rows as new parts and its
+changed rows as changes. A table imported as it was exported brings every row as **the same**.
+
 ## A device that is a box with pins
 
 A circuit protector, a power supply, a drive: a device the program has no symbol for is drawn as a box with its pins on

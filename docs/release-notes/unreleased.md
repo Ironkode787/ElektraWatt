@@ -777,3 +777,11 @@ change here.
 - behaviour-change: a row of a part's accessories or variants left without a value its item needs (a quantity, a
   variant's name) is refused on Save at that cell, in words that name the column and the row ("Name of the variant:
   Row 1 needs a value here"), not with the reader's own message
+- behaviour-change: several parts selected in the list of Parts (Ctrl, Shift) show the fields they share on one
+  sheet, a value they all have or mixed, and the Connections table where they have the same pins (doc 07 §5.9); a value
+  typed goes to all of them, Save saves each into My parts, and the card of the open project's devices names how many
+  parts and which fields before Apply, one undo step. A starter part among them is named with Make my own from it; a
+  part only in this project is kept in My parts first
+- behaviour-change: Export in the bar of Parts writes the selected parts, or the open one, as a table (CSV or Excel)
+  that Import reads back: unchanged, every row is the same
+- api-add: `parts.open` takes `add` and `range` (Ctrl and Shift in the list); `parts.export {path?, replace?}` is new

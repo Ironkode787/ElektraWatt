@@ -484,6 +484,7 @@ impl ShellModel {
             .as_deref()
             .and_then(|p| p.sheet.as_ref())
             .is_some_and(|o| o.changed)
+            || self.many_sheet().is_some_and(|m| m.changed)
         {
             return Some(Outcome::refused(key!("reason-parts-unsaved")));
         }
@@ -570,6 +571,7 @@ impl ShellModel {
             .or_else(|| map.as_ref().map(|m| m.file.clone()))
             .unwrap_or_default();
         place.sheet = None;
+        place.many = None;
         place.asking = None;
         place.shelf_symbols = false;
         place.scope = ew_api::parts::PartScope::Import;

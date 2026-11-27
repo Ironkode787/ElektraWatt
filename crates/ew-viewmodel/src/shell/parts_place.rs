@@ -202,6 +202,8 @@ pub struct PartsPlace {
     /// The set an import brought (doc 07 §5.9), shown in the list as the scope This import until it is saved or
     /// discarded.
     pub set: Option<Box<ImportSet>>,
+    /// Several parts selected in the list, shown on one sheet of the fields they share (doc 07 §5.9).
+    pub many: Option<Box<super::parts_many::ManySheet>>,
 }
 
 /// The set an import brought into Parts and its first step (doc 07 §5.9): a table's column map, the rows read through
@@ -301,7 +303,7 @@ impl PartsPlace {
 
     /// Whether the middle shows the set an import brought: it is there and no part is open.
     pub fn set_shown(&self) -> bool {
-        self.sheet.is_none() && self.set.is_some()
+        self.sheet.is_none() && self.many.is_none() && self.set.is_some()
     }
 
     /// The label of Save: Save n to My parts for an import's set, Save and use for the chooser's target from a
@@ -476,6 +478,7 @@ impl ShellModel {
             symbols: Vec::new(),
             aside: false,
             set: None,
+            many: None,
         }));
         self.parts_refresh();
     }
@@ -569,6 +572,7 @@ impl ShellModel {
         let opened = self.parts_opened;
         if let Some(place) = self.parts.as_deref_mut() {
             place.asking = None;
+            place.many = None;
             if !sheet.new {
                 place.recent.retain(|r| *r != sheet.copy);
                 place.recent.insert(0, sheet.copy);
@@ -611,6 +615,20 @@ impl ShellModel {
             shown.row = Some(row);
             self.set_row_shown();
             return Outcome::Done;
+        }
+        // A row taken into or out of a selection of several (Ctrl), or the rows up to it (Shift).
+        if (flag(p, "add") || flag(p, "range")) && self.parts.is_some() && p.contains_key("part") {
+            // The part as the list names it, a number the project holds too.
+            let part = match self.named_part(p) {
+                Ok(Some(Named::Held(c))) => format!("id:{c}"),
+                Ok(Some(Named::Library(l, i))) => format!("lib:{l}/{i}"),
+                Ok(None) => return failed(key!("error-bad-param"), &["part"]),
+                Err(out) => return out,
+            };
+            return self.select_many(&part, flag(p, "range"));
+        }
+        if self.many_sheet().is_some_and(|m| m.changed) {
+            return Outcome::refused(key!("reason-parts-unsaved"));
         }
         if self.parts_session().is_none() {
             // No project and no place: the place over the libraries alone (one a closed project left goes).
@@ -967,6 +985,10 @@ impl ShellModel {
             (_, Ok(None)) => return failed(key!("error-missing-param"), &["value"]),
             (Err(e), _) | (_, Err(e)) => return e,
         };
+        // Several parts selected: the value goes to all of them.
+        if self.many_sheet().is_some() {
+            return self.many_field(&field, &value);
+        }
         // The drawing's short sheet: its name and what it is.
         if let Some(key) = field.strip_prefix("symbol.")
             && self.symbol_editor().is_some()
@@ -1147,6 +1169,9 @@ impl ShellModel {
         if self.set_shown() {
             return self.discard_set();
         }
+        if self.many_sheet().is_some() {
+            return self.reopen_many();
+        }
         let Some(open) = self.parts.as_deref().and_then(|p| p.sheet.as_ref()) else {
             return Outcome::refused(key!("reason-no-part-open"));
         };
@@ -1242,7 +1267,19 @@ impl ShellModel {
         let Some(place) = self.parts.as_deref() else {
             return Outcome::refused(key!("reason-no-parts-place"));
         };
-        if let Some(open) = place.sheet.as_ref().filter(|o| o.changed) {
+        // What was typed and not saved: the open part's, or the parts' selected together (named by their numbers).
+        let unsaved = match (place.sheet.as_ref(), place.many.as_deref()) {
+            (Some(open), _) if open.changed => Some(open.title()),
+            (_, Some(many)) if many.changed => Some(
+                many.numbers()
+                    .into_iter()
+                    .map(|(n, _)| n)
+                    .collect::<Vec<_>>()
+                    .join(", "),
+            ),
+            _ => None,
+        };
+        if let Some(number) = unsaved {
             if flag(p, "save") {
                 // Save, then leave once it saved; a refusal stays on the sheet, said under it.
                 self.dialog = None;
@@ -1263,10 +1300,7 @@ impl ShellModel {
             } else if !flag(p, "discard") {
                 return match self.mode {
                     crate::shell::Mode::Headless => Outcome::refused(key!("reason-parts-unsaved")),
-                    crate::shell::Mode::Gui => {
-                        let number = open.title();
-                        self.open_dialog(Dialog::ConfirmLeavePart { number, next: None })
-                    }
+                    crate::shell::Mode::Gui => self.open_dialog(Dialog::ConfirmLeavePart { number, next: None }),
                 };
             }
         }
@@ -1398,6 +1432,9 @@ impl ShellModel {
         }
         if self.set_shown() {
             return self.save_set();
+        }
+        if self.many_sheet().is_some() {
+            return self.save_many();
         }
         let Some(open) = self.parts.as_deref().and_then(|p| p.sheet.as_ref()) else {
             return Outcome::refused(key!("reason-no-part-open"));

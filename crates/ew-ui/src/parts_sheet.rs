@@ -13,7 +13,7 @@ use crate::components::Tip as _;
 use crate::theme;
 
 /// The label's width of a sheet field (doc 16a §6.27).
-const LABEL: f32 = 150.0;
+pub(crate) const LABEL: f32 = 150.0;
 
 /// The narrowest a column of the fields' grid gets before the grid takes one column.
 const COLUMN_MIN: f32 = 330.0;

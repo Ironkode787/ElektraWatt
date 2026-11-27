@@ -148,6 +148,7 @@ mod workspaces;
 // The Macros and Libraries navigators, Save as macro… and Make variable.
 mod macros;
 pub mod part_dialog;
+pub mod parts_many;
 pub mod parts_place;
 // The print pre-dialog.
 pub mod print;

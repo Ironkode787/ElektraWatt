@@ -460,3 +460,15 @@ parts-set-no-version = the part in My parts has no next version to take it.
 parts-set-unread = it does not read as a part.
 parts-set-field = in column { $p0 }: { $p1 }
 parts-set-like = its Like column names { $p0 }, which is no part of My parts or of a library.
+parts-export = Export
+parts-exported = { $p0 } parts written to { $p1 }.
+parts-many-title = { $p0 } parts
+parts-many-line = { $p0 } parts selected. A value typed goes to all of them; a field they hold different values in reads mixed, and Save leaves it as each has it.
+parts-many-mixed = mixed
+parts-many-refused = { $p0 } is not saved: { $p1 }
+parts-many-saved = { $p0 } parts saved to My parts.
+parts-many-parts = The parts selected
+parts-many-own = Make my own from { $p0 }
+parts-many-cells = They have the same pins. A cell they differ in is empty and stays as each has it.
+# A cell of the Connections table the parts selected share: the pin's name, then the column's word.
+parts-many-cell = Pin { $p0 } · { $p1 }

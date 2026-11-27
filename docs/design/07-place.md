@@ -331,12 +331,15 @@ My parts since this project took it. See changes…"); nothing changes in the pr
   changed parts in one write; Discard drops the set. An EPLAN parts file's set also says how many of its parts the
   open project holds a copy of and how many of those would change, with **Update them…**, the previewed update of
   those copies.
-- **Several parts selected** in the list show the fields they share on one sheet: a value they all have, or "mixed".
-  A value typed goes to all of them; Save saves them together, with one card for the devices of the open project.
-  The Connection points table is shared too where the selected parts have the same pins; the other tables, the forms and
-  the drawings are a single part's.
-- **A spreadsheet for a family.** Export as a table… writes the selected parts with the declared columns (CSV or
-  Excel). Fifty terminals of one family are made there by copying rows; the import reads them back, new rows as new
+- **Several parts selected** in the list (Ctrl takes a row in or out, Shift the rows up to it) show the fields they
+  share on one sheet: a value they all have, or "mixed". A value typed goes to all of them, and "mixed" is never
+  written; Save saves each as its next version in My parts, with one card for the devices of the open project that
+  names how many parts and which fields before Apply, one undo step. A starter part among them, or one of a library he
+  cannot write, locks the sheet in a line that names it, with Make my own from it for each; a part only in this
+  project is kept in My parts first. The Connection points table is shared too where the selected parts have the same
+  pins, a cell each by its pin and column; the other tables, the forms and the drawings are a single part's.
+- **A spreadsheet for a family.** Export as a table… writes the selected parts, or the open one, with the declared
+  columns in the window's words (CSV or Excel, by the file's extension). Fifty terminals of one family are made there by copying rows; the import reads them back, new rows as new
   parts, changed rows as changes. A column mapped to **Like** names a part by its number: a new row takes from it
   everything its own columns do not give (its pins and what it is drawn as, its clamps, what it comes with), so a
   family is one part made on its sheet and a table of the others. A table exported and imported unchanged brings

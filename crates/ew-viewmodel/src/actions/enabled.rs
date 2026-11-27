@@ -1332,7 +1332,34 @@ pub(super) fn field_editable(m: &ShellModel) -> Result<(), Text> {
     if m.symbol_editor().is_some() {
         return Ok(());
     }
+    if m.many_sheet().is_some() {
+        return many_editable(m);
+    }
     part_editable(m)
+}
+
+/// The parts selected together are all the person's to change (a starter part among them refuses, naming it).
+fn many_editable(m: &ShellModel) -> Result<(), Text> {
+    parts_writable(m)?;
+    let not_his = m.many_sheet().map(|s| s.not_his()).unwrap_or_default();
+    if not_his.is_empty() {
+        Ok(())
+    } else {
+        Err(strings::keyed(
+            key!("reason-parts-many-not-yours"),
+            vec![ew_api::TextArg::Plain(not_his.join(", "))],
+        ))
+    }
+}
+
+/// Export as a table…: several parts selected, or a part open that is saved.
+pub(super) fn part_exportable(m: &ShellModel) -> Result<(), Text> {
+    let place = m.parts_place().ok_or_else(|| Text::from(key!("reason-no-parts-place")))?;
+    if place.many.is_some() || place.sheet.as_ref().is_some_and(|o| !o.sheet.new) {
+        Ok(())
+    } else {
+        Err(key!("reason-no-part-open").into())
+    }
 }
 
 /// Save: the open part is his to change and was changed (a new part always is); on the drawing, the symbol is his
@@ -1342,6 +1369,15 @@ pub(super) fn part_savable(m: &ShellModel) -> Result<(), Text> {
         return match &editor.locked {
             Some(why) => Err(ew_api::Text::bare(ew_api::TextArg::Plain(why.clone()))),
             None => Ok(()),
+        };
+    }
+    // Several parts selected: Save saves what was typed into them.
+    if let Some(many) = m.many_sheet() {
+        many_editable(m)?;
+        return if many.changed {
+            Ok(())
+        } else {
+            Err(key!("reason-part-not-changed").into())
         };
     }
     // An import's set: Save writes its new and changed parts into My parts.
@@ -1378,6 +1414,13 @@ pub(super) fn part_changed(m: &ShellModel) -> Result<(), Text> {
     // An import's set: Discard drops it.
     if m.parts_place().is_some_and(|p| p.set_shown()) {
         return Ok(());
+    }
+    if let Some(many) = m.many_sheet() {
+        return if many.changed {
+            Ok(())
+        } else {
+            Err(key!("reason-part-not-changed").into())
+        };
     }
     let open = open_sheet(m)?;
     if open.changed || open.sheet.new {

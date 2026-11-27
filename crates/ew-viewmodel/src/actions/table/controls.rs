@@ -896,7 +896,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // place a part is met and the start page (no project: the libraries alone); an outcome's Edit part… names the
     // `field` the part lacks. `card` settles the card of the open part's Save before another part opens.
     with_params(
-        "part?:text, symbol?:text, field?:text, row?:uint, card?:enum(apply|cancel), discard?:bool",
+        "part?:text, symbol?:text, field?:text, row?:uint, add?:bool, range?:bool, card?:enum(apply|cancel), discard?:bool",
         placed(
             place(Group::Parts, 0, CommandSize::Large, Some(key!("bar-parts"))),
             "packages",
@@ -961,6 +961,22 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             None,
             |s, p| s.act_parts_row(p),
         )),
+    ),
+    // Export as a table… of Parts (doc 07 §5.9): the selected parts, or the open one, with their declared fields.
+    with_params(
+        "path?:path, replace?:bool",
+        with_icon(
+            "table",
+            act(
+                "parts.export",
+                View,
+                Menu::Edit,
+                &[],
+                part_exportable,
+                None,
+                |s, p| s.act_parts_export(p),
+            ),
+        ),
     ),
     with_params(
         "path?:path",
