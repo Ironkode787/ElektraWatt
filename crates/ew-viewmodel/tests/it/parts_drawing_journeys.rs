@@ -705,3 +705,39 @@ fn his_own_symbol_of_a_black_box_part_s_function_draws_the_part() {
     let drawn = placed(&s).iter().filter(|k| **k == key).count();
     assert_eq!(drawn, 2, "both supplies drawn with his symbol: {:?}", placed(&s));
 }
+
+/// A symbol's short sheet keeps what the old editor offered: its Version (given on Save, read), its Licence and
+/// Source (typed for his own, kept from the source by Make my own from it), and the Drawing tab sets its
+/// cross-reference point at the drawing's centre.
+#[test]
+fn a_symbol_s_version_licence_source_and_centre_are_kept() {
+    use ew_viewmodel::shell::symbol_editor::RowValue;
+    let tmp = Tmp::new("symbol-terms");
+    let mut s = project(&tmp);
+    let row = |s: &ShellModel, key: &str| {
+        let rows = s.symbol_editor().expect("the drawing").symbol_rows();
+        rows.into_iter().find(|r| r.key == key).unwrap_or_else(|| panic!("{key}"))
+    };
+    // Make my own from it: the starter's terms come along.
+    let coil = ew_viewmodel::ew_api::output::starter_piece_symbol("ew.fn.coil").expect("the starter coil");
+    done(&mut s, "parts.open", json!({"symbol": coil}));
+    let starter = row(&s, "licence").value;
+    assert_ne!(starter, RowValue::Text(Some(String::new())), "the starter has its terms");
+    done(&mut s, "parts.own", json!({}));
+    assert_eq!(row(&s, "licence").value, starter, "kept by Make my own from it");
+    assert!(row(&s, "version").locked.is_some(), "Save gives the version");
+    for (field, value) in [("symbol.licence", "CC0-1.0"), ("symbol.source", "my own drawing")] {
+        done(&mut s, "parts.field", json!({"field": field, "value": value}));
+    }
+    done(&mut s, "symbol.draw", json!({"tool": "anchor", "x": 0, "y": 0, "centre": true}));
+    assert!(matches!(
+        s.symbol_editor().unwrap().draft.symbol.anchor,
+        ew_viewmodel::ew_api::symbols::schema::AnchorPolicy::GraphicCentre
+    ));
+    done(&mut s, "parts.save", json!({}));
+    let address = s.settings().symbols_recent.first().cloned().expect("saved");
+    done(&mut s, "parts.back", json!({"discard": true}));
+    done(&mut s, "parts.open", json!({"symbol": address}));
+    assert_eq!(row(&s, "licence").value, RowValue::Text(Some("CC0-1.0".into())));
+    assert_eq!(row(&s, "source").value, RowValue::Text(Some("my own drawing".into())));
+}

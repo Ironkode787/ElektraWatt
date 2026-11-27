@@ -816,6 +816,13 @@ impl SymbolEditor {
                 locked,
                 ..row("what", "symbol-what", choice(&current, what))
             },
+            // The version Save gives it; the terms he gives his own, which Make my own from it keeps from the source.
+            SheetRow {
+                locked: Some(label("symbol-version-given")),
+                ..row("version", "symbol-version", text(&d.version))
+            },
+            row("licence", "symbol-licence", text(d.symbol.meta.licence.as_deref().unwrap_or(""))),
+            row("source", "symbol-source", text(d.symbol.meta.sources.first().map_or("", String::as_str))),
         ]
     }
 
@@ -1093,6 +1100,10 @@ impl SymbolEditor {
                     doc["function"] = def;
                     doc["function_ref"] = r;
                 }
+            }
+            ("licence", Some(s), _) => doc["symbol"]["meta"]["licence"] = json!(s.trim()),
+            ("source", Some(s), _) => {
+                doc["symbol"]["meta"]["sources"] = if s.trim().is_empty() { json!([]) } else { json!([s.trim()]) };
             }
             ("reviewed", _, Value::Bool(on)) => doc["import_reviewed"] = json!(on),
             _ => return false,

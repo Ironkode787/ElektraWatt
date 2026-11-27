@@ -1108,6 +1108,11 @@ impl ShellModel {
                 let style = editor.text_style.as_deref().unwrap_or(NEW_TEXT_STYLE);
                 json!({"text":{"pos":[x,y],"text":{"en":text(p,"text")},"align":"centre","style":style}})
             }
+            // `centre`: at the centre of the drawing, wherever its graphics go.
+            "anchor" if p.get("centre").and_then(Value::as_bool) == Some(true) => {
+                object.insert("anchor".into(), json!("graphic_centre"));
+                Value::Null
+            }
             "anchor" => {
                 object.insert("anchor".into(), json!({"named":[x,y]}));
                 Value::Null

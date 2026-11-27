@@ -1364,7 +1364,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         |s, p| s.act_symbol("validate", p),
     )),
     with_params(
-        "tool:enum(line|rectangle|circle|ellipse|arc|text|anchor), x:mm, y:mm, x2?:mm, y2?:mm, text?:text, start?:int, sweep?:int",
+        "tool:enum(line|rectangle|circle|ellipse|arc|text|anchor), x:mm, y:mm, x2?:mm, y2?:mm, text?:text, start?:int, sweep?:int, centre?:bool",
         hidden(act("symbol.draw", View, Menu::Edit, &[], always, None, |s, p| {
             s.act_symbol("draw", p)
         })),

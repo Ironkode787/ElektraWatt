@@ -1423,7 +1423,7 @@ fn the_rows_of_properties_follow_the_selection_and_set_every_selected_thing() {
     );
     let short = shell.symbol_editor().unwrap().symbol_rows();
     let keys: Vec<&str> = short.iter().map(|r| r.key).collect();
-    assert_eq!(keys, ["name", "what"]);
+    assert_eq!(keys, ["name", "what", "version", "licence", "source"]);
     let what = short.iter().find(|r| r.key == "what").unwrap();
     assert!(
         matches!(&what.value, RowValue::Choice { value: Some(v), .. } if v == "ew.fn.contact-no"),

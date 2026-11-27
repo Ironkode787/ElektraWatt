@@ -336,7 +336,18 @@ impl EditorView {
                     String::new(),
                     None,
                 );
-                let items = tool_items(shell, editor, &more);
+                let mut items = tool_items(shell, editor, &more);
+                // The cross-reference point at the drawing's centre, wherever its graphics go.
+                items.push(ew_viewmodel::actions::ActionItem {
+                    id: "symbol.draw",
+                    params: json!({ "tool": "anchor", "x": 0, "y": 0, "centre": true }),
+                    label: label(key!("symbol-anchor-centre")).to_owned(),
+                    shortcut: String::new(),
+                    enabled: editor.locked.is_none(),
+                    reason: editor.locked.clone(),
+                    checked: matches!(editor.draft.symbol.anchor, ew_viewmodel::ew_api::symbols::schema::AnchorPolicy::GraphicCentre),
+                    topic: None,
+                });
                 egui::Popup::menu(&menu).show(|ui| crate::menu::items(ui, &items, events));
             });
             divider(ui);
