@@ -239,19 +239,46 @@ impl ShellModel {
     /// A face in the chooser's words: its name, size, hinge and page ("Door · 600 × 800 mm · hinged left · new
     /// page").
     fn offer_words(&self, o: &SurfaceOffer) -> String {
-        let mut parts = vec![strings::render(&o.words)];
-        parts.extend(o.size.clone());
+        self.offer_cells(o).join(" \u{b7} ")
+    }
+
+    /// A face as a row of the chooser's table: its name; its size and hinge ("600 × 800 mm · hinged left"); its page
+    /// ("page 902", "new page").
+    fn offer_cells(&self, o: &SurfaceOffer) -> [String; 3] {
+        let mut size: Vec<String> = o.size.clone().into_iter().collect();
         if let Some(h) = &o.hinge {
-            parts.push(strings::format(
+            size.push(strings::format(
                 key!("surface-chooser-hinged"),
                 &[&strings::render(h).to_lowercase()],
             ));
         }
-        parts.push(match o.page.and_then(|p| self.folio_of(p)) {
+        let page = match o.page.and_then(|p| self.folio_of(p)) {
             Some(folio) => strings::format(key!("surface-chooser-page"), &[&folio]),
             None => strings::text(key!("surface-chooser-new")).to_owned(),
-        });
-        parts.join(" \u{b7} ")
+        };
+        [strings::render(&o.words), size.join(" \u{b7} "), page]
+    }
+
+    /// The Surface… chooser as the window draws it, a table of faces with one chosen (doc 12 §3.8): its column heads
+    /// (Surface, Size, Page) and per face its value and its three cells; `None` while the chooser is not open.
+    pub fn surface_rows(&self) -> Option<([String; 3], Vec<(String, [String; 3])>)> {
+        let Some(super::Dialog::Form(f)) = &self.dialog else {
+            return None;
+        };
+        if f.action != "layout.surface_page" {
+            return None;
+        }
+        let heads = [
+            strings::text(key!("surface-chooser-field")).to_owned(),
+            strings::text(key!("surface-chooser-size")).to_owned(),
+            strings::text(key!("surface-chooser-page-head")).to_owned(),
+        ];
+        let rows = self
+            .surface_offers()
+            .iter()
+            .map(|o| (o.value.clone(), self.offer_cells(o)))
+            .collect();
+        Some((heads, rows))
     }
 
     /// The printed folio of the page `id`.

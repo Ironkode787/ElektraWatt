@@ -463,5 +463,7 @@ change here.
   (Place on the bottom, Edit part…, Choose gland…, Take M32, Remove the hole); a fix that opens a window runs at once,
   without a card, and joins no Fix all. EW-LAY-018's gland not placed is an error at a release, its other forms stay
   warnings (doc 15 §3.2)
+- behaviour-change: Surface… lists the cabinet's faces as a table, each with its size and its page, one chosen with
+  a radio button (it was a drop-down list)
 - api-add: `fields.set` takes a device's `gland`; `layout.glands_place` takes the sheet point `x_mm`, `y_mm`; `part.edit`
   takes `section`

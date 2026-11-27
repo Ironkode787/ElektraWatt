@@ -431,6 +431,44 @@ pub fn show(
 /// rest of the body, `size.control` high. A text field has no placeholder (its label names it); a choice shows doc
 /// 16a §8's words ([`strings::choice_text`]) behind a `chevron-down`; a yes-or-no choice is a check box. `true` when
 /// Enter in a text field submits the form.
+/// Surface…'s table of faces: its heads, then per face a radio button with its name, its size and its page; a click
+/// chooses the face (the form's field `name`).
+#[allow(clippy::too_many_arguments)]
+fn surface_table(
+    ui: &mut Ui,
+    t: &crate::theme::Tokens,
+    name: &str,
+    value: &str,
+    heads: &[String; 3],
+    rows: &[(String, [String; 3])],
+    first_control: &mut bool,
+    events: &mut Vec<Event>,
+) {
+    egui::Grid::new(("surface-table", name))
+        .num_columns(3)
+        .spacing(egui::vec2(t.space_6, t.space_2))
+        .striped(false)
+        .show(ui, |ui| {
+            for head in heads {
+                ui.label(crate::components::small_secondary(t, head));
+            }
+            ui.end_row();
+            for (v, [face, size, page]) in rows {
+                let radio = ui.radio(v == value, face.as_str());
+                if radio.clicked() && v != value {
+                    events.push(Event::FormField(name.to_owned(), v.clone()));
+                }
+                if v == value && std::mem::take(first_control) {
+                    radio.request_focus();
+                }
+                crate::components::focus_ring(ui, &radio, t.radius_sm);
+                ui.label(size.as_str());
+                ui.label(page.as_str());
+                ui.end_row();
+            }
+        });
+}
+
 fn form_fields(
     ui: &mut Ui,
     shell: &ShellModel,
@@ -461,6 +499,11 @@ fn form_fields(
         .fold(0.0_f32, f32::max);
     let label_width = form_label_width(t.size_dialog_label, widest.ceil(), ui.available_width());
     for f in &form.fields {
+        // Surface…'s face: a table of the cabinet's faces, one chosen, across the body (doc 12 §3.8).
+        if let Some((heads, rows)) = shell.surface_rows().filter(|_| f.name == "surface") {
+            surface_table(ui, &t, &f.name, &f.value, &heads, &rows, &mut first_control, events);
+            continue;
+        }
         let label_text = f.label_text();
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = 0.0;

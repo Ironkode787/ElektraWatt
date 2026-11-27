@@ -793,7 +793,7 @@ const HINGE_TICKS: i64 = 9;
 /// The datum mark's arrows' length on paper along the sheet's edges.
 pub const DATUM_ARROW: Nm = Nm(5_000_000);
 /// The gap between the drawing and its caption on paper.
-pub const CAPTION_GAP: Nm = Nm(4_000_000);
+pub const CAPTION_GAP: Nm = Nm(2_000_000);
 /// The colour of the plate's footprints behind a door (the design's tertiary text colour, on the screen only).
 const BEHIND: ew_dl::Color = ew_dl::Color::from_rgb8(0x95, 0x9d, 0xa8);
 
@@ -897,9 +897,9 @@ impl Builder<'_> {
             .and_then(|r| p.rect(r));
         if let (Some((words, upper)), Some(r)) = (&s.door_edge, s.sheet.and_then(|r| p.rect(r))) {
             let (y, align) = if *upper {
-                (Nm(r.min().y.0 - CAPTION_GAP.0 / 4), &Align::BottomCentre)
+                (Nm(r.min().y.0 - CAPTION_GAP.0 / 2), &Align::BottomCentre)
             } else {
-                (Nm(r.max().y.0 + CAPTION_GAP.0 / 4), &Align::TopCentre)
+                (Nm(r.max().y.0 + CAPTION_GAP.0 / 2), &Align::TopCentre)
             };
             self.text(&TextSpec {
                 text: words,

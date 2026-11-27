@@ -436,7 +436,7 @@ The command reference lists every `layout.*` command with its parameters; what t
 ### 3.8 A device in the door
 
 **Opening a surface.** The Draw tab's Enclosure split (beside Mounting plate… and Fit the layout to the sheet) holds
-**Surface…**, which asks "Which surface of -UC1?" in a chooser of the cabinet's surfaces: Mounting plate, Door (or
+**Surface…**, which asks "Which surface of -UC1?" in a table of the cabinet's surfaces, one chosen: Mounting plate, Door (or
 Left door and Right door), Left side, Right side, Top, Bottom, each with its size and its page where it has one ("Door
 · 600 × 800 mm · new page"; "Mounting plate · 520 × 720 mm · page 902"). Its Primary names the act: "Draw on a new
 page" or "Go to page 902". A face whose size the part does not give shows Width and Height to type. The same act,

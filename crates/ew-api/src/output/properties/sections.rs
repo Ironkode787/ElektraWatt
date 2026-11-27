@@ -514,6 +514,10 @@ impl Session {
         if built.iter().any(|b| b.row.key == "device/derived.position") {
             built.retain(|b| b.row.key != "device/position");
         }
+        // A cable's gland likewise: its Gland row in words, not the stored part reference.
+        if built.iter().any(|b| b.row.key == "device/derived.gland") {
+            built.retain(|b| b.row.key != "device/gland");
+        }
         if kind == Kind::Device {
             let derived: BTreeSet<String> = built
                 .iter()
