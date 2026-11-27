@@ -261,6 +261,14 @@ fn a_dutch_project_names_its_label_files_and_drawings_for_drilling_in_dutch() {
         .into_iter()
         .map(|f| f.name)
         .collect();
-    assert!(drilling.iter().any(|n| n.ends_with(" Deur boormal.pdf")), "{drilling:?}");
-    assert!(!drilling.iter().any(|n| n.contains("Door") || n.contains("template")), "{drilling:?}");
+    assert!(
+        drilling.iter().any(|n| n.ends_with(" Deur boormal.pdf")),
+        "{drilling:?}"
+    );
+    assert!(
+        !drilling
+            .iter()
+            .any(|n| n.contains("Door") || n.contains("template")),
+        "{drilling:?}"
+    );
 }

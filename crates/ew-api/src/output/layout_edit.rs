@@ -2503,7 +2503,9 @@ impl Session {
         let sections: Option<Vec<ew_schema::GlandSection>> = cables
             .iter()
             .map(|c| {
-                let g = glands.iter().find(|g| g.cable.as_uuid() == *c && g.placed.is_none())?;
+                let g = glands
+                    .iter()
+                    .find(|g| g.cable.as_uuid() == *c && g.placed.is_none())?;
                 ew_derive::layout::gland_section(&q, g.part.as_ref().ok()?)
             })
             .collect();

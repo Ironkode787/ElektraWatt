@@ -51,7 +51,10 @@ impl GlandPlaceTool {
                 let points = (0..=CORNERS)
                     .map(|k| {
                         let a = std::f64::consts::TAU * (k % CORNERS) as f64 / CORNERS as f64;
-                        let p = (cu + (r * a.cos()).round() as i128, v + (r * a.sin()).round() as i128);
+                        let p = (
+                            cu + (r * a.cos()).round() as i128,
+                            v + (r * a.sin()).round() as i128,
+                        );
                         super::layout::sheet_of_surface(cx, panel, p)
                     })
                     .collect();

@@ -177,8 +177,8 @@ pub use navigators::{
     names_subject, nav_natural_key, navigator_columns, tokens as nav_tokens, v5,
 };
 pub use panel::{
-    LEGEND_COLUMNS, LegendOffer, PanelAxis, PanelBlock, PanelCarrier, PanelFeature, PanelPlacement, PanelTables,
-    UnplacedDevice, surface_of_page,
+    LEGEND_COLUMNS, LegendOffer, PanelAxis, PanelBlock, PanelCarrier, PanelFeature, PanelPlacement,
+    PanelTables, UnplacedDevice, surface_of_page,
 };
 pub use potential_offer::PotentialOffer;
 pub(crate) use potential_offer::said_type;

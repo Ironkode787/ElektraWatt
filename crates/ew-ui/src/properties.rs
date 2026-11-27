@@ -721,7 +721,7 @@ impl PropertiesPane {
                 ui.add_space(value_left - rect.left() + t.space_icon);
                 ui.add(
                     egui::Label::new(crate::components::styled(
-                        &strings::render(note),
+                        strings::render(note),
                         &t.type_small,
                         t.text_secondary,
                     ))

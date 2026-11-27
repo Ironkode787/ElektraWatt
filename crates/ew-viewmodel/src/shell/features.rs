@@ -132,7 +132,11 @@ impl ShellModel {
     /// The cables of `list` (references separated by commas; absent: every gland that waits in the cabinet of the
     /// focused panel page's surface), resolved to their IDs; the refusal of a reference that names none, or of no
     /// cable at all.
-    fn gland_cables(&self, surface: ew_api::output::Uuid, list: Option<&str>) -> Result<Vec<String>, Outcome> {
+    fn gland_cables(
+        &self,
+        surface: ew_api::output::Uuid,
+        list: Option<&str>,
+    ) -> Result<Vec<String>, Outcome> {
         let Some(session) = self.project.as_ref().map(|x| &x.session) else {
             return Err(Outcome::refused(key!("reason-no-project")));
         };

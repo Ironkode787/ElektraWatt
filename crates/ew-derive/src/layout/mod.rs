@@ -79,8 +79,8 @@ pub use fill::{
 };
 pub use fit::{Fit, Profile, RAIL_FITS, fits_rail, fits_surface};
 pub use glands::{
-    CableGland, CableGlands, NoGland, cable_outer_diameter, cable_part_use, gland_nut, gland_pitch, gland_row,
-    gland_section,
+    CableGland, CableGlands, NoGland, cable_outer_diameter, cable_part_use, gland_nut, gland_pitch,
+    gland_row, gland_section,
 };
 pub use holes::{
     Feature, HOLE_SIZES, HoleSizes, Made, Owner, SizeFamily, SurfaceFeatures, carrier_fixings, choice_for,
