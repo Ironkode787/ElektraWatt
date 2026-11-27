@@ -27,6 +27,8 @@ what the owner's test of 0.3.5 finds is added here.
 - FT-2333 `ew-derive`: A wire's length is a member of the one wire record set, so every edit of a layout builds every wire record again (not measured). The length as a query of its own per wire, which the lists, Properties and the checks read.
 - FT-2346 `ew-viewmodel, ew-ui`: A device made in Parts without network ports or PLC channels cannot be given that group afterwards; the sheet's contents offer the groups a part of its kind may have.
 - FT-2347 `ew-api`: Parts finds a part of the project by its number, maker, description and GTIN, and not by its order number or a property of its own, which the library's search matches. One rule for both.
+- FT-2351 `ew-api`: In a Dutch project the sheets of a drilling template print their texts in English (the title, the scale mark, the notes); the file's name is Dutch. The template's texts follow the project's language.
+- FT-2352 `ew-viewmodel, ew-api, ew-checks`: Several functions format a length in millimetres beside the one Properties uses, and the 5 mm web between two holes is written out in two places beside the checks' constant. One formatter of a length; the web's value read from its one home.
 
 #### The page's drawing
 
