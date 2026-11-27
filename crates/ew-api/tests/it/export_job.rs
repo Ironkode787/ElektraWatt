@@ -51,11 +51,7 @@ fn the_export_job_equals_the_synchronous_export_and_the_digest_and_keeps_its_sna
     assert_eq!(s.page_labels().len(), labels + 1, "the edit added a page");
     let end = pdf_job("pdf", None, job).wait();
     let JobEnd::Done(out) = end else { panic!("{end:?}") };
-    assert_eq!(
-        out.pages,
-        labels,
-        "the snapshot's pages, not the edited model's"
-    );
+    assert_eq!(out.pages, labels, "the snapshot's pages, not the edited model's");
     assert!(
         out.bytes == sync.bytes,
         "the job's bytes are the synchronous export's"
