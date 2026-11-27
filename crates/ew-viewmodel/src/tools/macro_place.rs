@@ -109,6 +109,11 @@ impl Tool for MacroTool {
         }
     }
 
+    // Its click opens the macro's card, which places it: the tool's work is done.
+    fn gives_way_after_step(&self) -> bool {
+        true
+    }
+
     fn status_hint(&self) -> super::Hint {
         super::Hint::new(key!("hint-macro"), &[super::ENTER, super::ESCAPE])
     }

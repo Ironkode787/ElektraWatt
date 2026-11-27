@@ -582,15 +582,13 @@ impl ShellModel {
         self.open_macro_card(&key, page, page_nm, value_set, BTreeMap::new())
     }
 
-    /// The macro tool's click ([`crate::tools::HostStep::MacroPlace`] of row `key` at `at`, page nm): the card, and
-    /// the tool returns to Select.
+    /// The macro tool's click ([`crate::tools::HostStep::MacroPlace`] of row `key` at `at`, page nm): the card (the
+    /// tool then gives way to Select, `MacroTool::gives_way_after_step`).
     pub(super) fn macro_place_from_tool(&mut self, key: &str, at: (i64, i64)) -> Outcome {
         let Some(page) = self.macro_page() else {
             return Outcome::refused(key!("reason-no-page"));
         };
-        let out = self.open_macro_card(key, page, at, None, BTreeMap::new());
-        let _ = self.act_tool("select");
-        out
+        self.open_macro_card(key, page, at, None, BTreeMap::new())
     }
 
     /// Composes `macro.insert` of the macro of row `key` at `at` (page nm) on `page` with `value_set` and the typed

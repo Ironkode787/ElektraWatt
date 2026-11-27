@@ -120,6 +120,11 @@ impl Tool for GlandPlaceTool {
         }
     }
 
+    // The drop ends the drag that armed it.
+    fn gives_way_after_step(&self) -> bool {
+        true
+    }
+
     fn status_hint(&self) -> Hint {
         Hint::new(crate::key!("hint-gland-place"), &[super::ESCAPE])
     }

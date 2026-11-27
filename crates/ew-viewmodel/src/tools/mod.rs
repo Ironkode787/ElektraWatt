@@ -714,6 +714,12 @@ pub trait Tool {
         Follows::default()
     }
 
+    /// Whether the tool gives way to Select once the host has run its host step ([`ToolOutput::Host`]), as
+    /// [`Follows::gives_way`] says it after a commit (doc 04 §9.2): a step that ends what the tool was armed for.
+    fn gives_way_after_step(&self) -> bool {
+        false
+    }
+
     /// The host committed the tool's command (`done`) or the commit failed.
     fn on_commit(&mut self, done: bool) {
         let _ = done;

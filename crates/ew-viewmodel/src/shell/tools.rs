@@ -641,8 +641,19 @@ impl ShellModel {
         }
     }
 
-    /// The host's action on a tool's output.
+    /// The host's action on a tool's output; after a host step the tool gives way to Select where it says so
+    /// ([`crate::tools::Tool::gives_way_after_step`]).
     pub(super) fn apply_tool_output(&mut self, out: ToolOutput) -> Outcome {
+        let gives_way = matches!(out, ToolOutput::Host(_)) && self.tools.tool.gives_way_after_step();
+        let done = self.apply_tool_step(out);
+        if gives_way {
+            let _ = self.act_tool("select");
+        }
+        done
+    }
+
+    /// What the host does with a tool's output ([`ShellModel::apply_tool_output`]).
+    fn apply_tool_step(&mut self, out: ToolOutput) -> Outcome {
         match out {
             ToolOutput::None => Outcome::Done,
             ToolOutput::Transient(o) => {
@@ -662,11 +673,8 @@ impl ShellModel {
             // The Supply tool's click places its marks in one undo step.
             ToolOutput::Host(crate::tools::HostStep::SupplyPlace { at }) => self.supply_place_from_tool(at),
             // The glands' drop places them as `layout.glands_place` does at a drop point.
-            // The glands' drop places them as `layout.glands_place` does at a drop point; the tool gives way to Select.
             ToolOutput::Host(crate::tools::HostStep::GlandsPlace { cables, at }) => {
-                let out = self.glands_place(Some(&cables), Some(at), (None, None));
-                let _ = self.act_tool("select");
-                out
+                self.glands_place(Some(&cables), Some(at), (None, None))
             }
             ToolOutput::Host(crate::tools::HostStep::PinForWire { rep, pin }) => self.pin_for_wire(rep, pin),
             // The Edit frame tool's click, released drag and double click.
