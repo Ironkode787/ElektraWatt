@@ -1185,7 +1185,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             View,
             Menu::Edit,
             &[],
-            parts_shown,
+            parts_drawing,
             None,
             |s, p| s.act_parts_draw(p),
         )),

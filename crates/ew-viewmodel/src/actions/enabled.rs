@@ -1291,6 +1291,12 @@ pub(super) fn parts_shown(m: &ShellModel) -> Result<(), Text> {
     }
 }
 
+/// Parts' drawing: while Parts shows, and from a page whose project he can write, where a placed box's Arrange its
+/// box… and the device browser's Arrange… open Parts on that part's box first.
+pub(super) fn parts_drawing(m: &ShellModel) -> Result<(), Text> {
+    parts_shown(m).or_else(|_| writable(m))
+}
+
 /// New part…: Parts over the libraries alone (no project), else a writable project.
 pub(super) fn parts_writable(m: &ShellModel) -> Result<(), Text> {
     if m.parts_without_project() {

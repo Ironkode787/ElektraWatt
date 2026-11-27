@@ -510,3 +510,70 @@ fn a_box_speaks_of_its_part_and_its_ports() {
         Some("Network ports X1 P1 and X1 P2 are drawn on a bus page.")
     );
 }
+
+/// A box part of his own made in the test, `number`, with the supply pins L+ and M, saved and placed on page 101 at
+/// grid point (10, 10): the placed box's id.
+fn own_box_placed(s: &mut ShellModel, number: &str) -> String {
+    done(s, "parts.new", json!({"start": "box"}));
+    for (field, value) in [("manufacturer", "Example"), ("part_number", number)] {
+        done(s, "parts.field", json!({"field": field, "value": value}));
+    }
+    for name in ["L+", "M"] {
+        done(s, "part.pin", json!({"add": true, "name": name}));
+    }
+    done(s, "parts.save", json!({}));
+    done(s, "parts.back", json!({}));
+    done(s, "tool.place", json!({}));
+    done(s, "place.pick", json!({"part": number}));
+    click(s, (10, 10));
+    done(s, "tool.select", json!({}));
+    let rep = tables(s).reps.iter().find(|r| r.black_box.is_some()).map(|r| r.id.to_string());
+    rep.expect("the box on the page")
+}
+
+/// Every way into Parts' drawing that a page offers works from the page, Parts not open: a placed box's Arrange its
+/// box… and the device browser's Arrange…, which open Parts on that part's box; a placed symbol's Draw one like it…;
+/// Open in Parts of a symbol; and the Symbol cell's Draw a new symbol… of a part opened from the page.
+#[test]
+fn the_ways_into_parts_drawing_work_from_a_page() {
+    use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
+    let tmp = Tmp::new("drawing-from-a-page");
+    let mut s = project(&tmp);
+    let rep = own_box_placed(&mut s, "PN-SW3");
+    crate::common::select_ids(&mut s, &[rep]);
+    let menu = canvas_menu(&s, MenuSpot::Object, None);
+    let arrange = menu.iter().find(|i| i.label == "Arrange its box…").expect("Arrange its box…");
+    assert!(arrange.enabled, "{:?}", arrange.reason);
+    done(&mut s, arrange.id, arrange.params.clone());
+    assert!(s.symbol_editor().and_then(|e| e.device_box()).is_some(), "the box in Parts");
+    done(&mut s, "parts.draw", json!({"done": true}));
+    done(&mut s, "parts.back", json!({"discard": true}));
+    // The device browser's Arrange…, Parts not open.
+    assert!(s.parts_place().is_none());
+    done(&mut s, "parts.draw", json!({"what": "box", "part": "PN-SW3"}));
+    assert!(s.symbol_editor().and_then(|e| e.device_box()).is_some(), "the box in Parts");
+    done(&mut s, "parts.draw", json!({"done": true}));
+    done(&mut s, "parts.back", json!({"discard": true}));
+    // Draw one like it… of a placed symbol.
+    done(&mut s, "tool.place", json!({}));
+    let coil = ew_viewmodel::ew_api::output::starter_piece_symbol("ew.fn.coil").expect("the starter coil");
+    done(&mut s, "place.pick", json!({"symbol": coil}));
+    click(&mut s, (30, 10));
+    done(&mut s, "tool.select", json!({}));
+    let placed = tables(&s).reps.iter().find(|r| r.symbol_key == coil).map(|r| r.id.to_string());
+    crate::common::select_ids(&mut s, &[placed.expect("the coil")]);
+    let menu = canvas_menu(&s, MenuSpot::Object, None);
+    let like = menu.iter().find(|i| i.label == "Draw one like it…").expect("Draw one like it…");
+    assert!(like.enabled, "{:?}", like.reason);
+    done(&mut s, like.id, like.params.clone());
+    assert!(s.symbol_editor().is_some(), "the drawing");
+    done(&mut s, "parts.back", json!({"discard": true}));
+    // Open in Parts of a symbol, then a part's Symbol cell.
+    done(&mut s, "parts.open", json!({"symbol": coil}));
+    done(&mut s, "parts.back", json!({"discard": true}));
+    own_contactor(&mut s, "MY-CON-6");
+    done(&mut s, "parts.back", json!({}));
+    done(&mut s, "parts.open", json!({"part": "MY-CON-6"}));
+    done(&mut s, "parts.draw", json!({"piece": 0, "from": "new"}));
+    assert!(s.symbol_editor().is_some(), "the piece's drawing");
+}
