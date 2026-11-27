@@ -49,12 +49,19 @@ fn a_value_typed_into_several_parts_is_saved_into_each_and_mixed_is_left_as_each
     for sheet in [&mut a, &mut b] {
         s.set_draft_field(sheet, "mech.depth", "45").expect("the depth");
     }
-    assert!(s.own_parts_update(&[&a, &b]).expect("saved").is_none(), "no project holds them");
+    assert!(
+        s.own_parts_update(&[&a, &b]).expect("saved").is_none(),
+        "no project holds them"
+    );
     let lib = a.source.expect("from My parts").0;
     for (sheet, height) in [(&a, 60), (&b, 70)] {
         let now = s.library_part_draft(lib, sheet.source.unwrap().1).expect("saved");
         assert_eq!(now.text("mech.depth"), "45");
-        assert_eq!(now.text("mech.height"), height.to_string(), "a mixed field stays as each has it");
+        assert_eq!(
+            now.text("mech.height"),
+            height.to_string(),
+            "a mixed field stays as each has it"
+        );
         assert_ne!(now.version, sheet.version, "its next version");
     }
 }

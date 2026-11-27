@@ -52,7 +52,13 @@ impl ManySheet {
             .split_once('[')
             .and_then(|(table, rest)| rest.split_once("].").map(|(row, column)| (table, row, column)));
         let pin = cell.and_then(|(table, row, column)| {
-            let key = self.sheets.first()?.0.table(table)?.keys.get(row.parse::<usize>().ok()?)?;
+            let key = self
+                .sheets
+                .first()?
+                .0
+                .table(table)?
+                .keys
+                .get(row.parse::<usize>().ok()?)?;
             Some((key.clone(), field_words(&format!("{table}[].{column}"))))
         });
         match pin {
@@ -95,7 +101,9 @@ impl ShellModel {
             return session.part_draft(id.parse().ok()?).ok();
         }
         let (library, item) = param.strip_prefix("lib:")?.split_once('/')?;
-        session.library_part_draft(library.parse().ok()?, item.parse().ok()?).ok()
+        session
+            .library_part_draft(library.parse().ok()?, item.parse().ok()?)
+            .ok()
     }
 
     /// The open part as `parts.open` names it, where the list does not show it (a search that leaves it out): the
@@ -105,7 +113,9 @@ impl ShellModel {
         if session.part_draft(sheet.copy).is_ok() {
             return Some(format!("id:{}", sheet.copy));
         }
-        sheet.source.map(|(library, item)| format!("lib:{library}/{item}"))
+        sheet
+            .source
+            .map(|(library, item)| format!("lib:{library}/{item}"))
     }
 
     /// `parts.open {part, add?, range?}` of a row of the list with Ctrl (`add`, the part in or out of the selection) or
@@ -268,7 +278,10 @@ impl ShellModel {
             .collect();
         if !here.is_empty() {
             return Outcome::Refused {
-                reason: strings::keyed(key!("reason-parts-many-here"), vec![ew_api::TextArg::Plain(here.join(", "))]),
+                reason: strings::keyed(
+                    key!("reason-parts-many-here"),
+                    vec![ew_api::TextArg::Plain(here.join(", "))],
+                ),
             };
         }
         let count = many.sheets.len();
@@ -280,7 +293,10 @@ impl ShellModel {
         let plan = match session.own_parts_update(&refs) {
             Ok(p) => p,
             Err((i, e)) => {
-                let number = sheets.get(i).map(|s| s.text("part_number").to_owned()).unwrap_or_default();
+                let number = sheets
+                    .get(i)
+                    .map(|s| s.text("part_number").to_owned())
+                    .unwrap_or_default();
                 let out = draft_refusal(e);
                 let why = match &out {
                     Outcome::Refused { reason } => strings::render(reason),
@@ -343,7 +359,10 @@ impl ShellModel {
             Ok(Some(path)) => std::path::PathBuf::from(path),
             Ok(None) => return self.need_path("parts.export", Prompt::SaveTable, "path", p),
         };
-        let sheets: Vec<PartSheet> = match (self.many_sheet(), self.parts.as_deref().and_then(|p| p.sheet.as_ref())) {
+        let sheets: Vec<PartSheet> = match (
+            self.many_sheet(),
+            self.parts.as_deref().and_then(|p| p.sheet.as_ref()),
+        ) {
             (Some(m), _) => m.sheets.iter().map(|(s, _)| s.clone()).collect(),
             (None, Some(open)) if !open.sheet.new => vec![open.sheet.clone()],
             _ => return Outcome::refused(key!("reason-no-part-open")),
@@ -378,7 +397,10 @@ impl ShellModel {
                 .map(|i| TableRow {
                     id: Some(sheets[i].text("part_number").to_owned()),
                     heading: false,
-                    cells: columns.iter().map(|(_, t)| TableCell::Text(t[i].clone())).collect(),
+                    cells: columns
+                        .iter()
+                        .map(|(_, t)| TableCell::Text(t[i].clone()))
+                        .collect(),
                 })
                 .collect(),
         };

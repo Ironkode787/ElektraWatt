@@ -167,10 +167,10 @@ pub use ew_derive::layout::{
 };
 /// The round trip's reader: a workbook or CSV read back as header and cell texts.
 pub use ew_import_catalog::sheet;
+pub use ew_reports::CellType;
 /// The table writers of `ew-reports` the row exports name: the CSV presets and their options, the
 /// table model, the workbook's metadata and writer.
 pub use ew_reports::csv::{CsvOptions, LineEnd, Preset, restyle, table_csv};
-pub use ew_reports::CellType;
 pub use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
 pub use ew_reports::xlsx::{WorkbookMeta, base_text, xlsx};
 pub use ew_scene::forms::SheetMap;

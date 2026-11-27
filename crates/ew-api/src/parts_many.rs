@@ -11,9 +11,9 @@ use std::collections::BTreeMap;
 use ew_ids::{Id, Uuid};
 use ew_schema::{Kind, LibCopy, LibDocument, Part};
 
+use crate::Session;
 use crate::part_editor::{PartDraftError, PartSheet, message};
 use crate::parts_set::SHARED_SIZES;
-use crate::Session;
 
 /// The identity's fields several parts may share: what they are and how they are sold, never what tells one from
 /// another (the maker, the number, the order number, the GTIN).
@@ -62,13 +62,22 @@ fn shared_cells(sheets: &[PartSheet]) -> Vec<String> {
         return Vec::new();
     };
     let same = |t: &crate::part_rows::DraftTable| {
-        t.keys == first.keys && t.columns.iter().map(|c| c.0).eq(first.columns.iter().map(|c| c.0))
+        t.keys == first.keys
+            && t.columns
+                .iter()
+                .map(|c| c.0)
+                .eq(first.columns.iter().map(|c| c.0))
     };
     if first.keys.is_empty() || !sheets.iter().all(|s| s.table(CONNECTIONS).is_some_and(same)) {
         return Vec::new();
     }
     (0..first.keys.len())
-        .flat_map(|i| first.columns.iter().map(move |(c, _)| format!("{CONNECTIONS}[{i}].{c}")))
+        .flat_map(|i| {
+            first
+                .columns
+                .iter()
+                .map(move |(c, _)| format!("{CONNECTIONS}[{i}].{c}"))
+        })
         .collect()
 }
 
@@ -129,7 +138,10 @@ impl Session {
             let held = match (held, draft.source) {
                 (Some(h), _) => h,
                 (None, Some((library, item))) => {
-                    match self.libraries().resolve(&crate::part_offers::lib_ref(library, item)) {
+                    match self
+                        .libraries()
+                        .resolve(&crate::part_offers::lib_ref(library, item))
+                    {
                         Ok(LibDocument::Part(c)) => c,
                         _ => return Err(target()),
                     }
@@ -139,7 +151,10 @@ impl Session {
             let lib = held.library_id.as_uuid();
             let failed = |e: String| {
                 let name = draft.library.clone().unwrap_or_default();
-                (i, PartDraftError::Field(message("part", key!("error-part-library"), &[&name, &e])))
+                (
+                    i,
+                    PartDraftError::Field(message("part", key!("error-part-library"), &[&name, &e])),
+                )
             };
             // The library's own version of the item: a later one written meanwhile is the base of the next.
             let current = self
@@ -196,7 +211,12 @@ impl Session {
 pub fn table_columns(sheets: &[PartSheet]) -> Vec<(String, Vec<String>)> {
     let mut out: Vec<(String, Vec<String>)> = TABLE_IDENTITY
         .iter()
-        .map(|f| ((*f).to_owned(), sheets.iter().map(|s| s.text(f).trim().to_owned()).collect()))
+        .map(|f| {
+            (
+                (*f).to_owned(),
+                sheets.iter().map(|s| s.text(f).trim().to_owned()).collect(),
+            )
+        })
         .collect();
     let mut seen: Vec<String> = Vec::new();
     for s in sheets {
@@ -215,7 +235,13 @@ pub fn table_columns(sheets: &[PartSheet]) -> Vec<(String, Vec<String>)> {
         };
         let texts: Vec<String> = sheets
             .iter()
-            .map(|s| if shows(s, &f) { s.text(&f).trim().to_owned() } else { String::new() })
+            .map(|s| {
+                if shows(s, &f) {
+                    s.text(&f).trim().to_owned()
+                } else {
+                    String::new()
+                }
+            })
             .collect();
         if texts.iter().all(String::is_empty) {
             continue;

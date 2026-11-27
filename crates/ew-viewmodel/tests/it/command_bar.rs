@@ -45,6 +45,8 @@ const KEY_ONLY: &[&str] = &[
     // The menus only the window draws, opened by their keys: the app menu itself and a canvas's context menu.
     "ui.app_menu",
     "ui.context_menu",
+    // Export of Parts, in its bar and the palette.
+    "parts.export",
     // A PLC module's and a channel's own settings, reached through their row menus.
     "plc.module_safety",
     "plc.channel_settings",

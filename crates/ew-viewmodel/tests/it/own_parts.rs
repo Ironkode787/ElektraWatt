@@ -82,10 +82,21 @@ fn a_variant_row_left_without_its_name_is_refused_naming_it() {
         done(&mut s, "parts.field", json!({"field": field, "value": value}));
     }
     done(&mut s, "parts.row", json!({"table": "variants"}));
-    done(&mut s, "parts.field", json!({"field": "variants[0].key", "value": "blue"}));
+    done(
+        &mut s,
+        "parts.field",
+        json!({"field": "variants[0].key", "value": "blue"}),
+    );
     let words = crate::common::failed(&mut s, "parts.save", json!({}));
     assert!(words.contains("Row 1"), "{words}");
-    let foot = s.parts_place().and_then(|p| p.sheet.as_ref()).and_then(|o| o.foot_message());
-    assert!(foot.as_deref().is_some_and(|f| f.starts_with("Name of the variant: Row 1")), "{foot:?}");
+    let foot = s
+        .parts_place()
+        .and_then(|p| p.sheet.as_ref())
+        .and_then(|o| o.foot_message());
+    assert!(
+        foot.as_deref()
+            .is_some_and(|f| f.starts_with("Name of the variant: Row 1")),
+        "{foot:?}"
+    );
     s.shutdown();
 }

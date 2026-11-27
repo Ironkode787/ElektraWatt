@@ -2077,7 +2077,11 @@ fn parts_lines(place: &crate::shell::parts_place::PartsPlace, lines: &mut Vec<St
     }
     // Several parts selected: each by its number, the fields they share with the value or `mixed`.
     if let Some(many) = place.many.as_deref() {
-        let numbers: Vec<String> = many.numbers().into_iter().map(|(n, _)| format!("\"{}\"", user(&n))).collect();
+        let numbers: Vec<String> = many
+            .numbers()
+            .into_iter()
+            .map(|(n, _)| format!("\"{}\"", user(&n)))
+            .collect();
         lines.push(format!(
             "  many {}{}",
             numbers.join(" "),

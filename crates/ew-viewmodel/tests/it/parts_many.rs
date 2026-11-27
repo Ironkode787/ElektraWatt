@@ -67,10 +67,22 @@ fn a_value_typed_into_two_of_his_parts_is_saved_into_both_in_one_step() {
     assert!(lines_with(&s, "field mech.width ").contains(&"field mech.width \"6.2\"".to_owned()));
     assert!(lines_with(&s, "field mech.height ").contains(&"field mech.height mixed".to_owned()));
     // Both have the same pins: the Connections table is shared, a cell each.
-    assert!(!lines_with(&s, "field cp_pattern[0].csa_max").is_empty(), "{}", s.describe());
+    assert!(
+        !lines_with(&s, "field cp_pattern[0].csa_max").is_empty(),
+        "{}",
+        s.describe()
+    );
     let undo_before = s.can_undo();
-    done(&mut s, "parts.field", json!({"field": "mech.depth", "value": "45"}));
-    done(&mut s, "parts.field", json!({"field": "cp_pattern[0].csa_max", "value": "2.5"}));
+    done(
+        &mut s,
+        "parts.field",
+        json!({"field": "mech.depth", "value": "45"}),
+    );
+    done(
+        &mut s,
+        "parts.field",
+        json!({"field": "cp_pattern[0].csa_max", "value": "2.5"}),
+    );
     done(&mut s, "parts.save", json!({}));
     // The project holds both: the card names the two parts before its Apply, which is one undo step.
     let card = s.properties().card().expect("the card of the project's copies");
@@ -83,7 +95,11 @@ fn a_value_typed_into_two_of_his_parts_is_saved_into_both_in_one_step() {
         let open = &s.parts_place().unwrap().sheet.as_ref().unwrap().sheet;
         assert_eq!(open.text("mech.depth"), "45", "{number}");
         assert_eq!(open.text("cp_pattern[0].csa_max"), "2.5", "{number}");
-        assert_eq!(open.text("mech.height"), height, "{number}: mixed is never written");
+        assert_eq!(
+            open.text("mech.height"),
+            height,
+            "{number}: mixed is never written"
+        );
     }
     // One undo step takes both back.
     done(&mut s, "edit.undo", json!({}));
@@ -98,7 +114,11 @@ fn a_starter_part_among_the_selected_is_refused_by_name() {
     done(&mut s, "parts.open", json!({}));
     terminal(&mut s, "FT-4", "60");
     let mine = row(&mut s, "FT-4");
-    done(&mut s, "parts.find", json!({"text": "EW-GEN-TRM-1", "scope": "all"}));
+    done(
+        &mut s,
+        "parts.find",
+        json!({"text": "EW-GEN-TRM-1", "scope": "all"}),
+    );
     let starter = s
         .parts_place()
         .and_then(|p| p.found.iter().find(|f| f.offer.part_number == "EW-GEN-TRM-1"))
@@ -107,7 +127,11 @@ fn a_starter_part_among_the_selected_is_refused_by_name() {
     done(&mut s, "parts.open", json!({"part": mine}));
     done(&mut s, "parts.open", json!({"part": starter, "add": true}));
     assert_eq!(
-        refused(&mut s, "parts.field", json!({"field": "mech.depth", "value": "45"})),
+        refused(
+            &mut s,
+            "parts.field",
+            json!({"field": "mech.depth", "value": "45"})
+        ),
         "reason-parts-many-not-yours"
     );
     s.shutdown();

@@ -1300,7 +1300,9 @@ impl ShellModel {
             } else if !flag(p, "discard") {
                 return match self.mode {
                     crate::shell::Mode::Headless => Outcome::refused(key!("reason-parts-unsaved")),
-                    crate::shell::Mode::Gui => self.open_dialog(Dialog::ConfirmLeavePart { number, next: None }),
+                    crate::shell::Mode::Gui => {
+                        self.open_dialog(Dialog::ConfirmLeavePart { number, next: None })
+                    }
                 };
             }
         }

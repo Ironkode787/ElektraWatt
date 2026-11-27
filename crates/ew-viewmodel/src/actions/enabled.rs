@@ -1354,7 +1354,9 @@ fn many_editable(m: &ShellModel) -> Result<(), Text> {
 
 /// Export as a table…: several parts selected, or a part open that is saved.
 pub(super) fn part_exportable(m: &ShellModel) -> Result<(), Text> {
-    let place = m.parts_place().ok_or_else(|| Text::from(key!("reason-no-parts-place")))?;
+    let place = m
+        .parts_place()
+        .ok_or_else(|| Text::from(key!("reason-no-parts-place")))?;
     if place.many.is_some() || place.sheet.as_ref().is_some_and(|o| !o.sheet.new) {
         Ok(())
     } else {
