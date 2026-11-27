@@ -1242,8 +1242,7 @@ fn fill_rows(q: &Q, id: Id<Carrier>, d: &ew_schema::DuctParams) -> Vec<PropRow> 
         return Vec::new();
     };
     let k = "carrier";
-    let (area, of) = fill.fill();
-    let percent = ew_units::arith::div_round_ties_away(area * 100, of.max(1)).to_string();
+    let percent = fill.percent().to_string();
     let limit = fill.limit.to_string();
     let mut words = if fill.over() {
         ew_derive::text!("duct-fill-over", percent, limit).to_string()

@@ -310,7 +310,9 @@ saves.
 ### 8.6 Duct fill
 
 `duct_fill(duct)` gives, per piece of the duct between the points where ways enter or leave it, the area of the wires
-whose stored way runs along it over the duct's inner area, and the duct's **fill**: that of its fullest piece.
+whose stored way runs along it over the duct's inner area, and the duct's **fill**: that of its fullest piece,
+printed in whole percent rounded up, so that a fill over the limit never reads as the limit itself (60.4 % reads
+61 %, over 60 %).
 
 - A wire's area is π/4 · OD². Its outer diameter comes from its wire part (`sections.wire.outer_diameter`,
   [07](07-symbols-parts-macros.md) §2.5), else from the table below by its cross-section, else the wire is not

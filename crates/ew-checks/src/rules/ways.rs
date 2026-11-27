@@ -279,8 +279,7 @@ impl Rule for FillOver {
             if !fill.over() {
                 continue;
             }
-            let (area, inner) = fill.fill();
-            let percent = ew_units::arith::div_round_ties_away(area * 100, inner.max(1));
+            let percent = fill.percent();
             let size = match &c.params {
                 ew_schema::CarrierParams::Duct(d) => format!(
                     "{}×{}",

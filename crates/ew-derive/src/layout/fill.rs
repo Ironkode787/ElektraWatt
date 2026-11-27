@@ -147,6 +147,15 @@ impl DuctFillV {
         let (area, inner) = self.fill();
         area * 100 > i128::from(self.limit) * inner
     }
+
+    /// The fill as every place prints it (the chip, Route's card, a duct's Properties, EW-LAY-008): the fullest piece in
+    /// whole percent of the inner area, rounded up, so that it is above the limit exactly when [`DuctFillV::over`]
+    /// holds and a fill over the limit never reads as the limit itself (doc 12-3d §8.6).
+    pub fn percent(&self) -> i128 {
+        let (area, inner) = self.fill();
+        let (n, d) = (area.max(0) * 100, inner.max(1));
+        (n + d - 1) / d
+    }
 }
 
 /// `duct_fill(duct)`: per piece of the duct between the points where stored ways enter or leave it, the area of the
@@ -231,5 +240,41 @@ impl Query for DuctFill {
             default_diameter,
             without_diameter: without,
         }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A duct of `inner` square units whose fullest piece holds `area`, limit 60 %.
+    fn filled(area: i128, inner: i128) -> DuctFillV {
+        DuctFillV {
+            inner: (inner, InnerFrom::Part),
+            limit: 60,
+            pieces: vec![FillPiece {
+                from: 0,
+                to: 1,
+                area,
+                wires: 1,
+            }],
+            fullest: Some(0),
+            wires: Vec::new(),
+            default_diameter: false,
+            without_diameter: 0,
+        }
+    }
+
+    /// The percent printed is above the limit exactly when the fill is over it: 60.4 % reads 61 % and is over, 60 %
+    /// reads 60 % and is not, 7.57 % (the sample's duct) reads 8 %.
+    #[test]
+    fn a_fill_over_its_limit_never_reads_as_the_limit() {
+        for (area, inner) in [(604, 1000), (600, 1000), (601, 1000), (1545, 20400), (0, 1000), (5, 0)] {
+            let f = filled(area, inner);
+            assert_eq!(f.percent() > i128::from(f.limit), f.over(), "{area} of {inner}");
+        }
+        assert_eq!(filled(604, 1000).percent(), 61);
+        assert_eq!(filled(600, 1000).percent(), 60);
+        assert_eq!(filled(1545, 20400).percent(), 8);
     }
 }

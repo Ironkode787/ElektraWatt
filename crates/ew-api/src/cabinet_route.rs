@@ -295,13 +295,12 @@ impl Session {
                     pts.iter().map(|p| p.1).max()? + half,
                 );
                 let (_, mid) = line.at((piece.from + piece.to) / 2)?;
-                let (area, inner) = fill.fill();
                 Some(DuctMark {
                     carrier: *id,
                     piece: [on_page(projection, (x0, y0)), on_page(projection, (x1, y1))],
                     // The chip stands above the piece, clear of its hatch.
                     chip: on_page(projection, (mid.0, mid.1 + 2 * half)),
-                    percent: ew_units::arith::div_round_ties_away(area * 100, inner.max(1)),
+                    percent: fill.percent(),
                     limit: fill.limit,
                     over: fill.over(),
                 })
@@ -628,7 +627,7 @@ fn card(
             let (CarrierParams::Duct(d), Some(label)) = (&carrier.params, carrier_label(after, c)) else {
                 continue;
             };
-            let (area, inner) = fill.fill();
+            let inner = fill.inner.0;
             let chip = ew_derive::layout::DuctLine::of(after, c)
                 .and_then(|l| {
                     let piece = fill.fullest.and_then(|i| fill.pieces.get(i))?;
@@ -644,7 +643,7 @@ fn card(
                     ew_derive::mm_exact(i128::from(d.width.0)),
                     ew_derive::mm_exact(i128::from(d.height.0))
                 ),
-                percent: ew_units::arith::div_round_ties_away(area * 100, inner.max(1)),
+                percent: fill.percent(),
                 inner_mm2: ew_units::arith::div_round_ties_away(inner, 1_000_000_000_000),
                 limit: fill.limit,
                 over: fill.over(),

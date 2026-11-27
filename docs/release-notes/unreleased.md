@@ -871,3 +871,5 @@ change here.
   file in the project's language or, for a `.csv` name, a CSV in English, by the writer of `ew export report` and the
   package; a list could be had as a file only through the package or the command line
 - api-add: `lists.export {path?, replace?}`
+- behaviour-change: a duct's fill reads in whole percent rounded up, in its chip, Route's card, its Properties and
+  EW-LAY-008, so a fill just over the limit reads "61 % · over 60 %", never "60 % · over 60 %"
