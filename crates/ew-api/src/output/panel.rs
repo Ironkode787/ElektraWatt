@@ -33,8 +33,7 @@ use ew_scene::panel::{
 };
 use ew_schema::{
     Carrier, CarrierKind, CarrierParams, CarrierRef, Device, Enclosure, LayoutLabels, LayoutSpace, LibCopy,
-    MountKind, MountingSurface, Page, PageItem, PageItemKind, PageType, Part, Placement,
-    SurfaceLabelMode,
+    MountKind, MountingSurface, Page, PageItem, PageItemKind, PageType, Part, Placement, SurfaceLabelMode,
 };
 use ew_text::{Shaped, TextStyle};
 use ew_units::arith::div_round_ties_away;

@@ -100,7 +100,8 @@ impl Command for SetWorkshopStock {
 
 /// The members of the workshop settings that `project.settings.set` sets one by one, as `workshop.<member>` (doc 13
 /// §2.3): which fine-stranded ends take a ferrule, what two wires of one size on one clamp take, what a marker says,
-/// whether cores and jumpers carry one, where a device's label goes and the columns of a label file.
+/// whether cores and jumpers carry one, where a device's label goes and the columns of a label file; and the layout's
+/// numbers (doc 12 §8.6, §9): the reserve per end of a routed wire, the duct fill limit and the door loop.
 pub const SETTABLE_WORKSHOP: &[&str] = &[
     "ferrules",
     "two_wires",
@@ -109,6 +110,9 @@ pub const SETTABLE_WORKSHOP: &[&str] = &[
     "mark_jumpers",
     "device_labels",
     "label_profile",
+    "reserve",
+    "fill_limit",
+    "door_loop",
 ];
 
 /// The prefix of a member of [`SETTABLE_WORKSHOP`] in `project.settings.set`.
@@ -172,6 +176,27 @@ pub(crate) fn set_member(tx: &mut TxBuilder<'_>, path: &str, value: &Value) -> R
                 ));
             }
             workshop.label_profile = Some(profile);
+        }
+        ("reserve", true) => workshop.reserve = None,
+        ("door_loop", true) => workshop.door_loop = None,
+        ("reserve" | "door_loop", false) => {
+            let n: ew_units::Nm = member_value(&member, value)?;
+            if n.0 < 0 {
+                return Err(settings_bad("/value", text!("refusal-workshop-length-negative")));
+            }
+            if path == "reserve" {
+                workshop.reserve = Some(n);
+            } else {
+                workshop.door_loop = Some(n);
+            }
+        }
+        ("fill_limit", true) => workshop.fill_limit = None,
+        ("fill_limit", false) => {
+            let n: i64 = member_value(&member, value)?;
+            let Some(limit) = u8::try_from(n).ok().filter(|n| (1..=100).contains(n)) else {
+                return Err(settings_bad("/value", text!("refusal-workshop-fill-limit")));
+            };
+            workshop.fill_limit = Some(limit);
         }
         _ => {
             return Err(CmdError::internal(format!(

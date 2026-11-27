@@ -88,12 +88,11 @@ pub use holes::{
     rail_fixing_default,
 };
 pub use legend::{
-    CarrierLabel, CarrierLabelKind, CarrierOrder, LegendItem, LegendRow, carrier_label, carrier_labels,
-    cabinet_name, carrier_length, carrier_order, carriers_in_order, layout_legend, legend_layout_page,
-    location_text, metres_of_nm,
-    page_surface, surface_pages,
+    CarrierLabel, CarrierLabelKind, CarrierOrder, LegendItem, LegendRow, cabinet_name, carrier_label,
+    carrier_labels, carrier_length, carrier_order, carriers_in_order, layout_legend, legend_layout_page,
+    location_text, metres_of_nm, page_surface, surface_pages,
 };
-pub use pins::{PinSpot, PinSpots, PinSpotsV, drawn_face, pin_face, placement_of_function};
+pub use pins::{PinSpot, PinSpots, PinSpotsV, drawn_face, pin_face, placement_of_function, reach};
 pub use pose::{PoseError, PoseOn, Quarter, check_pose, clip_offset, plate_frame, rehome_pose};
 pub use queries::{
     CarrierGeom, CarrierGeometry, Exempt, LabelMode, LayoutLabel, MountAs, Mountability, Mountable, Occupied,
@@ -116,9 +115,9 @@ pub use template::{
 };
 pub use ways::{
     CabinetWire, DOOR_LOOP, DuctGraph, DuctGraphV, DuctLine, Entry, FILL_LIMIT, Joint, NoWay, Planned,
-    PlannedWire, RESERVE, RoutePlan, RouteScope, RouteStatus, StaleWhy, Way, cabinet_wires, door_loop,
-    entries, fill_limit, measure, plan_routes, plate_of_space, reserve, route_status, routed_length,
-    stored_way,
+    PlannedWire, RESERVE, RoutePlan, RouteScope, RouteStatus, StaleWhy, Way, cabinet_page, cabinet_wires,
+    door_loop, entries, fill_limit, measure, plan_routes, plate_of_space, reserve, route_status,
+    routed_length, space_of_wire, stored_way, way_points,
 };
 
 #[cfg(test)]

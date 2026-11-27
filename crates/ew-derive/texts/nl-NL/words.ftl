@@ -123,6 +123,38 @@ length-source-from-part = uit artikel
 length-source-missing = ontbreekt
 length-source-routed = gerouteerd
 length-source-stale = verouderd
+length-source-site = ter plaatse
+
+## A wire's way in its cabinet and its length (doc 12 §8, §9)
+
+length-routed = Gerouteerd: { $p0 } draadloop, { $p1 } reserve aan elk eind, naar boven afgerond op { $p2 }
+length-routed-door = Gerouteerd: { $p0 } draadloop, { $p1 } reserve aan elk eind en een lus van { $p2 } bij de deur, naar boven afgerond op { $p3 }
+length-stale = Verouderd: { $p0 }. Routeren geeft een nieuwe loop
+length-no-way-yet = Nog geen loop: Routeren op pagina { $p0 } geeft er een, of typ de lengte hier
+length-no-way = Geen loop: { $p0 }
+length-typed-routed = Met de hand getypt. Routeren geeft { $p0 }: maak de lengte leeg om die te nemen.
+length-typed-by-hand = met de hand getypt
+length-with-cable = met de kabel { $p0 } op maat geknipt
+length-none = geen lengte: typ die hier, of de bedrader meet de draad
+way-moved = { $p0 } is verplaatst
+way-end-moved = het eind ging van { $p0 } naar { $p1 }
+way-unplaced = { $p0 } is niet meer geplaatst
+way-duct-changed = { $p0 } is veranderd
+way-duct-gone = een kabelgoot van de loop is weg
+no-way-unplaced = { $p0 } is niet geplaatst: plaats het en routeer opnieuw
+no-way-no-duct = { $p0 } komt bij geen kabelgoot: teken een kabelgoot boven of onder { $p1 }, of typ de lengte
+no-way-no-duct-here = { $p0 } komt bij geen kabelgoot: teken een kabelgoot boven of onder het apparaat, of typ de lengte
+no-way-off-plate = { $p0 } zit op een zijwand: Routeren legt draden op de montageplaat en naar de deuren; typ de lengte
+way-direct = direct
+way-door = deur
+duct-inner-area-part = { $p0 } mm² · de binnenmaat van het artikel
+duct-inner-area-share = { $p0 } mm² · 0,85 × { $p1 } × { $p2 }: het artikel geeft geen binnenmaat
+duct-fill = { $p0 } % waar het volst is · de grens is { $p1 } %
+duct-fill-over = { $p0 } % waar het volst is · boven de grens van { $p1 } %
+duct-fill-default = met standaarddiameters (niet geverifieerd)
+duct-fill-without = { $p0 } zonder diameter niet meegeteld
+placement-reaches = { $p0 } mm vanaf de montageplaat
+placement-depth-unknown = diepte niet bekend: de gesloten deur wordt er niet op gecontroleerd
 
 ## The rework list: what the fitter does, and what changed
 

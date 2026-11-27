@@ -518,6 +518,12 @@ pub const ARMS: &[Arm] = &[
         weight: 2,
         build: layout_apply,
     },
+    // After it, for the same reason.
+    Arm {
+        command: "layout.route",
+        weight: 1,
+        build: layout_route,
+    },
 ];
 
 /// The representation types a page type allows (`allowed_rep_types` of `ew-commands`, in JSON form).

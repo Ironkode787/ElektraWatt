@@ -40,6 +40,8 @@ pub struct WireUse {
     pub length: i128,
     /// The wires without a length.
     pub without_length: usize,
+    /// Whether a summed length is along a way that no longer holds (doc 12 §8.5): the sum prints with "≈".
+    pub stale: bool,
 }
 
 /// What an end is given ([`EndUse::form`]).
@@ -121,11 +123,13 @@ pub fn consumable_rows(q: &Q) -> Consumables {
                         wires: 0,
                         length: 0,
                         without_length: 0,
+                        stale: false,
                     });
                     out.wires.last_mut().expect("just pushed")
                 }
             };
             row.wires += 1;
+            row.stale |= matches!(r.length, WireLength::Stale { .. });
             match r.length.value() {
                 Some(n) => row.length = row.length.saturating_add(i128::from(n.0)),
                 None => row.without_length += 1,

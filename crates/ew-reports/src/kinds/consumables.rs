@@ -57,7 +57,7 @@ impl ReportKindDef for Consumables {
                 let count = |n: usize| TextArg::Number(i64::try_from(n).unwrap_or(i64::MAX));
                 let metres = ew_derive::layout::metres_of_nm(w.length);
                 let quantity = match (w.without_length, w.wires) {
-                    (0, _) => qty_cell(metres),
+                    (0, _) => Cell::stale_if(qty_cell(metres), w.stale),
                     (missing, all) if missing == all => {
                         words_cell(&selecting(key!("cell-length-missing-for")).with("count", count(missing)))
                     }

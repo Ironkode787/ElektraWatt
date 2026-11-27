@@ -492,3 +492,23 @@ change here.
   (`CommittedRoute`, `RouteEnd`, `WayStep`, `DuctStretch`; doc 05 §2); `CpData` gains `face` (`PinFace`),
   `WireSection` gains `outer_diameter`, `WorkshopSettings` gains `door_loop`, `fill_limit` and `reserve`; each absent
   when not set.
+- behaviour-change: Route on a panel page lays the cabinet's wires through its ducts (doc 12 §8): each wire with both
+  ends in the cabinet gets its way, from its pin into the first duct its line meets (or back across its own device's
+  front), along the ducts, out to its other pin, or straight over the fronts between neighbours on one rail; a wire
+  whose duct is full to the project's fill limit goes another way where one has room. The way is stored, and the
+  wire's length is made from it: its run plus 50 mm reserve at each end, rounded up once to the cut increment. The wire
+  list prints it with Length from "routed", a way that no longer holds (a device moved or turned, a duct changed)
+  keeps its length printed after "≈" with "stale", and the cut list and the consumables print such a piece and sum
+  with "≈". A typed length still wins. A project without stored ways prints what it printed; after Route a field
+  wire's Length from says "site". The pins stand on the top or bottom edge of their device by the drawing (a pin a wire
+  leaves upwards on its page at the top, any other at the bottom) or by the part's own word.
+- api-add: the command `layout.route {space, wires?, all?}` (Bulk) stores the plan of a cabinet's ways, one
+  `committed_route` per wire; `Session::cabinet_route(folio, all)` gives Route's card with the preview that stores it;
+  `ew route <project> --page <panel page>` routes the cabinet (`--dry-run` prints it; the JSON's reasons `unplaced`,
+  `no_duct`, `off_plate`)
+- api-add: `project.settings.set` sets `workshop.reserve`, `workshop.fill_limit` and `workshop.door_loop`, refusing in
+  words a length below nothing and a limit outside 1 … 100
+- behaviour-change: a wire's Properties say how its length is made ("Routed: 412.5 mm of way, 50 mm reserve at each
+  end, rounded up to 515 mm"; "Stale: -X1031 moved. Route gives it a new way"; "No way yet: Route on page 902 gives it
+  one, or type its length here") and where it runs (Way: "Duct 1", "direct"); a duct's say its inner area and its fill
+  where fullest against the limit; a placement's what it reaches from the plate, and its clearance in front

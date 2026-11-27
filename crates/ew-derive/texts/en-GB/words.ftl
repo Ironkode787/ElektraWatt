@@ -127,6 +127,38 @@ length-source-from-part = from part
 length-source-missing = missing
 length-source-routed = routed
 length-source-stale = stale
+length-source-site = site
+
+## A wire's way in its cabinet and its length (doc 12 §8, §9)
+
+length-routed = Routed: { $p0 } of way, { $p1 } reserve at each end, rounded up to { $p2 }
+length-routed-door = Routed: { $p0 } of way, { $p1 } reserve at each end and a { $p2 } door loop, rounded up to { $p3 }
+length-stale = Stale: { $p0 }. Route gives it a new way
+length-no-way-yet = No way yet: Route on page { $p0 } gives it one, or type its length here
+length-no-way = No way: { $p0 }
+length-typed-routed = Typed by hand. Route gives it { $p0 }: clear the length to take it.
+length-typed-by-hand = typed by hand
+length-with-cable = cut with its cable { $p0 }
+length-none = no length: type it here, or the fitter measures the wire
+way-moved = { $p0 } moved
+way-end-moved = its end moved from { $p0 } to { $p1 }
+way-unplaced = { $p0 } is no longer placed
+way-duct-changed = { $p0 } changed
+way-duct-gone = a duct of its way is gone
+no-way-unplaced = { $p0 } is not placed: place it, then route again
+no-way-no-duct = { $p0 } meets no duct: draw a duct above or below { $p1 }, or type the length
+no-way-no-duct-here = { $p0 } meets no duct: draw a duct above or below its device, or type the length
+no-way-off-plate = { $p0 } is on a side wall: Route lays wires on the plate and into the doors; type the length
+way-direct = direct
+way-door = door
+duct-inner-area-part = { $p0 } mm² · the part's inner size
+duct-inner-area-share = { $p0 } mm² · 0.85 × { $p1 } × { $p2 }: the part gives no inner size
+duct-fill = { $p0 } % where fullest · the limit is { $p1 } %
+duct-fill-over = { $p0 } % where fullest · over the limit of { $p1 } %
+duct-fill-default = with default diameters (unverified)
+duct-fill-without = { $p0 } without a diameter not counted
+placement-reaches = { $p0 } mm from the plate
+placement-depth-unknown = depth not known: the closed door is not checked for it
 
 ## The rework list: what the fitter does, and what changed
 

@@ -406,7 +406,8 @@ fn frozen_tags_wire_chips_and_the_page_description() {
 }
 
 /// A wire's Length row (doc 13 §3.3) says where its length comes from: 101.1's typed length in millimetres, typed by
-/// hand, with Reset; 102.1 has none, said in words, with Override; a core's is cut with its cable.
+/// hand, with Reset; 102.1, a wire of the cabinet Route has not laid, has none, and the row says that Route on the
+/// cabinet's page gives it one (doc 12 §9), with Override; a core's is cut with its cable.
 #[test]
 fn a_wires_length_row_says_where_its_length_comes_from() {
     let s = crate::common::sample();
@@ -427,7 +428,7 @@ fn a_wires_length_row_says_where_its_length_comes_from() {
     assert_eq!(
         length.provenance,
         Provenance::Derived {
-            via: "no length: type it here, or the fitter measures the wire".into()
+            via: "No way yet: Route on page 902 gives it one, or type its length here".into()
         }
     );
     assert_eq!(length.actions, [RowAction::Override]);

@@ -197,14 +197,20 @@ fn cut_row(q: &Q, columns: &[ColumnDef], group: CutGroup, n: usize, r: &CutRow) 
         Some(nm) => {
             set(
                 "piece_length",
-                Cell::Qty(Dec3(i64::try_from(nm / 1_000).unwrap_or(i64::MAX)), QtyUnit::None),
+                Cell::stale_if(
+                    Cell::Qty(Dec3(i64::try_from(nm / 1_000).unwrap_or(i64::MAX)), QtyUnit::None),
+                    r.stale,
+                ),
             );
             let pieces = i128::try_from(r.pieces).unwrap_or(i128::MAX);
             set(
                 "total",
-                Cell::Qty(
-                    ew_derive::layout::metres_of_nm(nm.saturating_mul(pieces)),
-                    QtyUnit::None,
+                Cell::stale_if(
+                    Cell::Qty(
+                        ew_derive::layout::metres_of_nm(nm.saturating_mul(pieces)),
+                        QtyUnit::None,
+                    ),
+                    r.stale,
                 ),
             );
         }

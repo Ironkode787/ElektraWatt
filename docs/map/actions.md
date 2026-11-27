@@ -226,7 +226,7 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `layout.draw_options` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_draw_options` `crates/ew-viewmodel/src/shell/layout.rs` | `action-layout-draw-options` |
 | `layout.enclosure_new` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_enclosure_new` `crates/ew-viewmodel/src/shell/layout.rs` | `action-layout-enclosure-new` |
 | `tool.connect_on_move` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_tool_connect_on_move` `crates/ew-viewmodel/src/shell.rs` | `action-tool-connect-on-move` |
-| `layout.route` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_route` `crates/ew-viewmodel/src/shell/wiring.rs` | `action-layout-route`, `tooltip-layout-route` |
+| `layout.route` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_route` `crates/ew-viewmodel/src/shell/wiring.rs` | `action-layout-route`, `command-layout-route`, `tooltip-layout-route` |
 | `layout.arrange` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_arrange` `crates/ew-viewmodel/src/shell/arrange.rs` | `action-layout-arrange`, `tooltip-layout-arrange` |
 | `layout.arrange_tick` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_arrange_tick` `crates/ew-viewmodel/src/shell/arrange.rs` | `action-layout-arrange-tick` |
 | `layout.arrange_as_is` | `crates/ew-viewmodel/src/actions/table/draw.rs` | `act_layout_arrange_as_is` `crates/ew-viewmodel/src/shell/arrange.rs` | `action-layout-arrange-as-is` |

@@ -340,6 +340,7 @@ impl Session {
             out.push(built);
         }
         out.push(length_row(q, cx, &conns));
+        out.extend(way_row(q, &conns));
         out.extend(end_rows(q, cx, &conns));
         // The wire number.
         let mut per = Vec::new();
@@ -429,11 +430,11 @@ pub(crate) fn wire_alone<'a>(
     }
 }
 
-/// A wire's Length row (doc 13 §3.3): the length typed on it, in millimetres, with the chip "typed by hand" and Reset
-/// where the wire keeps it; a core's "cut with its cable -103W1"; else empty, with the chip "no length: type it here,
-/// or the fitter measures the wire". A length typed here goes where the Connections table writes it, the wire's first
-/// own connection (`WireRecord::own`), through `Session::layout_edit`; on a stretch several wires share the row is
-/// read-only and says so.
+/// A wire's Length row (doc 13 §3.3, doc 12 §9): the length typed on it, in millimetres, with the chip "typed by hand"
+/// and Reset where the wire keeps it; a core's "cut with its cable -103W1"; a routed or stale length with how it is
+/// made ([`length_note`]); else empty, with what gives it one. A length typed here goes where the Connections table
+/// writes it, the wire's first own connection (`WireRecord::own`), through `Session::layout_edit`; on a stretch several
+/// wires share the row is read-only and says so.
 fn length_row(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Built {
     let records = q.get::<WireRecordSet>(());
     let mut per = Vec::new();
@@ -456,6 +457,7 @@ fn length_row(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Built {
             per.push((None, Provenance::Authored));
             continue;
         };
+        let note = length_note(q, record);
         per.push(match record.length {
             WireLength::Typed(n) => {
                 if record.wire.override_sources.length.is_some()
@@ -465,34 +467,16 @@ fn length_row(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Built {
                 } else {
                     can_override = true;
                 }
-                (
-                    Some(Value::from(n.0)),
-                    Provenance::Overridden {
-                        note: "typed by hand".into(),
-                    },
-                )
+                (Some(Value::from(n.0)), Provenance::Overridden { note })
             }
-            WireLength::WithCable(cable) => (
-                None,
-                Provenance::Derived {
-                    via: format!("cut with its cable {}", device_tag_text(q, cable)),
-                },
-            ),
+            WireLength::WithCable(_) => (None, Provenance::Derived { via: note }),
             WireLength::Routed { length, .. } | WireLength::Stale { length, .. } => {
                 can_override = true;
-                (
-                    Some(Value::from(length.0)),
-                    Provenance::Derived { via: "routed".into() },
-                )
+                (Some(Value::from(length.0)), Provenance::Derived { via: note })
             }
             WireLength::Missing => {
                 can_override = true;
-                (
-                    None,
-                    Provenance::Derived {
-                        via: "no length: type it here, or the fitter measures the wire".into(),
-                    },
-                )
+                (None, Provenance::Derived { via: note })
             }
         });
     }
@@ -757,6 +741,80 @@ fn source_link(q: &Q, source: &PropSource, name: &str) -> SourceLink {
         PropSource::ProjectDefault => project("wire_default"),
         PropSource::BuiltIn { .. } => project(profile),
     }
+}
+
+/// A wire's Way row (doc 12 §12.5): the ducts its stored way runs along and "door" where it crosses into one ("Duct 1,
+/// door"), "direct" over the fronts, with the chip "routed" or "stale"; none for connections of no wire, of several
+/// wires, or of a wire without a stored way.
+fn way_row(q: &Q, conns: &[Id<Connection>]) -> Option<Built> {
+    let records = q.get::<WireRecordSet>(());
+    let mut wires: Vec<&ew_derive::WireRecord> = Vec::new();
+    for c in conns {
+        let r = wire_alone(q, &records, *c).ok().flatten()?;
+        if !wires.iter().any(|w| w.wire.id == r.wire.id) {
+            wires.push(r);
+        }
+    }
+    let [r] = wires.as_slice() else { return None };
+    let way = ew_derive::layout::stored_way(q, r.wire.id)?;
+    let text = ew_derive::text::way_words(q, &way.way);
+    Some(derived(DerivedRow {
+        kind: "connection",
+        name: "way",
+        partner: None,
+        category: Category::Electrical,
+        ty: FieldType::Text,
+        value: RowValue::One {
+            json: Value::String(text.clone()),
+            text,
+        },
+        provenance: Provenance::Derived {
+            via: ew_derive::text::wire_length_source(&r.length).to_string(),
+        },
+        actions: Vec::new(),
+    }))
+}
+
+/// The chip of a wire's Length row (doc 12 §9): how its length is made, in the words of the derivation, in English.
+/// A typed length says what Route gives where it laid the wire; a missing one of a cabinet's wire what Route does or
+/// why it finds no way, naming the cabinet's page.
+fn length_note(q: &Q, r: &ew_derive::WireRecord) -> String {
+    use ew_derive::layout::{
+        CabinetWire, Planned, RouteScope, RouteStatus, cabinet_page, plan_routes, route_status,
+        routed_length, space_of_wire,
+    };
+    let text = match r.length {
+        WireLength::Typed(_) => match route_status(q, &r.wire) {
+            RouteStatus::Holds { run, door } | RouteStatus::Stale { run, door, .. } => ew_derive::text!(
+                "length-typed-routed",
+                format!(
+                    "{} mm",
+                    ew_derive::mm_exact(i128::from(routed_length(q, run, door).0))
+                )
+            ),
+            RouteStatus::None => ew_derive::text!("length-typed-by-hand"),
+        },
+        WireLength::WithCable(cable) => ew_derive::text!("length-with-cable", device_tag_text(q, cable)),
+        WireLength::Routed { .. } | WireLength::Stale { .. } => {
+            ew_derive::text::length_words(q, r.length).unwrap_or_else(|| ew_derive::text!("length-none"))
+        }
+        WireLength::Missing => match space_of_wire(q, r) {
+            Some((space, CabinetWire::Routed)) => {
+                let plan = plan_routes(q, space, &RouteScope::Wires([r.wire.id].into_iter().collect()));
+                let page =
+                    cabinet_page(q, space).and_then(|p| q.pages().get(p).map(|p| ew_derive::folio_label(p)));
+                match (plan.wires.first().map(|w| &w.planned), page) {
+                    (Some(Planned::NoWay(why)), _) => {
+                        ew_derive::text!("length-no-way", ew_derive::text::no_way(q, *why))
+                    }
+                    (_, Some(page)) => ew_derive::text!("length-no-way-yet", page),
+                    (_, None) => ew_derive::text!("length-none"),
+                }
+            }
+            _ => ew_derive::text!("length-none"),
+        },
+    };
+    text.to_string()
 }
 
 /// The chip text of a wire property's source below level 7, in the words of the derivation's `prop-via-*` texts (the

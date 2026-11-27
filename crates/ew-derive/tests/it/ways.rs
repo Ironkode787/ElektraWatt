@@ -302,7 +302,15 @@ fn joined(q: &Q) -> Vec<Joined> {
     let g = q.get::<DuctGraph>(id(PLATE));
     g.joints
         .iter()
-        .map(|j| (g.ducts[j.a.0].carrier, j.a.1, g.ducts[j.b.0].carrier, j.b.1, j.len))
+        .map(|j| {
+            (
+                g.ducts[j.a.0].carrier,
+                j.a.1,
+                g.ducts[j.b.0].carrier,
+                j.b.1,
+                j.len,
+            )
+        })
         .collect()
 }
 
@@ -624,4 +632,22 @@ fn a_duct_fill_counts_the_stored_ways_along_its_pieces() {
         fill.inner,
         (i128::from(mm(36)) * i128::from(mm(55)), InnerFrom::Part)
     );
+}
+
+/// A stored way of the space whose wire is no longer a wire of the cabinet is the plan's to remove.
+#[test]
+fn a_way_whose_wire_is_gone_is_removed_by_the_next_route() {
+    let mut fx = routed(cabinet(false));
+    let mut stray = fx
+        .record(
+            v5::route_id::<_, ew_schema::CommittedRoute>(id::<ew_schema::Connection>(W1))
+                .as_uuid()
+                .as_u128(),
+        )
+        .clone();
+    stray["id"] = json!(uid(0x4999));
+    fx.push(stray);
+    let m = fx.build();
+    let p = plan(&Q::new(&m), &RouteScope::Due);
+    assert_eq!(p.gone, [id(0x4999)]);
 }

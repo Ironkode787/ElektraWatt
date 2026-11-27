@@ -194,6 +194,7 @@ command-layout-enclosure-create_from_part = Kast uit artikel maken
 command-layout-space-edit = Layoutruimte hernoemen
 command-layout-enclosure-edit = Kast verplaatsen
 command-layout-surface-edit = Vlak bewerken
+command-layout-route = Kast routeren
 action-file-open = Openen…
 action-tool-select = Selecteren
 action-tool-measure = Meten

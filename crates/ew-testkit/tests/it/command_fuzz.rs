@@ -2108,7 +2108,12 @@ fn project_tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
 /// folder). The manifest, which counts generations, and the lock file are not compared.
 #[test]
 fn layout_command_sequences_save_incrementally_as_a_full_save() {
-    let layout: Vec<&arms::Arm> = ARMS.iter().filter(|a| a.command.starts_with("layout.")).collect();
+    // Route's ways are filed by their space, which no command re-keys: they follow nothing, and the sequences keep their
+    // seeds without them.
+    let layout: Vec<&arms::Arm> = ARMS
+        .iter()
+        .filter(|a| a.command.starts_with("layout.") && a.command != "layout.route")
+        .collect();
     let total: usize = layout.iter().map(|a| a.weight).sum();
     let mut committed: BTreeMap<&str, usize> = BTreeMap::new();
     for seed in 1..=3u64 {

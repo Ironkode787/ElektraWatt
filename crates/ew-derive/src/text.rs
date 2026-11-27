@@ -1225,3 +1225,114 @@ pub fn accessory_kinds(kind: &ew_schema::AccessoryKind) -> Text {
         K::Unknown(_) => text!("accessory-other-plural"),
     }
 }
+
+/// A length in millimetres with its unit, exact (`821.3 mm`): the ways' words.
+fn mm_unit(n: Nm) -> String {
+    format!("{} mm", mm_exact(i128::from(n.0)))
+}
+
+/// A duct inside a sentence ("duct 1"); "a duct" for one that is gone.
+fn duct_words(q: &crate::Q, carrier: ew_ids::Id<ew_schema::Carrier>) -> String {
+    crate::layout::carrier_label(q, carrier).map_or_else(|| "a duct".to_owned(), |l| l.in_sentence())
+}
+
+/// Why a stored way no longer holds, in words (doc 12 §8.5): "-X1031 moved", "its end moved from -102Q1:2 to
+/// -102Q1:4", "-102S1 is no longer placed", "duct 1 changed", "a duct of its way is gone". EW-LAY-011, a wire's
+/// Properties, the toast and Route's card print it.
+pub fn stale_why(q: &crate::Q, why: crate::layout::StaleWhy) -> Text {
+    use crate::layout::StaleWhy;
+    let pin = |(f, i)| crate::cp_label(q, crate::CpRef::new(f, i));
+    match why {
+        StaleWhy::Moved(d) => text!("way-moved", crate::short_tag(q, d)),
+        StaleWhy::EndChanged { from, to } => text!("way-end-moved", pin(from), pin(to)),
+        StaleWhy::Unplaced(d) => text!("way-unplaced", crate::short_tag(q, d)),
+        StaleWhy::DuctChanged(c) => text!("way-duct-changed", duct_words(q, c)),
+        StaleWhy::DuctGone(_) => text!("way-duct-gone"),
+    }
+}
+
+/// Why a wire of a cabinet gets no way, in words with what to do (doc 12 §8.2): "-102S1 is not placed: place it, then
+/// route again", "-104A1-A1:M meets no duct: draw a duct above or below rail 2, or type the length", "-109E1 is on a
+/// side wall: …".
+pub fn no_way(q: &crate::Q, why: crate::layout::NoWay) -> Text {
+    use crate::layout::NoWay;
+    match why {
+        NoWay::Unplaced(d) => text!("no-way-unplaced", crate::short_tag(q, d)),
+        NoWay::NoDuct { cp, rail } => {
+            let pin = crate::cp_label(q, crate::CpRef::new(cp.0, cp.1));
+            match rail.and_then(|r| crate::layout::carrier_label(q, r)) {
+                Some(l) => text!("no-way-no-duct", pin, l.in_sentence()),
+                None => text!("no-way-no-duct-here", pin),
+            }
+        }
+        NoWay::OffPlate(d) => text!("no-way-off-plate", crate::short_tag(q, d)),
+    }
+}
+
+/// How a routed or stale length is made, in words (doc 12 §9): "Routed: 820.7 mm of way, 50 mm reserve at each end and
+/// a 300 mm door loop, rounded up to 1225 mm"; "Stale: -X1031 moved. Route gives it a new way". `None` for a length of
+/// another source.
+pub fn length_words(q: &crate::Q, length: WireLength) -> Option<Text> {
+    let reserve = mm_unit(crate::layout::reserve(q));
+    match length {
+        WireLength::Routed {
+            length,
+            run,
+            door: false,
+        } => Some(text!("length-routed", mm_unit(run), reserve, mm_unit(length))),
+        WireLength::Routed {
+            length,
+            run,
+            door: true,
+        } => Some(text!(
+            "length-routed-door",
+            mm_unit(run),
+            reserve,
+            mm_unit(crate::layout::door_loop(q)),
+            mm_unit(length)
+        )),
+        WireLength::Stale { why, .. } => Some(text!("length-stale", stale_why(q, why))),
+        WireLength::Typed(_) | WireLength::WithCable(_) | WireLength::Missing => None,
+    }
+}
+
+/// A way in words (a wire's Way row): the ducts it runs along by their labels, then "door" where it crosses into one
+/// ("Duct 1, door"); "direct" for a way over the fronts.
+pub fn way_words(q: &crate::Q, way: &[ew_schema::WayStep]) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    for step in way {
+        let part = match step {
+            ew_schema::WayStep::Duct(d) => crate::layout::carrier_label(q, d.carrier).map(|l| l.label()),
+            ew_schema::WayStep::Door(_) => Some(text!("way-door").to_string()),
+            ew_schema::WayStep::Unknown(_) => None,
+        };
+        if let Some(p) = part
+            && !parts.contains(&p)
+        {
+            parts.push(p);
+        }
+    }
+    if parts.is_empty() {
+        text!("way-direct").to_string()
+    } else {
+        parts.join(", ")
+    }
+}
+
+/// Where a wire's length comes from as the wire list's Length from prints it (doc 13 §3.1, doc 12 §9): the source's
+/// word ([`wire_length_source`]), and "site" for a field wire without a length of a cabinet Route has laid (a cabinet
+/// without a stored way prints "missing" as before).
+pub fn wire_length_from(q: &crate::Q, r: &crate::WireRecord) -> Text {
+    use crate::layout::{CabinetWire, space_of_wire};
+    let routed = |space| {
+        q.table::<ew_schema::CommittedRoute>()
+            .iter()
+            .any(|(_, c)| c.space == space)
+    };
+    match (r.length, r.flags.field, space_of_wire(q, r)) {
+        (WireLength::Missing, true, Some((space, CabinetWire::Site))) if routed(space) => {
+            text!("length-source-site")
+        }
+        _ => wire_length_source(&r.length),
+    }
+}

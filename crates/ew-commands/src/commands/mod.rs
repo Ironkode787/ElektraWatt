@@ -296,4 +296,6 @@ commands! {
     layout::EditFeature,
     layout::HoleChoiceEdit,
     layout::PlaceGlands,
+    // Route on a panel page: the ways of a cabinet's wires
+    layout::LayoutRoute,
 }

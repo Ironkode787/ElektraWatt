@@ -105,6 +105,7 @@
     - [`layout.place`](reference/commands/layout.place.md)
     - [`layout.place_assembly`](reference/commands/layout.place_assembly.md)
     - [`layout.remove`](reference/commands/layout.remove.md)
+    - [`layout.route`](reference/commands/layout.route.md)
     - [`layout.space.create`](reference/commands/layout.space.create.md)
     - [`layout.space.delete`](reference/commands/layout.space.delete.md)
     - [`layout.space.edit`](reference/commands/layout.space.edit.md)

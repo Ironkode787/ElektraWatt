@@ -116,6 +116,8 @@ pub struct CutRow {
     /// What the pieces are cut for, by record, in the row's order: its carriers, its cable, its wires (their
     /// connections), its tubes. A list's row names them, so that a click reaches them and a choice of rows keeps them.
     pub sources: Vec<AnyId>,
+    /// Whether a wire's length of the row is along a way that no longer holds (doc 12 §8.5): printed with "≈".
+    pub stale: bool,
 }
 
 /// `cut_rows()`: the cut list's rows by group, in its order (see the module documentation).
@@ -164,6 +166,7 @@ fn carrier_rows(q: &Q) -> (Vec<CutRow>, Vec<CutRow>) {
             pieces: carriers.len(),
             length,
             sources: carriers.iter().map(|c| c.cast()).collect(),
+            stale: false,
         };
         if kind == CarrierKind::Rail {
             rails.push(row(part.map_or(CutWhat::Unknown, CutWhat::Part)));
@@ -224,6 +227,7 @@ fn cable_rows(q: &Q) -> Vec<CutRow> {
             pieces: 1,
             length,
             sources: vec![id.cast()],
+            stale: false,
         })
         .collect()
 }
@@ -255,8 +259,8 @@ fn name_runs(order: &[String], listed: &[String]) -> String {
 /// The key a wire is cut by: its wire part, else its size and colour.
 type WireKey = (Option<PartRef>, Option<Csa>, Option<ColourSpec>);
 
-/// The wires of one key and length: the pieces, the wires' numbers and the wires.
-type WireGroup = ((WireKey, Option<i128>), usize, Vec<String>, Vec<AnyId>);
+/// The wires of one key and length: the pieces, the wires' numbers, the wires and whether one's length is stale.
+type WireGroup = ((WireKey, Option<i128>), usize, Vec<String>, Vec<AnyId>, bool);
 
 /// The wires' rows: per wire part (else size and colour) and length, by size, colour, part number, then length (no
 /// length last).
@@ -278,21 +282,24 @@ fn wire_rows(q: &Q) -> Vec<CutRow> {
             ),
         };
         let entry = (key, r.length.value().map(|n| i128::from(n.0)));
+        let stale = matches!(r.length, WireLength::Stale { .. });
         match groups.iter_mut().find(|g| g.0 == entry) {
             Some(g) => {
                 g.1 += 1;
                 g.2.extend(r.number.clone());
                 g.3.push(r.wire.id.cast());
+                g.4 |= stale;
             }
             None => groups.push((
                 entry,
                 1,
                 r.number.clone().into_iter().collect(),
                 vec![r.wire.id.cast()],
+                stale,
             )),
         }
     }
-    groups.sort_by_cached_key(|((part_csa_colour, length), _, _, _)| {
+    groups.sort_by_cached_key(|((part_csa_colour, length), _, _, _, _)| {
         let (part, csa, colour) = part_csa_colour;
         (
             wire_order(q, part.as_ref(), csa.as_ref(), colour.as_ref()),
@@ -302,13 +309,16 @@ fn wire_rows(q: &Q) -> Vec<CutRow> {
     });
     groups
         .into_iter()
-        .map(|(((part, csa, colour), length), pieces, names, sources)| CutRow {
-            what: part.map_or(CutWhat::Wire { csa, colour }, CutWhat::Part),
-            what_for: CutFor::Names(name_runs(&numbers, &names)),
-            pieces,
-            length,
-            sources,
-        })
+        .map(
+            |(((part, csa, colour), length), pieces, names, sources, stale)| CutRow {
+                what: part.map_or(CutWhat::Wire { csa, colour }, CutWhat::Part),
+                what_for: CutFor::Names(name_runs(&numbers, &names)),
+                pieces,
+                length,
+                sources,
+                stale,
+            },
+        )
         .collect()
 }
 
@@ -407,6 +417,7 @@ fn tube_rows(q: &Q) -> Vec<CutRow> {
                         pieces: 1,
                         length,
                         sources: vec![t.id.cast()],
+                        stale: false,
                     },
                 ));
             }

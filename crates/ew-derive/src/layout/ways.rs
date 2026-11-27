@@ -166,6 +166,63 @@ impl DuctLine {
     fn pos_on(&self, seg: usize, p: (i128, i128)) -> i128 {
         self.start_of(seg) + l1(self.path[seg], p)
     }
+
+    /// The points of the centreline from position `from` to `to`, its vertices between them included; empty when
+    /// either lies outside the path.
+    pub fn stretch(&self, from: i128, to: i128) -> Vec<(i128, i128)> {
+        let (Some((_, a)), Some((_, b))) = (self.at(from), self.at(to)) else {
+            return Vec::new();
+        };
+        let mut s = 0;
+        let mut inner: Vec<(i128, (i128, i128))> = Vec::new();
+        for w in self.path.windows(2) {
+            s += l1(w[0], w[1]);
+            if s > from.min(to) && s < from.max(to) {
+                inner.push((s, w[1]));
+            }
+        }
+        if from > to {
+            inner.reverse();
+        }
+        std::iter::once(a)
+            .chain(inner.into_iter().map(|(_, p)| p))
+            .chain(std::iter::once(b))
+            .collect()
+    }
+}
+
+/// The points of a stored or planned way in its surface's frame, for the window's marks (doc 12 §12.5): from the
+/// first pin into its duct, along the ducts and their joints, out to the other pin; a direct way across, then along.
+pub fn way_points(q: &Q, ends: &[RouteEnd; 2], way: &[WayStep]) -> Vec<Pt2> {
+    let pt = |(x, y): (i128, i128)| {
+        Pt2::new(
+            Nm(i64::try_from(x).unwrap_or(0)),
+            Nm(i64::try_from(y).unwrap_or(0)),
+        )
+    };
+    let mut out = vec![ends[0].at];
+    let stretches: Vec<&DuctStretch> = way
+        .iter()
+        .filter_map(|s| match s {
+            WayStep::Duct(d) => Some(d),
+            _ => None,
+        })
+        .collect();
+    if stretches.is_empty() {
+        out.push(Pt2::new(ends[1].at.x, ends[0].at.y));
+    }
+    for s in stretches {
+        if let Some(line) = DuctLine::of(q, s.carrier) {
+            out.extend(
+                line.stretch(i128::from(s.from.0), i128::from(s.to.0))
+                    .into_iter()
+                    .map(pt),
+            );
+        }
+    }
+    out.push(ends[1].at);
+    out.dedup();
+    out
 }
 
 /// A joint of two ducts (doc 12 §8.1): where their outlines touch or overlap, at the point of the one's centreline
@@ -572,17 +629,38 @@ pub fn cabinet_wires(q: &Q, space: Id<LayoutSpace>) -> Vec<(WireRecord, CabinetW
     };
     q.get::<WireRecordSet>(())
         .iter()
-        .filter_map(|r| {
-            let inside = r.wire.ends.map(|e| end_in(q, e.kind, e.cp.function, loc));
-            let kind = match inside {
-                [false, false] => return None,
-                _ if r.wire.core.is_some() => CabinetWire::Core,
-                [true, true] => CabinetWire::Routed,
-                _ => CabinetWire::Site,
-            };
-            Some((r.clone(), kind))
-        })
+        .filter_map(|r| Some((r.clone(), classify(q, r, loc)?)))
         .collect()
+}
+
+/// What a wire is to the cabinet of the location `loc`; `None` for a wire with no end in it.
+fn classify(q: &Q, r: &WireRecord, loc: Id<ew_schema::StructureNode>) -> Option<CabinetWire> {
+    let inside = r.wire.ends.map(|e| end_in(q, e.kind, e.cp.function, loc));
+    Some(match inside {
+        [false, false] => return None,
+        _ if r.wire.core.is_some() => CabinetWire::Core,
+        [true, true] => CabinetWire::Routed,
+        _ => CabinetWire::Site,
+    })
+}
+
+/// The cabinet a wire belongs to and what it is to Route there ([`cabinet_wires`]); `None` for a wire of no cabinet.
+pub fn space_of_wire(q: &Q, r: &WireRecord) -> Option<(Id<LayoutSpace>, CabinetWire)> {
+    q.table::<LayoutSpace>()
+        .iter()
+        .find_map(|(space, s)| Some((space, classify(q, r, s.location)?)))
+}
+
+/// The first panel page in page order that shows a space's plate: where Route runs for its cabinet.
+pub fn cabinet_page(q: &Q, space: Id<LayoutSpace>) -> Option<Id<ew_schema::Page>> {
+    let plate = plate_of_space(q, space)?;
+    let order = q.get::<crate::DrawnPageOrder>(());
+    super::surface_pages(q, plate).into_iter().min_by_key(|p| {
+        (
+            order.position(crate::PageRef::Drawn(*p)).unwrap_or(usize::MAX),
+            *p,
+        )
+    })
 }
 
 // ---------------------------------------------------------------------------------------------------------

@@ -4,7 +4,9 @@
 //! `ew route [<project-dir>] [--page <folio>] [--selection <ids>] [--arrange] [--dry-run] [--json]`: Route over the
 //! CLI (docs/design/06a-drafting.md §7.4), and with `--arrange` Arrange and route. Each page's plan
 //! ([`ew_api::Session::route_plan`], [`ew_api::Session::arrange_plan`]) is stored as one `layout.apply`, the command
-//! the window's buttons store, and the project is saved once; `--dry-run` prints the plan.
+//! the window's buttons store, and the project is saved once; `--dry-run` prints the plan. On a panel page that shows a
+//! cabinet's plate (doc 12 §8.5) it routes the cabinet: its plan ([`ew_api::Session::cabinet_route`]) is stored as
+//! one `layout.route`.
 
 use ew_api::AnyCommand;
 use ew_api::cli_results as results;
@@ -81,6 +83,9 @@ pub(super) fn run_route(a: &RouteArgs, io: &mut Io<'_>) -> i32 {
         Err(code) => return code,
     };
     let folios = match &a.page {
+        Some(f) if session.cabinet_of_folio(f).is_some() => {
+            return route_cabinet(session, f, a, io);
+        }
         Some(f) => {
             if session.page_draft(f).is_none() {
                 io.error(format_args!(
@@ -161,6 +166,101 @@ pub(super) fn run_route(a: &RouteArgs, io: &mut Io<'_>) -> i32 {
         out!(io, "{text}");
     }
     i32::from(unrouted)
+}
+
+/// `ew route --page <folio>` on a panel page: the cabinet's plan stored as one `layout.route` and saved (printed with
+/// `--dry-run`). Exit 0 when every wire of the cabinet Route lays has a way, 1 when one has none, 2 on a refused command
+/// and save errors.
+fn route_cabinet(mut session: ew_api::Session, folio: &str, a: &RouteArgs, io: &mut Io<'_>) -> i32 {
+    let (card, preview) = match session.cabinet_route(folio, false) {
+        Some(Ok(planned)) => planned,
+        Some(Err(e)) => {
+            io.error(format_args!("folio {folio}: {e}; nothing was saved"));
+            return 2;
+        }
+        None => return 2,
+    };
+    let name = |w: &ew_api::cabinet_route::CardWire| {
+        if w.number.is_empty() {
+            w.ends.clone()
+        } else {
+            w.number.clone()
+        }
+    };
+    let routed: Vec<String> = card.lengths.iter().chain(&card.typed).map(name).collect();
+    let unrouted: Vec<results::RouteUnrouted> = card
+        .without
+        .iter()
+        .map(|w| results::RouteUnrouted {
+            wire: name(w),
+            reason: w.reason_key().unwrap_or("no_duct").to_owned(),
+        })
+        .collect();
+    let verb = if a.dry_run { "Would route" } else { "Routed" };
+    let wires = |n: usize| {
+        if n == 1 {
+            "1 wire".to_owned()
+        } else {
+            format!("{n} wires")
+        }
+    };
+    let mut text = if routed.is_empty() {
+        format!(
+            "Every wire of {} has its way.
+",
+            card.cabinet
+        )
+    } else {
+        format!(
+            "{verb} {} of {} on folio {folio}.
+",
+            wires(routed.len()),
+            card.cabinet
+        )
+    };
+    for w in &card.without {
+        let why = w.reason.as_ref().map(|(_, t)| t.to_string()).unwrap_or_default();
+        text.push_str(&format!(
+            "  No way for {}: {why}.
+",
+            name(w)
+        ));
+    }
+    let mut saved = false;
+    if !a.dry_run && !routed.is_empty() {
+        if let Err(e) = session.commit(preview) {
+            io.error(format_args!("folio {folio}: {e}; nothing was saved"));
+            return 2;
+        }
+        if let Err(e) = session.save() {
+            io.error(format_args!("{e}; nothing was saved"));
+            return 2;
+        }
+        saved = true;
+    }
+    session.close();
+    let unrouted_any = !unrouted.is_empty();
+    if a.json {
+        out!(
+            io,
+            "{}",
+            results::to_text(&results::RouteResult {
+                schema: results::RouteResult::SCHEMA.to_owned(),
+                pages: vec![results::RoutePageResult {
+                    folio: folio.to_owned(),
+                    routed,
+                    unrouted,
+                    across_texts: Vec::new(),
+                    moved: Vec::new(),
+                    left: Vec::new(),
+                }],
+                saved,
+            })
+        );
+    } else {
+        out!(io, "{text}");
+    }
+    i32::from(unrouted_any)
 }
 
 /// One page's result: the wires the plan changes and those it left without a way with their reasons, named by `words`.

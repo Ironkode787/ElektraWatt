@@ -146,6 +146,7 @@ command-layout-enclosure-create_from_part = Create enclosure from part
 command-layout-space-edit = Rename layout space
 command-layout-enclosure-edit = Move enclosure
 command-layout-surface-edit = Edit surface
+command-layout-route = Route the cabinet
 
 # Actions.
 action-file-open = Open…

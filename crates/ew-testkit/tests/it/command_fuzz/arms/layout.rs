@@ -832,3 +832,15 @@ pub(super) fn edit_delete_layout(live: &Live, rng: &mut SplitMix64) -> Option<St
     };
     Some(step.check(|_, after| placements_have_devices(after)))
 }
+
+/// `layout.route`: the cabinet of a space routed, its due wires or every one (accepted: the ways of its wires stored,
+/// the wiring untouched); refused: a space that does not exist, a wire that is not one of the cabinet's.
+pub(super) fn layout_route(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let cmd = |p: Value| Step::cmd("layout.route", p);
+    match rng.below(6) {
+        0 => Some(cmd(json!({"space": rng.uuid()})).refuse()),
+        1 => Some(cmd(json!({"space": rng.pick(&live.layout.spaces)?, "wires": [rng.uuid()]})).refuse()),
+        2 => Some(cmd(json!({"space": rng.pick(&live.layout.spaces)?, "all": true}))),
+        _ => Some(cmd(json!({"space": rng.pick(&live.layout.spaces)?}))),
+    }
+}

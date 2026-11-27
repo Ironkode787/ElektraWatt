@@ -843,16 +843,32 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
             .and_then(|r| q.table::<LibCopy<Part>>().get(r.copy))
             .and_then(|c| c.item.mech.as_ref().and_then(|m| m.clearance.clone()));
         let text = match clearance {
-            Some(c) if c.left.0 != 0 || c.right.0 != 0 || c.top.0 != 0 || c.bottom.0 != 0 => format!(
-                "left {}, right {}, top {}, bottom {} mm",
-                mm_text(q, i128::from(c.left.0)),
-                mm_text(q, i128::from(c.right.0)),
-                mm_text(q, i128::from(c.top.0)),
-                mm_text(q, i128::from(c.bottom.0))
-            ),
+            Some(c)
+                if c.left.0 != 0 || c.right.0 != 0 || c.top.0 != 0 || c.bottom.0 != 0 || c.front.0 != 0 =>
+            {
+                format!(
+                    "left {}, right {}, top {}, bottom {}, in front {} mm",
+                    mm_text(q, i128::from(c.left.0)),
+                    mm_text(q, i128::from(c.right.0)),
+                    mm_text(q, i128::from(c.top.0)),
+                    mm_text(q, i128::from(c.bottom.0)),
+                    mm_text(q, i128::from(c.front.0))
+                )
+            }
             _ => "none".to_owned(),
         };
         rows.push(text_row(k, "clearance", text, derived_of("part"), None));
+        let reach = ew_derive::layout::reach(q, id).map_or_else(
+            || ew_derive::text!("placement-depth-unknown"),
+            |n| ew_derive::text!("placement-reaches", mm_text(q, i128::from(n.0))),
+        );
+        rows.push(text_row(
+            k,
+            "reaches",
+            reach.to_string(),
+            derived_of("part"),
+            None,
+        ));
     }
     if let Some(s) = placement_surface(q, id) {
         let pattern = ew_derive::layout::placement_holes(q, id);
@@ -1137,6 +1153,7 @@ fn carrier_rows(q: &Q, id: Id<Carrier>) -> Option<Vec<PropRow>> {
                 derived_of("path"),
                 None,
             ));
+            rows.extend(fill_rows(q, id, d));
         }
         _ => {}
     }
@@ -1153,6 +1170,54 @@ fn carrier_rows(q: &Q, id: Id<Carrier>) -> Option<Vec<PropRow>> {
         ));
     }
     Some(rows)
+}
+
+/// A duct's fill rows (doc 12 §8.6, §12.5): its inner area with where it comes from, its fill where fullest against
+/// the limit (with the note that it read default diameters) and the wires along it.
+fn fill_rows(q: &Q, id: Id<Carrier>, d: &ew_schema::DuctParams) -> Vec<PropRow> {
+    use ew_derive::layout::{DuctFill, InnerFrom};
+    let Some(fill) = q.get::<DuctFill>(id).as_ref().clone() else {
+        return Vec::new();
+    };
+    let k = "carrier";
+    let mm2 = |a: i128| ew_units::arith::div_round_ties_away(a, 1_000_000_000_000).to_string();
+    let inner = match fill.inner.1 {
+        InnerFrom::Part => ew_derive::text!("duct-inner-area-part", mm2(fill.inner.0)),
+        InnerFrom::Share => ew_derive::text!(
+            "duct-inner-area-share",
+            mm2(fill.inner.0),
+            mm_text(q, i128::from(d.width.0)),
+            mm_text(q, i128::from(d.height.0))
+        ),
+    };
+    let (area, of) = fill.fill();
+    let percent = ew_units::arith::div_round_ties_away(area * 100, of.max(1)).to_string();
+    let limit = fill.limit.to_string();
+    let mut words = if fill.over() {
+        ew_derive::text!("duct-fill-over", percent, limit).to_string()
+    } else {
+        ew_derive::text!("duct-fill", percent, limit).to_string()
+    };
+    if fill.default_diameter {
+        words = format!("{words} · {}", ew_derive::text!("duct-fill-default"));
+    }
+    if fill.without_diameter > 0 {
+        words = format!(
+            "{words} · {}",
+            ew_derive::text!("duct-fill-without", fill.without_diameter.to_string())
+        );
+    }
+    vec![
+        text_row(k, "inner_area", inner.to_string(), derived_of("part"), None),
+        text_row(k, "fill", words, derived_of("stored ways"), None),
+        text_row(
+            k,
+            "wires",
+            fill.wires.len().to_string(),
+            derived_of("stored ways"),
+            None,
+        ),
+    ]
 }
 
 /// The panel page's Surface view rows: Surface (the project's surfaces by "<enclosure tag> plate"), Label mode,

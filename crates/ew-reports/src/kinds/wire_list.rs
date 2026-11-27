@@ -184,9 +184,9 @@ pub(super) fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
     set("length", length_cell(rec.length));
     set(
         "length_source",
-        Cell::Text(ew_derive::text::in_languages(
-            &ew_derive::text::wire_length_source(&rec.length),
-        )),
+        Cell::Text(ew_derive::text::in_languages(&ew_derive::text::wire_length_from(
+            q, rec,
+        ))),
     );
     for (end, key) in rec.ends.iter().zip(["from_marker", "to_marker"]) {
         // The lines a marker label carries, joined by ` / ` (doc 13 §5.2); none where the end carries none.

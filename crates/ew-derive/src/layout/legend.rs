@@ -20,8 +20,8 @@ use ew_units::Dec3;
 
 use super::accessories::GroupAccessories;
 use super::queries::{CarrierGeometry, primary_part};
-use crate::{Q, StructurePath};
 use crate::tag::DeviceTag;
+use crate::{Q, StructurePath};
 
 /// Nanometres per millimetre: a length in nm over this is the `Dec3` thousandths of metres.
 const NM_PER_MM: i128 = 1_000_000;

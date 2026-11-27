@@ -140,6 +140,8 @@ mod release_run;
 mod rework;
 // The label files.
 mod labels;
+// Route on a panel page: the card of a cabinet's plan (doc 12 §12.5).
+pub mod cabinet_route;
 // The router the canvas tools call.
 pub mod routing;
 // `.ewz` opened read-only and the export of the saved generation.

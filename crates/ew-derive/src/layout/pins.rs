@@ -271,3 +271,36 @@ pub fn placement_of_function(q: &Q, function: Id<Function>) -> Option<Id<Placeme
         of(strip)
     })
 }
+
+/// What a placement takes out of its surface (doc 12 §7): on a rail the rail's height plus its part's depth plus the
+/// clearance it keeps in front, on the surface itself its depth and its front clearance; for a strip its terminals'
+/// deepest. `None` where the depth is not known.
+pub fn reach(q: &Q, placement: Id<Placement>) -> Option<Nm> {
+    let pl = q.table::<Placement>().get(placement)?.clone();
+    let device = q.devices().get(pl.device)?.clone();
+    let geom = q.get::<PlacementGeometry>(placement);
+    let geom = geom.as_ref().as_ref()?;
+    let front = |part: Option<&PartRef>| {
+        part.and_then(|p| q.parts().get(p.copy))
+            .and_then(|c| {
+                c.item
+                    .mech
+                    .as_ref()
+                    .and_then(|m| m.clearance.as_ref())
+                    .map(|c| c.front.0.max(0))
+            })
+            .unwrap_or(0)
+    };
+    let take = if places_strip(q, &device, pl.part.as_ref()) {
+        q.get::<StripLayout>(device.id)
+            .iter()
+            .filter(|i| matches!(i.kind, StripItemKind::Terminal(_)))
+            .map(|i| Some(depth_of(q, i.part.as_ref())?.0.max(0) + front(i.part.as_ref())))
+            .collect::<Option<Vec<i64>>>()?
+            .into_iter()
+            .max()?
+    } else {
+        depth_of(q, geom.part.as_ref())?.0.max(0) + front(geom.part.as_ref())
+    };
+    Some(Nm(rail_height(q, &pl).0.saturating_add(take)))
+}
