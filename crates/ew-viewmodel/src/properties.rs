@@ -2434,6 +2434,9 @@ pub enum RowMenuItem {
     /// Function text over its path on a device's Function text row, while one of its symbols is selected:
     /// `text.function_over_path`.
     FunctionOverPath,
+    /// Next free address on a bus port's Address row: its next free station address, as EW-BUS-001's quick fix gives
+    /// an open port one (`Session::next_free_address`).
+    NextFreeAddress,
     /// Rename… on a field of the project's own: `field.rename`.
     RenameField,
     /// Remove on a field of the project's own: `field.remove`.
@@ -2463,6 +2466,7 @@ pub fn menu_label(item: RowMenuItem) -> &'static str {
         RowMenuItem::CpUnused { on: true } => strings::text(key!("action-cp-unused")),
         RowMenuItem::CpUnused { on: false } => strings::text(key!("props-action-cp-used")),
         RowMenuItem::FunctionOverPath => strings::text(key!("action-text-function-over-path")),
+        RowMenuItem::NextFreeAddress => strings::text(key!("props-action-next-free-address")),
         RowMenuItem::RenameField => strings::text(key!("action-field-rename")),
         RowMenuItem::RemoveField => strings::text(key!("action-field-remove")),
     }

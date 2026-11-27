@@ -1093,6 +1093,14 @@ impl ShellModel {
                     self.act_cp_unused(&params)
                 }
                 RowMenuItem::FunctionOverPath => self.dispatch("text.function_over_path", &Value::Null),
+                RowMenuItem::NextFreeAddress => {
+                    let port = self.props_find(&row).and_then(|(s, _)| s.targets.first().copied());
+                    let value = port.and_then(|p| self.project.as_ref()?.session.next_free_address(p));
+                    match value {
+                        Some(value) => self.commit_value(&row, value, String::new(), Vec::new()),
+                        None => Outcome::refused(key!("reason-action-not-offered")),
+                    }
+                }
                 RowMenuItem::RenameField | RowMenuItem::RemoveField => {
                     let mut params = Map::new();
                     let key = crate::shell::own_fields::own_key(&row).unwrap_or_default();

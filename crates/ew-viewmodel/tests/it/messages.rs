@@ -890,3 +890,39 @@ fn the_detail_message_starts_with_a_capital() {
 
     shell.shutdown();
 }
+
+/// A bus port's Address row offers Next free address in its menu, by the rule EW-BUS-001's quick fix uses: the valve
+/// terminal's PROFIBUS port, with an address or with TBD, takes the next free station address of its net in one undo
+/// step.
+#[test]
+fn the_address_row_offers_the_next_free_address() {
+    use ew_viewmodel::properties::RowMenuItem;
+    const ROW: &str = "function/bus_port.address";
+    let tmp = Tmp::new("ft2257");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "101");
+    done(&mut shell, "navigator.show", json!({"kind": "bus"}));
+    done(&mut shell, "navigator.select", json!({"kind": "bus", "keys": ["-201K1 DP"]}));
+    done(&mut shell, "props.set", json!({"row": ROW, "value": "TBD"}));
+    let menu = shell.row_menu(ROW);
+    let at = menu
+        .iter()
+        .position(|i| *i == RowMenuItem::NextFreeAddress)
+        .unwrap_or_else(|| panic!("the row's menu offers it: {menu:?}"));
+    assert_eq!(
+        ew_viewmodel::properties::menu_label(RowMenuItem::NextFreeAddress),
+        "Next free address"
+    );
+    let steps = shell.recorded_commands().len();
+    done(&mut shell, "props.row", json!({"to": ROW}));
+    done(&mut shell, "props.row_menu", json!({}));
+    done(&mut shell, "props.choose", json!({"index": at}));
+    assert_eq!(shell.recorded_commands().len(), steps + 1, "one undo step");
+    let sheet = shell.properties().sheet().expect("a sheet");
+    let (_, row) = ew_viewmodel::properties::find_row(sheet, ROW).expect("the row");
+    let text = match &row.value {
+        ew_viewmodel::properties::RowValue::One { text, .. } => text.clone(),
+        other => panic!("{other:?}"),
+    };
+    assert!(text.parse::<u8>().is_ok_and(|a| a > 0), "a station address: {text}");
+    shell.shutdown();
+}

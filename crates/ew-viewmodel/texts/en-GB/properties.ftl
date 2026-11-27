@@ -20,6 +20,7 @@ props-action-reset = Reset to derived
 props-action-freeze = Freeze
 props-action-unfreeze = Unfreeze
 props-action-make-variable = Make variable
+props-action-next-free-address = Next free address
 # A derived value's source, a potential without a definition, a connection point not used.
 props-action-go-to-source = Go to source
 props-set-by-cable = The cable { $p0 } sets this with its part or type; change it at the cable.

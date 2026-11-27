@@ -62,6 +62,16 @@ impl Session {
             _ => "hint-address-other",
         })
     }
+
+    /// What Next free address on the Address row of the bus port function `function` sets, as the row takes it: its
+    /// next free station address ([`crate::checks::rules::bus::next_free_address`], the rule by which EW-BUS-001's
+    /// quick fix gives an open port one), whatever it holds now; `None` for a port of a bus without station numbers
+    /// or a range without a free address.
+    pub fn next_free_address(&self, function: Uuid) -> Option<Value> {
+        let q = self.query();
+        let address = crate::checks::rules::bus::next_free_address(&q, Id::from_uuid(function))?;
+        serde_json::to_value(ew_schema::AddrValue::Value(ew_schema::NetAddress::Profibus(address))).ok()
+    }
 }
 
 /// A bus port's address as its row shows it (`bus_address_in_words`), read back: `TBD`, nothing (no

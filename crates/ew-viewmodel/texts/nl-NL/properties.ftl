@@ -21,6 +21,7 @@ props-action-reset = Terug naar afgeleid
 props-action-freeze = Vastzetten
 props-action-unfreeze = Losmaken
 props-action-make-variable = Variabel maken
+props-action-next-free-address = Volgende vrije adres
 props-action-go-to-source = Naar de bron
 props-set-by-cable = De kabel { $p0 } bepaalt dit met zijn artikel of type; wijzig het bij de kabel.
 props-change-at-cable = Wijzigen bij kabel { $p0 }

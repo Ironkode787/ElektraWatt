@@ -107,15 +107,18 @@ pub const BUS_ADDRESS: RuleMeta = RuleMeta {
 #[derive(Clone, Copy, Debug)]
 pub struct BusAddress;
 
-/// The next free PROFIBUS DP station address of each open (`tbd`) PROFIBUS DP port of a net, in the order of
-/// `ports` (FT-2208): the first address of the port's range (its part's `address_range`, else 0–125) that no port of
-/// the net holds and no earlier open port is given, counted on from the highest address held and wrapping to the
-/// range's start (0 is left to the programming device when the range starts there). A port whose range is full, or
-/// holds no station address (its minimum above its maximum or above 255), gets none.
-fn next_free_addresses(q: &Q, ports: &[Id<Function>]) -> BTreeMap<Id<Function>, u8> {
+/// The next free PROFIBUS DP station address of each PROFIBUS DP port of `asking`, among the ports `members` of its
+/// net, in the order of `asking` (FT-2208): the first address of the port's range (its part's `address_range`, else
+/// 0–125) that no other port of the net holds and no earlier port of `asking` is given, counted on from the highest
+/// address held and wrapping to the range's start (0 is left to the programming device when the range starts there).
+/// A port whose range is full, or holds no station address (its minimum above its maximum or above 255), gets none.
+/// The one rule of EW-BUS-001's quick fix (the open ports of a net) and of an Address row's Next free address
+/// ([`next_free_address`]).
+fn next_free_addresses(q: &Q, members: &[Id<Function>], asking: &[Id<Function>]) -> BTreeMap<Id<Function>, u8> {
     let functions = q.functions();
-    let mut taken: BTreeSet<u16> = ports
+    let mut taken: BTreeSet<u16> = members
         .iter()
+        .filter(|f| !asking.contains(f))
         .filter_map(|f| match &functions.get(*f)?.bus_port.as_ref()?.address {
             AddrValue::Value(NetAddress::Profibus(n)) => Some(u16::from(*n)),
             _ => None,
@@ -123,14 +126,14 @@ fn next_free_addresses(q: &Q, ports: &[Id<Function>]) -> BTreeMap<Id<Function>, 
         .collect();
     let highest = taken.last().copied();
     let mut out = BTreeMap::new();
-    for f in ports {
+    for f in asking {
         let Some(function) = functions.get(*f) else {
             continue;
         };
         let Some(port) = function
             .bus_port
             .as_ref()
-            .filter(|p| p.bus == BusSystem::ProfibusDp && p.address == AddrValue::Tbd)
+            .filter(|p| p.bus == BusSystem::ProfibusDp)
         else {
             continue;
         };
@@ -157,6 +160,19 @@ fn next_free_addresses(q: &Q, ports: &[Id<Function>]) -> BTreeMap<Id<Function>, 
     out
 }
 
+/// The next free station address of the bus port `port` ([`next_free_addresses`] over the ports of its logical net,
+/// the port alone where it names none), whatever address it holds now: what Next free address of its Address row
+/// sets. `None` for a port that is not a PROFIBUS DP port (the other buses' addresses are names and IP addresses, no
+/// station numbers) or whose range has no free address.
+pub fn next_free_address(q: &Q, port: Id<Function>) -> Option<u8> {
+    let net = q.functions().get(port)?.bus_port.as_ref()?.logical_net;
+    let members = match net {
+        Some(net) => q.get::<NetMembersOf>(net).ports.clone(),
+        None => vec![port],
+    };
+    next_free_addresses(q, &members, &[port]).get(&port).copied()
+}
+
 impl Rule for BusAddress {
     fn meta(&self) -> &'static RuleMeta {
         &BUS_ADDRESS
@@ -174,7 +190,18 @@ impl Rule for BusAddress {
         let mut out = Vec::new();
         let mut by_address: BTreeMap<u8, Vec<Id<Function>>> = BTreeMap::new();
         let members = q.get::<NetMembersOf>(net);
-        let free = next_free_addresses(q, &members.ports);
+        let open: Vec<Id<Function>> = members
+            .ports
+            .iter()
+            .copied()
+            .filter(|f| {
+                functions
+                    .get(*f)
+                    .and_then(|x| x.bus_port.as_ref())
+                    .is_some_and(|p| p.address == AddrValue::Tbd)
+            })
+            .collect();
+        let free = next_free_addresses(q, &members.ports, &open);
         for f in &members.ports {
             let Some(function) = functions.get(*f) else {
                 continue;

@@ -16,6 +16,9 @@ use ew_api::AnyCommand;
 use ew_api::output::table_edit::compose;
 use serde_json::{Map, Value, json};
 
+/// The row whose menu offers Next free address: a bus port's Address.
+const NEXT_FREE_ADDRESS_ROW: &str = "function/bus_port.address";
+
 impl ShellModel {
     /// The entries of the actions menu of the row `key`: the row's actions, then Make variable
     /// when the row can be a macro variable (a row of one record with an action, not a derived value), then on a
@@ -67,6 +70,15 @@ impl ShellModel {
             && crate::actions::find("text.function_over_path").is_some_and(|m| m.enabled_now(self).is_ok())
         {
             out.push(RowMenuItem::FunctionOverPath);
+        }
+        // A bus port's Address row: Next free address, where its bus numbers its stations and its range has one free.
+        if let ([port], true) = (section.targets.as_slice(), writable && row.key == NEXT_FREE_ADDRESS_ROW)
+            && self
+                .project
+                .as_ref()
+                .is_some_and(|p| p.session.next_free_address(*port).is_some())
+        {
+            out.push(RowMenuItem::NextFreeAddress);
         }
         // A field of the project's own: Rename… and Remove.
         if writable && crate::shell::own_fields::own_key(&row.key).is_some() {
