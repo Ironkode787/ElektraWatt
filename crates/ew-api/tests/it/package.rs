@@ -274,3 +274,46 @@ fn a_release_package_with_an_open_error_is_refused_naming_it() {
         other => panic!("refused: {other:?}"),
     }
 }
+
+/// A marker of one's own (owner, 2026-11-26): the sample's stock has no marker that marks cables, so the label files'
+/// row says so; a cable marker made here and added to the stock prints the cable markers, the line goes, and the
+/// package's cable markers' file names the part.
+#[test]
+fn a_cable_marker_of_ones_own_prints_the_cable_markers() {
+    let mut s = common::sample();
+    let lacks = |s: &Session| {
+        s.package_plan(&ask())
+            .members
+            .into_iter()
+            .find(|m| m.member == PackageMember::Labels)
+            .expect("the label files")
+            .lacks
+    };
+    assert_eq!(lacks(&s).len(), 1, "the cable markers lack a marker part");
+    let (part, mut doc) = common::wire_part(0x7301, "MY-CM-16", "1.5", &serde_json::json!(["BK"]));
+    doc["kind"] = serde_json::json!("marker");
+    doc["sections"] = serde_json::json!({"marker": {"marks": "cable", "lines": 1, "chars": 16}});
+    let parsed = ew_schema::LibDocument::from_value(doc.clone()).expect("a part document");
+    doc["sha256"] = serde_json::json!(
+        ew_schema::Sha256(ew_format::library_copy_hash(&parsed).expect("a hash")).to_string()
+    );
+    let mut stock = serde_json::to_value(&s.query().project().settings.workshop.stock).expect("the stock");
+    stock
+        .as_array_mut()
+        .expect("a list")
+        .push(serde_json::json!({"copy": part.to_string()}));
+    common::run_cmd(
+        &mut s,
+        "workshop.stock",
+        serde_json::json!({"stock": stock, "copies": [doc]}),
+    );
+    assert!(lacks(&s).is_empty());
+    let (_, entries) = package(&s, &ask());
+    assert!(
+        entries
+            .iter()
+            .any(|e| e.name == "Labels/SAMPLE-E Cable markers MY-CM-16.xlsx"),
+        "{:?}",
+        entries.iter().map(|e| &e.name).collect::<Vec<_>>()
+    );
+}

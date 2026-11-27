@@ -152,6 +152,12 @@ impl Prompt {
                 None,
                 vec![],
             ),
+            Prompt::SavePackage => (
+                title(key!("prompt-package-title")),
+                PickKind::Save,
+                None,
+                vec![filter("ZIP", &["zip"])],
+            ),
             Prompt::SaveRework => (
                 title(key!("prompt-save-rework-title")),
                 PickKind::Save,

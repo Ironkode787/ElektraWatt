@@ -1140,8 +1140,13 @@ fn jobs_lines(model: &ShellModel, lines: &mut Vec<String>) {
         lines.push(match &e.status {
             crate::jobs::JobStatus::Running => format!("{head} running"),
             crate::jobs::JobStatus::Done { pages, kib, now } => {
-                // A table's end has no page count.
-                let pages = pages.map(|n| format!(" pages {n}")).unwrap_or_default();
+                // A table's end has no page count; a package's counts its files.
+                let unit = if matches!(e.kind, crate::jobs::JobKind::Package { .. }) {
+                    "files"
+                } else {
+                    "pages"
+                };
+                let pages = pages.map(|n| format!(" {unit} {n}")).unwrap_or_default();
                 let mut line = format!("{head} done{pages} kib {kib} rev {}", e.rev);
                 if let Some(m) = now {
                     line.push_str(&format!(" now {m}"));

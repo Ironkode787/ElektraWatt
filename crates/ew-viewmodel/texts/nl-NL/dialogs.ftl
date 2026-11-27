@@ -231,3 +231,56 @@ labels-hide = Verbergen
 labels-misfit = { $p0 } op { $p1 }: { $p2 }
 labels-profile-title = Labelbestand
 labels-generic = Algemene kolommen
+## Output ▸ Workshop ▸ Package… (doc 13-package §8.5)
+
+package-title = Pakket voor de werkplaats
+package-text = Eén bestand voor de werkplaats: de tekeningen, de werkplaatslijsten, de labelbestanden en de boortekeningen.
+package-goes-in = Wat erin gaat
+package-before = Voor het naar de werkplaats gaat
+package-ready = Klaar: niets staat in de weg.
+package-stood = { $p0 ->
+        [one] 1 punt: { $p1 }.
+       *[other] { $p0 } punten: { $p1 }.
+    }
+package-stood-errors = { $p0 ->
+        [one] 1 houdt een vrijgave tegen
+       *[other] { $p0 } houden een vrijgave tegen
+    }
+package-stood-warnings = { $p0 ->
+        [one] 1 is een waarschuwing
+       *[other] { $p0 } zijn waarschuwingen
+    }
+package-stood-infos = { $p0 ->
+        [one] 1 is een melding
+       *[other] { $p0 } zijn meldingen
+    }
+package-check-note = De vrijgavecontrole, die ook de vrijgave uitvoert. Een fout houdt een vrijgavepakket tegen; een waarschuwing of een melding wordt getoond en houdt niets tegen.
+package-stops = houdt een vrijgave tegen
+package-revision = Revisie
+package-chip-draft = Concept
+package-chip-released = Vrijgegeven
+package-revision-open = { $p0 } is open, niet vrijgegeven.
+package-revision-none = Het project heeft geen revisie.
+package-revision-released = { $p0 }, vrijgegeven op { $p1 }.
+package-revision-draft-note = Het pakket is een concept: elke pagina van de tekeningen zegt "{ $p0 }", en zo ook het manifest en de inhoud.
+package-revision-released-note = Het pakket is dat van de vrijgave: geen pagina draagt een merkteken, en een tweede pakket van { $p0 } is hetzelfde bestand.
+package-mark = Concept { $p0 }: niet vrijgegeven
+package-mark-none = Concept: geen revisie
+package-personal = Persoonsgegevens
+package-personal-check = Zonder persoonsgegevens
+package-personal-note = Laat de naam en het adres van { $p0 } weg, gemarkeerd als persoonsgegevens. Bedrijven blijven staan.
+package-personal-none = Geen partij van dit project is gemarkeerd als persoonsgegevens (Projecteigenschappen ▸ Partijen)
+package-file = Bestand
+package-choose = Kiezen…
+package-change = Wijzigen…
+package-show = Tonen
+package-hide = Verbergen
+package-open-messages = Meldingen openen
+package-write-draft = Conceptpakket schrijven
+package-write = Pakket schrijven
+package-replace = Vervangen
+package-exists = { $p0 } bestaat al. Vervangen?
+package-refused = { $p0 ->
+        [one] { $p1 } is vrijgegeven, en er staat nu 1 fout: herstel die, wat een nieuwe revisie opent, en schrijf het concept daarvan.
+       *[other] { $p1 } is vrijgegeven, en er staan nu { $p0 } fouten: herstel ze, wat een nieuwe revisie opent, en schrijf het concept daarvan.
+    }

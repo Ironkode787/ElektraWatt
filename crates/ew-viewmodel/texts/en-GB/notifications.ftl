@@ -370,6 +370,19 @@ job-kind-table = Table export
 job-kind-import = Drawing import
 job-kind-read = Import read
 job-done-table = { $p0 } KiB
+job-kind-package = Package
+job-done-package = { $p0 ->
+        [one] 1 file
+       *[other] { $p0 } files
+    }
+toast-package-draft = { $p0 ->
+        [one] Wrote the draft package { $p1 }: 1 file
+       *[other] Wrote the draft package { $p1 }: { $p0 } files
+    }.
+toast-package = { $p0 ->
+        [one] Wrote the package { $p1 }: 1 file
+       *[other] Wrote the package { $p1 }: { $p0 } files
+    }.
 toast-export-table = Exported { $p0 }: { $p1 } KiB, in { $p2 }.
 toast-export-table-again = Exported { $p0 } again: { $p1 } KiB, in { $p2 }.
 toast-table-imported = { $p0 ->

@@ -48,6 +48,12 @@ pub enum JobKind {
     /// A file read for an import (an EDZ or a parts XML, a PLC exchange file, a report spreadsheet): it
     /// writes no file, and its end opens the import's dialog or card, or makes the project.
     Read,
+    /// The package for the workshop (`package.export`, doc 13-package §8): one ZIP, a draft's or a release's; its end
+    /// counts the files it holds.
+    Package {
+        /// Whether it is a draft.
+        draft: bool,
+    },
 }
 
 impl JobKind {
@@ -60,6 +66,7 @@ impl JobKind {
             JobKind::Import => "import",
             JobKind::Dxf => "dxf",
             JobKind::Read => "read",
+            JobKind::Package { .. } => "package",
         }
     }
 
@@ -72,6 +79,7 @@ impl JobKind {
             JobKind::Import => key!("job-kind-import"),
             JobKind::Dxf => key!("job-kind-dxf"),
             JobKind::Read => key!("job-kind-read"),
+            JobKind::Package { .. } => key!("job-kind-package"),
         }
     }
 }
@@ -273,6 +281,25 @@ impl JobsState {
     ) -> std::io::Result<u64> {
         let produce = move |_: &JobCtl| file.encode().map(|bytes| (bytes, (0, Default::default())));
         self.start(JobKind::Table, produce, target, name, rev, epoch)
+    }
+
+    /// Starts the package's job: the package made on the job's thread and written to `target` by the file rule; its
+    /// end's "pages" are the files the package holds. Returns its number.
+    pub(crate) fn start_package(
+        &mut self,
+        job: ew_api::PackageJob,
+        target: PathBuf,
+        name: String,
+        rev: u64,
+        epoch: u64,
+        draft: bool,
+    ) -> std::io::Result<u64> {
+        let produce = move |ctl: &JobCtl| match job.run(Some(ctl)) {
+            Ok(p) => Ok((p.bytes, (p.paths.len(), Default::default()))),
+            Err(ew_api::PackageError::Cancelled) => Err(JobError::Cancelled),
+            Err(e) => Err(JobError::Failed(e.to_string())),
+        };
+        self.start(JobKind::Package { draft }, produce, target, name, rev, epoch)
     }
 
     /// Starts the DXF set's job: the set built on the job's thread and written into the folder `dir` as a whole

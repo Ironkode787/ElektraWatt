@@ -890,14 +890,26 @@ impl ShellModel {
                     entry.name.clone()
                 };
                 let place = folder.display().to_string();
-                let text = match (table, again) {
-                    (false, false) => strings::format(pdf, &[&shown, &pages, &kib.to_string(), &place]),
-                    (false, true) => strings::format(pdf_again, &[&shown, &pages, &kib.to_string(), &place]),
-                    (true, false) => strings::format(
+                let text = match (entry.kind, table, again) {
+                    // A package names its file and how many files it holds, a draft's said so.
+                    (JobKind::Package { draft }, _, _) => strings::format_counted(
+                        if draft {
+                            crate::count_key!("toast-package-draft")
+                        } else {
+                            crate::count_key!("toast-package")
+                        },
+                        done.pages,
+                        &[&entry.name],
+                    ),
+                    (_, false, false) => strings::format(pdf, &[&shown, &pages, &kib.to_string(), &place]),
+                    (_, false, true) => {
+                        strings::format(pdf_again, &[&shown, &pages, &kib.to_string(), &place])
+                    }
+                    (_, true, false) => strings::format(
                         key!("toast-export-table"),
                         &[&entry.name, &kib.to_string(), &place],
                     ),
-                    (true, true) => strings::format(
+                    (_, true, true) => strings::format(
                         key!("toast-export-table-again"),
                         &[&entry.name, &kib.to_string(), &place],
                     ),

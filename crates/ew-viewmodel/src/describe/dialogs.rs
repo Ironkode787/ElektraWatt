@@ -171,6 +171,42 @@ pub(super) fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
         }
         // Rework list…: what it compares with, the work, the headings and the rows, or why there is no list.
         Dialog::Rework(d) => rework_dialog_lines(d, lines),
+        // Package…: each member with its tick, what it holds and its form, what it lacks; the check's line and its
+        // findings (a shown one with its records); the revision; Without personal data; the file.
+        Dialog::Package(d) => {
+            for r in &d.rows {
+                let tick = if r.on { "[x]" } else { "[ ]" };
+                lines.push(format!(
+                    "  member {tick} {} \"{}\" \"{}\" \"{}\"",
+                    r.member.key(),
+                    r.words,
+                    r.holds,
+                    r.form
+                ));
+                for lack in &r.lacks {
+                    lines.push(format!("    lacks \"{lack}\""));
+                }
+            }
+            lines.push(format!("  check \"{}\"", d.ready));
+            for f in &d.findings {
+                lines.push(format!(
+                    "  finding {} {} \"{}\"",
+                    f.rule,
+                    f.severity.name(),
+                    f.message
+                ));
+                if f.shown {
+                    lines.push(format!("    shows \"{}\"", f.targets.join(", ")));
+                }
+            }
+            lines.push(format!("  revision \"{}\"", d.revision.0));
+            let personal = if d.personal { "[x]" } else { "[ ]" };
+            lines.push(format!("  personal {personal}"));
+            lines.push(format!("  file \"{}\"", user(&d.file_name())));
+            for line in &spec.body {
+                lines.push(format!("  label \"{line}\""));
+            }
+        }
         // Labels…: which labels, the label file's profile, each file with its tick and count, or why there is none.
         Dialog::Labels(d) => {
             let which = match &d.which {

@@ -364,7 +364,7 @@ impl ShellModel {
         }
         if p.is_empty() && !self.in_form_of(COLUMNS) {
             self.labels_under = match self.dialog.take() {
-                Some(Dialog::Labels(d)) => Some(d),
+                Some(d @ (Dialog::Labels(_) | Dialog::Package(_))) => Some(Box::new(d)),
                 other => {
                     self.dialog = other;
                     None
@@ -476,14 +476,23 @@ impl ShellModel {
             other => other,
         };
         let out = self.form_done(COLUMNS, out);
-        // The Labels… dialog the form was opened from shows again, with the new columns.
+        // The Labels… or Package… dialog the form was opened from shows again, with the new profile.
         if out == Outcome::Done
             && self.dialog.is_none()
-            && let Some(mut d) = self.labels_under.take()
+            && let Some(under) = self.labels_under.take()
         {
-            let off = unticked(&d);
-            self.fill_labels(&mut d, &off);
-            self.dialog = Some(Dialog::Labels(d));
+            self.dialog = Some(match *under {
+                Dialog::Labels(mut d) => {
+                    let off = unticked(&d);
+                    self.fill_labels(&mut d, &off);
+                    Dialog::Labels(d)
+                }
+                Dialog::Package(d) => match self.package_refreshed(&d) {
+                    Some(fresh) => Dialog::Package(Box::new(fresh)),
+                    None => Dialog::Package(d),
+                },
+                other => other,
+            });
         }
         out
     }

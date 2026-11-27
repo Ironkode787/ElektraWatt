@@ -368,9 +368,21 @@ hole. Print it at actual size and measure its 100 mm bar. Greyed while no surfac
 ### Workshop settings
 
 In the Workshop group. Shows the project's Properties at its Workshop rows: the stock, the ferrules, two wires in one
-clamp, the marker text, the marking of cores and jumpers, the device labels, the label file columns and the holes:
+clamp, the marker text, the marking of cores and jumpers, the device labels, the label file and the holes:
 how a fixing hole in the plate is made, the rails' and the ducts' fixings, the web between holes and the corner the
 holes are measured from.
+
+### Package…
+
+In the Workshop group. Writes one ZIP file with what the workshop builds the cabinet from: the drawings as one PDF,
+each workshop list as an Excel file, the label files and the drawings for drilling, each in a folder of its kind, with
+a Contents.txt that says what is in it and a manifest for a program. On the left you untick what the shop does not
+need, and change the label file's form; a line says what a member lacks, such as a marker part for cables in the
+workshop stock. On the right the release check says what stands in the way: an error stops a package of a released
+revision, a warning or an info is shown and stops nothing; Show lists a finding's wires or devices, and its button
+mends it. While a revision is open the package is a draft and every page of its drawings says so. Without personal
+data leaves out the name and the address of each party marked as personal data. The package is written as a job, as
+Export PDF is, and a toast names the file with Show in folder.
 
 ## View
 

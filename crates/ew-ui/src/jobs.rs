@@ -129,8 +129,11 @@ fn entry(ui: &mut Ui, e: &JobEntry, elapsed: Option<std::time::Duration>, events
         JobStatus::Done { pages, kib, now } => {
             ui.horizontal_wrapped(|ui| {
                 crate::components::status_badge(ui, crate::components::Badge::Done);
-                // A table's end names its size only.
+                // A table's end names its size only; a package's the files it holds.
                 ui.label(match pages {
+                    Some(files) if matches!(e.kind, ew_viewmodel::jobs::JobKind::Package { .. }) => {
+                        strings::format_counted(ew_viewmodel::count_key!("job-done-package"), *files, &[])
+                    }
                     Some(pages) => strings::format_counted(
                         ew_viewmodel::count_key!("job-done"),
                         *pages,

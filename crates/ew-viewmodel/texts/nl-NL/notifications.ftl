@@ -328,6 +328,19 @@ job-kind-table = Tabelexport
 job-kind-import = Tekeningimport
 job-kind-read = Importbestand lezen
 job-done-table = { $p0 } KiB
+job-kind-package = Pakket
+job-done-package = { $p0 ->
+        [one] 1 bestand
+       *[other] { $p0 } bestanden
+    }
+toast-package-draft = { $p0 ->
+        [one] Het conceptpakket { $p1 } is geschreven: 1 bestand
+       *[other] Het conceptpakket { $p1 } is geschreven: { $p0 } bestanden
+    }.
+toast-package = { $p0 ->
+        [one] Het pakket { $p1 } is geschreven: 1 bestand
+       *[other] Het pakket { $p1 } is geschreven: { $p0 } bestanden
+    }.
 toast-export-table = { $p0 } geëxporteerd: { $p1 } KiB, in { $p2 }.
 toast-export-table-again = { $p0 } opnieuw geëxporteerd: { $p1 } KiB, in { $p2 }.
 toast-table-imported = { $p0 ->

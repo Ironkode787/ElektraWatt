@@ -714,6 +714,12 @@ impl ShellModel {
         let Some(finding) = self.finding_of(&fp) else {
             return Outcome::refused(key!("reason-no-fix"));
         };
+        self.run_finding_fix(finding)
+    }
+
+    /// Runs the mend of `finding` (Messages' Fix, the package dialog's fix): for a finding from a part's missing datum
+    /// Edit part… (Parts at the field), else a window action on the finding's records, else the fix's command as a card.
+    pub(crate) fn run_finding_fix(&mut self, finding: ew_api::checks::Finding) -> Outcome {
         // A finding from a part's missing datum: Edit part…, Parts at the field, Back to Messages.
         if finding.fix.is_none()
             && let Some(lack) = finding.part_lack

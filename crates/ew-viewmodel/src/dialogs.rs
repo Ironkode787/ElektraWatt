@@ -169,6 +169,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         Dialog::WorkshopStock(_) => stock_spec(model),
         Dialog::Rework(d) => rework_spec(d),
         Dialog::Labels(d) => labels_spec(d),
+        Dialog::Package(d) => package_spec(d),
         Dialog::ConfirmJournalDiscard => journal_discard_spec(),
         Dialog::ConfirmPurge { files, .. } => purge_spec(files),
         Dialog::ConfirmRemovePart { number } => remove_part_spec(number),
@@ -528,6 +529,31 @@ fn labels_spec(d: &crate::shell::labels::LabelsDialog) -> DialogSpec {
         form: true,
         secondary: vec![close()],
         ..small(strings::text(key!("labels-title")).to_owned(), Vec::new(), export)
+    }
+}
+
+/// Package…: Write draft package (a draft) or Write package (a release), greyed with why while an error of the release
+/// check stands in a released revision; Replace once the file exists; Cancel. The panes are the dialog's own.
+fn package_spec(d: &crate::shell::package::PackageDialog) -> DialogSpec {
+    let (label, params) = if d.asks_replace {
+        (key!("package-replace"), d.export_params(true))
+    } else if d.draft {
+        (key!("package-write-draft"), d.export_params(false))
+    } else {
+        (key!("package-write"), d.export_params(false))
+    };
+    let write = DialogButton {
+        disabled: d.refused.clone(),
+        ..DialogButton::new(label, DialogAnswer::Action("package.export", params))
+    };
+    let mut body = vec![strings::text(key!("package-text")).to_owned()];
+    if d.asks_replace {
+        body.push(strings::format(key!("package-exists"), &[&d.file_name()]));
+    }
+    DialogSpec {
+        form: true,
+        secondary: vec![cancel()],
+        ..small(strings::text(key!("package-title")).to_owned(), body, write)
     }
 }
 

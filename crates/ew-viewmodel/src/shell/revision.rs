@@ -80,6 +80,13 @@ pub(crate) struct RevisionState {
     pub(crate) incomplete: Option<IncompleteRelease>,
 }
 
+impl RevisionState {
+    /// The integrity findings of opening the project, which the release check joins (the gate, the package).
+    pub(crate) fn integrity(&self) -> &[IntegrityItem] {
+        &self.integrity
+    }
+}
+
 impl std::fmt::Debug for RevisionState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("RevisionState")

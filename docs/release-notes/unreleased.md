@@ -632,3 +632,8 @@ change here.
   same bytes.
 - api-add: `ew_checks::release_check`, the release scheme in release mode, which the release gate runs first and the
   package asks; `ReportKindDef::workshop` marks the lists the package carries; the print set can stamp a draft mark
+- behaviour-change: Output ▸ Workshop ▸ Package… (`package.export`) writes the package for the workshop from a dialog
+  of two panes: what goes in, each member with its tick, what it holds and its form, the label file's profile with
+  Change…, and what a member lacks of part data; the release check's findings with Show and their fix, Open Messages,
+  the revision (draft or released) and Without personal data; the file with Choose…. It runs as a job with its toast;
+  a file of that name is asked about before it is replaced

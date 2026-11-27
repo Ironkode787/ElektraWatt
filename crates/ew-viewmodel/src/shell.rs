@@ -157,6 +157,8 @@ mod revision;
 // Output ▸ Workshop ▸ Rework list….
 pub mod labels;
 pub mod rework;
+// Output ▸ Workshop ▸ Package….
+pub mod package;
 // The one-time tips, the glossary pane and the wire-colour view.
 mod glossary;
 /// The start-up offer after a crash.
@@ -420,6 +422,9 @@ pub enum Dialog {
     /// Output ▸ Workshop ▸ Labels… (`labels.show`): which labels, the files with their ticks, the label file's profile
     /// with Change…, the labels that do not fit; Export and Close.
     Labels(Box<labels::LabelsDialog>),
+    /// Output ▸ Workshop ▸ Package… (`package.export`): what goes in, what stood in the release check, the revision,
+    /// Without personal data and the file; Write (draft) package and Cancel.
+    Package(Box<package::PackageDialog>),
     /// View, Workspace, Save layout as: a name typed by the user.
     SaveWorkspace {
         /// The text of the field.
@@ -658,6 +663,8 @@ pub enum Prompt {
     SaveRework,
     /// The folder the label files go into (Labels…' Export).
     LabelFolder,
+    /// The file the package for the workshop is written to (Package…' Choose…).
+    SavePackage,
 }
 
 /// A request to the window to open a page of the user guide in the system browser (F1).
@@ -804,8 +811,8 @@ pub struct ShellModel {
     panes: workspaces::PaneLayoutState,
     /// The documentation page F1 asked for and the window has not opened yet.
     doc_request: Option<DocRequest>,
-    /// The Labels… dialog under its Label file… form, shown again when the form's Apply succeeds.
-    labels_under: Option<Box<labels::LabelsDialog>>,
+    /// The Labels… or Package… dialog under the Label file… form, shown again when the form's Apply succeeds.
+    labels_under: Option<Box<Dialog>>,
     /// A project the window opens in a second window of the program (a tutorial's practice project), taken once.
     window_request: Option<PathBuf>,
     /// The target of the last documentation request, kept for `ui.describe`.

@@ -236,3 +236,56 @@ labels-hide = Hide
 labels-misfit = { $p0 } on { $p1 }: { $p2 }
 labels-profile-title = Label file
 labels-generic = Generic columns
+## Output ▸ Workshop ▸ Package… (doc 13-package §8.5)
+
+package-title = Package for the workshop
+package-text = One file for the shop: the drawings, the workshop lists, the label files and the drawings for drilling.
+package-goes-in = What goes in
+package-before = Before it goes to the workshop
+package-ready = Ready: nothing stands in the way.
+package-stood = { $p0 ->
+        [one] 1 thing: { $p1 }.
+       *[other] { $p0 } things: { $p1 }.
+    }
+package-stood-errors = { $p0 ->
+        [one] 1 stops a release
+       *[other] { $p0 } stop a release
+    }
+package-stood-warnings = { $p0 ->
+        [one] 1 is a warning
+       *[other] { $p0 } are warnings
+    }
+package-stood-infos = { $p0 ->
+        [one] 1 is an info
+       *[other] { $p0 } are infos
+    }
+package-check-note = The release check, which the release runs too. An error stops a release package; a warning or an info is shown and stops nothing.
+package-stops = stops a release
+package-revision = Revision
+package-chip-draft = Draft
+package-chip-released = Released
+package-revision-open = { $p0 } is open, not released.
+package-revision-none = The project has no revision.
+package-revision-released = { $p0 }, released on { $p1 }.
+package-revision-draft-note = The package is a draft: every page of the drawings says "{ $p0 }", and so do its manifest and Contents.
+package-revision-released-note = The package is the release's: no page carries a mark, and a second package of { $p0 } is the same file.
+package-mark = Draft { $p0 }: not released
+package-mark-none = Draft: no revision
+package-personal = Personal data
+package-personal-check = Without personal data
+package-personal-note = Leaves out the name and the address of { $p0 }, marked as personal data. Companies stay.
+package-personal-none = No party of this project is marked as personal data (Project properties ▸ Parties)
+package-file = File
+package-choose = Choose…
+package-change = Change…
+package-show = Show
+package-hide = Hide
+package-open-messages = Open Messages
+package-write-draft = Write draft package
+package-write = Write package
+package-replace = Replace
+package-exists = { $p0 } exists. Replace it?
+package-refused = { $p0 ->
+        [one] { $p1 } is released, and 1 error stands now: mend it, which opens a new revision, and write its draft.
+       *[other] { $p1 } is released, and { $p0 } errors stand now: mend them, which opens a new revision, and write its draft.
+    }

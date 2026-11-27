@@ -530,6 +530,93 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     ),
+    // Output ▸ Workshop ▸ Package…: one file for the workshop, the group's second large command (doc 13-package §8.5);
+    // the dialog's ticks, Show, fixes, Open Messages and Choose….
+    with_params(
+        "leave_out?:json, personal?:bool, path?:path, replace?:bool, wait?:bool",
+        placed(
+            place(Group::Workshop, 10, CommandSize::Large, Some(key!("bar-package"))),
+            "package-export",
+            act(
+                "package.export",
+                Command,
+                Menu::Output,
+                &[],
+                has_pages,
+                None,
+                |s, p| s.act_package_export(p),
+            ),
+        ),
+    ),
+    with_params(
+        "member:text, on:bool",
+        hidden(act(
+            "package.tick",
+            View,
+            Menu::Output,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_package_tick(p),
+        )),
+    ),
+    with_params(
+        "on:bool",
+        hidden(act(
+            "package.personal",
+            View,
+            Menu::Output,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_package_personal(p),
+        )),
+    ),
+    with_params(
+        "key:text, on?:bool",
+        hidden(act(
+            "package.show_finding",
+            View,
+            Menu::Output,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_package_show_finding(p),
+        )),
+    ),
+    with_params(
+        "key:text",
+        hidden(act(
+            "package.fix",
+            Command,
+            Menu::Output,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_package_fix(p),
+        )),
+    ),
+    hidden(act(
+        "package.messages",
+        View,
+        Menu::Output,
+        &[],
+        project_open,
+        None,
+        |s, _| s.act_package_messages(),
+    )),
+    with_params(
+        "path?:path",
+        hidden(act(
+            "package.file",
+            View,
+            Menu::Output,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_package_file(p),
+        )),
+    ),
     // Output ▸ Workshop ▸ Workshop settings: the project's Properties at its Workshop rows (doc 13 §12).
     placed(
         place(Group::Workshop, 8, CommandSize::Small, None),

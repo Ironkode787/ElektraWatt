@@ -126,6 +126,13 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `labels.columns` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_labels_columns` `crates/ew-viewmodel/src/shell/labels.rs` | `action-labels-columns` |
 | `lists.holes` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_lists_holes` `crates/ew-viewmodel/src/shell/features.rs` | `action-lists-holes` |
 | `drilling.export` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_drilling_export` `crates/ew-viewmodel/src/shell/drilling.rs` | `action-drilling-export`, `drilling-export` |
+| `package.export` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_package_export` `crates/ew-viewmodel/src/shell/package.rs` | `action-package-export`, `tooltip-package-export` |
+| `package.tick` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_package_tick` `crates/ew-viewmodel/src/shell/package.rs` | `action-package-tick` |
+| `package.personal` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_package_personal` `crates/ew-viewmodel/src/shell/package.rs` | `action-package-personal`, `package-personal`, `package-personal-check`, `package-personal-none`, `package-personal-note` |
+| `package.show_finding` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_package_show_finding` `crates/ew-viewmodel/src/shell/package.rs` | `action-package-show-finding` |
+| `package.fix` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_package_fix` `crates/ew-viewmodel/src/shell/package.rs` | `action-package-fix` |
+| `package.messages` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_package_messages` `crates/ew-viewmodel/src/shell/package.rs` | `action-package-messages` |
+| `package.file` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_package_file` `crates/ew-viewmodel/src/shell/package.rs` | `action-package-file`, `package-file`, `package-file-name`, `package-file-name-draft` |
 | `workshop.settings` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_workshop_settings` `crates/ew-viewmodel/src/shell/labels.rs` | `action-workshop-settings` |
 | `rework.archive` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_rework_archive` `crates/ew-viewmodel/src/shell/rework.rs` | `action-rework-archive`, `rework-archive-file` |
 | `rework.export` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_rework_export` `crates/ew-viewmodel/src/shell/rework.rs` | `action-rework-export`, `rework-export` |
