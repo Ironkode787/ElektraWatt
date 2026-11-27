@@ -70,3 +70,22 @@ fn a_module_part_nothing_draws_is_listed_greyed_with_what_to_do() {
     );
     s.shutdown();
 }
+
+/// FT-2255: a variant row left without its name is refused on Save in words that name the value and the row.
+#[test]
+fn a_variant_row_left_without_its_name_is_refused_naming_it() {
+    let tmp = Tmp::new("own-parts-row-needs");
+    let mine = LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), Vec::new(), Vec::new());
+    let mut s = new_project(&tmp, mine, "p.ew");
+    done(&mut s, "parts.new", json!({"start": "terminal"}));
+    for (field, value) in [("manufacturer", "Acme"), ("part_number", "TB-4")] {
+        done(&mut s, "parts.field", json!({"field": field, "value": value}));
+    }
+    done(&mut s, "parts.row", json!({"table": "variants"}));
+    done(&mut s, "parts.field", json!({"field": "variants[0].key", "value": "blue"}));
+    let words = crate::common::failed(&mut s, "parts.save", json!({}));
+    assert!(words.contains("Row 1"), "{words}");
+    let foot = s.parts_place().and_then(|p| p.sheet.as_ref()).and_then(|o| o.foot_message());
+    assert!(foot.as_deref().is_some_and(|f| f.starts_with("Name of the variant: Row 1")), "{foot:?}");
+    s.shutdown();
+}

@@ -673,3 +673,32 @@ fn a_starter_plc_card_shows_its_plc_group() {
         breaker.sections()
     );
 }
+
+/// FT-2255: a variant row left without its name is refused at that value, in words that name the row.
+#[test]
+fn a_variant_row_without_its_name_is_refused_at_that_value() {
+    let tmp = ew_testdir::Tmp::new("parts-row-needs");
+    let mut s = Session::libraries_only(ew_api::SessionOptions {
+        libraries: Some(common::tiers(&tmp.0)),
+        ..ew_api::SessionOptions::default()
+    });
+    let mut sheet = s.new_part_draft().expect("a new part");
+    for (f, v) in [
+        ("manufacturer", "Example"),
+        ("part_number", "FT-4"),
+        ("kind", "terminal"),
+    ] {
+        s.set_draft_field(&mut sheet, f, v).expect(f);
+    }
+    assert!(sheet.add_table_row("variants"));
+    s.set_draft_field(&mut sheet, "variants[0].key", "blue")
+        .expect("the variant's key");
+    match s.new_part_in_my_parts(&sheet) {
+        Err(PartDraftError::Field(m)) => {
+            assert_eq!(m.key, "error-part-cell-needed");
+            assert_eq!(m.field, "variants[0].name");
+            assert_eq!(m.args, ["1"]);
+        }
+        other => panic!("{other:?}"),
+    }
+}

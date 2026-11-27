@@ -1419,11 +1419,22 @@ impl ShellModel {
             open.sheet.messages.retain(|x| x.field != m.field);
             open.sheet.messages.push(m.clone());
         }
+        // A row's cell left empty is named by its column's word ("Name: Row 1 needs a value here…").
+        let column = match &e {
+            PartDraftError::Field(m) if m.key == "error-part-cell-needed" => {
+                Some(super::part_dialog::field_label(&m.field))
+            }
+            _ => None,
+        };
         let out = draft_refusal(e);
-        open.error = Some(match &out {
+        let words = match &out {
             Outcome::Refused { reason } => strings::render(reason),
             Outcome::Failed { message } => message.clone(),
             Outcome::Done => String::new(),
+        };
+        open.error = Some(match column {
+            Some(c) => strings::format(key!("part-form-message"), &[&c, &words]),
+            None => words,
         });
         out
     }

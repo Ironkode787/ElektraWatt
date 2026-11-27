@@ -969,6 +969,20 @@ impl Session {
                         .map_err(PartDraftError::Field)?;
                     set_at(&mut item, m, value);
                 }
+                // A row that lacks a value its item needs (an accessory's quantity, a variant's name) is refused at
+                // that cell, which names it.
+                if let Some((m, _)) = d.columns.iter().find(|(m, ty)| {
+                    !ty.is_optional()
+                        && !matches!(ty.inner(), FieldType::Bool)
+                        && !matches!(*m, HOLE_KIND | HOLE_SIZE)
+                        && value_at(&item, m).is_none_or(Value::is_null)
+                }) {
+                    return Err(PartDraftError::Field(message(
+                        &format!("{}[{i}].{m}", d.path),
+                        key!("error-part-cell-needed"),
+                        &[&(i + 1).to_string()],
+                    )));
+                }
                 items.push(item);
             }
             set_at(&mut json, d.path, Value::Array(items));

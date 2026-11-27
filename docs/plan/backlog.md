@@ -22,7 +22,6 @@ what the owner's test of 0.3.5 finds is added here.
 
 - FT-2206 `content, ew-viewmodel`: The starter content's 24 V power supply EW-GEN-PSU-1 has no symbol of its own and is drawn as a device box (its browser row says so before the click). A power-supply symbol (doc 07a) would make it the first symbol device of its kind; the black-box tests that place it from the browser (the starter symbol paths, the device box, the wire around a box, the missing FnDef of a two-FnDef part) then need another black-box part.
 
-- FT-2255 `ew-commands, ew-viewmodel`: A new accessory or variant row of the part editor that is left empty is refused with the reader's own message ("missing field `qty`") and not in words. A row that lacks a value says which one, as the other forms do.
 - FT-2333 `ew-derive`: A wire's length is a member of the one wire record set, so every edit of a layout builds every wire record again (not measured). The length as a query of its own per wire, which the lists, Properties and the checks read.
 
 #### The page's drawing

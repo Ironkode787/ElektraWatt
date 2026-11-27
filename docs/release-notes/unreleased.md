@@ -774,3 +774,6 @@ change here.
   description per language, a technical value, a free property and `like`; the command line's `ew lib import parts`
   refuses a map that names a field beyond the plain ones (maker, part number, type, order number, GTIN, description,
   kind, unit), and its row refusals keep their words
+- behaviour-change: a row of a part's accessories or variants left without a value its item needs (a quantity, a
+  variant's name) is refused on Save at that cell, in words that name the column and the row ("Name of the variant:
+  Row 1 needs a value here"), not with the reader's own message
