@@ -207,9 +207,10 @@ EW-MFG-001, EW-LAY-011 and the cable glands ([12-placement-pages](12-placement-p
 - **outside**, made on site: an external point, or a device of another location, also one whose location has a layout
   space of its own, so a wire between two cabinets is made on site for both;
 - **not known yet:** an open end (an interruption point without a partner), or a device without a location. Such a
-  wire is unfinished: it is none of the cabinet's wires, gets no way and is not made on site, and the lists count it as
-  a wire without a length (Length from "missing"; "1 wire has no length yet: type it"). A cable's core with such an end
-  is still its cable's, and its cable takes no gland for it.
+  wire of the cabinet is unfinished: it gets no way, Route's card names it under Without a way with its reason (the
+  table below), it is not made on site, and the lists count it as a wire without a length (Length from "missing"; "1
+  wire has no length yet: type it"). A cable's core with such an end is still its cable's, and its cable takes no gland
+  for it.
 
 Of the cabinet's wires, a wire gets no way, and is told why in words with what to do:
 
@@ -218,6 +219,8 @@ Of the cabinet's wires, a wire gets no way, and is told why in words with what t
 | An end's device is not placed | "-102S1 is not placed: place it, then route again" |
 | An end's pin meets no duct and the wire has no direct way | "-104A1-A1:M meets no duct: draw a duct above or below rail 2, or type the length" (the sample without duct 1) |
 | An end is on another surface than the plate or a door, or the wire runs between two doors | "-109E1 is on a side wall: Route lays wires on the plate and into the doors; type the length" |
+| An end is open | "its end at the interruption point L-1 is open: give the point its partner, or type the length" |
+| An end is on a device without a location | "its end -103F1:1 is on a device without a location: give the device its location, then route again" |
 
 ### 8.3 The search
 

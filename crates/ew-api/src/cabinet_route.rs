@@ -101,7 +101,7 @@ pub struct CardWire {
 
 impl CardWire {
     /// Why the wire gets no way, as `ew route --json` names it: `unplaced`, `no_duct`, `ducts_apart`, `off_plate`,
-    /// `other_plate`, `two_doors` or `door_size`.
+    /// `other_plate`, `two_doors`, `door_size`, `open_end` or `no_location`.
     pub fn reason_key(&self) -> Option<&'static str> {
         use ew_derive::layout::NoWay;
         self.reason.as_ref().map(|(why, _)| match why {
@@ -112,6 +112,8 @@ impl CardWire {
             NoWay::TwoDoors(..) => "two_doors",
             NoWay::DuctsApart { .. } => "ducts_apart",
             NoWay::DoorWithoutSize(_) => "door_size",
+            NoWay::OpenEnd(_) => "open_end",
+            NoWay::NoLocation(_) => "no_location",
         })
     }
 }
@@ -450,6 +452,7 @@ fn planned_by(now: &Q, after: &Q, space: Id<LayoutSpace>, all: bool) -> Vec<Plan
             let planned = match kind {
                 CabinetWire::Site => Planned::Site,
                 CabinetWire::Core => Planned::Core,
+                CabinetWire::Unfinished(why) => Planned::NoWay(why),
                 CabinetWire::Routed
                     if !all && matches!(route_status(now, &r.wire), RouteStatus::Holds { .. }) =>
                 {

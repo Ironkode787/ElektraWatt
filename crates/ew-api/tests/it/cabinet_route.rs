@@ -684,6 +684,65 @@ fn a_wire_between_two_cabinets_is_made_on_site_in_every_place() {
     assert_eq!(says(&mut s), (true, true, true, false), "two cabinets");
 }
 
+/// An unfinished wire of the cabinet stands on Route's card under Without a way with its reason (doc 12-3d §8.2), never
+/// under Made on site: 101.8 once its -103F1 has no location; a wire whose interruption point lost its partner.
+#[test]
+fn routes_card_names_an_unfinished_wire_without_a_way() {
+    use ew_schema::{FunctionKind, Record, Slot};
+    let s = common::sample();
+    let q = s.query();
+    let f1 = q
+        .devices()
+        .iter()
+        .find(|(d, _)| ew_derive::short_tag(&q, *d) == "-103F1")
+        .map(|(d, _)| d)
+        .expect("-103F1");
+    drop(q);
+    // The sample with one change to its records, and the rows of Route's card on 902 without a way.
+    let card_of = |change: &dyn Fn(&mut Record) -> bool| {
+        let (project, mut records, lib) = common::sample_records();
+        let mut changed = false;
+        for r in &mut records {
+            changed |= change(r);
+        }
+        assert!(changed, "the sample has what the change needs");
+        let mut s = common::session_of(project, records, lib);
+        s.cabinet_route("902", false).unwrap().expect("a plan").0
+    };
+    let words = |w: &ew_api::cabinet_route::CardWire| w.reason.as_ref().map(|(_, t)| t.to_string()).unwrap_or_default();
+    let card = card_of(&|r| match r {
+        Record::Device(d) if d.id == f1 => {
+            d.structure.location = Some(Slot::None);
+            true
+        }
+        _ => false,
+    });
+    let w = card.without.iter().find(|w| w.number == "101.8").expect("101.8 without a way");
+    assert_eq!(w.reason_key(), Some("no_location"));
+    assert!(words(w).contains("-103F1:1 is on a device without a location"), "{}", words(w));
+    assert!(!card.site.iter().any(|x| x.number == "101.8"), "not made on site");
+    // The first interruption point of the sample renamed: its wires end open.
+    let once = std::cell::Cell::new(false);
+    let card = card_of(&|r| match r {
+        Record::Function(f) if !once.get() => match &mut f.kind {
+            FunctionKind::Ip(ip) if ip.external.is_none() => {
+                ip.name = ew_mltext::Ident::from_input("LOOSE").expect("a name");
+                once.set(true);
+                true
+            }
+            _ => false,
+        },
+        _ => false,
+    });
+    let open = card
+        .without
+        .iter()
+        .find(|w| w.reason_key() == Some("open_end"))
+        .expect("a wire with an open end");
+    assert!(words(open).contains("interruption point LOOSE is open"), "{}", words(open));
+    assert!(!card.site.iter().any(|x| x.wire == open.wire), "not made on site");
+}
+
 /// A routed wire its cabinet no longer routes has no way read anywhere (doc 12-3d §8.5): re-wired to a field device, to
 /// an external point, or become a core, 101.8 has no length (made on site, or its cable's), its duct no longer counts
 /// it, and Route's next run removes its record in its one undo step, its card counting it.

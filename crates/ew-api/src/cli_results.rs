@@ -1229,9 +1229,10 @@ pub struct RouteUnrouted {
     pub wire: String,
     /// Why: `wires`, `symbols`, `points` or `four_arms` (the first thing in its way: other wires, the symbols, the
     /// connection points of other wires, or a fourth arm at a junction; docs/design/06a-drafting.md §3.8); on a panel
-    /// page `unplaced`, `no_duct`, `ducts_apart`, `off_plate`, `other_plate`, `two_doors` or `door_size` (an end's
-    /// device not placed, a pin that meets no duct, two pins whose ducts do not meet, an end on a side, the top or the
-    /// bottom, an end on a second plate, two ends in two doors, a door without a size; doc 12 §8.2).
+    /// page `unplaced`, `no_duct`, `ducts_apart`, `off_plate`, `other_plate`, `two_doors`, `door_size`, `open_end` or
+    /// `no_location` (an end's device not placed, a pin that meets no duct, two pins whose ducts do not meet, an end on
+    /// a side, the top or the bottom, an end on a second plate, two ends in two doors, a door without a size, an open
+    /// end, an end on a device without a location; doc 12 §8.2).
     pub reason: String,
 }
 

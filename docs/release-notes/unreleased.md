@@ -623,8 +623,9 @@ change here.
   cabinet (a layout space for +FLD), a wire between the two cabinets stays made on site in the wire list (Length from
   "site"), the package's Contents, the cut list and the consumables, as Route's card says, where they said "no length
   yet: type them"; both its ends are the site's. A wire with an open end or an end on a device without a location is
-  unfinished, no longer "made on site" on Route's card: the lists count it as a wire without a length, and its cable
-  takes no gland for that end
+  unfinished: Route's card names it under Without a way with its reason ("its end at the interruption point L-1 is
+  open: …", "its end -103F1:1 is on a device without a location: …"; `ew route --json` `open_end`, `no_location`), no
+  longer under Made on site; the lists count it as a wire without a length, and its cable takes no gland for that end
 - text-change: a wire without a way says its own reason (the ducts at two pins do not meet, two devices in two doors,
   a device on a second plate or on a named face, a door without a size), and a way that no longer holds its own cause
   (a pin its part or drawing put elsewhere, the duct or the door changed); EW-LAY-011 has these forms; `ew route

@@ -1407,7 +1407,7 @@ fn a_wire_record_has_its_typed_length_its_cable_or_none() {
 /// (0x2004) and a cable's core from +CAB to +FLD (0x2005); a cable whose other core end is open gets no gland.
 #[test]
 fn a_site_end_lies_outside_the_cabinet_of_the_wires_other_end() {
-    use ew_derive::layout::{CabinetWire, CableGlands, cabinet_wire};
+    use ew_derive::layout::{CabinetWire, CableGlands, NoWay, cabinet_wire};
     const CAB: u128 = 0x920;
     const FLD: u128 = 0x921;
     let mut fx = pair_fixture();
@@ -1480,15 +1480,17 @@ fn a_site_end_lies_outside_the_cabinet_of_the_wires_other_end() {
     let m = fx.build();
     assert_eq!(read(&m, 0x2001), (no.clone(), false, None, None));
     assert_eq!(read(&m, 0x2002), (yes.clone(), true, None, None));
-    // With one for +CAB the end in +FLD is made on site; an open end and an end of no location are unfinished, neither
-    // the cabinet's nor made on site.
+    // With one for +CAB the end in +FLD is made on site; an open end and an end of no location are unfinished: no way,
+    // with why, and not made on site.
     fx.push(json!({"$k": "layout_space", "id": uid(CAB), "location": uid(0x900)}));
     let m = fx.build();
     let site = Some(CabinetWire::Site);
+    let open = Some(CabinetWire::Unfinished(NoWay::OpenEnd((id(0x1102), 0))));
+    let unlocated = Some(CabinetWire::Unfinished(NoWay::NoLocation((id(0x1005), 0))));
     assert_eq!(read(&m, 0x2001), (yes.clone(), true, site, None));
     assert_eq!(read(&m, 0x2002), (yes.clone(), true, site, None));
-    assert_eq!(read(&m, 0x2003), (no.clone(), false, None, None), "open");
-    assert_eq!(read(&m, 0x2004), (no.clone(), false, None, None), "no location");
+    assert_eq!(read(&m, 0x2003), (no.clone(), false, open, None));
+    assert_eq!(read(&m, 0x2004), (no.clone(), false, unlocated, None));
     assert_eq!(
         read(&m, 0x2005),
         (yes.clone(), true, Some(CabinetWire::Core), None)
@@ -1500,8 +1502,8 @@ fn a_site_end_lies_outside_the_cabinet_of_the_wires_other_end() {
     let both = vec![true, true];
     assert_eq!(read(&m, 0x2001), (both.clone(), true, site, site));
     assert_eq!(read(&m, 0x2002), (yes, true, site, None));
-    assert_eq!(read(&m, 0x2003), (no.clone(), false, None, None), "open");
-    assert_eq!(read(&m, 0x2004), (no, false, None, None), "no location");
+    assert_eq!(read(&m, 0x2003), (no.clone(), false, open, None));
+    assert_eq!(read(&m, 0x2004), (no, false, unlocated, None));
     let core = Some(CabinetWire::Core);
     assert_eq!(read(&m, 0x2005), (both, true, core, core));
     assert_eq!(glands(&m, FLD), [0x30_000]);

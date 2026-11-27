@@ -770,6 +770,8 @@ pub enum CabinetWire {
     Site,
     /// A cable's core: cut with its cable, no way.
     Core,
+    /// An end not known yet ([`EndPlace::Unknown`]): unfinished, no way, not made on site; why, in Route's words.
+    Unfinished(NoWay),
 }
 
 /// The cabinet of a layout space: the location node it lays out.
@@ -787,7 +789,7 @@ pub enum EndPlace {
     /// one whose location has a layout space of its own.
     Outside(Option<Id<ew_schema::StructureNode>>),
     /// Not known yet: an open end (an interruption point without a partner), or an end on a device without a location.
-    /// Its wire is unfinished: none of the cabinet's, and not made on site.
+    /// Its wire is unfinished ([`CabinetWire::Unfinished`]): no way, and not made on site.
     Unknown,
 }
 
@@ -811,8 +813,8 @@ pub fn end_place(q: &Q, end: &WireEnd, loc: Id<ew_schema::StructureNode>) -> End
 
 /// `cabinet_wires(space)`: the wires of the cabinet a layout space lays out, in the order of the wire list, each with
 /// what it is to Route (doc 12 §8.2): a wire with both ends on devices of the space's location is routed, one with an
-/// end outside is made on site, a cable's core is cut with its cable; an unfinished wire (an end [`EndPlace::Unknown`])
-/// is none of them. The plan, EW-MFG-001 and the card's counts read it.
+/// end outside is made on site, a cable's core is cut with its cable, and an unfinished wire (an end
+/// [`EndPlace::Unknown`]) gets no way and says why. The plan, EW-MFG-001 and the card's counts read it.
 pub fn cabinet_wires(q: &Q, space: Id<LayoutSpace>) -> Vec<(WireRecord, CabinetWire)> {
     let Some(loc) = location_of_space(q, space) else {
         return Vec::new();
@@ -823,13 +825,13 @@ pub fn cabinet_wires(q: &Q, space: Id<LayoutSpace>) -> Vec<(WireRecord, CabinetW
         .collect()
 }
 
-/// What a wire is to the cabinet of `space` ([`cabinet_wires`]); `None` for a wire none of the cabinet's.
+/// What a wire is to the cabinet of `space` ([`cabinet_wires`]); `None` for a wire with no end in it.
 pub fn cabinet_wire(q: &Q, space: Id<LayoutSpace>, wire: &PhysicalWire) -> Option<CabinetWire> {
     classify(q, wire, location_of_space(q, space)?)
 }
 
 /// What a wire is to the cabinet of the location `loc`, by where its ends lie ([`end_place`]); `None` for a wire with
-/// no end in it and for an unfinished one that is no cable's core.
+/// no end in it.
 fn classify(q: &Q, wire: &PhysicalWire, loc: Id<ew_schema::StructureNode>) -> Option<CabinetWire> {
     let at = wire.ends.map(|e| end_place(q, &e, loc));
     if !at.contains(&EndPlace::Inside) {
@@ -838,8 +840,11 @@ fn classify(q: &Q, wire: &PhysicalWire, loc: Id<ew_schema::StructureNode>) -> Op
     Some(match at {
         _ if wire.core.is_some() => CabinetWire::Core,
         [EndPlace::Inside, EndPlace::Inside] => CabinetWire::Routed,
-        _ if at.contains(&EndPlace::Unknown) => return None,
-        _ => CabinetWire::Site,
+        _ => match wire.ends.iter().zip(at).find(|(_, p)| *p == EndPlace::Unknown) {
+            Some((e, _)) if e.kind == EndKind::Open => CabinetWire::Unfinished(NoWay::OpenEnd((e.cp.function, e.cp.idx))),
+            Some((e, _)) => CabinetWire::Unfinished(NoWay::NoLocation((e.cp.function, e.cp.idx))),
+            None => CabinetWire::Site,
+        },
     })
 }
 
@@ -913,6 +918,10 @@ pub enum NoWay {
     },
     /// A door gives no size, so the way into it finds no hinge edge.
     DoorWithoutSize(Id<MountingSurface>),
+    /// An end is open (an interruption point without a partner): the wire is unfinished.
+    OpenEnd((Id<Function>, u16)),
+    /// An end is on a device without a location (or on no device): the wire is unfinished.
+    NoLocation((Id<Function>, u16)),
 }
 
 /// A way laid for a wire: its ends, its steps and its run.
@@ -1215,6 +1224,7 @@ pub fn plan_routes(q: &Q, space: Id<LayoutSpace>, scope: &RouteScope) -> RoutePl
                     planned: match kind {
                         CabinetWire::Site => Planned::Site,
                         CabinetWire::Core => Planned::Core,
+                        CabinetWire::Unfinished(why) => Planned::NoWay(why),
                         CabinetWire::Routed => Planned::Kept,
                     },
                     wire,
@@ -1251,11 +1261,18 @@ pub fn plan_routes(q: &Q, space: Id<LayoutSpace>, scope: &RouteScope) -> RoutePl
         };
         hold(&mut room, &graph, &way.way, area);
     }
+    // A stored way is current for a wire the cabinet routes; any other record of the space is a leftover to remove.
+    let current: BTreeSet<Id<Connection>> = wires
+        .iter()
+        .filter(|(_, kind)| *kind == CabinetWire::Routed)
+        .map(|(r, _)| r.wire.id)
+        .collect();
     let mut out = Vec::with_capacity(wires.len());
     for (r, kind) in wires {
         let p = match kind {
             CabinetWire::Site => Planned::Site,
             CabinetWire::Core => Planned::Core,
+            CabinetWire::Unfinished(why) => Planned::NoWay(why),
             CabinetWire::Routed if !planned(&r) => Planned::Kept,
             CabinetWire::Routed => {
                 let area = wire_area(q, &r).map_or(0, |a| a.0);
@@ -1270,12 +1287,6 @@ pub fn plan_routes(q: &Q, space: Id<LayoutSpace>, scope: &RouteScope) -> RoutePl
         };
         out.push(PlannedWire { wire: r, planned: p });
     }
-    // A stored way is current for a wire the cabinet routes; any other record of the space is a leftover to remove.
-    let current: BTreeSet<Id<Connection>> = out
-        .iter()
-        .filter(|w| !matches!(w.planned, Planned::Site | Planned::Core))
-        .map(|w| w.wire.wire.id)
-        .collect();
     let gone = q
         .table::<CommittedRoute>()
         .iter()

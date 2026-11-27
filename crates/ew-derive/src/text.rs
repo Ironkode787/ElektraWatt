@@ -1306,6 +1306,8 @@ pub fn no_way(q: &crate::Q, why: crate::layout::NoWay) -> Text {
             crate::cp_label(q, crate::CpRef::new(b.0, b.1))
         ),
         NoWay::DoorWithoutSize(door) => text!("no-way-door-size", surface_words(q, door)),
+        NoWay::OpenEnd(cp) => text!("no-way-open-end", crate::cp_label(q, crate::CpRef::new(cp.0, cp.1))),
+        NoWay::NoLocation(cp) => text!("no-way-no-location", crate::cp_label(q, crate::CpRef::new(cp.0, cp.1))),
     }
 }
 
