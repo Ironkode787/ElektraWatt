@@ -84,7 +84,7 @@ In the project's language, in a folder per kind; the sample's names (drawing num
 
 | Member (kind) | Path | What it is | The same as |
 |---|---|---|---|
-| Contents (`contents`) | `Contents.txt` | what the package is for, the revision, whether it is a draft and why, what stood in the check (§8.6), how many wires have no length and why, and each file with what it is for | — |
+| Contents (`contents`) | `Contents.txt` | what the package is for, the revision, whether it is a draft and why, what stood in the check (§8.6), how many wires have no length and why, what the files lack of the workshop stock and of its parts' data (§8.5), and each file with what it is for | — |
 | Drawings (`pages`) | `SAMPLE-E V1.0 drawings.pdf` | every page in page order as one PDF, the list pages among them; a draft's pages carry the draft mark (§8.4) | Export PDF |
 | Wire list (`wire_list`) | `Lists/SAMPLE-E Wire list.xlsx` | every wire with every column ([13](13-manufacturing-outputs.md) §3.1); a wire without a length prints "—" as on the page | the list's Excel export |
 | Assembly lists (`assembly_list`) | `Lists/SAMPLE-E Assembly lists.xlsx` | per strip, what to mount in order | the list's Excel export |
@@ -183,7 +183,11 @@ wide as the print pre-dialog (`size.dialog.preview`: 1248 px at 1920, [16a](16a-
   the way to it: "Cable markers: no marker part in the stock marks cables" with **Workshop stock…** (Parts narrowed to
   the stock, [07](07-place.md) §5.10), where a person adds a marker of his own (kind Marker: Marks cables, Lines,
   Characters per line); a reason that names one part's missing field offers **Edit part…** at that field
-  ([07](07-place.md) §5.7).
+  ([07](07-place.md) §5.7). The wire list's row names the ends no ferrule or ring lug of the stock takes ("No ring lug
+  of the workshop stock takes 2.5 mm²: the wire list names no part for those ends"), the wires no wire part of the
+  stock matches, and each field a ferrule, a lug or a wire part it reads lacks ("MY-FER-075: Without a sleeve length
+  the wire list prints no strip length."); the label files' row each field a marker part lacks (its characters per
+  line). Each is the sentence `ew_derive::part_fields` declares for its reader, and Contents lists them all.
 - **Right, Before it goes to the workshop**: the check's line, "Ready: nothing stands in the way." or "3 things: 1
   stops a release, 2 are warnings.", and under it every finding of the check, those that stop a release first, each
   with its rule's message, **Show** (its wires or devices listed under it, by their numbers and tags) and its fix as a

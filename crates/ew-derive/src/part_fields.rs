@@ -2333,6 +2333,22 @@ pub fn lacking(p: &Part, feature: Feature) -> Vec<&'static PartField> {
         .collect()
 }
 
+/// What the ferrule choice ([`Feature::FerruleChoice`]) does where the workshop stock holds no part of `form` for the
+/// sizes `sizes` ("1.5 mm², 2.5 mm²"): the wire list names no part for those ends (doc 13 §4.4).
+pub fn no_stock_end(form: crate::EndForm, sizes: &str) -> Text {
+    match form {
+        crate::EndForm::Ferrule => text!("part-stock-no-ferrule", sizes),
+        crate::EndForm::TwinFerrule => text!("part-stock-no-twin-ferrule", sizes),
+        crate::EndForm::RingLug => text!("part-stock-no-ring-lug", sizes),
+    }
+}
+
+/// What the match of a wire with the stock ([`Feature::StockMatch`]) does where no wire part of the workshop stock
+/// matches the wires of `kinds` ("1.5 mm² BK, 2.5 mm² GNYE"): the lists name no part for them.
+pub fn no_stock_wire(kinds: &str) -> Text {
+    text!("part-stock-no-wire", kinds)
+}
+
 /// A part's missing datum that an outcome comes from (doc 07 §5.7): a finding or a refusal carries it, and the window
 /// offers Edit part… for it, which opens Parts on the part at the field.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

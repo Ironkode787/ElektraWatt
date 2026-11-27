@@ -836,3 +836,7 @@ change here.
   are Dutch wherever they are printed: a panel page's caption under a door and "Deurkant", the assembly list's end
   plate and end bracket, the consumables' set names in For, a tube marker's "… op …", a circuit's class; they were
   printed in English. A text is rendered by the words of the part that owns it, so none falls back to English unseen
+- behaviour-change: the package dialog's wire list row and Contents.txt name what the wire list needs of the workshop
+  stock and does not find: the ends no ferrule or ring lug of the stock takes, the wires no wire part matches, and a
+  field a ferrule, a lug or a wire part lacks (a sleeve length); the label files' row a marker part without its
+  characters per line. An existing project's Contents.txt gains these lines; they were printed as blanks unsaid

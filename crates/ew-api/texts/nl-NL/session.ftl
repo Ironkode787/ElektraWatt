@@ -804,6 +804,7 @@ package-no-holes = Nog geen vlak van dit project heeft gaten
 package-no-rows = Nog niets te vermelden
 package-no-labels = Het project heeft nog geen labels
 package-lacks-marker = { $p0 }: de voorraad heeft geen markeringsartikel voor { $p1 }; het labelprogramma vraagt waarop het afdrukt
+package-lacks-part = { $p0 }: { $p1 }
 package-holds-labels = { $count ->
         [one] 1 bestand
        *[many] { $n } bestanden
@@ -905,6 +906,7 @@ package-contents-no-length = { $p0 } ({ $p1 }).
 package-no-length-line = { $p0 }.
 package-contents-every-length = Elke draad heeft zijn lengte in de draadlijst; een kabelader heeft die van zijn kabel.
 package-contents-other-lengths = Elke andere draad heeft zijn lengte in de draadlijst; een kabelader heeft die van zijn kabel.
+package-contents-lacks = Wat de bestanden missen van de werkplaatsvoorraad en van de gegevens van zijn artikelen:
 package-contents-what = Wat erin zit
 package-about-labels-folder = Eén bestand per soort label en markering, voor het labelprogramma: { $count ->
         [one] 1 label.

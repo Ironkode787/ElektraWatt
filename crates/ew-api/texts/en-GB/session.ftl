@@ -819,6 +819,7 @@ package-no-holes = No surface of this project has holes yet
 package-no-rows = Nothing to list yet
 package-no-labels = The project has no labels yet
 package-lacks-marker = { $p0 }: no marker part in the stock marks { $p1 }; the label program asks which to print on
+package-lacks-part = { $p0 }: { $p1 }
 package-holds-labels = { $count ->
         [one] 1 file
        *[many] { $n } files
@@ -920,6 +921,7 @@ package-contents-no-length = { $p0 } ({ $p1 }).
 package-no-length-line = { $p0 }.
 package-contents-every-length = Every wire has its length in the wire list; a cable core has its cable's.
 package-contents-other-lengths = Every other wire has its length in the wire list; a cable core has its cable's.
+package-contents-lacks = What the files lack of the workshop stock and of its parts' data:
 package-contents-what = What is in it
 package-about-labels-folder = One file per kind of label and marker, for the label program: { $count ->
         [one] 1 label.

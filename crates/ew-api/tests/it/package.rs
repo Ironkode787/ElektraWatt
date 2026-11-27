@@ -470,3 +470,77 @@ fn a_project_without_a_layout_counts_its_wires_without_a_length() {
         "{contents}"
     );
 }
+
+/// What the wire list and the label files need of the workshop stock and do not find is said under their rows and in
+/// Contents, in the words of the field's reader, with parts made here (owner, 2026-11-26): a ferrule without a sleeve
+/// length, a wire marker without its characters per line, the sample's ring lug end (101.4, set by hand) that no stock
+/// part takes, and the wires that no wire part of the stock matches (the sample's stock holds none).
+#[test]
+fn what_the_lists_lack_of_the_stock_is_said() {
+    let mut s = common::sample();
+    let own = |n: u128, number: &str, kind: &str, sections: serde_json::Value| {
+        let (part, mut doc) = common::wire_part(n, number, "1.5", &serde_json::json!(["BK"]));
+        doc["kind"] = serde_json::json!(kind);
+        doc["sections"] = sections;
+        let parsed = ew_schema::LibDocument::from_value(doc.clone()).expect("a part document");
+        doc["sha256"] = serde_json::json!(
+            ew_schema::Sha256(ew_format::library_copy_hash(&parsed).expect("a hash")).to_string()
+        );
+        (part, doc)
+    };
+    let (ferrule, ferrule_doc) = own(
+        0x7401,
+        "MY-FER-075",
+        "ferrule",
+        serde_json::json!({"ferrule": {"csa_min": "0.75", "csa_max": "0.75"}}),
+    );
+    let (marker, marker_doc) = own(
+        0x7402,
+        "MY-WM",
+        "marker",
+        serde_json::json!({"marker": {"marks": "wire", "lines": 1}}),
+    );
+    let mut stock = vec![
+        serde_json::json!({"copy": ferrule.to_string()}),
+        serde_json::json!({"copy": marker.to_string()}),
+    ];
+    stock.extend(
+        serde_json::to_value(&s.query().project().settings.workshop.stock)
+            .expect("the stock")
+            .as_array()
+            .expect("a list")
+            .iter()
+            .cloned(),
+    );
+    common::run_cmd(
+        &mut s,
+        "workshop.stock",
+        serde_json::json!({"stock": stock, "copies": [ferrule_doc, marker_doc]}),
+    );
+    let plan = s.package_plan(&ask());
+    let lacks_of = |m: PackageMember| -> Vec<String> {
+        let member = plan.members.iter().find(|p| p.member == m).expect("the member");
+        member.lacks.iter().map(ToString::to_string).collect()
+    };
+    let wires = lacks_of(PackageMember::List("wire_list"));
+    for said in [
+        "MY-FER-075: Without a sleeve length the wire list prints no strip length.",
+        "No ring lug of the workshop stock takes 2.5 mm²: the wire list names no part for those ends.",
+    ] {
+        assert!(wires.iter().any(|l| l == said), "{said}: {wires:#?}");
+    }
+    assert!(
+        wires.iter().any(|l| l.starts_with("No wire part of the workshop stock matches ")),
+        "{wires:#?}"
+    );
+    let labels = lacks_of(PackageMember::Labels);
+    assert!(
+        labels.iter().any(|l| l.starts_with("MY-WM: Without ") && l.contains("characters")),
+        "{labels:#?}"
+    );
+    let (_, entries) = package(&s, &ask());
+    let contents = String::from_utf8(entry(&entries, |n| n == "Contents.txt").data.clone()).expect("UTF-8");
+    for said in wires.iter().chain(&labels) {
+        assert!(contents.contains(&format!("  {said}")), "{said}: {contents}");
+    }
+}

@@ -14,6 +14,7 @@
 
 use std::path::Path;
 
+use ew_derive::part_fields::{self, Feature as PartFeature};
 use ew_derive::{LabelSet, Q, WireLength, WireRecordSet, print_language};
 use ew_l10n::Text;
 use ew_mltext::LangTag;
@@ -300,6 +301,61 @@ fn counted2(key: &'static str, n: usize, m: usize) -> Text {
         .with("m", m.to_string())
 }
 
+/// What the wire list needs of the workshop stock and does not find (doc 13-package §8.5), each in the words
+/// `ew_derive::part_fields` declares for it: an end the stock has no ferrule or ring lug for, the wires no wire part of
+/// the stock matches, and a field that a ferrule, a ring lug or a wire part on the list lacks.
+fn wire_list_lacks(q: &Q) -> Vec<Text> {
+    let c = ew_derive::consumable_rows(q);
+    let mut out: Vec<Text> = c
+        .ends
+        .iter()
+        .filter(|e| e.part.is_none())
+        .map(|e| {
+            let sizes: Vec<String> = e.sizes.iter().filter_map(ew_derive::text::csa_with_unit).collect();
+            part_fields::no_stock_end(e.form, &sizes.join(", "))
+        })
+        .collect();
+    let kinds: Vec<String> = (c.wires.iter().filter(|w| w.part.is_none()))
+        .map(|w| {
+            let size = w.csa.as_ref().and_then(ew_derive::text::csa_with_unit);
+            let colour = w.colour.as_ref().map(ew_derive::text::colour_text);
+            [size, colour].into_iter().flatten().collect::<Vec<_>>().join(" ")
+        })
+        .filter(|k| !k.is_empty())
+        .collect();
+    if !kinds.is_empty() {
+        out.push(part_fields::no_stock_wire(&kinds.join(", ")));
+    }
+    let parts = (c.ends.iter().filter_map(|e| e.part)).chain(c.wires.iter().filter_map(|w| w.part.as_ref().map(|p| p.copy)));
+    out.extend(part_lacks(
+        q,
+        parts,
+        &[PartFeature::WireEnds, PartFeature::StockMatch],
+    ));
+    out
+}
+
+/// What the parts `parts` (the project's copies; each once) lack that `features` read, as the package names it: the
+/// part's number and the reader's sentence ("EW-OWN-FER-1: Without a sleeve length the wire list prints no strip
+/// length.").
+fn part_lacks(q: &Q, parts: impl Iterator<Item = ew_ids::Id<ew_schema::Part>>, features: &[PartFeature]) -> Vec<Text> {
+    let mut seen = Vec::new();
+    let mut out = Vec::new();
+    for id in parts {
+        if seen.contains(&id) {
+            continue;
+        }
+        seen.push(id);
+        let Some(copy) = q.parts().get(id) else {
+            continue;
+        };
+        for lack in part_fields::lacks(&copy.item).iter().filter(|l| features.contains(&l.feature)) {
+            out.push(text!("package-lacks-part", copy.item.part_number.as_str(), lack.text()));
+        }
+    }
+    out
+}
+
 /// `d` as ISO `2026-11-27`.
 fn iso(d: PdfDate) -> String {
     format!("{:04}-{:02}-{:02}", d.year, d.month, d.day)
@@ -475,7 +531,12 @@ impl Session {
         let (holds, why_not) = match m {
             PackageMember::Contents | PackageMember::Pages => (Some(text!("package-holds-pages")), None),
             PackageMember::List(kind) => match self.list_holds(q, kind) {
-                Ok(holds) => (Some(holds), None),
+                Ok(holds) => {
+                    if kind == "wire_list" {
+                        lacks = wire_list_lacks(q);
+                    }
+                    (Some(holds), None)
+                }
                 Err(why) => (None, Some(why)),
             },
             PackageMember::Labels => match self.label_files(&LabelScope::All, None, None) {
@@ -488,6 +549,8 @@ impl Session {
                             marks_words(f.set)
                         ));
                     }
+                    let markers = ew_derive::consumable_rows(q).markers.iter().filter_map(|m| m.part).collect::<Vec<_>>();
+                    lacks.extend(part_lacks(q, markers.into_iter(), &[PartFeature::MarkerFit]));
                     (
                         Some(counted2(key!("package-holds-labels"), files.len(), labels)),
                         None,
@@ -929,6 +992,13 @@ fn contents_txt(
         text!("package-contents-other-lengths")
     }));
     lines.push(String::new());
+    // What the files lack of part data, as the dialog names it under each member.
+    let lacks: Vec<&Text> = plan.members.iter().flat_map(|m| &m.lacks).collect();
+    if !lacks.is_empty() {
+        lines.push(words(&text!("package-contents-lacks")));
+        lines.extend(lacks.into_iter().map(|l| format!("  {}", words(l))));
+        lines.push(String::new());
+    }
     lines.push(words(&text!("package-contents-what")));
     lines.push(String::new());
     // Each file with what it is for, in the members' order (the drawings, the lists, the label files, the drawings for
