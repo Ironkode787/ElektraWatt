@@ -21,9 +21,7 @@ use ew_derive::{
 use ew_ids::Id;
 use ew_l10n::Text;
 use ew_mltext::{MlText, NaturalKey, natural_key};
-use ew_schema::{
-    BridgeKind, ColourSpec, Connection, Csa, Device, DeviceState, Function, FunctionKind, Page, Unit,
-};
+use ew_schema::{BridgeKind, ColourSpec, Connection, Csa, Device, DeviceState, Function, FunctionKind, Page};
 
 use crate::rowset::{Cell, ColumnDef, QtyUnit};
 
@@ -275,10 +273,11 @@ pub(super) fn colour_cell(c: Option<&ColourSpec>) -> Cell {
     c.map_or(Cell::Empty, |c| Cell::Colour(c.clone()))
 }
 
-/// The cross-section as a cell: mm² as a quantity, AWG and kcmil as identifiers, `Empty` without one.
+/// The cross-section as a cell under the heading "mm²": mm² as a number (the heading carries the unit, so a page prints
+/// `2.5` and an Excel file a number to sort and sum), AWG and kcmil as identifiers with their unit, `Empty` without one.
 pub(super) fn csa_cell(c: Option<&Csa>) -> Cell {
     match c {
-        Some(Csa::Mm2(d)) => Cell::Qty(*d, QtyUnit::Unit(Unit::Mm2)),
+        Some(Csa::Mm2(d)) => Cell::Qty(*d, QtyUnit::None),
         Some(c @ (Csa::Awg(_) | Csa::Kcmil(_))) => ew_derive::csa_text(c).map_or(Cell::Empty, Cell::Ident),
         Some(Csa::Unknown(_)) | None => Cell::Empty,
     }

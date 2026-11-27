@@ -1,19 +1,19 @@
-row,Cable,Cable type,Core,Colour,mm²,From,To,Length
+row,Cable,Cable type,Core,Colour,mm²,From,To,Length m
 heading,Cable overview,,,,,,,
-data,-101W1,EW-GEN-CBL-17,,,,,-X1011,10 m
-data,-103W1,EW-GEN-CBL-25,,,,-X1031,-103M1,5 m
-data,-105W1,EW-GEN-CBL-2,,,,-104A1,-201K1,8 m
+data,-101W1,EW-GEN-CBL-17,,,,,-X1011,10
+data,-103W1,EW-GEN-CBL-25,,,,-X1031,-103M1,5
+data,-105W1,EW-GEN-CBL-2,,,,-104A1,-201K1,8
 heading,-101W1 EW-GEN-CBL-17,,,,,,,
-data,-101W1,,BK,BK,2.5 mm²,ext. L2,-X1011:L2/b,
-data,-101W1,,BN,BN,2.5 mm²,ext. L1,-X1011:L1/b,
-data,-101W1,,BU,BU,2.5 mm²,ext. N,-X1011:N/b,
-data,-101W1,,GNYE,GNYE,2.5 mm²,ext. PE,-X1011:PE/b,
-data,-101W1,,GY,GY,2.5 mm²,ext. L3,-X1011:L3/b,
+data,-101W1,,BK,BK,2.5,ext. L2,-X1011:L2/b,
+data,-101W1,,BN,BN,2.5,ext. L1,-X1011:L1/b,
+data,-101W1,,BU,BU,2.5,ext. N,-X1011:N/b,
+data,-101W1,,GNYE,GNYE,2.5,ext. PE,-X1011:PE/b,
+data,-101W1,,GY,GY,2.5,ext. L3,-X1011:L3/b,
 heading,-103W1 EW-GEN-CBL-25,,,,,,,
-data,-103W1,,BK,BK,2.5 mm²,-X1031:V/b,-103M1:V1,
-data,-103W1,,BN,BN,2.5 mm²,-X1031:U/b,-103M1:U1,
-data,-103W1,,GNYE,GNYE,2.5 mm²,-X1031:PE/b,-103M1:PE,
-data,-103W1,,GY,GY,2.5 mm²,-X1031:W/b,-103M1:W1,
+data,-103W1,,BK,BK,2.5,-X1031:V/b,-103M1:V1,
+data,-103W1,,BN,BN,2.5,-X1031:U/b,-103M1:U1,
+data,-103W1,,GNYE,GNYE,2.5,-X1031:PE/b,-103M1:PE,
+data,-103W1,,GY,GY,2.5,-X1031:W/b,-103M1:W1,
 data,-103W1,,SHIELD,,,-X1031:SH/b,-103M1:PE,
 heading,-105W1 EW-GEN-CBL-2,,,,,,,
 data,-105W1,,A,GN,,-104A1:DP,-201K1:DP,

@@ -94,6 +94,23 @@ pub(crate) fn in_languages_measured(q: &ew_derive::Q, t: &Text) -> MlText {
     }))
 }
 
+/// The text `make` gives in every language of this crate's text files, each measured value it writes by the function
+/// it is handed written as the list prints a quantity in that language ([`crate::render::writes_comma`] and
+/// [`crate::render::decimal`]): a text whose other numbers keep their point ("twin 2,5 BU · 102.8", the partner's wire
+/// number).
+pub(crate) fn in_languages_sized(
+    q: &ew_derive::Q,
+    make: impl Fn(&dyn Fn(ew_units::Dec3) -> String) -> Text,
+) -> MlText {
+    let catalogue = crate::catalogue();
+    MlText::from_langs(catalogue.tags().into_iter().filter_map(|tag| {
+        let lang: LangTag = tag.parse().ok()?;
+        let comma = crate::render::writes_comma(q, Some(&lang));
+        let text = make(&|d| crate::render::decimal(d, comma));
+        Some((lang, catalogue.text_or_english(&text, tag)))
+    }))
+}
+
 /// `t` in every language of this crate's text files, as a row set carries a word of the program.
 pub fn in_languages(t: &Text) -> MlText {
     crate::catalogue().in_languages(t)

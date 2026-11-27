@@ -46,7 +46,7 @@ impl ReportKindDef for CableOverview {
             ColumnDef::new("cross_section", CellType::Qty, text!("column-mm2")).weighted(7),
             ColumnDef::new("from", CellType::Text, text!("column-from")).weighted(18),
             ColumnDef::new("to", CellType::Text, text!("column-to")).weighted(18),
-            ColumnDef::new("length", CellType::Qty, text!("column-length")).weighted(12),
+            ColumnDef::new("length", CellType::Qty, text!("column-length-m")).weighted(12),
         ]
     }
 
@@ -247,7 +247,11 @@ fn cable_row(q: &Q, cable: Id<Device>, by_core: &BTreeMap<Id<Conductor>, &WireRe
             Cell::Empty,
             text_cell(with_point(device_set(q, a), point_a)),
             text_cell(with_point(device_set(q, b), point_b)),
-            length_cell(q, cable),
+            // Under the heading Length m: the metres as a number.
+            match length_cell(q, cable) {
+                Cell::Qty(m, _) => Cell::Qty(m, crate::rowset::QtyUnit::None),
+                other => other,
+            },
         ],
     );
     r.sources = vec![cable.cast()];

@@ -204,6 +204,16 @@ fn a_dutch_projects_lists_print_the_programs_own_words_in_dutch() {
     let configs = |s: &Session| cells_of(s, "part_data", Some(terminal));
     assert!(configs(&english).iter().any(|c| c == "Order Code 1"));
     assert!(configs(&dutch).iter().any(|c| c == "Bestelcode 1"));
+    // A number the program formats on a Dutch page has the Dutch decimal sign: a wire end's size ("huls 1,5 BK"), a
+    // hole's diameter and its X and Y; a twin ferrule's partner is a wire number and keeps its point.
+    let dutch_wires = cells(&dutch, "wire_list");
+    assert!(dutch_wires.iter().any(|c| c == "huls 1,5 BK"), "{dutch_wires:?}");
+    assert!(!dutch_wires.iter().any(|c| c.starts_with("huls 1.5")), "{dutch_wires:?}");
+    assert!(dutch_wires.iter().any(|c| c == "twinhuls 2,5 BU · 101.6"), "{dutch_wires:?}");
+    let holes = cells(&dutch, "hole_table");
+    assert!(holes.iter().any(|c| c.starts_with("Ø ") && c.contains(',')), "{holes:?}");
+    assert!(!holes.iter().any(|c| c.starts_with("Ø ") && c.contains('.')), "{holes:?}");
+    assert!(cells(&english, "hole_table").iter().any(|c| c.starts_with("Ø ") && c.contains('.')));
     // A tube marker's For: the tube's ends (a text of the derivation) inside the lists' words "… at …".
     let tube_for = |s: &Session| -> Vec<String> {
         cells(s, "labels")

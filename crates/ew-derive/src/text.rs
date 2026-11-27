@@ -367,6 +367,7 @@ pub fn rework_change(change: &ReworkChange) -> Text {
                     e.colour.as_ref(),
                     e.stud.as_deref(),
                     e.partner.as_deref(),
+                    &|d| d.to_string(),
                 )
                 .map_or_else(|| NONE.into(), TextArg::from)
             };
@@ -1151,15 +1152,17 @@ pub fn in_languages(text: &Text) -> MlText {
 /// An end's treatment as the wire list's end cell prints it (doc 13 §4.4): "ferrule 1.5 BK", "twin 2.5 BU · 102.8",
 /// "ring lug M6", "bare", "connector", "?" for an end the rule table cannot decide; `None` for an end made outside the
 /// project, which prints "—". `colour` and `stud` are the part's (the colour of its collar, the stud of a ring lug),
-/// `partner` the partner wire's number (a core's cable and core).
+/// `partner` the partner wire's number (a core's cable and core); `number` writes the size (with its point, or the
+/// decimal sign a list prints in its language).
 pub fn end_treatment(
     t: &EndTreatment,
     colour: Option<&ColourSpec>,
     stud: Option<&str>,
     partner: Option<&str>,
+    number: &dyn Fn(Dec3) -> String,
 ) -> Option<Text> {
     let size = |csa: &Option<Dec3>| {
-        [csa.map(|c| c.to_string()), colour.map(colour_text)]
+        [csa.map(number), colour.map(colour_text)]
             .into_iter()
             .flatten()
             .collect::<Vec<_>>()

@@ -32,8 +32,8 @@ impl ReportKindDef for HoleTable {
         vec![
             ColumnDef::new("surface", CellType::Text, text!("column-surface")).weighted(20),
             ColumnDef::new("no", CellType::Ident, text!("column-no")).weighted(8),
-            ColumnDef::new("x", CellType::Ident, text!("column-x-mm")).weighted(10),
-            ColumnDef::new("y", CellType::Ident, text!("column-y-mm")).weighted(10),
+            ColumnDef::new("x", CellType::Qty, text!("column-x-mm")).weighted(10),
+            ColumnDef::new("y", CellType::Qty, text!("column-y-mm")).weighted(10),
             ColumnDef::new("hole", CellType::Text, text!("column-hole")).weighted(20),
             ColumnDef::new("what", CellType::Text, text!("column-what")).weighted(22),
             ColumnDef::new("for", CellType::Text, text!("column-for")).weighted(30),
@@ -103,9 +103,12 @@ fn surface_rows(q: &Q, surface: ew_ids::Id<MountingSurface>, folio: &str, set: &
             vec![
                 words(&word),
                 Cell::Ident(format!("H{}", f.no)),
-                Cell::Ident(ew_derive::mm_tenth_short(x)),
-                Cell::Ident(ew_derive::mm_tenth_short(y)),
-                words(&ew_derive::text::made(&f.made)),
+                tenth(x),
+                tenth(y),
+                Cell::Text(crate::words::in_languages_measured(
+                    q,
+                    &ew_derive::text::made(&f.made),
+                )),
                 words(&ew_derive::text::hole_what(&f.hole)),
                 words(&Text::bare(List::new(owners, between(), between()))),
             ],
@@ -119,6 +122,16 @@ fn surface_rows(q: &Q, surface: ew_ids::Id<MountingSurface>, folio: &str, set: &
             .collect();
         set.rows.push(r);
     }
+}
+
+/// A coordinate in millimetres to the tenth (`113.5`, `120`) as a number: the heading carries the unit, a page prints
+/// the decimal sign of its language and an Excel file a number.
+fn tenth(nm: i128) -> Cell {
+    let tenths = ew_units::arith::div_round_ties_away(nm, 100_000);
+    Cell::Qty(
+        ew_units::Dec3(i64::try_from(tenths.saturating_mul(100)).unwrap_or(i64::MAX)),
+        crate::rowset::QtyUnit::None,
+    )
 }
 
 /// An owner of a hole in words (doc 12-3d §10.4): a device by its tag, a rail or a duct by its label, a hole by hand

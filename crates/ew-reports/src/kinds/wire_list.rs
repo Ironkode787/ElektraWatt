@@ -6,7 +6,7 @@
 use ew_derive::{CpRef, EndTreatment, Q, WireLength, WireRecord, short_tag};
 use ew_ids::Id;
 use ew_l10n::{List, TextArg};
-use ew_schema::{Device, ReportBlock, ReportKind, Unit};
+use ew_schema::{Device, ReportBlock, ReportKind};
 use ew_units::Dec3;
 
 use super::conn::{
@@ -70,7 +70,7 @@ impl ReportKindDef for WireList {
             ColumnDef::new("via", CellType::Text, text!("column-via")).weighted(22),
             ColumnDef::new("part", CellType::Ident, text!("column-wire-part")).weighted(8),
             ColumnDef::new("pages", CellType::Folios, text!("column-pages")).weighted(8),
-            ColumnDef::new("length", CellType::Qty, text!("column-length")).weighted(7),
+            ColumnDef::new("length", CellType::Qty, text!("column-length-mm")).weighted(7),
             ColumnDef::new("length_source", CellType::Text, text!("column-length-from")).weighted(7),
             ColumnDef::new("from_end", CellType::Text, text!("column-from-end")).weighted(12),
             ColumnDef::new("to_end", CellType::Text, text!("column-to-end")).weighted(12),
@@ -221,18 +221,25 @@ pub(super) fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
             } => wires.get(partner).and_then(|r| wire_no(q, r)),
             _ => None,
         };
-        let words = ew_derive::text::end_treatment(
-            &end.treatment,
-            ferrule.and_then(|f| f.colour.as_ref()),
-            ferrule.and_then(|f| f.stud.as_ref()).map(|s| s.as_str()),
-            partner.as_deref(),
-        );
+        // The size in the end's words as the list prints a quantity in each language ("huls 1,5 BK"); the partner's
+        // number keeps its point.
+        let words = |size: &dyn Fn(Dec3) -> String| {
+            ew_derive::text::end_treatment(
+                &end.treatment,
+                ferrule.and_then(|f| f.colour.as_ref()),
+                ferrule.and_then(|f| f.stud.as_ref()).map(|s| s.as_str()),
+                partner.as_deref(),
+                size,
+            )
+        };
         set(
             treatment,
-            words.map_or_else(
-                || Cell::ident("—"),
-                |t| Cell::Text(ew_derive::text::in_languages(&t)),
-            ),
+            match words(&|d| d.to_string()) {
+                None => Cell::ident("—"),
+                Some(_) => Cell::Text(crate::words::in_languages_sized(q, |size| {
+                    words(size).unwrap_or_else(|| ew_l10n::Text::bare(""))
+                })),
+            },
         );
         set(
             part,
@@ -242,9 +249,9 @@ pub(super) fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
         );
         set(
             strip,
-            ferrule.and_then(|f| f.sleeve).map_or(Cell::Empty, |n| {
-                Cell::Qty(Dec3(n.0 / 1_000), QtyUnit::Unit(Unit::Mm))
-            }),
+            ferrule
+                .and_then(|f| f.sleeve)
+                .map_or(Cell::Empty, |n| Cell::Qty(Dec3(n.0 / 1_000), QtyUnit::None)),
         );
     }
     let mut r = Row::data(RowId::entity(w.id), cells);
@@ -266,15 +273,12 @@ pub(super) fn wire_no(q: &Q, rec: &WireRecord) -> Option<String> {
     }
 }
 
-/// A wire's length as the Length cell prints it (doc 13 §3.3, doc 12 §9): in millimetres as typed or routed, after "≈"
-/// along a way that no longer holds, `cable` for a core, `—` without one.
+/// A wire's length as the Length mm cell prints it (doc 13 §3.3, doc 12 §9): the millimetres as a number, as typed or
+/// routed, after "≈" along a way that no longer holds, `cable` for a core, `—` without one.
 fn length_cell(length: WireLength) -> Cell {
     match length {
         WireLength::Typed(n) | WireLength::Routed { length: n, .. } | WireLength::Stale { length: n, .. } => {
-            Cell::stale_if(
-                Cell::Qty(Dec3(n.0 / 1_000), QtyUnit::Unit(Unit::Mm)),
-                !length.exact(),
-            )
+            Cell::stale_if(Cell::Qty(Dec3(n.0 / 1_000), QtyUnit::None), !length.exact())
         }
         WireLength::WithCable(_) => Cell::Text(ew_derive::text::in_languages(
             &ew_derive::text::wire_length_source(&length),

@@ -125,11 +125,11 @@ export written to out/bom-assembly.csv
 Open `out/cables.csv` in a text editor or a spreadsheet. It starts like this:
 
 ```text
-row,Cable,Cable type,Core,Colour,mm²,From,To,Length
+row,Cable,Cable type,Core,Colour,mm²,From,To,Length m
 heading,Cable overview,,,,,,,
-data,-101W1,EW-GEN-CBL-17,,,,,-X1011,10 m
-data,-103W1,EW-GEN-CBL-25,,,,-X1031,-103M1,5 m
-data,-105W1,EW-GEN-CBL-2,,,,-104A1,-201K1,8 m
+data,-101W1,EW-GEN-CBL-17,,,,,-X1011,10
+data,-103W1,EW-GEN-CBL-25,,,,-X1031,-103M1,5
+data,-105W1,EW-GEN-CBL-2,,,,-104A1,-201K1,8
 ```
 
 The supply cable `-101W1` comes in from outside the cabinet, so it has no From end; the motor cable `-103W1` runs from

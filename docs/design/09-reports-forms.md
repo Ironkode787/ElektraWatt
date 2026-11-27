@@ -679,7 +679,7 @@ ORDER BY potential COLLATE ew_natural, load COLLATE ew_natural, pin COLLATE ew_n
 | `Tbd` | "TBD" (configurable), listed in open items, blocks release | "Node TBD" on folio 3 (D-15) |
 | `Missing(Length)` | "length missing" | -3W1 in folio 906 (FR-REP-013, D-19) |
 | `Stale(v, rev)` | value plus "≈" marker; allowed only in draft exports, refused in release exports (FR-EXP-001) | "≈ 810 mm" |
-| `Qty` | icu number format of the output language, SI spacing | "0.75 mm²", nl-NL "0,75 mm²" (FR-I18N-009) |
+| `Qty` | icu number format of the output language, SI spacing; a column whose heading carries the unit (mm², Length mm, Length m, X mm) holds the number alone, which an Excel file writes as a number | "0.75 mm²", nl-NL "0,75 mm²" (FR-I18N-009); under mm² "0.75", nl-NL "0,75" |
 | `Date` | project date format | "Creation: 03-03-2025"; ISO 8601 option (FR-PRJ-023) |
 | `Tag` | full designation (`=P01+J-E-2416-102G1`) or displayed form, per column setting | frozen S51 (`sign: Hidden`) prints "S51" in displayed form and `=P01+J-E-2416-S51` in full form ([03](03-domain-model.md) §8) |
 | `Range` | compressed tag list (below) | "-201U3-Q1 … -202U2-Q4" |

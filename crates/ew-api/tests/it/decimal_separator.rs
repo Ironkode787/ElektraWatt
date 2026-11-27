@@ -36,9 +36,9 @@ fn the_project_decimal_separator_prints_in_the_tables_of_the_generated_pages() {
     let point = with_separator(Some(DecimalSeparator::Point));
     let none = with_separator(None);
     let comma = with_separator(Some(DecimalSeparator::Comma));
-    // The wire list prints the cross-sections "0.75 mm²" and "1.5 mm²", the parts list the lengths "0.94" and "0.47"
+    // The wire list prints the cross-sections "0.75" and "1.5" under mm², the parts list the lengths "0.94" and "0.47"
     // (metres of the plate's rails and duct).
-    for printed in ["0.75 mm²", "1.5 mm²", "0.94", "0.47"] {
+    for printed in ["0.75", "1.5", "0.94", "0.47"] {
         assert!(
             point.iter().any(|c| c == printed),
             "{printed} in the point output"
@@ -50,11 +50,20 @@ fn the_project_decimal_separator_prints_in_the_tables_of_the_generated_pages() {
     }
     assert_eq!(point, none, "no setting prints as `point` does");
     // Only the decimals differ: the same cells, each equal or equal after the separator (a strip's heading in the
-    // assembly list holds two measured lengths).
+    // assembly list holds two measured lengths); a twin ferrule's partner after " · " is a wire number and keeps its
+    // point ("twin 2,5 BU · 101.6").
     assert_eq!(comma.len(), point.len());
     let differing: Vec<(&String, &String)> = point.iter().zip(&comma).filter(|(a, b)| a != b).collect();
     assert!(!differing.is_empty());
     for (a, b) in differing {
-        assert_eq!(&a.replace('.', ","), b);
+        let (size, partner) = match a.strip_prefix("twin ").and(a.split_once(" · ")) {
+            Some((s, p)) => (s, Some(p)),
+            None => (a.as_str(), None),
+        };
+        let want = match partner {
+            Some(p) => format!("{} · {p}", size.replace('.', ",")),
+            None => size.replace('.', ","),
+        };
+        assert_eq!(&want, b);
     }
 }

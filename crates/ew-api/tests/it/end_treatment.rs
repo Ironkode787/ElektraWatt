@@ -55,12 +55,12 @@ fn two_wires_of_one_size_on_one_clamp_share_a_twin_ferrule() {
     let keys = ["from_end", "from_part", "from_strip"];
     assert_eq!(
         cells(&s, "101.4", &keys),
-        ["twin 2.5 BU · 101.6", "EW-GEN-FER-2X2.5", "10 mm"]
+        ["twin 2.5 BU · 101.6", "EW-GEN-FER-2X2.5", "10"]
     );
     assert_eq!(cells(&s, "101.6", &keys[..1]), ["twin 2.5 BU · 101.4"]);
     assert_eq!(
         cells(&s, "101.5", &keys),
-        ["ferrule 0.75 GY", "EW-GEN-FER-0.75", "8 mm"]
+        ["ferrule 0.75 GY", "EW-GEN-FER-0.75", "8"]
     );
     assert_eq!(over_capacity(&s), Vec::<String>::new());
     run(
@@ -71,7 +71,7 @@ fn two_wires_of_one_size_on_one_clamp_share_a_twin_ferrule() {
     .expect("a ferrule each");
     assert_eq!(
         cells(&s, "101.4", &keys),
-        ["ferrule 2.5 BU", "EW-GEN-FER-2.5", "10 mm"]
+        ["ferrule 2.5 BU", "EW-GEN-FER-2.5", "10"]
     );
     let over = over_capacity(&s);
     assert!(
@@ -670,7 +670,7 @@ fn properties_of_a_shared_stretch_are_read_only() {
         })
         .expect("the length's command");
     run(&mut s, &cmd.name, cmd.params).expect("a length typed");
-    assert_eq!(cells(&s, &no, &["length"]), ["750 mm"]);
+    assert_eq!(cells(&s, &no, &["length"]), ["750"]);
     let q = s.query();
     let length = |c: Id<ew_schema::Connection>| q.connections().get(c).and_then(|c| c.overrides.length);
     assert!(length(first).is_some() && length(second).is_none());

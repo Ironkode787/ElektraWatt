@@ -289,20 +289,20 @@ treatment or marker: it is mounted with its strip ([the workshop lists](13-works
 | `from_cp`, `to_cp` | CP | the end's pin or clamp (§3.2) | yes |
 | `potential` | Potential | the potential's name; a bond wire `0V ⇄ PE` | |
 | `colour` | Colour | the effective colour code | yes |
-| `cross_section` | mm² | the effective cross-section | yes |
+| `cross_section` | mm² | the effective cross-section, a number (`2.5`): the heading carries the unit | yes |
 | `source` | Source | where the cross-section and the colour come from ([08](08-connections-terminals-cables.md) §4) | |
 | `via` | Via | how the wire is joined: its junction and wiring, a daisy chain, the interruption points passed | |
 | `part` | Wire part | the wire part's number | |
 | `pages` | Pages | the pages the wire is drawn on | yes |
-| `length` | Length | the length in mm; `cable` for a core; `—` without one; a stale length after `≈` (§3.3) | yes |
+| `length` | Length mm | the length in mm, a number; `cable` for a core; `—` without one; a stale length after `≈` (§3.3) | yes |
 | `length_source` | Length from | typed, cable, routed, stale or missing; site for a field wire without a length of a cabinet Route has laid | |
 | `from_end`, `to_end` | From end, To end | the end's treatment (§4.4): `ferrule 1.5 BK`, `twin 2.5 BU · 102.8`, `ring lug M6`, `bare` | yes |
 | `from_part`, `to_part` | From part, To part | the part number of the end's ferrule or ring lug | |
-| `from_strip`, `to_strip` | From strip length, To strip length | the strip length in mm: the ferrule's sleeve | |
+| `from_strip`, `to_strip` | From strip length mm, To strip length mm | the strip length in mm, a number: the ferrule's sleeve | |
 | `from_marker`, `to_marker` | From marker, To marker | the end's marker text (§5.2), its lines joined by ` / `; empty where the end carries none | yes |
 
 A block without columns of its own prints the fitter's columns, those marked "printed", in this order: No., From, CP,
-To, CP, Colour, mm², Length, From end, To end, From marker, To marker, Pages (`ReportKindDef::printed`,
+To, CP, Colour, mm², Length mm, From end, To end, From marker, To marker, Pages (`ReportKindDef::printed`,
 [09](09-reports-forms-output.md) §3.8); Output ▸ List columns… ticks the
 engineering columns (Potential, Source, Via, Wire part) and the ends' parts and strip lengths into a block's print. The CSV and the XLSX of the list hold every column in the order of the table. The Connections
 navigator in table mode has every column; it opens with No., From, CP, To, CP, Colour, mm², Length, From end and To

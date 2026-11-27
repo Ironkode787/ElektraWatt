@@ -518,7 +518,7 @@ fn an_ambiguous_number_is_resolved_on_the_card() {
     done(&mut shell, "navigator.apply", json!({}));
     assert_eq!(steps(&shell), n + 1, "one command");
     let vals = texts(&shell, NavKind::Cables, "mm²");
-    assert_eq!(&vals[first..first + 2], ["0.75 mm²", "1.5 mm²"]);
+    assert_eq!(&vals[first..first + 2], ["0.75", "1.5"]);
     shell.shutdown();
 }
 

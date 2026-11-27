@@ -840,3 +840,11 @@ change here.
   stock and does not find: the ends no ferrule or ring lug of the stock takes, the wires no wire part matches, and a
   field a ferrule, a lug or a wire part lacks (a sleeve length); the label files' row a marker part without its
   characters per line. An existing project's Contents.txt gains these lines; they were printed as blanks unsaid
+- text-change: the wire list, the cable overview, the potential overview and the hole table print a size or a length
+  as a number under a heading that carries its unit: mm² over `2.5`, Length mm over `400`, From strip length mm and
+  To strip length mm over `10`, the cable overview's Length m over `10`, the hole table's X mm and Y mm over `113.5`;
+  the Connections and Cables tables show the same cells. Their CSV and Excel files hold these as numbers, so a script
+  that read `2.5 mm²` or `400 mm` reads `2.5` or `400`, and the wire list's Length column is now `Length mm`
+- behaviour-change: on a page of a Dutch project the size in a wire end's treatment and a hole's diameter print the
+  Dutch decimal sign, as every other quantity of the lists does ("huls 1,5 BK", "Ø 3,3"); a twin ferrule's partner
+  keeps its wire number as it is ("twin 2,5 BU · 101.6")
