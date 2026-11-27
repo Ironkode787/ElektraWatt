@@ -39,6 +39,7 @@ symbol-text = Text
 symbol-cp = Pin
 symbol-anchor = Cross-reference point
 symbol-anchor-centre = Cross-reference point at the drawing's centre
+symbol-terms = Version and licence
 symbol-version = Version
 symbol-version-given = Save gives it the next version.
 symbol-licence = Licence

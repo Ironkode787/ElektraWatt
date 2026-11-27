@@ -701,7 +701,7 @@ change here.
 - behaviour-change: what the old symbol editor did and where it is done now: What it is offers every starter
   function with pins (also the power supply, terminals and bus ports) and a device box, so a symbol of your own for a
   black-box part's function is drawn there (Ready-made function goes); a symbol's Version, Licence and Source are
-  rows of its sheet; Other marks on the Drawing tab sets the cross-reference point at the drawing's centre;
+  rows of its sheet, in its group Version and licence under its things (closed until opened); Other marks on the Drawing tab sets the cross-reference point at the drawing's centre;
   Discipline is no longer asked: it follows from What it is and the page; a pin stands for the function's next pin
   as it is drawn, and its Function pin row (under More) chooses another (Map to pin goes)
 - behaviour-change: a new symbol from a page starts without a name (To do asks for one first), says when What it is

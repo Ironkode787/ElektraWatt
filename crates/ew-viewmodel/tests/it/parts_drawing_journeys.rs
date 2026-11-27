@@ -822,7 +822,7 @@ fn a_symbol_s_version_licence_source_and_centre_are_kept() {
     let tmp = Tmp::new("symbol-terms");
     let mut s = project(&tmp);
     let row = |s: &ShellModel, key: &str| {
-        let rows = s.symbol_editor().expect("the drawing").symbol_rows();
+        let rows = s.symbol_editor().expect("the drawing").terms_rows();
         rows.into_iter()
             .find(|r| r.key == key)
             .unwrap_or_else(|| panic!("{key}"))

@@ -828,7 +828,16 @@ impl SymbolEditor {
                 locked,
                 ..row("what", "symbol-what", choice(&current, what))
             },
-            // The version Save gives it; the terms he gives his own, which Make my own from it keeps from the source.
+        ]
+    }
+
+    /// The symbol's version and its terms, a group of the short sheet of their own under its things, closed until
+    /// opened: the version Save gives it (read), the licence and the source he gives his own, which Make my own from it
+    /// keeps from the source.
+    pub fn terms_rows(&self) -> Vec<SheetRow> {
+        let d = &self.draft;
+        let text = |s: &str| RowValue::Text(Some(s.to_owned()));
+        vec![
             SheetRow {
                 locked: Some(label("symbol-version-given")),
                 ..row("version", "symbol-version", text(&d.version))

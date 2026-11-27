@@ -40,6 +40,7 @@ symbol-text = Tekst
 symbol-cp = Aansluiting
 symbol-anchor = Kruisverwijzingspunt
 symbol-anchor-centre = Kruisverwijzingspunt in het midden van de tekening
+symbol-terms = Versie en licentie
 symbol-version = Versie
 symbol-version-given = Opslaan geeft het de volgende versie.
 symbol-licence = Licentie

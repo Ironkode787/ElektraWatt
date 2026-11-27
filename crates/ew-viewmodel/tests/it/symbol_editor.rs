@@ -1459,7 +1459,11 @@ fn the_rows_of_properties_follow_the_selection_and_set_every_selected_thing() {
     );
     let short = shell.symbol_editor().unwrap().symbol_rows();
     let keys: Vec<&str> = short.iter().map(|r| r.key).collect();
-    assert_eq!(keys, ["name", "what", "version", "licence", "source"]);
+    assert_eq!(keys, ["name", "what"]);
+    // Its version and terms are a group of their own.
+    let terms = shell.symbol_editor().unwrap().terms_rows();
+    let keys: Vec<&str> = terms.iter().map(|r| r.key).collect();
+    assert_eq!(keys, ["version", "licence", "source"]);
     let what = short.iter().find(|r| r.key == "what").unwrap();
     assert!(
         matches!(&what.value, RowValue::Choice { value: Some(v), .. } if v == "ew.fn.contact-no"),

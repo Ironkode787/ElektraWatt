@@ -27,14 +27,15 @@ your drawing grid, **Snap to grid** and the tool you left the last time.
   the **Drawing grid** and **Snap to grid**, **Test on a page** and **Export draft**, and at its right end the next step:
   **Save and place on 102** for a page, **Save and use for -102S1** for a drawing like a placed symbol, **Done** for a
   piece, else **Save** (`Ctrl+Enter`). Each tool's tooltip says what it does and how.
-- <a id="the-outline"></a>**The short sheet**, on the left: **Name** and **What it is**, typed and chosen where they stand, its
-  **Version** (Save gives the next), **Licence** and **Source** (yours to type; Make my own from it keeps the source's),
+- <a id="the-outline"></a>**The short sheet**, on the left: **Name** and **What it is**, typed and chosen where they stand,
   and what follows from them: where the symbol is **Listed under** and the grid its pins stand on. A new symbol from a
   page starts without a name: To do asks for one first. A symbol that is not yours (a starter
   symbol, one of a library you cannot write, one only in this project) reads as it is, with a line that says why and
   **Make my own from it**. A saved symbol of yours offers **New part drawn with it…**. Under it **the outline** lists
   what the symbol consists of: its pins (designation, and the potential each carries), its texts and its shapes; a
-  click on a row selects the thing in the drawing, and the other way round. **To do** lists what keeps the symbol
+  click on a row selects the thing in the drawing, and the other way round. Under them **Version and licence**, closed
+  until opened, holds its **Version** (Save gives the next), **Licence** and **Source** (yours to type; Make my own from
+  it keeps the source's). **To do** lists what keeps the symbol
   from being saved, each in a sentence and each a click to the thing it is about; with nothing left it says **Ready
   to save**. An import with more drawings lists them first, and an import's report stands under the lists.
 - **The drawing**, in the middle, with the symbol **Turned and mirrored** under it: A is the drawing you edit, B to H

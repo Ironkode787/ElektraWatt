@@ -269,6 +269,17 @@ fn new_symbol_in_parts_opens_the_drawing_at_once() {
     for name in ["Line", "Pin", "What it is of New symbol"] {
         assert!(d.find(name).is_some(), "{name}: {:?}", d.labels());
     }
+    // Its version and terms wait in a group of their own under its things, closed until opened.
+    assert!(d.find("Licence of New symbol").is_none(), "{:?}", d.labels());
+    d.input(&click(d.find("Version and licence").expect("the terms' group")));
+    d.settle();
+    for name in [
+        "Version of New symbol",
+        "Licence of New symbol",
+        "Source of New symbol",
+    ] {
+        assert!(d.find(name).is_some(), "{name}: {:?}", d.labels());
+    }
     d.shell_mut().shutdown();
 }
 

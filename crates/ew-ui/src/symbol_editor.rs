@@ -878,6 +878,14 @@ impl EditorView {
                     label(key!("symbol-nothing-drawn")),
                 ));
             }
+            // Its version and terms, a group of their own under its things, closed until opened.
+            if piece.is_none() {
+                ui.add_space(t.space_2);
+                let id = ui.make_persistent_id("symbol-outline-terms");
+                if components::section_header(ui, id, label(key!("symbol-terms")), None, false) {
+                    own_rows(ui, editor, &editor.terms_rows(), events);
+                }
+            }
             if !outline.import_notes.is_empty() {
                 let id = ui.make_persistent_id("symbol-outline-import");
                 let title = label(key!("symbol-import-notes"));
@@ -1003,12 +1011,28 @@ fn short_sheet(ui: &mut Ui, shell: &ShellModel, editor: &SymbolEditor, events: &
             });
         ui.add_space(t.space_2);
     }
-    let rows = editor.symbol_rows();
+    own_rows(ui, editor, &editor.symbol_rows(), events);
+    // What it is taken from the symbol he drew last says so, under it.
+    if editor.kept_what {
+        ui.label(crate::components::small_tertiary(
+            &t,
+            label(key!("symbol-what-kept")),
+        ));
+    }
+    short_sheet_lines(ui, shell, editor, events);
+}
+
+/// Rows of the symbol's short sheet: a field is the symbol's own (`parts.field symbol.<key>`), not a selected thing's;
+/// it goes before the bar's action, as the sheet's rows do.
+fn own_rows(
+    ui: &mut Ui,
+    editor: &SymbolEditor,
+    rows: &[ew_viewmodel::shell::symbol_editor::SheetRow],
+    events: &mut Vec<Event>,
+) {
     let mut own = Vec::new();
     let name = ew_viewmodel::shell::symbol_editor::display_name(&editor.draft);
-    panels::sheet_rows(ui, &rows, &name, "symbol.prop", &mut own, |_, _| {});
-    // A field of the short sheet is the symbol's own (`parts.field symbol.<key>`), not a selected thing's; it goes
-    // before the bar's action, as the sheet's rows do.
+    panels::sheet_rows(ui, rows, &name, "symbol.prop", &mut own, |_, _| {});
     for e in own.into_iter().rev() {
         if let Event::Action(_, params) = e {
             let key = params["key"].as_str().unwrap_or_default().to_owned();
@@ -1025,13 +1049,12 @@ fn short_sheet(ui: &mut Ui, shell: &ShellModel, editor: &SymbolEditor, events: &
             );
         }
     }
-    // What it is taken from the symbol he drew last says so, under it.
-    if editor.kept_what {
-        ui.label(crate::components::small_tertiary(
-            &t,
-            label(key!("symbol-what-kept")),
-        ));
-    }
+}
+
+/// The short sheet's lines under its fields: where the symbol is listed, the grid its pins are on, New part drawn with
+/// it and Parts drawn with it.
+fn short_sheet_lines(ui: &mut Ui, shell: &ShellModel, editor: &SymbolEditor, events: &mut Vec<Event>) {
+    let t = theme::current(ui.ctx());
     let grid = editor.draft.symbol.grid;
     let mut pins_on = ew_viewmodel::status::grid_words(grid.num() as i64, grid.den() as i64);
     // Drawn for a page on that page's grid: whose grid it is.
