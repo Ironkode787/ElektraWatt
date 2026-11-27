@@ -5,7 +5,7 @@
 **Purpose.** This glossary fixes the meaning of every domain and project term that the ElektraWatt (EW) document set
 uses: IEC 81346 aspects and prefixes, EPLAN and QElectroTech (QET) vocabulary, EW-specific concepts such as
 Representation, DeviceAspect, `MlText`, `Dec3`, `ew-memo`, the freshness classes, "frozen on purpose" and committed
-computations, the file types (`.ew`, `.ewz`, `.ewpp`), the `api_v1` projection, the golden project, and the ID schemes
+computations, the file types (`.ew`, `.ewz`), the `api_v1` projection, the golden project, and the ID schemes
 (FR, NFR, AC, D, REF, ADR, WP, PQ and others). For each term it gives a short definition, the EPLAN equivalent,
 the QET equivalent where one exists, and the document that defines it. It also says what changes in behaviour for
 users who migrate from EPLAN or QET, and gives an abbreviations list. The glossary does not decide anything: where it
@@ -85,7 +85,7 @@ The IEC 81346 prefixes that appear in tags:
 | **api_v1** | The versioned namespace of the read-only SQL projection (`api_v1_*` views). It is tied to the format major version and is the public contract for user SQL reports, rules, MCP agents and acceptance tests. | — | — | [04 §10.2](04-architecture.md), [ADR-0017](../adr/0017-read-only-sql-projection-api-v1.md) |
 | **AR APC** | AutomationML application recommendation for PLC configuration data (stations, modules, address ranges). | AML PLC export | — | [10 §4.3](10-plc-and-bus.md) |
 | **As-built archive** | The released state of a project kept as an immutable generation plus a PDF, written at release and used for revision comparison and customer hand-over. It lives outside the editing state. | Revision archive (revision management) | — | [05 §14](05-project-format-and-persistence.md), [15 §5](15-checks-revisions-collaboration.md), [ADR-0013](../adr/0013-revisions-and-as-built-archive.md) |
-| **As-built package** | The `.ewpp` content returned to engineering after the shop corrected the wiring, so that the as-built state flows back into the project. | Smart Production feedback | — | [13 §11.5](13-manufacturing-outputs.md) |
+| **As-built package** | The package of a release with what the shop recorded beside it (status log, machine feedback, filled checklists), so that the as-built state flows back into the project (later). | Smart Production feedback | — | [13 §11.5](13-manufacturing-outputs.md) |
 | **Aspect (reference-designation aspect)** | One of the viewpoints of IEC 81346 under which a structure tree is built (function, product, location, and others). Each aspect has a sign and its own `StructureNode` tree, except the product aspect, which is the device tree. | Identifier block | — (plant and location strings only) | [03 §5](03-domain-model.md), [04 §4.2](04-architecture.md) |
 | **Assembly (aspect)** | A device aspect for a configured product with child devices, for example a valve terminal with its order code (`AssemblyConfig`) and a BOM basis of assembly or components. | Part assembly, module overview | — | [03 §7](03-domain-model.md), [11 §3.2](11-fluid-power.md) |
 | **Assembly mode (BOM)** | A bill-of-materials mode that lists configured assemblies by order code instead of every child component (the other mode is component mode). | Parts list with assemblies | — | [09 §2.4](09-reports-forms-output.md) |
@@ -198,10 +198,9 @@ The IEC 81346 prefixes that appear in tags:
 | **EntityRef** | A typed reference to a record by UUID, used by comments, findings and waivers so they survive renumbering. | — | — | [03 §5](03-domain-model.md) |
 | **`ew` (CLI)** | The headless command-line front end (`check`, `query`, `sql`, `render`, `export`, `import`, `diff`, `merge-driver`, `fmt`) that submits the same commands as the GUI. | — (scripting API) | — | [04 §10.1](04-architecture.md), [ADR-0020](../adr/0020-extensibility-tiers-and-security-model.md) |
 | **.ew (project directory)** | See Directory project. | — | — | [05 §2](05-project-format-and-persistence.md) |
-| **.ewpp** | The production package: a deterministic ZIP with a manifest and hashes, `wires.json`, labels, assembly lists, drilling DXF and machine files. | Smart Production export | — | [13 §8](13-manufacturing-outputs.md), [ADR-0018](../adr/0018-reports-forms-engine-and-machine-profiles.md) |
 | **.ewz** | The transport form of a project: a deterministic ZIP of the project directory (mimetype first, sorted entries, fixed times) for e-mail, archive and bug reports. | Project archive (`.zw1`, `.ema`) | `.qetz` (different content) | [05 §12](05-project-format-and-persistence.md) |
 | **Exchange image (`ExchangeStamp`)** | The stored snapshot and stamp (format, version, file hash, direction, revision, date) of the last PLC data exchange; it is the base of the three-way merge on re-import. | — | — | [10 §4.2](10-plc-and-bus.md) |
-| **Export profile** | The columns of an export file, each with its heading, and its CSV delimiter, as data; the label files use the project's, else the generic profile. | Labelling scheme (export format) | — | [13 §5.4](13-manufacturing-outputs.md) |
+| **Export profile** | How a file for another program is written from a list's rows: its columns with their headings, Excel or CSV with its delimiter and encoding, the decimal mark, the header row, the form of the values and, for a machine, what it takes; project data, one per kind (the label file, the wire file for a machine), the generic one by default. | Labelling scheme (export format) | — | [13 §7](13-manufacturing-outputs.md) |
 | **Export scheme** | A settings set for page output (PDF layers, language, page selection, naming). | Export scheme, output settings | Export dialog options | [09 §2.9](09-reports-forms-output.md) |
 | **Exporter contract** | The permissive API that every exporter implements: it reads a model snapshot and emits a file or package without touching the project. | — | — | [14 §2.2](14-interop.md), [04 §10.6](04-architecture.md) |
 | **Exposure class** | A declaration on every command that says which origins may run it (gui, cli, script, plugin, mcp). `HumanOnly` commands (approve, release, waive) are refused for scripts and agents. A history step records the strictest class of its commands, so the undo and redo of a `HumanOnly` step are refused to scripts too. | — | — | [17](17-extensibility.md), [ADR-0020](../adr/0020-extensibility-tiers-and-security-model.md) |
@@ -315,10 +314,9 @@ The IEC 81346 prefixes that appear in tags:
 
 | Term | Definition | EPLAN | QElectroTech | Defined in |
 |---|---|---|---|---|
-| **Machine profile** | Versioned TOML data that maps wire records to one cutting machine's import format, with magazine definitions. | Smart Production machine settings | — | [13 §7](13-manufacturing-outputs.md), [ADR-0018](../adr/0018-reports-forms-engine-and-machine-profiles.md) |
+| **Machine profile** | The export profile of the wire file for a machine (`workshop.machine_profile`): the wire list's columns the machine reads and the sizes and end treatments it takes. | Smart Production machine settings | — | [13 §7](13-manufacturing-outputs.md), [ADR-0018](../adr/0018-reports-forms-engine-and-machine-profiles.md) |
 | **Macro instance (`MacroInstance`)** | The record of an inserted macro, with its value set, so it can be updated. | Macro placement | — | [07 §3.5](07-symbols-parts-macros.md) |
 | **Macro (`MacroDef`)** | A reusable group of symbols, connections and variables, inserted with value sets and placeholders. | Macro (window, page, symbol macro) | — | [07 §2.7](07-symbols-parts-macros.md) |
-| **Magazine** | The set of wire types and ferrule reels loaded on a machine, declared in its profile. | Wire magazine | — | [13 §2.1](13-manufacturing-outputs.md) |
 | **Main function** | The function that stands for its device in listings and takes the main representation; there is exactly one per device. | Main function | Master element | [06 §2.6](06-schematic-editor.md), [ADR-0006](../adr/0006-function-device-representation-model.md) |
 | **Manifest** | `manifest.json`: the sorted list of project files with SHA-256 hashes, the format and the generation. It is written last, so a save is complete or absent. | — | — | [05 §4](05-project-format-and-persistence.md) |
 | **Marker mode** | The project's drawing setting `marker_mode` (`all`, `deviations`, `explicit`, `none`; absent means the as-built `show_marker` rule) that decides which connections print a wire annotation; the window calls it Wire annotations. | — | — | [08 §4.5](08-connections-terminals-cables.md) |
@@ -404,7 +402,7 @@ The IEC 81346 prefixes that appear in tags:
 | **Process tag** | A plant-level tag of a field device (for example a sensor) linked to the electrical device and the channel. | Process tag, P&ID object | — | [11 §3.3](11-fluid-power.md) |
 | **Product aspect (`-`)** | IEC 81346 aspect for the thing itself; the device tag after the dash. It is the device tree, not a structure tree. | Product aspect | Element label | [03 §5](03-domain-model.md) |
 | **Product designation** | The part of a tag after the sign (101F1, X1031); it is derived from letter, counter and scheme. | Device tag | — | [03 §8.1](03-domain-model.md) |
-| **Production package (`.ewpp`)** | A deterministic ZIP with wires, labels, assembly lists, drilling data and machine files: the self-contained hand-off to the shop. | Smart Production export | — | [13 §8](13-manufacturing-outputs.md) |
+| **Production package** | One deterministic ZIP of a job's files for the workshop (the drawings, the workshop lists, the label files, the drawings for drilling, the wire file for a machine) with a contents text and a manifest; a draft while the revision is open. | Smart Production export | — | [13 §8](13-manufacturing-outputs.md) |
 | **Production wire record** | One row per wire, with ends, treatments, lengths and flags, derived from the model for the shop and the machines. | Wire list (Smart Wiring) | Conductor list | [13 §3](13-manufacturing-outputs.md) |
 | **Profile rule** | A rule in a colour or size profile that selects wire colour or size from potential type, circuit class and voltage. | Wire property rule | — | [08 §4.2](08-connections-terminals-cables.md) |
 | **Project (`Project`)** | The root record: master data, parties, settings and profiles. | Project | Project | [03 §5](03-domain-model.md) |
@@ -519,10 +517,10 @@ The IEC 81346 prefixes that appear in tags:
 | **Way** | Where a wire runs in the cabinet: from its pin into a duct, along the ducts, to its other pin, or directly between neighbours; stale when an end or a duct on it moved. | Routing path | — | [12 §8.1](12-panel-layout.md) |
 | **Wire annotation** | The page item (stored as `wire_marker`) that shows a CDP's content beside wires: number, size, colours. It lists connections, has a position and an angle and prints one group text such as "2.5 BK BU". Drawing notation, not a wire marker. | Connection definition point symbol | Conductor text | [08 §4.5](08-connections-terminals-cables.md), [03 §6](03-domain-model.md) |
 | **Wire end** | One termination of a wire: locus (device tag and connection point), level and clamp. | Connection end | — | [13 §2.1](13-manufacturing-outputs.md) |
+| **Wire file** | The wire list's rows a machine makes, in the machine profile's columns; every other wire stands in the list for the hand with its reason. | — | — | [13 §7.3](13-manufacturing-outputs.md) |
 | **Wire kind per page type** | The connection kind the Wire tool draws on a page, fixed by its page type: a `Wire` on multi-line pages, an `Overview` connection on single-line, overview and assembly-overview pages, and nothing yet on bus-topology and fluid pages, whose `Bus` and `Fluid` kinds are not drawn. | — | — | [06 §2.2](06-schematic-editor.md) |
 | **Wire marker** | The printed sleeve or clip on a wire's end in the cabinet that names the wire or its far end, made from the label files. It is not the drawing's wire annotation. | Wire marking | Conductor marker (none) | [13 §5](13-manufacturing-outputs.md) |
 | **Wire number** | The identifier of a wire, derived by a scheme (for example from the From end) or frozen. | Connection number | Conductor number | [08 §5](08-connections-terminals-cables.md) |
-| **Wire type key** | The machine's identity of a wire stock: cross-section plus colour (plus part), such as "0.75 DBU". | Wire type | — | [13 §2.1](13-manufacturing-outputs.md) |
 | **Wire-property inheritance** | The chain from project defaults through profile rules, potential definition and net to connection overrides that fixes colour and size, each with provenance. | Connection properties by potential | Conductor properties | [08 §4.1](08-connections-terminals-cables.md) |
 | **Wiring manager** | EPLAN's table of routed wires; in EW the Connections table in table mode, with each wire's length and its source. | Wiring Manager | — | [12 §8.8](12-panel-layout.md) |
 | **Wiring sequence** | The order in which wires of a bundle or junction are made. | Wiring order | — | [12 §8.7](12-panel-layout.md) |
@@ -677,7 +675,6 @@ what changes in behaviour, not only in name, by EW term and grouped by area. The
 | ELK | EPLAN project file extension | [research](../research/eplan-features.md) |
 | ETIM | Product classification standard (bundled in EW) | [07 §2.6](07-symbols-parts-macros.md) |
 | EW | ElektraWatt | [00](00-vision-and-scope.md) |
-| EWPP | ElektraWatt production package | [13 §8](13-manufacturing-outputs.md) |
 | EWZ | ElektraWatt zipped project | [05 §12](05-project-format-and-persistence.md) |
 | FR | Functional requirement | [02a](02a-requirements-core.md) |
 | FTS5 | SQLite full-text search extension used for the library index | [04 §3](04-architecture.md) |

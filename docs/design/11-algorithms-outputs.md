@@ -393,8 +393,8 @@ owner of the lowest tube at it that has one; a tube between two tees has no owne
   --format pdf|xlsx|csv` over the same row sources.
 - **Queries.** `ew query medium_zones --json` and `ew query tube_props F1 --explain` (the per-line accessor of
   `tube_props_of`), which prints the provenance of each field.
-- **Production package.** The `.ewpp` carries the tube list and cut lengths at 1.0 as `tubes.json`, and tube rows in
-  `cutlists.csv` ([13](13-manufacturing-outputs.md) §8.1).
+- **Production package.** The package carries the tube pieces in the cut list's Tubes group, its Excel file
+  ([13](13-manufacturing-outputs.md) §8.2); no reader asks for the tubes as data of their own.
 - **SQL projection.** [17](17-extensibility.md) §6.1 lists three fluid views at 1.0 and leaves their columns to this
   document (FR-EXT-032, ADR-0017 amendment 2; `api_v1` is Preview until the 1.0 freeze). Column names follow the
   `api_v1_wire` conventions (`*_nm` lengths, `prov_*` provenance):
@@ -407,8 +407,7 @@ owner of the lowest tube at it that has one; a tube between two tees has no owne
 
 The three views have the columns above (`cell` is NULL: a tube has no frame cell; `prov_tube` is a JSON object of the sources). The report kinds export with `ew export report --kind tube_list`
 (and the others' names); `ew export tubes` is not built, it would repeat that command. `ew query medium_zones` and
-`ew query tube_props` are built. The production package's `tubes.json` and tube rows in `cutlists.csv` are not
-built (doc 13's package).
+`ew query tube_props` are built.
 
 ---
 

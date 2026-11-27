@@ -269,10 +269,9 @@ the GUI and a confirmed CLI subcommand. The rule is recorded in ADR-0008 (amendm
 | Content | Location ([05](05-project-format-and-persistence.md) §2.1) | Untrusted project | Trusted project |
 |---|---|---|---|
 | Pure formulas: title-block `{= …}` cells, report-block filters, value-set formulas, tag and wire-number formats | `project.jsonl`, `report-blocks.jsonl`, `lib/forms`, `lib/macros` | **Run** (formula profile, §5.2) | Run |
-| Shipped rule packs, report pack, built-in machine profiles | EW installation | Run | Run |
+| Shipped rule packs, report pack | EW installation | Run | Run |
 | Project rule packs (TOML, rhai, SQL) | `rules/` | Not run; EW-CORE-084 | Run |
 | User SQL reports | `reports/` | One placeholder page "Report not run: project not trusted" ([09](09-reports-forms-output.md) §3.5) | Run |
-| Machine and label profiles with `expr` columns or an `sql:` row source | embedded profile copies `lib/profiles/<copy_id>.toml` ([13](13-manufacturing-outputs.md) §7) | Refused | Run |
 | Automation scripts | `scripts/<uuid>.rhai` (1.0) | Listed, not runnable | Run on explicit user action only |
 | Jobsets | `jobs/<uuid>.ewjobs` (1.0) | `ew jobs run` refuses | Run on explicit invocation |
 | Command macros (`.ewcmd`, exported rhai) | `lib/macros` | Shown, not runnable; window/page macros insert as data | Run on explicit action |
@@ -383,11 +382,10 @@ Specified and not built:
 |---|---|---|---|
 | `ew find <pattern> [--kind …]` | Tags, part numbers, texts → entities | MVP | FR-UI-020 |
 | `ew import io-list`; `ew import qet --batch <dir> --out <dir>` | I/O list; batch migration ([14](14-interop.md) §13) | MVP (Should); 1.0 | FR-EXT-008 |
-| `ew export ewpp [--release]`, `machine <profile>` (shipped profile ids `generic-csv`, `generic-xlsx`, `komax-topconvert-csv`, `rittal-wt-csv`), `labels <set>`, `drilling --surface <s>`, `tubes`; `--omit-personal-data` on every export that writes project content; `xlsx` for `ew export report` | Domain exports ([13](13-manufacturing-outputs.md) §7.2, [11](11-fluid-power.md) §8.3) | 1.0 | FR-EXT-003 |
+| `ew export package --out <file.zip> [--leave-out <member>]… [--machine] [--omit-personal-data]`; `--omit-personal-data` on every export that writes project content | The production package ([13](13-manufacturing-outputs.md) §8.5) | 1.0 | FR-EXT-003 |
 | `ew review <base> <head> [--out dir]` | Visual comparison ([15](15-checks-revisions-collaboration.md) §6.6) | 1.0 | FR-COL-017 |
 | `ew script run <file.rhai> [--param k=v] [--preview]` | Automation script (§5.5) | 1.0 | FR-EXT-012 |
 | `ew jobs run <file.ewjobs> [--keep-going]` | Jobset (§3.6) | 1.0 | FR-EXT-010 |
-| `ew diff <a.ewpp> <b.ewpp> --wires` | The wire change list between two production packages ([13](13-manufacturing-outputs.md) §3.5) | 1.0 | FR-MFG-004 |
 | `ew waiver list`; `ew waiver add <rule> --target <tag\|id:…> --reason <text>`, `ew waiver remove <id>` (`HumanOnly`) | Waivers without the GUI ([15](15-checks-revisions-collaboration.md) §2.5) | MVP; 1.0 | FR-CHK-009 |
 | `ew mfg asbuilt <order>`; `ew mfg feedback import`, `ew mfg import-status`; `ew lib lint\|render\|pack` | Manufacturing and library tools ([13](13-manufacturing-outputs.md), [07](07-symbols-parts-macros.md)) | 1.0; 1.x; 1.0 | — |
 | `ew trust status\|grant\|revoke`, `ew trust sign --key <k>` | Project trust (§2.4) | MVP; sign 1.0 | FR-EXT-031 |

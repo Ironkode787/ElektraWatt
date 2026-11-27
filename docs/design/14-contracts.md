@@ -210,11 +210,12 @@ pub struct ExportReport { pub rev: Rev, pub outputs: Vec<OutputMeta{name, sha256
   release-mode export refuses stale Class II inputs (ADR-0003).
 - **Determinism** (FR-EXP-006, NFR-REL-07): ordered maps only; dates from the export context (release context,
   scheme date, `SOURCE_DATE_EPOCH`, model edited date, in that order, [09](09-reports-forms-output.md) §4.3); ZIP
-  entries (XLSX, `.ewpp`) in sorted order with that date and fixed compression settings; no absolute paths, user
-  names or random IDs.
+  entries (XLSX, the production package of [13](13-manufacturing-outputs.md) §8) in sorted order with a fixed date
+  and fixed compression settings; no absolute paths, user names or random IDs.
 - **Personal data** (FR-EXP-009, NFR-PRIV-06): `ExportContext.omit_personal_data` removes every field that
-  `ew-schema` marks personal (engineer, checker, party persons, XMP authors) from XLSX, CSV, AML, `.ewpp` and
-  `.ewz`.
+  `ew-schema` marks personal (the name and address of a party marked as personal data, XMP authors) from XLSX, CSV,
+  AML and `.ewz`; the production package makes every member from a copy of the project without them
+  ([13](13-manufacturing-outputs.md) §8.7).
 
 ### 2.3 Identity and lineage
 

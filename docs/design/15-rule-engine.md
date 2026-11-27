@@ -264,7 +264,7 @@ A declarative quick fix is the lenient CSV import's "use BN": it sits on the imp
 | **offline** | "Check project", `ew check --mode offline` | Fork job, parallel per scope | Class II, stamped "as of revision n" (FR-UI-024) | EW-POT-007, SQL rules, EW-PLC-014 |
 | **prevent** | Commit pipeline step 3 ([04](04-architecture.md) §5.2) | Validator on the candidate snapshot, touched keys and neighbours | — | EW-TERM-001/002, EW-RDS-004, EW-PLC-001 |
 | **release** | Release gate, `ew check` (default) | Fork at the saved generation; every enabled rule evaluated cold | Fresh by construction | All |
-| **export** | Before an exporter writes | The exporter calls the engine on its fork | — | EW-PLC-005, EW-MFG-001 … 006 |
+| **export** | Before an exporter writes | The exporter calls the engine on its fork | — | EW-PLC-005 |
 
 Two check modes exist: `Online` (rules with o) and `Release` (rules with r or p). There is no offline, export, integrity or gate mode yet.
 
@@ -343,8 +343,10 @@ on commit of transaction tx, producing revision r':
   and release mode only, on a projection built at the fork's revision. Each row is one finding, read from the columns
   `target` (one UUID) or `targets` (JSON array), optional `discriminator` and `page`, and `arg_<name>`. CI prepares
   every shipped `.sql` against the current projection ([04](04-architecture.md) §13).
-- **Export rules** run inside an exporter. An error-level finding stops a release-mode export. In working mode the
-  affected rows are excluded and listed in a side-car report ([13](13-manufacturing-outputs.md) §4.6).
+- **Export rules** run inside an exporter: the PLC exchange's EW-PLC-005 blocks its file ([10](10-plc-and-bus.md)).
+  The files for the workshop ask no export mode: the check before them is the release check (§3.2,
+  [13](13-manufacturing-outputs.md) §8.6), and what a machine cannot take is a reason in the list for the hand, no
+  finding (13 §7.3).
 
 ### 3.5 Prevent rules, strict and lenient
 

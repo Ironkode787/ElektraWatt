@@ -245,7 +245,7 @@ matches over the members by hand, and no second list is kept in step.
 
 A crate is added when something with more than one user can be hosted by no existing crate under §3.4; it takes
 a place in the order, a licence and a head comment, and nothing else lists it. Specified and not in the workspace, each
-to come when it has code: `ew-panel`, `ew-render3d`, `ew-mfg` (GPL); `ew-ewpp`, `ew-devdesc`, `ew-step-proto`,
+to come when it has code: `ew-panel`, `ew-render3d` (GPL); `ew-devdesc`, `ew-step-proto`,
 `ew-plugin-wit`, `ew-plugin-sdk` (permissive); `ew-rhai`, `ew-script`, `ew-plugin-host`, `ew-step-worker`,
 `ew-sysprobe`, `ew-viewer`, `ew-py` (GPL).
 

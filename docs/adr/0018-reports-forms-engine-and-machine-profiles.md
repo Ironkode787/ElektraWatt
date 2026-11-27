@@ -1,6 +1,6 @@
 # ADR-0018: Reports and forms engine; report blocks as derived pages; machine-export profiles as data
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-11-26 (amendment 5) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-11-26 (amendment 5), 2026-11-27 (amendment 6) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
 
 ## Context
 
@@ -116,7 +116,7 @@ columns = [
 
 ## Amendments
 
-Amendments 1 to 3 were accepted on 2026-10-18, amendment 4 on 2026-10-19, amendment 5 with the design it names. The decision text above is unchanged;
+Amendments 1 to 3 were accepted on 2026-10-18, amendment 4 on 2026-10-19, amendments 5 and 6 with the designs they name. The decision text above is unchanged;
 these entries refine it.
 
 1. **Machine profiles, label profiles and the TIA tag XLSX** (2026-10-18;
@@ -152,6 +152,25 @@ these entries refine it.
    *Alternatives that lost:* a production list beside the wire list (a copy of its rows and columns); TOML label
    profiles embedded as library copies (a format, an embedding and a trust rule for a list of columns that one
    setting holds).
+6. **Machine profiles are the export profile; the package is a ZIP of the workshop's files** (2026-11-27, the design
+   of the production package and the export profiles, accepted with it; [13](../design/13-manufacturing-outputs.md)
+   §7, §8). Decision 6 is replaced. The wire file for a machine takes its columns and its form from a second kind of
+   amendment 5's export profile (`WorkshopSettings.machine_profile`), which gains the form of a file (Excel or CSV, the
+   delimiter, UTF-8 with or without a byte-order mark, the decimal mark, the header row, values as printed or as
+   numbers) and what a machine takes (the sizes, the end treatments, the columns it requires). There is no TOML, row
+   source, filter, transform, magazine or trust rule, and no shipped preset until a machine's import format is
+   published. The pre-flight rules EW-MFG-002, 003, 005, 006 and 010 are retired: a wire a machine cannot take goes to
+   the list for the hand with its reason, and the check before an export for the workshop is the release check (the
+   release gate's run without its EW-REL rules), in which EW-MFG-001 is an error. Decision 5's package is one ZIP of
+   the files the program's exports already write (the drawings, the workshop lists, the label files, the drawings for
+   drilling, the wire file) with a contents text and a manifest of SHA-256 per member; it carries no data members, no
+   package ID and no 3D model, needs no permissive reader crate (`ew-ewpp` and `ew-mfg` are not made), and the as-built
+   archive keeps no copy of it, so ADR-0013's "the production package when present" has no case.
+   *Alternatives that lost:* a TOML machine profile with filter expressions and transforms (a format, a parser and a
+   trust rule ahead of any machine that has read its file); findings for what a machine cannot take (they would report
+   a shop's machine as a fault of the project); a package of JSON data members with a content hash and a stamped
+   package ID (data no reader of ours reads, and a hash scheme that only a viewer needs); a mode of the check engine of
+   its own for exports (a third severity column to keep beside the release one).
 
 ## Consequences
 

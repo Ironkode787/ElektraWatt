@@ -83,15 +83,19 @@ The For cell names a tube in the language the list prints.
 
 ### 5.4 Label files and the export profile
 
-**One file per label set and marker part**: Output ▸ Labels… writes, for each that has labels, one file into a folder
-the person chooses, named by the drawing's number, the set and the marker part's number (`SAMPLE-E Wire
-markers.csv`; with a marker part, its number after the set), as CSV or XLSX. Each file is written whole or not at all.
+**One file per label set and marker part**: Output ▸ Workshop ▸ Labels… writes, for each that has labels, one file into
+a folder the person chooses, named by the drawing's number, the set and the marker part's number (`SAMPLE-E Wire
+markers EW-GEN-MRK-1.xlsx`; a set without a marker part, `SAMPLE-E Cable markers.xlsx`), in the form of the label
+file's profile. Each file is written whole or not at all. The package holds the same files ([13](13-manufacturing-outputs.md) §8.2).
 
-**The columns are the export profile's**, `WorkshopSettings.label_profile`: each a column of the `labels` list with
-the heading the file prints. Label file columns… edits it on what the project holds: a delimiter of a newer format that
-the person leaves stays as it is, and so do the members this build does not know, of the profile and of a column it
-keeps. Without one of its own the project uses the **generic profile**, which every label program that imports a table
-takes, mapping its columns once in its import:
+**The columns and the form are the label file's export profile**, `WorkshopSettings.label_profile`
+([13](13-manufacturing-outputs.md) §7): each column of the `labels` list with the heading the file prints, Excel or
+CSV (a CSV with its delimiter and encoding), the decimal mark, the header row and the form of the values. Change…, in
+Labels… and in Project properties ▸ Workshop ▸ Label file, opens the form of [13](13-manufacturing-outputs.md) §7.4 on
+what the project holds: what this build does not know of the profile and of a column it keeps stays as it is. Without
+one of its own the project uses the **generic profile**, an Excel file with these columns, which every label program
+that imports a table takes, mapping its columns once in its import; Excel because the label program of the shop the
+defaults are made for imports Excel:
 
 | Heading | Column |
 |---|---|
@@ -101,15 +105,19 @@ takes, mapping its columns once in its import:
 | Copies | `copies` |
 | For | `for` |
 
-**The form of a file.** CSV: UTF-8 with a byte-order mark, CR LF line ends, a header row, the profile's delimiter (comma,
-or a semicolon), values as they are: never the formula guard of the Excel presets, which a label program would print
-([09](09-reports-forms-output.md) §4.6). XLSX: one sheet named after the set, a header row and text cells, without the
-`id` column and the hidden sheets of the round trip. A row is one label; its Copies tells the label program how many to
+**The form of a file** is [13](13-manufacturing-outputs.md) §7.2's. An Excel file has one sheet named after the set; a
+CSV has CR LF line ends and its values as they are, never the formula guard of the Excel presets, which a label
+program would print ([09](09-output.md) §4.6). A row is one label; its Copies tells the label program how many to
 print.
 
+**The Labels… dialog** lists the files, each with its set, its marker part, its count and a tick; on one line the
+profile ("Excel · Text 1, Text 2, Text 3, Copies, For") with Change…; and the line that counts the labels whose text
+does not fit their marker part, with Show. The form of the files is the profile's, so the dialog has no form of its
+own; `ew export labels --format csv|xlsx` sets it for that one export.
+
 **Presets of named label programs** are left out: a preset that names a program's columns is made from that program's
-published import format, when it is at hand. The profile is the one record of an export by profile; the machine
-exports of [13](13-manufacturing-outputs.md) §7 extend it rather than add a second.
+published import format, when it is at hand ([13](13-manufacturing-outputs.md) §7.6). The export profile is the one
+record of an export by profile; the wire file for a machine is its second kind ([13](13-manufacturing-outputs.md) §7).
 
 **Labels for changes.** From the Rework list…, Labels for these changes… writes the same files with only the labels the
 rework list names: the markers of new, replaced and changed wire ends, the labels of mounted or changed devices,

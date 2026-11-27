@@ -207,21 +207,18 @@ has no offline mode: the 3D half is 1.0. AC-21's compared subset admits EW-LAYOU
 #### 4.5.5 EW-MFG
 
 EW-MFG-004, 008 and 009 judge the project before a print, online and in release mode; EW-MFG-001 judges it where a
-length can be computed: online and in release mode in a project with a panel layout (the check before an export for the
-workshop does not run yet); 002, 003, 005 and 006
-are a machine export's pre-flight and need its profile ([13](13-manufacturing-outputs.md) §4.6, §7.3).
+length can be computed: online and in release mode in a project with a panel layout, an error in release mode, so the
+release and the check before an export for the workshop, which is the release check ([13](13-manufacturing-outputs.md)
+§8.6), ask a length of every wire Route lays. EW-MFG-002, 003, 005, 006 and 010 are retired: what a machine cannot take
+is no finding but the reason a wire goes to the list for the hand (13 §7.3); no export mapping and no bundles are
+built, and an unverified table says so where its value is shown.
 
 | ID | Name | Checks | Kind | Modes | Severity | Scope | Rel | Req. | D (defects) | Def. |
 |---|---|---|---|---|---|---|---|---|---|---|
-| EW-MFG-001 | Wires without a length | One finding per cabinet while a wire of it that is no core and no field wire has no length (the wire list prints —), its targets the layout space and those wires, its fingerprint the space's, Route its quick fix; only in a project that has a panel layout, none in a project without a layout; a stale length is EW-LAY-011's; supersedes EW-REL-002 for lengths | completeness | o r | info | project | 1.0 | FR-MFG-024, FR-MFG-051, FR-CHK-058 | D-19 | 13 §4.6 |
-| EW-MFG-002 | Outside the machine limits | Cross-section or wire type outside the machine's limits or magazine | conflict | x | warning (row to the manual list) | potential | 1.0 | FR-MFG-024, FR-MFG-051 | — | 13 §4.6 |
-| EW-MFG-003 | Ferrule or end treatment unavailable | A ferrule not in the machine's magazine, or an end treatment not in the profile's `end_treatments` | conflict | x | warning (manual list or finishing task) | potential | 1.0 | FR-MFG-024, FR-MFG-050 | — | 13 §4.6 |
-| EW-MFG-004 | Marker text does not fit | A marker text that does not fit its stock after the shortening of 13 §5.2 (characters per line, lines), or its encoding | conflict | o r x | warning | potential | 1.0 | FR-MFG-011, FR-MFG-024 | — | 13 §4.6 |
-| EW-MFG-005 | Duplicate wire number in the export | A duplicate created by the export mapping (`export_as`, company codes); duplicates in the model are EW-POT-015, which supersedes it per target | conflict | x r | error | project | 1.0 | FR-MFG-024 | — | 13 §4.6 |
-| EW-MFG-006 | Bundle too large | A bundle above the bin size (or split by a profile option) | conflict | x | warning | project | 1.0 | FR-MFG-024 | — | 13 §4.6 |
+| EW-MFG-001 | Wires without a length | One finding per cabinet while a wire of it that is no core and no field wire has no length (the wire list prints —), its targets the layout space and those wires, its fingerprint the space's, Route its quick fix; only in a project that has a panel layout, none in a project without a layout; a stale length is EW-LAY-011's; supersedes EW-REL-002 for lengths | completeness | o r | info / error | project | 1.0 | FR-MFG-024, FR-MFG-051, FR-CHK-058 | D-19 | 13 §4.6 |
+| EW-MFG-004 | Marker text does not fit | A marker text that does not fit its stock after the shortening of 13 §5.2 (characters per line, lines) | conflict | o r | warning | potential | 1.0 | FR-MFG-011, FR-MFG-024 | — | 13 §4.6 |
 | EW-MFG-008 | End cannot be made | A wire end the rule table cannot decide: a fine-stranded wire into an insulation-displacement clamp | completeness | o r | warning | potential | 1.0 | FR-MFG-005, FR-CHK-058 | — | 13 §4.6 |
 | EW-MFG-009 | End set by hand does not fit | An end set by hand whose ferrule part fits another size, a twin ferrule with no second wire on its clamp, or a ferrule of another collar colour than the workshop stock's ferrule of that size | conflict | o r | warning | potential | 1.0 | FR-MFG-007, FR-MFG-042 | — | 13 §4.6 |
-| EW-MFG-010 | Unverified manufacturing data | Output based on unverified constants or part sections; one finding per package, listing the sources | hygiene | r | info | project | 1.0 | FR-CHK-058, FR-CHK-046 | — | 13 §4.6 |
 | EW-MFG-011 | Feedback length deviation | A machine feedback length that deviates from the computed length beyond tolerance | hygiene | f | info | project | 1.x | FR-MFG-026 | — | 13 §4.6 |
 | EW-MFG-020 | Strip without an end plate | A strip whose terminals have parts and after whose last terminal no end plate stands: none of its parts names one, it was left off, none was added | completeness | o r | warning | device | 1.0 | FR-MFG-016 | — | 13 §6.3 |
 | EW-MFG-021 | Bridge without a part | A bridge group whose carrier connection names no part, so the parts list and the assembly list cannot name it | completeness | o r | warning; error in release | device | 1.0 | FR-MFG-016 | — | 13 §6.3 |
@@ -307,7 +304,6 @@ EW-REL-001, -002 and -004 are the EW-REL pack, in the gate-only mode `g`. `ew_ch
 | `pre-delivery` | Default `release_scheme`; `ew check --scheme pre-delivery` | Every enabled rule whose modes include release, at release severity; EW-REL evaluated by the gate only (§3.2); EW-RDS-002, EW-FL-008, EW-FL-014 off (EW-CORE-055 joins them when it is built, 1.0). The release blockers of §4.8 are errors here | MVP |
 | `migration` | Lenient check run that forms an import's migration report (FR-IMP-003) | `extends = "pre-delivery"` at its severities, run in lenient mode, so prevent violations become findings of their rules; plus the import run's EW-IMP findings (§4.10) | MVP |
 | `full` | Audits and acceptance of hygiene rules | Everything, including off-by-default rules (FR-CHK-027's acceptance runs here) | MVP |
-| `manufacturing` | Pre-flight of `.ewpp` and machine exports | `extends = "pre-delivery"` plus EW-MFG (FR-CHK-058) | 1.0 |
 | `machinery-en60204` | Machinery projects | `extends = "pre-delivery"` plus EW-EN60204 | 1.0 |
 | `assembly-iec61439` | Switchgear assemblies | `extends = "pre-delivery"` plus EW-THM and EW-CORE-024 for the IEC 61439-1 clause 11 routine-verification checklist (FR-MFG-037) | 1.0 |
 

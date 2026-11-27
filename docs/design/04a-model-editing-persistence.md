@@ -526,7 +526,7 @@ that runs these steps in this order:
 2. freezes committed computations and saves generation g;
 3. if the project is a git repository, commits the project directory at g (after asking);
 4. builds and verifies an **as-built archive** containing the canonical text at that generation, the embedded
-   libraries, the PDF/A-2b, the `.ewpp` production package and the SHA-256 sums (G2);
+   libraries, the PDF/A-2b, the frozen report rows and the SHA-256 sums (G2);
 5. if the project is a git repository, creates the tag `ew/rev/<label>`;
 6. stamps the revision `Released` with its `ReleaseRecord` (generation g, rule-pack versions, derivation profile,
    approval, archive name and hash, page digests), saved as generation g+1.

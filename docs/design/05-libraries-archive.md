@@ -290,7 +290,6 @@ J-E-2416.ew-archive/V2.0.ewarchive      deterministic ZIP as in §12
   pdf/<drawing id>_V2.0.pdf             PDF/A-2b (one per display language from 1.0)
   reports/<report-block id>.csv         frozen report rows: the committed snapshots of FR-REV-011
   check/report.json  check/report.pdf   findings, waivers, scheme, pack versions, disclaimer (FR-CHK-014)
-  ewpp/<project>-V2.0.ewpp              production package when present (1.0)
   schemas/  spec/                       JSON Schemas and format specification (1.0, NFR-REL-10)
   SHA256SUMS                            `sha256sum -c` format over all other entries
 ```
