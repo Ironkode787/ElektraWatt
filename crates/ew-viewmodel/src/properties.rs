@@ -1866,9 +1866,9 @@ pub fn command_choice_text(path: &str, option: &str) -> String {
     }
 }
 
-/// Writes the surfaces of a sheet in the UI language's words, as `words` names a surface's ID
-/// (`Session::surface_choices`, "-UC1 deur"): a panel page's Surface row and a placement's Carrier row on a door, a
-/// wall, the top or the bottom, whose values are the surface's ID, and the header of one selected surface.
+/// Writes the surfaces and carriers of a sheet in the UI language's words, as `words` names a surface's or a carrier's
+/// ID (`Session::layout_words`, "-UC1 deur", "Rail 1"): a panel page's Surface row and a placement's Carrier row,
+/// whose values are those IDs, and the header of one selected surface or carrier.
 pub fn surfaces_in_words(
     sheet: &mut PropertySheet,
     selected: &[ew_api::output::Uuid],

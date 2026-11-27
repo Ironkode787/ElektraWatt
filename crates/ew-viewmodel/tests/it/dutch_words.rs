@@ -1421,3 +1421,40 @@ fn a_strips_accessory_rows_take_the_kinds_word() {
     }
     assert!(strings::set_locale("en"));
 }
+
+/// A carrier in a Dutch window reads in Dutch from the one home of the layout's words (`Session::layout_words`): a
+/// selected duct is headed "Kabelgoot 1", and a placement's Carrier row names its rail and, on the plate itself, the
+/// plate in words, never "Plate".
+#[test]
+fn a_carrier_reads_in_the_windows_language() {
+    let tmp = Tmp::new("carrier-nl");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "902");
+    done(&mut shell, "view.language", json!({"value": "nl"}));
+    let duct = shell
+        .panel_tables()
+        .expect("902's tables")
+        .carriers
+        .iter()
+        .find(|c| c.axis.is_none())
+        .map(|c| c.id)
+        .expect("the duct");
+    done(&mut shell, "select.set", json!({"ids": [duct.to_string()]}));
+    let title = |s: &ShellModel| s.properties().sheet().expect("a sheet").header.title.clone();
+    assert_eq!(title(&shell), "Kabelgoot 1");
+    done(&mut shell, "select.set", json!({"refs": ["tag:-102F1"]}));
+    let placement = shell
+        .panel_tables()
+        .expect("902's tables")
+        .placements
+        .iter()
+        .find(|p| p.tag == "-102F1")
+        .map(|p| p.id)
+        .expect("-102F1 on 902");
+    done(&mut shell, "select.set", json!({"ids": [placement.to_string()]}));
+    let (carrier, _) = row_value(&shell, "placement/derived.carrier");
+    assert!(carrier.starts_with("Rail "), "{carrier}");
+    done(&mut shell, "view.language", json!({"value": "en"}));
+    done(&mut shell, "select.set", json!({"ids": [duct.to_string()]}));
+    assert_eq!(title(&shell), "Duct 1");
+    shell.shutdown();
+}

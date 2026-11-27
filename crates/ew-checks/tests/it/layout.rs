@@ -249,6 +249,45 @@ const F55_UNPLACED: &str = "+J-E-2416-F55 is not placed in the layout of +J-E-24
 // ---------------------------------------------------------------------------------------------------------
 // LC-1, LC-7: EW-LAY-001 and its release severity
 
+/// F55 takes a door handle as its further part. Its handle placed first leaves the breaker itself unplaced, and
+/// EW-LAY-001 says so; the breaker placed then clears it.
+#[test]
+fn a_further_part_placed_first_leaves_the_device_unplaced_until_its_primary_part_is() {
+    const P_HANDLE: u128 = 0x609;
+    let mut fx = plate();
+    mech_part(
+        &mut fx,
+        P_HANDLE,
+        "HANDLE",
+        json!({"width": mm(65.0), "height": mm(65.0), "mount_kind": "door_cutout"}),
+    );
+    fx.with_parts(F55, &[P_MCB, P_HANDLE]);
+    place(
+        &mut fx,
+        0xfa,
+        F55,
+        Some(P_HANDLE),
+        json!({"surface": us(PLATE)}),
+        pose([mm(300.0), mm(500.0), 0], 0),
+    );
+    let f55 = |m: &ew_model::Model| {
+        findings_of(m, "EW-LAY-001")
+            .into_iter()
+            .filter(|f| f.subject_english() == "+J-E-2416-F55")
+            .count()
+    };
+    assert_eq!(f55(&fx.build()), 1, "the handle places the handle alone");
+    place(
+        &mut fx,
+        0xfb,
+        F55,
+        Some(P_MCB),
+        json!({"surface": us(PLATE)}),
+        pose([mm(300.0), mm(300.0), 0], 0),
+    );
+    assert_eq!(f55(&fx.build()), 0, "the breaker placed");
+}
+
 #[test]
 fn the_unplaced_device_is_reported_and_placing_it_clears_it() {
     let m = plate().build();

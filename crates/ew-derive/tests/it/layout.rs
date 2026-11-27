@@ -251,25 +251,55 @@ fn unplaced_lists_the_mountable_devices_without_a_placement_in_tag_order() {
     );
 }
 
-/// A device placed only through its further part (its placement names the second rail part) stays placed, as it was
-/// before part uses were told apart; its further part use counts as placed by that placement too.
-#[test]
-fn a_device_placed_through_its_further_part_is_not_unplaced() {
+/// A door handle's part: a further part to place, in a door's cut-out.
+const P_HANDLE: u128 = 0x604;
+
+/// A device with a primary part (the MCB) and a further part to place (a door handle), placed by `placements` (each
+/// `Some(part)` names its part, `None` none), and what Unplaced lists of it.
+fn listed_of_two(placements: &[Option<u128>]) -> Vec<Option<PartRef>> {
     const D_TWO: u128 = 0xdc;
-    const PL_TWO: u128 = 0xfc;
     let mut fx = fixture(false);
-    device(&mut fx, D_TWO, "F", 12, LOC_A, &[P_MCB, P_SCREW], Some(FN_MCB));
-    fx.push(
-        json!({"$k": "placement", "id": uid(PL_TWO), "device": uid(D_TWO), "part": {"copy": uid(P_SCREW)},
-        "carrier": {"surface": uid(SURFACE)}, "pose": pose([mm(400), mm(300)], 0)}),
+    part(
+        &mut fx,
+        P_HANDLE,
+        "HANDLE",
+        Some(json!({"width": mm(65), "height": mm(65), "mount_kind": "door_cutout"})),
     );
+    device(&mut fx, D_TWO, "Q", 12, LOC_A, &[P_MCB, P_HANDLE], Some(FN_MCB));
+    for (i, part) in placements.iter().enumerate() {
+        let mut p = json!({"$k": "placement", "id": uid(0xfc + i as u128), "device": uid(D_TWO),
+            "carrier": {"surface": uid(SURFACE)}, "pose": pose([mm(400), mm(300 + 100 * i as i64)], 0)});
+        if let Some(c) = part {
+            p["part"] = json!({"copy": uid(*c)});
+        }
+        fx.push(p);
+    }
     let m = fx.build();
     let q = Q::new(&m);
-    assert!(
-        q.get::<Unplaced>(id(SPACE)).iter().all(|(d, _)| *d != id(D_TWO)),
-        "{:?}",
-        q.get::<Unplaced>(id(SPACE))
+    q.get::<Unplaced>(id(SPACE))
+        .iter()
+        .filter(|(d, _)| *d == id(D_TWO))
+        .map(|(_, p)| p.clone())
+        .collect()
+}
+
+/// A placement that names no part, as every placement of a project made before part uses were told apart, places the
+/// device's primary part use: an existing project reads its devices as placed as it did.
+#[test]
+fn a_placement_without_a_part_places_the_primary_part_use() {
+    assert_eq!(listed_of_two(&[None]), vec![Some(PartRef::new(id(P_HANDLE)))]);
+}
+
+/// The further part placed first (a main switch's door handle before the switch) places that part alone: the primary
+/// part use stays listed until a placement of it comes.
+#[test]
+fn a_further_part_placed_first_leaves_the_primary_part_use_listed() {
+    assert_eq!(
+        listed_of_two(&[Some(P_HANDLE)]),
+        vec![Some(PartRef::new(id(P_MCB)))]
     );
+    assert!(listed_of_two(&[Some(P_HANDLE), Some(P_MCB)]).is_empty());
+    assert!(listed_of_two(&[Some(P_HANDLE), None]).is_empty());
 }
 
 #[test]

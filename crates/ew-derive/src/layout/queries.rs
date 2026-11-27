@@ -314,11 +314,11 @@ fn mountability_of_kind(q: &Q, dev: Id<Device>, device: &Device) -> Mountability
 /// §2.7 rule 5). A strip and a device without parts are one entry without a part.
 ///
 /// A device belongs to the space when its own location node is the space's location and the space is that location's
-/// layout space ([`space_of_location`]); a device of another location is never listed. A device's primary part use
-/// counts as placed when any placement names the device, wherever it sits (a placement in another location's space is
-/// EW-LAY-004's), whatever part it names: so a device placed before part uses were told apart is placed as it was. A
-/// further part use (a main switch's door handle) counts as placed when a placement names its part. A missing space
-/// lists nothing.
+/// layout space ([`space_of_location`]); a device of another location is never listed. Each placement of the device,
+/// wherever it sits (a placement in another location's space is EW-LAY-004's), places one part use: the further part
+/// use to place it names (a main switch's door handle), else the primary one, that is a placement that names no part
+/// (every placement made before part uses were told apart), the primary part or a part that is none of the device's
+/// further uses to place. So placing the handle first leaves the switch listed. A missing space lists nothing.
 #[derive(Debug)]
 pub struct Unplaced;
 
@@ -357,11 +357,21 @@ impl Query for Unplaced {
             let Mountability::Mountable { primary, uses, .. } = m.as_ref() else {
                 continue;
             };
+            let primary = primary.as_ref().map(|p| p.copy);
+            let further: Vec<Id<Part>> = uses
+                .iter()
+                .map(|u| u.copy)
+                .filter(|c| Some(*c) != primary)
+                .collect();
+            // The part use each placement places.
             let placed: Vec<Option<Id<Part>>> = q
                 .idx()
                 .placements_of_device(d)
                 .filter_map(|p| placements.get(p))
-                .map(|p| p.part.as_ref().or(primary.as_ref()).map(|r| r.copy))
+                .map(|p| match p.part.as_ref().map(|r| r.copy) {
+                    Some(c) if further.contains(&c) => Some(c),
+                    _ => primary,
+                })
                 .collect();
             if uses.is_empty() {
                 if placed.is_empty() {
@@ -369,14 +379,9 @@ impl Query for Unplaced {
                 }
                 continue;
             }
-            let primary = primary.as_ref().map(|p| p.copy);
             out.extend(
                 uses.iter()
-                    .filter(|u| {
-                        let realised = placed.contains(&Some(u.copy));
-                        let device_placed = !placed.is_empty() && Some(u.copy) == primary;
-                        !realised && !device_placed
-                    })
+                    .filter(|u| !placed.contains(&Some(u.copy)))
                     .map(|u| (d, Some(u.clone()))),
             );
         }

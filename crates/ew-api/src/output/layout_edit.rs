@@ -728,22 +728,31 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
             .cloned(),
         _ => None,
     };
-    let (carrier_text, on_rail) = match (&p.carrier, &face) {
-        (CarrierRef::Carrier(c), _) => (
+    // The value is the rail's, the duct's or the surface's ID, which a window words in its language
+    // (`Session::layout_words`); the text is its English words.
+    let (carrier_text, on_rail, value) = match &p.carrier {
+        CarrierRef::Carrier(c) => (
             q.table::<Carrier>()
                 .get(*c)
                 .map(|c| carrier_label(q, c))
                 .unwrap_or_default(),
             true,
+            Some(c.as_uuid()),
         ),
-        (_, Some(s)) => (surface_name(q, s), false),
-        _ => ("Plate".to_owned(), false),
+        CarrierRef::Surface(s) => (
+            q.table::<MountingSurface>()
+                .get(*s)
+                .map(|s| surface_name(q, s))
+                .unwrap_or_default(),
+            false,
+            Some(s.as_uuid()),
+        ),
+        // A carrier of a newer format: no words.
+        CarrierRef::Unknown(_) => (String::new(), false, None),
     };
     let mut carrier_row = text_row(k, "carrier", carrier_text, Provenance::Authored, None);
-    // On a door, a wall, the top or the bottom the value is the surface's ID, which a window words in its language
-    // (`Session::surface_choices`); the text is its English words.
-    if let (Some(s), RowValue::One { json, .. }) = (&face, &mut carrier_row.value) {
-        *json = Value::String(s.id.as_uuid().to_string());
+    if let (Some(v), RowValue::One { json, .. }) = (value, &mut carrier_row.value) {
+        *json = Value::String(v.to_string());
     }
     rows.push(carrier_row);
     if let (Some(s), Some(g)) = (&face, &geom) {
@@ -2358,6 +2367,20 @@ impl Session {
         let q = self.query();
         let surface = ew_derive::layout::page_surface(&q, Id::from_uuid(page))?;
         Some(q.table::<MountingSurface>().get(surface)?.enclosure.as_uuid())
+    }
+
+    /// A layout record in the window's words by its ID: a surface as [`Session::surface_choices`] names it ("-UC1
+    /// mounting plate"), a rail or a duct by its label ("Rail 1"); `None` for another ID.
+    pub fn layout_words(&self, id: Uuid) -> Option<crate::Text> {
+        if let Some((_, w)) = self.surface_choices().into_iter().find(|(s, _)| *s == id) {
+            return Some(w);
+        }
+        let q = self.query();
+        let c = q.table::<Carrier>().get(Id::from_uuid(id))?.clone();
+        carrier_labels(&q, c.surface)
+            .into_iter()
+            .find(|(x, _)| *x == c.id)
+            .map(|(_, l)| ew_derive::text::carrier_label(l))
     }
 
     /// The Surface row's choices: the project's mounting surfaces as `(surface, words)`, in the row's

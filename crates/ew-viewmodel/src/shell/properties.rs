@@ -483,12 +483,10 @@ impl ShellModel {
         );
         crate::properties::enums_in_words(&mut sheet);
         crate::properties::command_choices_in_words(&mut sheet);
-        let surfaces = p.session.surface_choices();
         crate::properties::surfaces_in_words(&mut sheet, &uuids, |id| {
-            surfaces
-                .iter()
-                .find(|(s, _)| s.to_string() == id)
-                .map(|(_, w)| strings::render(w))
+            p.session
+                .layout_words(id.parse().ok()?)
+                .map(|w| strings::render(&w))
         });
         crate::properties::report_source_in_words(&mut sheet);
         self.wire_numbers_in_row(&mut sheet);
