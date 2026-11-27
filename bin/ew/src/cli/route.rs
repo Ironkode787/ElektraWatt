@@ -204,7 +204,15 @@ fn route_cabinet(mut session: ew_api::Session, folio: &str, a: &RouteArgs, io: &
             format!("{n} wires")
         }
     };
-    let mut text = if routed.is_empty() {
+    // The lead says what Route does; "every wire has its way" only where no wire is left without one.
+    let mut text = if !routed.is_empty() {
+        format!(
+            "{verb} {} of {} on folio {folio}.
+",
+            wires(routed.len()),
+            card.cabinet
+        )
+    } else if card.without.is_empty() {
         format!(
             "Every wire of {} has its way.
 ",
@@ -212,10 +220,10 @@ fn route_cabinet(mut session: ew_api::Session, folio: &str, a: &RouteArgs, io: &
         )
     } else {
         format!(
-            "{verb} {} of {} on folio {folio}.
+            "No wire of {} gets a way on folio {folio}; {} without one:
 ",
-            wires(routed.len()),
-            card.cabinet
+            card.cabinet,
+            wires(card.without.len())
         )
     };
     for w in &card.without {

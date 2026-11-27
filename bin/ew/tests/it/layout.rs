@@ -204,4 +204,28 @@ fn route_on_the_panel_page_stores_the_cabinets_ways() {
     assert_ne!(layout(), stored, "the ways laid again are stored");
     let o = t.ew(&["route", &p, "--page", "902"]);
     assert_eq!(stdout(&o), "Every wire of +CAB has its way.\n", "{}", stderr(&o));
+
+    // -X1011 taken off its rail: its wires' ways no longer hold and Route finds none; it says so, never that every wire
+    // has its way.
+    let strip = layout()
+        .lines()
+        .find(|l| l.contains("\"$k\":\"placement\"") && l.contains("\"carrier\":{\"carrier\""))
+        .and_then(|l| serde_json::from_str::<serde_json::Value>(l).ok())
+        .and_then(|v| v["id"].as_str().map(str::to_owned))
+        .expect("a placement on a rail");
+    std::fs::write(
+        &log,
+        format!(
+            "{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"a strip off its rail\"}}\n{}\n",
+            serde_json::json!({"cmd": "layout.remove", "params": {"placement": strip}})
+        ),
+    )
+    .unwrap();
+    let o = t.ew(&["apply", &p, &log.to_string_lossy()]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let o = t.ew(&["route", &p, "--page", "902"]);
+    let text = stdout(&o);
+    assert_eq!(o.status.code(), Some(1), "{text}{}", stderr(&o));
+    assert!(text.starts_with("No wire of +CAB gets a way on folio 902; "), "{text}");
+    assert!(!text.contains("has its way") && text.contains("  No way for "), "{text}");
 }
