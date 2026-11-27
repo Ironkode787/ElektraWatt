@@ -927,10 +927,11 @@ fn pick(entities: &[(EntityRef, Rect)], at: Pt2) -> Option<EntityRef> {
 
 /// A `layout.move` of -101G1 runs only 902's placements, labels and carriers layers again (the carriers are cut
 /// around the labels, so they read the labels' fit), and the second export equals the cold one; a press at a
-/// footprint's centre picks its placement.
+/// footprint's centre picks its placement. Without the sample's stored ways: with them, the move stales the ways of
+/// -101G1's wires, and the lists that print their lengths with "≈" rebuild their tables as well.
 #[test]
 fn a_move_rebuilds_only_902s_placement_label_and_carrier_layers_and_a_footprint_picks_its_placement() {
-    let mut s = common::sample();
+    let mut s = common::sample_without_ways();
     // The pick, as the sample places them (the moved -101G1 below overlaps its neighbours).
     let q = s.query();
     let p = drawn(&q, "902");

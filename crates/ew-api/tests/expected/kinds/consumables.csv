@@ -1,15 +1,15 @@
 row,Part number,Description,For,Quantity,Unit
 heading,Wire,,,,
-data,,0.75 mm² BK,2 wires,length missing for 2 wires,m
-data,,0.75 mm² BU,9 wires,length missing for 9 wires,m
-data,,0.75 mm² DBU,3 wires,length missing for 3 wires,m
-data,,0.75 mm² GNYE,1 wire,length missing for 1 wire,m
-data,,1.5 mm² BK,7 wires,0.4 and 6 wires without a length,m
-data,,1.5 mm² BU,1 wire,length missing for 1 wire,m
-data,,2.5 mm² BK,7 wires,0.6 and 6 wires without a length,m
-data,,2.5 mm² BU,1 wire,length missing for 1 wire,m
-data,,2.5 mm² DBU,7 wires,0.45 and 6 wires without a length,m
-data,,2.5 mm² GNYE,3 wires,length missing for 3 wires,m
+data,,0.75 mm² BK,2 wires,2.445,m
+data,,0.75 mm² BU,9 wires,5.185,m
+data,,0.75 mm² DBU,3 wires,0.79,m
+data,,0.75 mm² GNYE,1 wire,0.575,m
+data,,1.5 mm² BK,7 wires,3.55,m
+data,,1.5 mm² BU,1 wire,0.52,m
+data,,2.5 mm² BK,7 wires,2.4,m
+data,,2.5 mm² BU,1 wire,0.25,m
+data,,2.5 mm² DBU,7 wires,5.365,m
+data,,2.5 mm² GNYE,3 wires,1.47,m
 heading,Ferrules and lugs,,,,
 data,EW-GEN-FER-0.75,"Ferrule 0.75 mm², insulated",0.75 mm²,19,pc
 data,EW-GEN-FER-1.5,"Ferrule 1.5 mm², insulated",1.5 mm²,16,pc

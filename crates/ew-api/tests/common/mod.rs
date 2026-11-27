@@ -186,6 +186,14 @@ pub fn sample_records() -> (ew_schema::Project, Vec<Record>, Vec<LibDocument>) {
     )
 }
 
+/// The sample before Route laid its cabinet's wires: its records without the stored ways (doc 12-3d §8.5), for the
+/// tests of what Route does the first time.
+pub fn sample_without_ways() -> Session {
+    let (project, mut records, lib) = sample_records();
+    records.retain(|r| !matches!(r, Record::CommittedRoute(_)));
+    session_of(project, records, lib)
+}
+
 /// The sample's records as a project made by 0.3.0 holds its layout (doc 12 §5.4): its legend a box beside the plate on
 /// 902 (`embedded`, the box the sample's script made then, the plate where that box left it room, the devices numbered),
 /// not a list page of its own; for the tests of embedded blocks and of a legend made before.

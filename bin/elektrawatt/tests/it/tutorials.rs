@@ -532,6 +532,7 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
             "row level 2 page \"912.1\" \"Assembly lists\" generated changed \"V1.0\"",
             "row level 2 page \"913\" \"Cut list\" generated changed \"V1.0\"",
             "row level 2 page \"913.1\" \"Cut list\" generated changed \"V1.0\"",
+            "row level 2 page \"913.2\" \"Cut list\" generated changed \"V1.0\"",
             "row level 2 page \"914\" \"Consumables\" generated changed \"V1.0\"",
             "row level 2 page \"914.1\" \"Consumables\" generated changed \"V1.0\"",
         ]
@@ -547,7 +548,7 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
     );
     assert_eq!(
         lines_of(&preview, &["dialog \"Print\"", "preview \""]),
-        ["dialog \"Print\"", "preview \"2 of 45\" page 2"]
+        ["dialog \"Print\"", "preview \"2 of 46\" page 2"]
     );
     assert_eq!(
         lines_of(&end, &["row level 2 page \"91", "title:"]),
@@ -560,6 +561,7 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
             "row level 2 page \"912.1\" \"Assembly lists\" generated changed \"V1.0\"",
             "row level 2 page \"913\" \"Cut list\" generated changed \"V1.0\"",
             "row level 2 page \"913.1\" \"Cut list\" generated changed \"V1.0\"",
+            "row level 2 page \"913.2\" \"Cut list\" generated changed \"V1.0\"",
             "row level 2 page \"914\" \"Consumables\" generated changed \"V1.0\"",
             "row level 2 page \"914.1\" \"Consumables\" generated changed \"V1.0\"",
             "row level 2 page \"915\" \"Parts list\" generated changed \"V1.0\"",

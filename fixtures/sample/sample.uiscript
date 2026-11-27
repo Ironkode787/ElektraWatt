@@ -809,11 +809,12 @@
 {"action":"layout.surface_page","params":{"surface":"bottom"}}
 {"action":"layout.glands_place","params":{"cables":"tag:-101W1, tag:-103W1","x":"80","y":"125"}}
 {"action":"report_block.new","params":{"kind":"hole_table","folio":"925"}}
+{"action":"page.goto","params":{"folio":"902"}}
+{"action":"layout.route","params":{}}
+{"action":"preview.apply","params":{}}
 {"action":"navigator.show","params":{"kind":"connections"}}
 {"action":"navigator.table","params":{"kind":"connections","on":true}}
 {"action":"table.set","params":{"kind":"connections","column":"length","value":"400","rows":["101.1"]}}
-{"action":"table.set","params":{"kind":"connections","column":"length","value":"450","rows":["102.8"]}}
-{"action":"table.set","params":{"kind":"connections","column":"length","value":"600","rows":["103.2"]}}
 {"action":"table.set","params":{"kind":"connections","column":"to_end","value":"ring lug","rows":["101.4"]}}
 {"action":"strip.edit","params":{"strip":"-X1021"}}
 {"action":"table.cell","params":{"kind":"strips","row":"-X1021:1","column":"bridge_part"}}

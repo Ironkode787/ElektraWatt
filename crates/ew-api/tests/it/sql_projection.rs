@@ -69,7 +69,7 @@ fn every_view_has_its_documented_columns_and_the_sample_counts() {
         "2"
     );
     assert_eq!(count("api_v1_bond"), "1");
-    assert_eq!(count("api_v1_page"), "40");
+    assert_eq!(count("api_v1_page"), "41");
     assert_eq!(count("api_v1_meta"), "1");
     assert_eq!(count("api_v1_fluid_line"), "7");
     assert_eq!(count("api_v1_medium"), "0");

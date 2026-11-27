@@ -14,7 +14,7 @@ use ew_testdir::Tmp;
 /// The sample's pages: the title page, two of contents, three section dividers, the nine drawn pages and the
 /// twenty-five generated pages of its reports (the workshop lists and the hole table among them) and its layouts'
 /// legends.
-const PAGES: u32 = 40;
+const PAGES: u32 = 41;
 
 /// An editing session on a copy of the sample (the committed project is only read, never opened).
 fn sample_copy(tmp: &Tmp) -> Session {

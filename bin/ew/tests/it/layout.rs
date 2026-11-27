@@ -150,8 +150,9 @@ fn route_routes_a_page_saves_it_and_then_has_nothing_to_do() {
     );
 }
 
-/// `ew route --page 902`, the sample's panel page: Route lays the cabinet's wires through its ducts and stores the ways
-/// (`--dry-run` stores nothing), the wire list then prints a routed wire's length; a second run has nothing to do.
+/// `ew route --page 902`, the sample's panel page: the sample is routed, so Route has nothing to do and the wire list
+/// prints a routed wire's length. Duct 1 made 80 mm high stales the ways through it: Route lays them again and stores
+/// them (`--dry-run` stores nothing), after which it has nothing to do again.
 #[test]
 fn route_on_the_panel_page_stores_the_cabinets_ways() {
     let t = Tmp::new("ew-layout");
@@ -162,11 +163,37 @@ fn route_on_the_panel_page_stores_the_cabinets_ways() {
             .map(|e| std::fs::read_to_string(e.unwrap().path()).unwrap())
             .collect::<String>()
     };
+    let o = t.ew(&["route", &p, "--page", "902"]);
+    assert_eq!(stdout(&o), "Every wire of +CAB has its way.\n", "{}", stderr(&o));
+    let o = t.ew(&["export", "wires", &p]);
+    let csv = stdout(&o);
+    let row = csv.lines().find(|l| l.contains("101.8")).expect("101.8's row");
+    assert!(row.contains("routed"), "{row}");
+
+    let duct = layout()
+        .lines()
+        .find(|l| l.contains("\"kind\":\"duct\""))
+        .and_then(|l| serde_json::from_str::<serde_json::Value>(l).ok())
+        .and_then(|v| v["id"].as_str().map(str::to_owned))
+        .expect("duct 1");
+    let log = t.0.join("duct.ewcmd");
+    std::fs::write(
+        &log,
+        format!(
+            "{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"duct 1 made higher\"}}\n{}\n",
+            serde_json::json!({"cmd": "layout.carrier.edit", "params": {"carrier": duct,
+                "params": {"duct": {"width": 40_000_000, "height": 80_000_000}}}})
+        ),
+    )
+    .unwrap();
+    let o = t.ew(&["apply", &p, &log.to_string_lossy()]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let stored = layout();
     let o = t.ew(&["route", &p, "--page", "902", "--dry-run"]);
     let text = stdout(&o);
     assert!(text.starts_with("Would route "), "{text}{}", stderr(&o));
     assert!(text.contains(" of +CAB on folio 902."), "{text}");
-    assert!(!layout().contains("committed_route"), "a dry run stores nothing");
+    assert_eq!(layout(), stored, "a dry run stores nothing");
     let o = t.ew(&["route", &p, "--page", "902", "--json"]);
     assert!(o.status.code().is_some_and(|c| c < 2), "{}", stderr(&o));
     let json: results::RouteResult = serde_json::from_str(&stdout(&o)).unwrap();
@@ -174,11 +201,7 @@ fn route_on_the_panel_page_stores_the_cabinets_ways() {
         json.saved && json.pages[0].routed.contains(&"101.8".to_owned()),
         "{json:?}"
     );
-    assert!(layout().contains("\"$k\":\"committed_route\""));
-    let o = t.ew(&["export", "wires", &p]);
-    let csv = stdout(&o);
-    let row = csv.lines().find(|l| l.contains("101.8")).expect("101.8's row");
-    assert!(row.contains("routed"), "{row}");
+    assert_ne!(layout(), stored, "the ways laid again are stored");
     let o = t.ew(&["route", &p, "--page", "902"]);
     assert_eq!(stdout(&o), "Every wire of +CAB has its way.\n", "{}", stderr(&o));
 }

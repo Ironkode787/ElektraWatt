@@ -9,18 +9,42 @@ data,EW-GEN-CBL-17,"Cable 5G2.5 mm², cores brown, black, grey, blue and green-y
 data,EW-GEN-CBL-25,"Cable 4G2.5 mm², cores brown, black, grey and green-yellow, shielded",-103W1,1,5000,5
 data,EW-GEN-CBL-2,"PROFIBUS cable, 2 cores green and red, shielded",-105W1,1,8000,8
 heading,Wires,,,,,
-data,,0.75 mm² BK,"104.2, 104.6",2,length missing,
-data,,0.75 mm² BU,"101.17 … 101.19, 102.6, 102.9, 104.1, 104.3, 104.7, 104.9",9,length missing,
-data,,0.75 mm² DBU,101.14 … 101.16,3,length missing,
-data,,0.75 mm² GNYE,101.5,1,length missing,
+data,,0.75 mm² BK,104.2,1,1190,1.19
+data,,0.75 mm² BK,104.6,1,1255,1.255
+data,,0.75 mm² BU,101.17,1,115,0.115
+data,,0.75 mm² BU,104.1,1,140,0.14
+data,,0.75 mm² BU,104.7,1,160,0.16
+data,,0.75 mm² BU,102.6,1,215,0.215
+data,,0.75 mm² BU,101.18,1,425,0.425
+data,,0.75 mm² BU,101.19,1,630,0.63
+data,,0.75 mm² BU,104.9,1,1135,1.135
+data,,0.75 mm² BU,104.3,1,1175,1.175
+data,,0.75 mm² BU,102.9,1,1190,1.19
+data,,0.75 mm² DBU,101.14,1,115,0.115
+data,,0.75 mm² DBU,101.15,1,180,0.18
+data,,0.75 mm² DBU,101.16,1,495,0.495
+data,,0.75 mm² GNYE,101.5,1,575,0.575
+data,,1.5 mm² BK,101.2,1,190,0.19
+data,,1.5 mm² BK,101.3,1,205,0.205
 data,,1.5 mm² BK,101.1,1,400,0.4
-data,,1.5 mm² BK,"101.2, 101.3, 101.8 … 101.11",6,length missing,
-data,,1.5 mm² BU,101.7,1,length missing,
-data,,2.5 mm² BK,103.2,1,600,0.6
-data,,2.5 mm² BK,"101.12, 103.1, 103.3 … 103.6",6,length missing,
-data,,2.5 mm² BU,101.13,1,length missing,
-data,,2.5 mm² DBU,102.8,1,450,0.45
-data,,2.5 mm² DBU,"102.1 … 102.5, 102.7",6,length missing,
-data,,2.5 mm² GNYE,"101.4, 101.6, 103.7",3,length missing,
+data,,1.5 mm² BK,101.8 … 101.10,3,680,2.04
+data,,1.5 mm² BK,101.11,1,715,0.715
+data,,1.5 mm² BU,101.7,1,520,0.52
+data,,2.5 mm² BK,103.1,1,235,0.235
+data,,2.5 mm² BK,103.3,1,240,0.24
+data,,2.5 mm² BK,101.12,1,245,0.245
+data,,2.5 mm² BK,103.4,1,250,0.25
+data,,2.5 mm² BK,"103.5, 103.6",2,475,0.95
+data,,2.5 mm² BK,103.2,1,480,0.48
+data,,2.5 mm² BU,101.13,1,250,0.25
+data,,2.5 mm² DBU,102.3,1,160,0.16
+data,,2.5 mm² DBU,102.1,1,200,0.2
+data,,2.5 mm² DBU,102.7,1,225,0.225
+data,,2.5 mm² DBU,102.2,1,1130,1.13
+data,,2.5 mm² DBU,"102.5, 102.8",2,1205,2.41
+data,,2.5 mm² DBU,102.4,1,1240,1.24
+data,,2.5 mm² GNYE,103.7,1,110,0.11
+data,,2.5 mm² GNYE,101.4,1,595,0.595
+data,,2.5 mm² GNYE,101.6,1,765,0.765
 heading,Tubes,,,,,
 data,EW-GEN-TUB-6,"Tube PU 6 × 4 mm, blue",,7,length missing,

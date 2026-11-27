@@ -160,6 +160,9 @@ pub struct WorkshopSettings {                 // ProjectSettings.workshop; absen
     pub duct_fixing: Option<CarrierFixing>,   // absent: M4, at most 300 mm apart, 25 mm from each end
     pub min_web: Option<Nm>,                  // the web kept between two holes; absent: 5 mm (12-3d §10.5)
     pub datum: Option<Corner>,                // the corner holes are measured from; absent: bottom left (12 §2.8)
+    pub door_loop: Option<Nm>,                // the loop across a door's hinge; absent: 300 mm (12-3d §9)
+    pub fill_limit: Option<u8>,               // a duct's fill limit in percent; absent: 60 (12-3d §8.6)
+    pub reserve: Option<Nm>,                  // what the fitter adds at each end of a routed wire; absent: 50 mm (12-3d §9)
 }
 pub struct CarrierFixing { pub screw: Screw, pub pitch: Nm, pub from_end: Nm }   // Screw: m3 | m4 | m5 | m6 | m8
 pub struct ExportProfile {
@@ -213,7 +216,12 @@ pub struct WireRecord {               // wire_record_set(): every physical wire 
     pub flags: WireFlags,             // field: an end is a site end (§2.1)
     pub ends: [EndRecord; 2],         // From, To
 }
-pub enum WireLength { Typed(Nm), WithCable(Id<Device>), Missing }   // the layout adds Estimated and Routed
+pub enum WireLength {                 // 12-3d §9; nothing is estimated
+    Typed(Nm), WithCable(Id<Device>),
+    Routed { length: Nm, run: Nm, door: bool },                 // a stored way that holds
+    Stale { length: Nm, run: Nm, door: bool, why: StaleWhy },   // a stored way that no longer holds (12-3d §8.5)
+    Missing,
+}
 pub struct EndRecord {
     pub treatment: EndTreatment,      // Ferrule{csa} | TwinFerrule{csa, partner} | RingLug | Bare | Connector
                                       //   | External | Unknown{reason}
@@ -287,8 +295,8 @@ treatment or marker: it is mounted with its strip ([the workshop lists](13-works
 | `via` | Via | how the wire is joined: its junction and wiring, a daisy chain, the interruption points passed | |
 | `part` | Wire part | the wire part's number | |
 | `pages` | Pages | the pages the wire is drawn on | yes |
-| `length` | Length | the length in mm; `cable` for a core; `—` without one (§3.3) | yes |
-| `length_source` | Length from | typed, cable or missing; the layout adds estimated and routed | |
+| `length` | Length | the length in mm; `cable` for a core; `—` without one; a stale length after `≈` (§3.3) | yes |
+| `length_source` | Length from | typed, cable, routed, stale or missing; site for a field wire without a length of a cabinet Route has laid | |
 | `from_end`, `to_end` | From end, To end | the end's treatment (§4.4): `ferrule 1.5 BK`, `twin 2.5 BU · 102.8`, `ring lug M6`, `bare` | yes |
 | `from_part`, `to_part` | From part, To part | the part number of the end's ferrule or ring lug | |
 | `from_strip`, `to_strip` | From strip length, To strip length | the strip length in mm: the ferrule's sleeve | |
@@ -328,10 +336,12 @@ To marker are editable there (§12).
 |---|---|---|---|
 | `Typed(n)` | a constituent connection carries `WireOverrides.length` | n, as typed | typed |
 | `WithCable(cable)` | the wire is a core | `cable` | cable |
-| `Missing` | neither | `—` | missing |
+| `Routed{length, run}` | the wire has a stored way that holds | L | routed |
+| `Stale{length, run, why}` | the wire has a stored way that no longer holds | `≈` L | stale |
+| `Missing` | none of these | `—` | missing; site for a field wire |
 
-The layout adds `Estimated` and `Routed` ([12](12-panel-layout.md) §9), each a variant with its own data; nothing else
-changes. **Rounding happens once**: a length the program computes is rounded up to the project's cut increment
+The table is [12-3d](12-3d-routing-thermal.md) §9's, which makes L from the stored way's run, the reserve at each end and
+a door way's loop; nothing is estimated. **Rounding happens once**: a length the program computes is rounded up to the project's cut increment
 (`workshop.cut_increment`, 5 mm when absent) in `wire_record_set()`, and a typed length prints as it was typed. The
 list, the labels, the cut list and a machine profile read the record and never round a wire's length again (§7.1).
 
@@ -483,7 +493,7 @@ The rules that say before a print what the fitter would ask. They run online and
 
 | Rule | Says | Severity | Fix |
 |---|---|---|---|
-| EW-MFG-001 | How many wires have no length, one finding for the project; raised by the check before a workshop export and by Check project where a panel layout gives lengths, never without a layout | info; a machine export sets its own | Select them (the Connections table shows them) |
+| EW-MFG-001 | How many of a cabinet's wires have no length, one finding per cabinet; raised by the check before a workshop export and by Check project where a panel layout gives lengths, never without a layout. A field wire and a core are not counted (the site and the cable give their lengths); a stale length is EW-LAY-011's | info; a machine export sets its own | Select them (the Connections table shows them) |
 | EW-MFG-004 | "The marker of 104.4 at -104B1:13 does not fit its marker part: +CAB-104A1-A2:L+ needs 16 characters on a line of 12", per end | warning | — |
 | EW-MFG-008 | "The end of 104.4 at -104B1:13 cannot be made: a fine-stranded wire into an insulation-displacement clamp", per end | warning | Set the end by hand |
 | EW-MFG-009 | "The end of 101.7 at -101F1:3 set by hand does not fit: a ferrule for 1.5 mm² on a 2.5 mm² wire" (also: a twin ferrule with no second wire; a ferrule of another collar colour than the stock's ferrule of that size), per end | warning | Reset to the rule |
@@ -952,7 +962,7 @@ the sheet, and Labels for these changes… only the new and changed labels.
 | The wire list's pages | §3.1; Output ▸ List columns… chooses the printed columns of the list on show |
 | Connections navigator, table mode | Every column of §3.1. Length takes a length (§3.3); From end and To end a treatment or the rule's (§4.5); From marker and To marker a text, "none" or the setting's (§5.1). A value set by hand prints in the text colour, a derived one in the secondary colour ([16a](16a-design-language.md) §6.21); each edit is one `fields.set` and one undo step |
 | Properties of a wire | Length, with a chip that says where it comes from (§3.3); sections From end and To end, each named by its place ("From end · -X1011:L1 a"), with the rows End, Part and Marker; a derived value's chip says why ("rule: fine-stranded wire, clamp kind not known"), a value set by hand has the chip "set by hand" and Reset |
-| Project properties ▸ Workshop | Beside Cut to and the stock ([07](07-symbols-parts-macros.md) §2.5), the rows Marker text, Mark cable cores, Mark jumpers, Ferrules, Two wires in one clamp, Device labels, Fixing holes (Tapped, Self-tapping screws, Through, with a nut), Rail fixing and Duct fixing (each a screw, at most how far apart and how far from each end), Web between holes, Measured from, and Label file columns (Change… opens the columns as List columns… shows a list's: a tick, a heading, the order). Each change is one `project.settings.set` and one undo step; Output ▸ Workshop ▸ Workshop settings shows these rows |
+| Project properties ▸ Workshop | Beside Cut to and the stock ([07](07-symbols-parts-macros.md) §2.5), the rows Marker text, Mark cable cores, Mark jumpers, Ferrules, Two wires in one clamp, Device labels, Fixing holes (Tapped, Self-tapping screws, Through, with a nut), Rail fixing and Duct fixing (each a screw, at most how far apart and how far from each end), Web between holes, Measured from, Reserve per end, Duct fill limit and Door loop ([12-3d](12-3d-routing-thermal.md) §12.5), and Label file columns (Change… opens the columns as List columns… shows a list's: a tick, a heading, the order). Each change is one `project.settings.set` and one undo step; Output ▸ Workshop ▸ Workshop settings shows these rows |
 | Output ▸ Workshop ▸ Labels… | A form dialog: which labels (all, or those changed since a release), one row per file with its label set, marker part and count, a tick each; the format (CSV or XLSX); the profile's columns with Change…; the folder. A line under the files names the findings of the labels ("1 marker does not fit its marker part") with Show. Export writes the files as a job; its toast names the folder with Open folder |
 | Output ▸ Workshop ▸ Rework list… | A dialog: Compare with (the released revisions whose archive is found, newest first; Archive file…), one line that counts the work ("1 device to remove, 3 wires to pull, …"), the rows of §3.5, Export… (XLSX or CSV) and Labels for these changes…. Without a release: "This project has no released revision yet: the rework list compares with a release. Release it on the Check tab, or choose an archive file" |
 | Output ▸ Workshop ▸ Hole tables, Drilling… | The hole table page and the drawings for drilling (§9) |
@@ -1002,7 +1012,7 @@ csv|xlsx] --out <file>` the rework list; `ew export report --kind labels` the la
 | 10 | Excel turns "-X1031:1" into a formula or "1-2" into a date | XLSX writes text as text cells; the Excel CSV presets guard formulas; a label file never does, since a label program would print the guard (§5.4) |
 | 11 | Two ends whose marker texts would read alike | Tags are unique in a project, and a text keeps the structure its two ends do not share (§5.2) |
 | 12 | A marker longer than its marker part | The steps of §5.2, then EW-MFG-004 with the whole text; never a cut text |
-| 13 | Stale lengths after a device move | Lengths flagged, release export refused (FR-MFG-025); working exports say "draft" ([12](12-panel-layout.md) §8.5) |
+| 13 | Stale lengths after a device move | A stale length prints after `≈` and EW-LAY-011 names its cause ([12-3d](12-3d-routing-thermal.md) §8.5); release export refused (FR-MFG-025); working exports say "draft" |
 | 14 | Rounding per segment, or per profile, accumulates error or splits the wire list from the machine file | Round once, where the record is made, to the cut increment; a typed length is not rounded; profiles only declare their resolution (§3.3) |
 | 15 | Non-determinism (thread order, wall clock, ZIP times, float formatting) | Ordered maps, stable tie-breaks, decimal strings, dates from the release context, ZIP rules of 05 §12 (NFR-REL-07) |
 | 16 | Vendor meshes in a package sent to a partner shop are redistribution | Only licence-flagged meshes; boxes otherwise (FR-LAY-022) |
@@ -1011,7 +1021,7 @@ csv|xlsx] --out <file>` the rework list; `ew export report --kind labels` the la
 | 19 | Labels printed for a release, then the cabinet is changed | The rework list's Labels for these changes… prints the new and changed labels only (§5.4) |
 | 20 | A core has no wire number | Its No. cell prints its cable and core (`-103W1 BN`); a number is never invented |
 | 21 | Spare terminals that are fed | State "spare (fed)" in the assembly list |
-| 22 | Door wiring | The end prints `(door)` (§3.2); the hinge loop's allowance is the layout's ([12](12-panel-layout.md) §9) |
+| 22 | Door wiring | The end prints `(door)` (§3.2); the door loop is the layout's (`workshop.door_loop`, [12-3d](12-3d-routing-thermal.md) §9) |
 | 23 | Devices without parts | No clamp data: the clamp is taken as not known and the wire as fine-stranded, which the end says (§4.2); the device gets no device label |
 | 24 | Machine "actual length" is the cut length | Used for traceability only, never as calibration input (§11.4) |
 | 25 | Twin-ferrule and lug ends on a wire-by-wire machine | The profile's `end_treatments`; the end becomes a finishing task in `manual.csv` (§7.1, §7.3) |

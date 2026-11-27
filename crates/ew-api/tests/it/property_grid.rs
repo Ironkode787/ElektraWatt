@@ -407,10 +407,10 @@ fn frozen_tags_wire_chips_and_the_page_description() {
 
 /// A wire's Length row (doc 13 §3.3) says where its length comes from: 101.1's typed length in millimetres, typed by
 /// hand, with Reset; 102.1, a wire of the cabinet Route has not laid, has none, and the row says that Route on the
-/// cabinet's page gives it one (doc 12 §9), with Override; a core's is cut with its cable.
+/// cabinet's page gives it one (doc 12 §9), with Override; a core's is cut with its cable. On the sample before Route.
 #[test]
 fn a_wires_length_row_says_where_its_length_comes_from() {
-    let s = crate::common::sample();
+    let s = crate::common::sample_without_ways();
     let sheet = s.property_sheet(&[wire(&s, "101.1")]);
     let length = row(&sheet, "connection/derived.length");
     assert_eq!(one(length), "400 mm");

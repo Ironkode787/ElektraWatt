@@ -529,3 +529,17 @@ change here.
   fill limit where it is fullest; EW-LAY-011 (warning, an error at release) the ways that no longer hold, one finding
   per moved device or changed duct with Route as its fix; EW-MFG-001 (info) the wires of a cabinet without a length,
   in a project with a panel layout only, with Route as its fix
+- behaviour-change: Route lays a wire to a device in a door (doc 12 §8.1): through the ducts to the duct's end or corner
+  from which the rest is shortest, in free air to the plate's edge on the door's hinge side, along the door to the
+  device and up half what it reaches behind the door; its length adds the door loop. Two devices of one door are
+  joined directly; a wire between two doors, or to a wall, the top or the bottom, gets no way and says so
+- behaviour-change: EW-LAY-006 judges the closed door where the enclosure part gives its usable depth: a device or a
+  duct of the plate that reaches further ("-101G1 reaches 117.5 mm from the plate; the closed door is 100 mm away"),
+  and a device of the plate and one of the door that stand in front of each other and together take more than the
+  room. A placement's Properties on the plate say what it takes and the room to the door; a device in a door without
+  a depth says the closed door is not checked for it
+- behaviour-change: the sample's cabinet is routed (Route on 902): its wire list, cut list and consumables print every
+  cabinet wire's length, 102.8's and 103.2's typed lengths are gone (101.1's 400 mm stays as the typed length that
+  wins), and the cut list takes a third page (913.2)
+- fix: a wire whose junction is dissolved, and a project made from a template, keep no stored way of a connection that
+  is gone

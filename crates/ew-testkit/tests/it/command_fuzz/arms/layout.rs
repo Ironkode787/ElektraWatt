@@ -833,6 +833,13 @@ pub(super) fn edit_delete_layout(live: &Live, rng: &mut SplitMix64) -> Option<St
     Some(step.check(|_, after| placements_have_devices(after)))
 }
 
+/// A duct of the sample made 80 mm high: the stored ways through it no longer hold (the climbs into it change).
+pub(super) fn setup_stale_ways(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let duct = rng.pick(&live.layout.ducts)?;
+    let params = json!({"duct": {"width": 40 * LAY_MM, "height": 80 * LAY_MM}});
+    Some(Step::cmd("layout.carrier.edit", json!({"carrier": duct, "params": params})))
+}
+
 /// `layout.route`: the cabinet of a space routed, its due wires or every one (accepted: the ways of its wires stored,
 /// the wiring untouched); refused: a space that does not exist, a wire that is not one of the cabinet's.
 pub(super) fn layout_route(live: &Live, rng: &mut SplitMix64) -> Option<Step> {

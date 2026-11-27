@@ -816,13 +816,13 @@ fn nudge_turn_lock_and_delete_a_selected_placement() {
         rail_poses(&shell, "Rail 1"),
         rows_of(&[("-101Q1", 75.2), ("-101F1", 125.2), ("-101G1", 173.2)])
     );
-    // Free again: -101G1 is free to its right.
+    // Free again: -101G1 is free to its right. Its wires' ways no longer hold: one EW-LAY-011 (doc 12-3d §8.5).
     done(&mut shell, "layout.options", json!({"mode": "free"}));
     select_placement(&mut shell, "-101G1");
     assert_eq!(key(&mut shell, "cursor.right"), Outcome::Done);
     assert_eq!(
         shell.tool_announcement(),
-        Some("-101G1, rail 1 at 178.2 mm, no findings")
+        Some("-101G1, rail 1 at 178.2 mm, 1 finding")
     );
     select_placement(&mut shell, "-101F1");
     // R on a rail is refused in words with the keymap's keys; X flips.

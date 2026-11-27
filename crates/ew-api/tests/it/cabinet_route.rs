@@ -57,7 +57,7 @@ fn wire_row(s: &Session, number: &str, name: &str) -> Option<(String, String)> {
 /// due and counts the ways that hold.
 #[test]
 fn routes_card_on_902_and_its_apply() {
-    let mut s = common::sample();
+    let mut s = common::sample_without_ways();
     let (card, preview) = s
         .cabinet_route("902", false)
         .expect("902 shows a cabinet")
@@ -101,7 +101,7 @@ fn routes_card_on_902_and_its_apply() {
 /// Route gives; before Route the row says that Route on 902 gives one. A duct's rows give its inner area and its fill.
 #[test]
 fn a_routed_wires_length_and_way_rows_and_a_ducts_fill() {
-    let mut s = common::sample();
+    let mut s = common::sample_without_ways();
     let (_, chip) = wire_row(&s, "101.9", "length").expect("a Length row");
     assert!(
         chip.starts_with("No way yet: Route on page 902 gives it one"),
@@ -276,7 +276,7 @@ fn findings(s: &Session, rule: &str) -> Vec<ew_checks::Finding> {
 /// targets (101.9, not the field wire 104.4 nor a core of -101W1); after Route none.
 #[test]
 fn ew_mfg_001_counts_the_cabinets_wires_without_a_length() {
-    let mut s = common::sample();
+    let mut s = common::sample_without_ways();
     let f = findings(&s, "EW-MFG-001");
     assert_eq!(f.len(), 1, "{f:#?}");
     assert!(
@@ -356,7 +356,7 @@ fn ew_lay_011_is_one_finding_per_cause_whatever_its_wires() {
 /// EW-LAY-008: with a fill limit of 1 % duct 1 is over it once Route has laid its wires, in words.
 #[test]
 fn ew_lay_008_reports_a_duct_over_the_fill_limit() {
-    let mut s = common::sample();
+    let mut s = common::sample_without_ways();
     let set = json!({"member": "workshop.fill_limit", "value": 1});
     run(&mut s, "project.settings.set", set).expect("a limit");
     assert!(
@@ -435,5 +435,96 @@ fn ew_lay_007_reports_a_duct_inside_a_parts_free_room() {
     assert_eq!(
         ew_derive::layout::reach(&q, placement),
         Some(ew_units::Nm(127_500_000))
+    );
+}
+
+/// EW-LAY-006's closed door on a cabinet part of one's own: the sample's enclosure given a copy made here with 100 mm
+/// between the plate and the door. -101G1, 117.5 mm deep with its rail, reaches the closed door; a device of the plate
+/// and one of the door that stand in front of each other and together take more than 100 mm meet. Properties of
+/// -101G1 say what it takes and the room; with the sample's own 200 mm nothing reaches the door.
+#[test]
+fn ew_lay_006_reports_what_the_closed_door_meets() {
+    use ew_schema::{LibDocument, Record};
+    let s = common::sample();
+    assert!(
+        !findings(&s, "EW-LAY-006").iter().any(|f| f.discriminator.starts_with("door_")),
+        "the sample's door closes"
+    );
+    let reaches = |s: &Session, tag: &str| {
+        let q = s.query();
+        let placement = q
+            .table::<ew_schema::Placement>()
+            .iter()
+            .find(|(_, p)| ew_derive::short_tag(&q, p.device) == tag)
+            .map(|(id, _)| id.as_uuid())
+            .unwrap();
+        drop(q);
+        let sheet = s.property_sheet(&[placement]);
+        sheet
+            .sections
+            .iter()
+            .flat_map(|sec| &sec.rows)
+            .find(|r| r.key.ends_with(".reaches"))
+            .map(|r| match &r.value {
+                ew_api::output::RowValue::One { text, .. } => text.clone(),
+                _ => String::new(),
+            })
+            .unwrap_or_default()
+    };
+    assert_eq!(
+        reaches(&s, "-101G1"),
+        "117.5 mm from the plate; the closed door is 200 mm away"
+    );
+
+    let (project, mut records, mut lib) = common::sample_records();
+    let enc = lib
+        .iter()
+        .find_map(|d| match d {
+            LibDocument::Part(c) if c.item.part_number.as_str() == "EW-GEN-ENC-1" => Some(c.clone()),
+            _ => None,
+        })
+        .expect("the starter enclosure");
+    let mut own = enc.clone();
+    own.id = ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(0x0057_0011));
+    own.item_id = ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(0x0057_0012));
+    own.item.part_number = "MY-CAB-600".parse().unwrap();
+    own.item
+        .sections
+        .enclosure
+        .as_mut()
+        .expect("an enclosure section")
+        .usable_depth = Some(ew_units::Nm::from_mm(100));
+    lib.push(LibDocument::Part(own.clone()));
+    for r in &mut records {
+        if let Record::Device(d) = r {
+            for u in &mut d.parts {
+                if u.part.copy == enc.id {
+                    u.part.copy = own.id;
+                }
+            }
+        }
+    }
+    let s = common::session_of(project, records, lib);
+    let f = findings(&s, "EW-LAY-006");
+    let reach: Vec<String> = f
+        .iter()
+        .filter(|f| f.discriminator == "door_reach")
+        .map(|f| f.message())
+        .collect();
+    assert!(
+        reach
+            .iter()
+            .any(|m| m.ends_with("-101G1 reaches 117.5 mm from the plate; the closed door is 100 mm away")),
+        "{reach:#?}"
+    );
+    assert!(
+        f.iter().any(|f| f.discriminator == "door_meet"
+            && f.message().contains(" in the door meet when the door is closed: they take ")
+            && f.message().ends_with(" of the 100 mm between the plate and the door")),
+        "{f:#?}"
+    );
+    assert_eq!(
+        reaches(&s, "-101G1"),
+        "117.5 mm from the plate; the closed door is 100 mm away"
     );
 }

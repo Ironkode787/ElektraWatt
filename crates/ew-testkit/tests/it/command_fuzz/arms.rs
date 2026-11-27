@@ -599,6 +599,7 @@ pub fn setup_chain_of(command: &str) -> Option<&'static [ChainStep]> {
         setup_place,
     ];
     const UNPLACED: &[ChainStep] = &[setup_unplace_member];
+    const STALE: &[ChainStep] = &[setup_stale_ways];
     match command {
         "layout.space.delete" => Some(SPACE),
         "layout.enclosure.create" => Some(ENCLOSURE_PART),
@@ -607,6 +608,8 @@ pub fn setup_chain_of(command: &str) -> Option<&'static [ChainStep]> {
         "layout.move" | "layout.remove" | "layout.lock" => Some(PLACED),
         // The sample's assemblies are placed; one member is taken off its rail first.
         "layout.place_assembly" | "layout.auto_fill" => Some(UNPLACED),
+        // The sample is routed: a duct made higher stales the ways through it, which Route lays again.
+        "layout.route" => Some(STALE),
         _ => None,
     }
 }
