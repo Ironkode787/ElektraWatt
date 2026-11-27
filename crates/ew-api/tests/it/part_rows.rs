@@ -135,7 +135,7 @@ fn delete_part_deletes_a_part_of_the_projects_own_and_keeps_a_librarys() {
     let refused = run(
         &mut s,
         &AnyCommand {
-            name: "part.delete".into(),
+            name: "parts.remove".into(),
             params: json!({ "copy": library.to_string() }),
         },
     )
@@ -153,7 +153,7 @@ fn delete_part_deletes_a_part_of_the_projects_own_and_keeps_a_librarys() {
     run(
         &mut s,
         &AnyCommand {
-            name: "part.delete".into(),
+            name: "parts.remove".into(),
             params: json!({ "copy": own.to_string() }),
         },
     )
@@ -190,7 +190,7 @@ fn delete_part_refuses_a_part_another_part_names_as_its_accessory() {
     own_part(&mut s, "OWN-TRM", Some("OWN-EP"));
     let plate = copy_of(&s, "OWN-EP");
     let delete = |copy: Uuid| AnyCommand {
-        name: "part.delete".into(),
+        name: "parts.remove".into(),
         params: json!({ "copy": copy.to_string() }),
     };
     let refused = match run(&mut s, &delete(plate)).unwrap_err() {
@@ -256,7 +256,7 @@ fn a_parts_front_view_and_holes_are_read_checked_and_saved() {
     ] {
         s.set_draft_field(&mut d, f, v).expect(f);
     }
-    let refused = |s: &mut Session, d: &ew_api::PartDraft| match s.new_part_command(d) {
+    let refused = |s: &mut Session, d: &ew_api::PartSheet| match s.new_part_command(d) {
         Err(PartDraftError::Field(m)) => (m.key, m.field),
         other => panic!("refused in words: {:?}", other.map(|_| ())),
     };

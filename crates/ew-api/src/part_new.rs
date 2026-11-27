@@ -5,7 +5,7 @@
 //! draft; [`Session::new_part_command`] turns the draft into the part and the one command that brings it into the
 //! project.
 //!
-//! **Where it is saved.** With [`PartDraft::to_library`] and a user library folder, the part goes into the person's
+//! **Where it is saved.** With [`PartSheet::to_library`] and a user library folder, the part goes into the person's
 //! own parts library ("My parts", [`crate::eplan::USER_PARTS_KEY`], where the EPLAN import adds parts too) and the
 //! project embeds that library copy (`library.embed`): the next project finds it there, and an edit in a project forks
 //! it as any library part. Otherwise it is a project-local part (`parts.import`). A new part never overwrites another:
@@ -25,7 +25,7 @@ use ew_mltext::Ident;
 use ew_schema::{Kind, LibCopy, LibDocument, LibRef, Manufacturer, Part, Sha256, TemplateFn};
 use serde_json::{Value, json};
 
-use crate::part_editor::{BusRow, PartDraft, PartDraftError, bus_section, message};
+use crate::part_editor::{BusRow, PartSheet, PartDraftError, bus_section, message};
 use crate::{AnyCommand, Session};
 
 /// What saving a new part does: the command that brings it into the project and the library it was added to.
@@ -87,7 +87,7 @@ impl Session {
     /// # Errors
     ///
     /// [`PartDraftError::Refused`] (`error-part-new-id`) when no new item ID can be drawn (no entropy).
-    pub fn new_part_draft(&self) -> Result<PartDraft, PartDraftError> {
+    pub fn new_part_draft(&self) -> Result<PartSheet, PartDraftError> {
         let item = Id::<()>::try_new_v7()
             .map_err(|_| PartDraftError::Refused(key!("error-part-new-id")))?
             .as_uuid();
@@ -107,7 +107,8 @@ impl Session {
             })
             .collect();
         let (rows, tables) = self.part_rows(&self.query(), &original);
-        Ok(PartDraft {
+        Ok(PartSheet {
+            source: None,
             copy: item,
             fields,
             tech: Vec::new(),
@@ -150,7 +151,7 @@ impl Session {
     ///
     /// [`PartDraftError::Refused`] (`reason-part-symbol-unsaved`) when no installed library holds that symbol;
     /// as [`Session::new_part_draft`].
-    pub fn new_part_draft_for_symbol(&self, address: &str) -> Result<PartDraft, PartDraftError> {
+    pub fn new_part_draft_for_symbol(&self, address: &str) -> Result<PartSheet, PartDraftError> {
         let symbol = self
             .installed_symbol(address)
             .ok_or(PartDraftError::Refused(key!("reason-part-symbol-unsaved")))?;
@@ -177,18 +178,18 @@ impl Session {
 
     /// The new part's item from a draft: the fields, the bus section and the function template a placement needs
     /// (see the module documentation); the manufacturer is the caller's.
-    fn new_part_item(&self, draft: &PartDraft) -> Result<Part, PartDraftError> {
+    fn new_part_item(&self, draft: &PartSheet) -> Result<Part, PartDraftError> {
         let mut p = self.sectioned_item(draft)?;
         p.meta.key = Some(p.part_number.clone());
         Ok(p)
     }
 
-    /// The item of a new part or of a part of the person's own (`PartDraft::own`): the identity fields over the held
+    /// The item of a new part or of a part of the person's own (`PartSheet::own`): the identity fields over the held
     /// item, and the bus and PLC sections of the forms over the held sections, keeping every member the forms do not
     /// show (a port's connector and signal map, a station's I/O lengths, a valve terminal's positions). The pins and
     /// the function template are made again only when the PLC form's channels, pin pattern or supply pins changed;
     /// a template is given only to a part that has none.
-    pub(crate) fn sectioned_item(&self, draft: &PartDraft) -> Result<Part, PartDraftError> {
+    pub(crate) fn sectioned_item(&self, draft: &PartSheet) -> Result<Part, PartDraftError> {
         let (mut p, _) = self.draft_part(draft)?;
         let original = &draft.original;
         // A form left as it was leaves its section as it was, byte for byte.
@@ -316,7 +317,7 @@ impl Session {
     }
 
     /// The part `number` of manufacturer `maker` among `parts` (part number and name compared without regard to case).
-    fn same_part<'a>(&self, parts: impl IntoIterator<Item = &'a Part>, number: &str, maker: &str) -> bool {
+    pub(crate) fn same_part<'a>(&self, parts: impl IntoIterator<Item = &'a Part>, number: &str, maker: &str) -> bool {
         let q = self.query();
         parts.into_iter().any(|p| {
             p.part_number.as_str().eq_ignore_ascii_case(number)
@@ -332,7 +333,7 @@ impl Session {
     ///
     /// [`PartDraftError::Field`] for the first field that does not parse; on `part_number` (`error-part-exists`) when
     /// the project or My parts holds a part of that number and manufacturer; on `part` when My parts cannot be written.
-    pub fn new_part_command(&mut self, draft: &PartDraft) -> Result<NewPart, PartDraftError> {
+    pub fn new_part_command(&mut self, draft: &PartSheet) -> Result<NewPart, PartDraftError> {
         let mut part = self.new_part_item(draft)?;
         let maker = draft.text("manufacturer").trim().to_owned();
         let number = part.part_number.as_str().to_owned();
@@ -375,24 +376,7 @@ impl Session {
             return Err(exists());
         }
         let mut written = Vec::new();
-        part.manufacturer = match self
-            .libraries()
-            .documents(lib, Kind::Manufacturer)
-            .iter()
-            .find_map(|d| match d {
-                LibDocument::Manufacturer(c) if maker_named(c, &maker) => {
-                    Some(lib_ref(c.library_id.as_uuid(), c.item_id.as_uuid()))
-                }
-                _ => None,
-            }) {
-            Some(r) => r,
-            None => {
-                let copy = new_maker(lib, &maker)?;
-                let r = lib_ref(lib, copy.item_id.as_uuid());
-                written.push(LibDocument::Manufacturer(copy));
-                r
-            }
-        };
+        part.manufacturer = self.my_maker(lib, &maker, &mut written)?;
         let copy = finish(
             LibCopy {
                 id: v5::lib_copy_id(lib, item),
@@ -437,8 +421,32 @@ impl Session {
         })
     }
 
-    /// The `parts.import` of a project-local part: the manufacturer a part copy of the project names under that name,
-    /// else a new project-local manufacturer record.
+    /// The manufacturer named `maker` in library `lib`: its record there, else a new one, added to `written`.
+    pub(crate) fn my_maker(
+        &self,
+        lib: Uuid,
+        maker: &str,
+        written: &mut Vec<LibDocument>,
+    ) -> Result<LibRef, PartDraftError> {
+        if let Some(r) = self
+            .libraries()
+            .documents(lib, Kind::Manufacturer)
+            .iter()
+            .find_map(|d| match d {
+                LibDocument::Manufacturer(c) if maker_named(c, maker) => {
+                    Some(lib_ref(c.library_id.as_uuid(), c.item_id.as_uuid()))
+                }
+                _ => None,
+            })
+        {
+            return Ok(r);
+        }
+        let copy = new_maker(lib, maker)?;
+        let r = lib_ref(lib, copy.item_id.as_uuid());
+        written.push(LibDocument::Manufacturer(copy));
+        Ok(r)
+    }
+
     /// Saves a corrected part of My parts (a held copy of the person's own library): the part with the forms'
     /// identity and sections as the library item's next patch version, written into My parts, and the
     /// `library.update` that brings the project's copy to it (Bulk: its card lists the changed fields and the devices,
@@ -451,18 +459,21 @@ impl Session {
     /// written; [`PartDraftError::Refused`] (`reason-part-unchanged`) when nothing changed.
     pub fn own_part_update(
         &mut self,
-        draft: &PartDraft,
-    ) -> Result<crate::library_ops::UpdatePlan, PartDraftError> {
+        draft: &PartSheet,
+    ) -> Result<Option<crate::library_ops::UpdatePlan>, PartDraftError> {
         let item = self.sectioned_item(draft)?;
         if item == draft.original {
             return Err(PartDraftError::Refused(key!("reason-part-unchanged")));
         }
-        let held = {
-            let q = self.query();
-            q.parts()
-                .get(Id::from_uuid(draft.copy))
-                .map(|c| (**c).clone())
-                .ok_or(PartDraftError::Refused(key!("reason-part-edit-target")))?
+        let held = self.query().parts().get(Id::from_uuid(draft.copy)).map(|c| (**c).clone());
+        let in_project = held.is_some();
+        let held = match (held, draft.source) {
+            (Some(h), _) => h,
+            (None, Some((library, item))) => match self.libraries().resolve(&lib_ref(library, item)) {
+                Ok(LibDocument::Part(c)) => c,
+                _ => return Err(PartDraftError::Refused(key!("reason-part-edit-target"))),
+            },
+            (None, None) => return Err(PartDraftError::Refused(key!("reason-part-edit-target"))),
         };
         let lib = held.library_id.as_uuid();
         let name = draft.library.clone().unwrap_or_default();
@@ -491,10 +502,13 @@ impl Session {
         self.libraries_mut()
             .write(lib, std::slice::from_ref(&doc))
             .map_err(|e| failed(e.to_string()))?;
+        if !in_project {
+            return Ok(None);
+        }
         let plan = self
             .update_from_documents(std::slice::from_ref(&doc), &[])
             .map_err(|e| failed(e.to_string()))?;
-        Ok(plan)
+        Ok(Some(plan))
     }
 
     /// The part number of part `item` when My parts, the person's own writable library, is `library` and holds it:
@@ -565,7 +579,7 @@ impl Session {
     /// # Errors
     ///
     /// As [`Session::part_draft`] and [`Session::new_part_draft`].
-    pub fn new_part_draft_from(&self, copy: Uuid) -> Result<PartDraft, PartDraftError> {
+    pub fn new_part_draft_from(&self, copy: Uuid) -> Result<PartSheet, PartDraftError> {
         let held = self
             .part_draft(copy)
             .map_err(|_| PartDraftError::Refused(key!("reason-part-edit-target")))?;
@@ -578,7 +592,7 @@ impl Session {
     /// # Errors
     ///
     /// As [`Session::new_part_draft`].
-    pub fn new_part_draft_copying(&self, held: &PartDraft) -> Result<PartDraft, PartDraftError> {
+    pub fn new_part_draft_copying(&self, held: &PartSheet) -> Result<PartSheet, PartDraftError> {
         let mut draft = self.new_part_draft()?;
         draft.fields = held.fields.clone();
         draft.tech = held.tech.clone();
@@ -700,7 +714,7 @@ fn new_maker(library: Uuid, name: &str) -> Result<LibCopy<Manufacturer>, PartDra
 }
 
 /// A copy with its hash (EW-CORE-014); `doc` makes the library document the hash is taken of.
-fn finish<T: Clone>(mut copy: LibCopy<T>, doc: fn(LibCopy<T>) -> LibDocument) -> LibCopy<T> {
+pub(crate) fn finish<T: Clone>(mut copy: LibCopy<T>, doc: fn(LibCopy<T>) -> LibDocument) -> LibCopy<T> {
     copy.sha256 = Sha256(library_copy_hash(&doc(copy.clone())).unwrap_or([0; 32]));
     copy
 }

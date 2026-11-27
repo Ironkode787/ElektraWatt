@@ -29,6 +29,7 @@ bar-go-to = Go to
 bar-follow-reference = Follow reference
 bar-device = Device
 bar-symbol-editor = Symbol editor
+bar-parts = Parts
 bar-terminal = Terminal
 bar-marker = Annotate
 bar-wire = Wire

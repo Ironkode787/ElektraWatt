@@ -2014,9 +2014,35 @@ fn part_choose_lines(
     }
 }
 
-/// The part editor's lines.
-fn part_edit_lines(e: &crate::shell::part_dialog::PartEditor, lines: &mut Vec<String>) {
-    let d = &e.draft;
+/// The lines of Parts: its list's query and rows, then the open part's where it lives, its fields, its tables and
+/// forms.
+fn parts_lines(place: &crate::shell::parts_place::PartsPlace, lines: &mut Vec<String>) {
+    lines.push(format!("parts \"{}\" scope {}", user(&place.query), place.scope.word()));
+    if let Some(strip) = place.strip() {
+        lines.push(format!("  strip \"{}\"", user(&strip)));
+    }
+    for row in &place.found {
+        lines.push(format!(
+            "  row \"{}\" \"{}\" {}{}",
+            user(&row.offer.part_number),
+            user(&row.offer.manufacturer),
+            user(&crate::shell::parts_place::lives_word(&row.lives)),
+            if row.lacks { " lacks" } else { "" }
+        ));
+    }
+    let Some(open) = &place.sheet else {
+        return;
+    };
+    lines.push(format!(
+        "  open \"{}\" {}{}",
+        user(&open.title()),
+        user(&crate::shell::parts_place::lives_word(&open.lives)),
+        if open.changed { " changed" } else { "" }
+    ));
+    for lack in &open.lacks {
+        lines.push(format!("  lacks \"{}\"", user(&strings::render(&lack.text()))));
+    }
+    let d = &open.sheet;
     for f in ew_api::identity_fields() {
         lines.push(format!(
             "  field \"{}\" \"{}\"",
@@ -2024,15 +2050,9 @@ fn part_edit_lines(e: &crate::shell::part_dialog::PartEditor, lines: &mut Vec<St
             user(d.text(f))
         ));
     }
-    // The groups the editor lists and the shown one, then the declared rows and tables of the listed groups.
-    if e.sectioned() {
-        let words: Vec<&str> = d.sections().iter().map(|s| s.name()).collect();
-        lines.push(format!(
-            "  sections {} shown {}",
-            words.join(" "),
-            e.section.name()
-        ));
-    }
+    // The groups the sheet lists, then the declared rows and tables of the listed groups.
+    let words: Vec<&str> = d.sections().iter().map(|s| s.name()).collect();
+    lines.push(format!("  groups {}", words.join(" ")));
     let listed = d.sections();
     for row in d.rows.iter().filter(|r| listed.contains(&r.group)) {
         lines.push(format!(
@@ -2138,7 +2158,7 @@ fn part_edit_lines(e: &crate::shell::part_dialog::PartEditor, lines: &mut Vec<St
             ))
         ));
     }
-    if let Some(err) = &e.error {
+    if let Some(err) = &open.error {
         lines.push(format!("  error: {err}"));
     }
 }
@@ -2162,6 +2182,8 @@ pub fn describe(model: &ShellModel) -> String {
         first_run(model, &mut lines);
     } else if model.wizard().is_some() {
         wizard(model, &mut lines);
+    } else if let Some(place) = model.parts_place().filter(|_| model.symbol_editor().is_none()) {
+        parts_lines(place, &mut lines);
     } else if let Some(editor) = model.symbol_editor() {
         lines.push(format!("dialog \"{}\"", strings::text(key!("symbol-title"))));
         lines.push(format!(

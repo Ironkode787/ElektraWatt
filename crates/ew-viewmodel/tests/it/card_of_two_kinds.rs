@@ -8,17 +8,17 @@
 
 use crate::common::{Tmp, done, new_project};
 use ew_viewmodel::navigators::NavKind;
-use ew_viewmodel::shell::{Dialog, ShellModel};
+use ew_viewmodel::shell::ShellModel;
 use serde_json::json;
 
 /// A new module part with the PLC fields `fields`, its identity Example `number`.
 fn card(s: &mut ShellModel, number: &str, fields: &[(&str, &str)]) {
-    done(s, "part.new", json!({"plc": "module"}));
+    done(s, "parts.new", json!({"plc": "module"}));
     for (field, value) in [("manufacturer", "Example"), ("part_number", number)]
         .iter()
         .chain(fields)
     {
-        done(s, "part.field", json!({"field": field, "value": value}));
+        done(s, "parts.field", json!({"field": field, "value": value}));
     }
 }
 
@@ -53,13 +53,13 @@ fn a_card_of_inputs_and_outputs_is_one_part() {
             ("plc.count2", "4"),
         ],
     );
-    let _ = s.dispatch("part.save", &json!({}));
-    match s.dialog() {
-        Some(Dialog::PartEdit(e)) => assert_eq!(
-            e.draft.message("plc.kind2").map(|m| m.key),
+    let _ = s.dispatch("parts.save", &json!({}));
+    match s.parts_place().and_then(|p| p.sheet.as_ref()) {
+        Some(e) => assert_eq!(
+            e.sheet.message("plc.kind2").map(|m| m.key),
             Some("error-part-plc-kind2-way")
         ),
-        other => panic!("the part editor stays open: {other:?}"),
+        None => panic!("the part stays open in Parts"),
     }
     done(&mut s, "ui.dismiss", json!({}));
     // Four inputs and four outputs.
@@ -74,7 +74,7 @@ fn a_card_of_inputs_and_outputs_is_one_part() {
             ("plc.pin_of", "{n+1}"),
         ],
     );
-    done(&mut s, "part.save", json!({}));
+    done(&mut s, "parts.save", json!({}));
     assert!(s.dialog().is_none(), "saved: {:?}", s.dialog());
     done(&mut s, "plc.new_station", json!({}));
     done(&mut s, "plc.rack_set", json!({"head": "EW-GEN-CPU-1"}));
@@ -117,7 +117,7 @@ fn a_card_of_inputs_and_analogue_inputs_is_one_part() {
             ("plc.pin_of", "{n+1}"),
         ],
     );
-    done(&mut s, "part.save", json!({}));
+    done(&mut s, "parts.save", json!({}));
     assert!(s.dialog().is_none(), "saved: {:?}", s.dialog());
     done(&mut s, "plc.new_station", json!({}));
     done(&mut s, "plc.rack_set", json!({"head": "EW-GEN-CPU-1"}));

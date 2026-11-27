@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The part selection dialog and the part editor.
+//! The part selection dialog, and the words and presets Parts shares with it.
 //!
 //! **Choosing**. `part.choose {target?, use?, add?}` opens [`Dialog::PartChoose`] for the property
 //! grid's devices (a part use `use` is replaced, `add` appends, a device without part uses appends), the strip editor's
@@ -11,27 +11,21 @@
 //! `Session::part_pick_command` and commits it with one undo step; a library part is then recorded among the recently
 //! used parts of the settings. `part.favourite` toggles a library part among the favourites.
 //!
-//! **Editing**. `part.edit {part?}` opens [`Dialog::PartEdit`] with the draft of a held copy (the `part`
-//! text, else the Libraries navigator's part row when it has the focus, else the property grid's device's first part
-//! use, else that navigator's cursor row). `part.field {field, value}` sets and checks one field; its message shows
-//! under the field. `part.save` builds `part.edit_copy` with `Session::part_edit_plan` and opens the `part` card in the
-//! Preview tab, whose Apply commits it (Bulk, always previewed); a field that does not parse refuses with its message.
+//! A part is changed and made in Parts ([`super::parts_place`]); this module keeps what both use: a part's words, its
+//! card's changed members in words, the presets of a new station's part and a new plug's description.
 
 use ew_api::output::{NavKind, Uuid};
 use ew_api::{
-    ApiError, AssignMode, Fit, OfferView, PartDraft, PartDraftError, PartOffer, PartOfferQuery, PartTarget,
+    ApiError, AssignMode, Fit, OfferView, PartDraftError, PartOffer, PartOfferQuery, PartTarget,
 };
 use serde_json::{Map, Value};
 
 use super::{Dialog, Outcome, ShellModel, failed, flag, string_param};
 use crate::key;
-use crate::properties::{CardOrigin, PartCard};
 use crate::strings;
 use crate::strings::Key;
 
 mod targets;
-
-mod editor;
 
 /// The result list shows this many rows at a time.
 pub const PART_ROWS: usize = 50;
@@ -112,29 +106,6 @@ impl PartChooser {
     }
 }
 
-/// The part editor's state.
-#[derive(Clone, PartialEq, Debug)]
-pub struct PartEditor {
-    /// The group shown: one at a time, the list on the left.
-    pub section: ew_api::part_fields::Group,
-    /// The draft.
-    pub draft: PartDraft,
-    /// The part's name for the title (`5SY4204-7 (Siemens)`).
-    pub name: String,
-    /// The manufacturers the Manufacturer field offers.
-    pub manufacturers: Vec<String>,
-    /// The refusal of the last Save.
-    pub error: Option<String>,
-    /// The part dialog that New part… was chosen in: Save opens it again on the new part.
-    pub back: Option<Box<PartChooser>>,
-    /// New cable type…: the small form of a new cable part (its maker, type and number, then the cable section).
-    pub cable_type: bool,
-    /// The Cable form New cable type… was chosen in: Save opens it again with the new type chosen.
-    pub cable_form: Option<Box<super::FormDialog>>,
-    /// New bus cable… or New plug… of a bus line's Cable form: the small form of a new bus part.
-    pub bus_part: Option<BusPart>,
-}
-
 /// What New bus cable… and New plug… make: a cable or a plug for a bus, and the form field it returns to.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct BusPart {
@@ -148,65 +119,9 @@ pub struct BusPart {
     pub socket: bool,
 }
 
-impl PartEditor {
-    /// Whether the editor shows the part as its sections, one at a time (picture A): every part but the small forms of
-    /// a new cable type, a new bus cable or plug, and a cable part of one's own.
-    pub fn sectioned(&self) -> bool {
-        let own_cable = (self.draft.new || self.draft.own) && self.draft.text("kind") == "cable";
-        !self.cable_type && self.bus_part.is_none() && !own_cable
-    }
-
-    /// The label of the draft field `field` in the form's identity rows ([`draft_label`]): a bus part's type
-    /// designation is its part name, a cable type's its series.
-    pub fn identity_label(&self, field: &str) -> String {
-        if self.bus_part.is_some() && field == "type_designation" {
-            strings::text(key!("part-bus-part-name")).to_owned()
-        } else if self.cable_type && field == "type_designation" {
-            strings::text(key!("part-cable-series")).to_owned()
-        } else {
-            draft_label(field)
-        }
-    }
-
-    /// What the form's foot says beside Save and Cancel, on the one line every form keeps there: the refusal of the
-    /// last Save, else the newest message of a field, after the field's words (`Width (mm): "six" is not a length`);
-    /// the PLC section says its own in the lines it keeps. `None` while nothing is wrong.
-    pub fn foot_message(&self) -> Option<String> {
-        if let Some(error) = &self.error {
-            return Some(error.clone());
-        }
-        let m = (self.draft.messages.iter().rev()).find(|m| !m.field.starts_with("plc."))?;
-        let label = if ew_api::identity_fields().any(|f| f == m.field) {
-            self.identity_label(&m.field)
-        } else {
-            field_label(&m.field)
-        };
-        Some(strings::format(
-            key!("part-form-message"),
-            &[&label, &message_text(Key::run_time(m.key), &m.args)],
-        ))
-    }
-
-    /// The title (`Edit part 5SY4204-7 (Siemens)`, `New part`, `New cable type`, `New bus cable`, `New bus plug`).
-    pub fn title(&self) -> String {
-        match self.bus_part {
-            Some(b) if b.plug => return strings::text(key!("dialog-bus-plug-new-title")).to_owned(),
-            Some(_) => return strings::text(key!("dialog-bus-cable-new-title")).to_owned(),
-            None => {}
-        }
-        if self.cable_type {
-            return strings::text(key!("dialog-cable-type-new-title")).to_owned();
-        }
-        if self.draft.new {
-            return strings::text(key!("dialog-part-new-title")).to_owned();
-        }
-        strings::format(key!("dialog-part-edit-title"), &[&self.name])
-    }
-}
-
 /// A new plug's description in words: `PROFIBUS DP plug, angled cable outlet, programming socket, switchable
 /// terminating resistor`, from its bus, its cable outlet, its socket and its terminating resistor.
-pub(crate) fn plug_description(draft: &ew_api::PartDraft, plug: BusPart) -> String {
+pub(crate) fn plug_description(draft: &ew_api::PartSheet, plug: BusPart) -> String {
     let bus = strings::field_choice_text("function", "bus_port.bus", draft.text("bus.0.bus"));
     let mut words = vec![strings::format(key!("part-plug-description"), &[&bus])];
     words.push(
@@ -320,7 +235,7 @@ fn parse_items(list: &[String]) -> Vec<(Uuid, Uuid)> {
 
 /// A part text of the forms against an offer or a copy: `<part number> (<manufacturer>)`, with ` · <description>`,
 /// or the bare part number.
-fn matches_text(text: &str, number: &str, manufacturer: &str, description: &str) -> bool {
+pub(super) fn matches_text(text: &str, number: &str, manufacturer: &str, description: &str) -> bool {
     let t = text.trim();
     let short = format!("{number} ({manufacturer})");
     t.eq_ignore_ascii_case(number)
@@ -395,7 +310,7 @@ fn api_refusal(e: ApiError) -> Outcome {
     }
 }
 
-fn draft_refusal(e: PartDraftError) -> Outcome {
+pub(super) fn draft_refusal(e: PartDraftError) -> Outcome {
     match e {
         PartDraftError::Refused(reason_key) => Outcome::Refused {
             reason: Key::run_time(reason_key).into(),
@@ -428,7 +343,7 @@ impl ShellModel {
     }
 
     /// The device tag of `d`, else its ID text.
-    fn tag_of(&self, d: Uuid) -> String {
+    pub(crate) fn tag_of(&self, d: Uuid) -> String {
         self.project
             .as_ref()
             .and_then(|p| p.session.device_tag(d))
@@ -436,7 +351,7 @@ impl ShellModel {
     }
 
     /// The boxes a part's change draws anew, each in words ("Drawn anew: -201A3 on page 105, …").
-    pub(super) fn box_words(&self, boxes: &[ew_api::RedrawnBox]) -> Vec<String> {
+    pub(crate) fn box_words(&self, boxes: &[ew_api::RedrawnBox]) -> Vec<String> {
         boxes
             .iter()
             .map(|b| {
@@ -726,162 +641,9 @@ impl ShellModel {
     }
 }
 
-impl ShellModel {
-    /// Save of a corrected part of My parts: its next version goes into My parts, and the card of the
-    /// `library.update` that brings the project's copy to it opens in the Preview tab (the changed fields and the
-    /// devices that use it); Apply commits it. A field that does not parse refuses at its field.
-    fn part_save_own_library(&mut self) -> Outcome {
-        let Some(Dialog::PartEdit(mut editor)) = self.dialog.take() else {
-            return Outcome::refused(key!("reason-no-part-editor"));
-        };
-        let Some(project) = &mut self.project else {
-            return Outcome::Done;
-        };
-        match project.session.own_part_update(&editor.draft) {
-            Ok(plan) => {
-                // The card in words, as a part kept to the project lists its correction.
-                let fields = plan
-                    .copies
-                    .first()
-                    .map(|c| card_fields(&c.fields))
-                    .unwrap_or_default();
-                let devices = plan.devices.iter().map(|d| self.tag_of(d.as_uuid())).collect();
-                let card = PartCard {
-                    title: editor.title(),
-                    fields,
-                    devices,
-                    removed: plan.bom_removed,
-                    added: plan.bom_added,
-                    changed: plan.bom_changed,
-                    boxes: self.box_words(&plan.boxes),
-                    lost: plan.lost,
-                    fork: false,
-                };
-                self.preview_host_card_as(
-                    &plan.command.name,
-                    plan.command.params,
-                    key!("reason-library-update"),
-                    CardOrigin::Part(Box::new(card)),
-                )
-            }
-            Err(e) => {
-                if let PartDraftError::Field(m) = &e {
-                    editor.draft.messages.retain(|x| x.field != m.field);
-                    editor.draft.messages.push(m.clone());
-                }
-                let out = draft_refusal(e);
-                editor.error = Some(match &out {
-                    Outcome::Refused { reason: reason_key } => strings::render(reason_key),
-                    Outcome::Failed { message } => message.clone(),
-                    Outcome::Done => String::new(),
-                });
-                self.dialog = Some(Dialog::PartEdit(editor));
-                out
-            }
-        }
-    }
-
-    /// Save of a new part: the part goes into My parts and the project, or into the project alone
-    /// (`Session::new_part_command`), in one undo step; a field that does not parse refuses at its field. From the
-    /// part dialog, the dialog opens again on the new part; from the Cable form, the form with the new cable type
-    /// chosen. With `another` the editor opens again on a new part like this one but for its part number and its
-    /// cross-section, the next size of a series.
-    fn part_save_new(&mut self, another: bool) -> Outcome {
-        let Some(Dialog::PartEdit(mut editor)) = self.dialog.take() else {
-            return Outcome::refused(key!("reason-no-part-editor"));
-        };
-        let Some(project) = &mut self.project else {
-            return Outcome::Done;
-        };
-        let words = |out: &Outcome| match out {
-            Outcome::Refused { reason: reason_key } => strings::render(reason_key),
-            Outcome::Failed { message } => message.clone(),
-            Outcome::Done => String::new(),
-        };
-        let made = match project.session.new_part_command(&editor.draft) {
-            Ok(made) => made,
-            Err(e) => {
-                if let PartDraftError::Field(m) = &e {
-                    editor.draft.messages.retain(|x| x.field != m.field);
-                    editor.draft.messages.push(m.clone());
-                }
-                let out = draft_refusal(e);
-                editor.error = Some(words(&out));
-                self.dialog = Some(Dialog::PartEdit(editor));
-                return out;
-            }
-        };
-        let out = self.run_commit(&made.command);
-        if !matches!(out, Outcome::Done) {
-            editor.error = Some(words(&out));
-            self.dialog = Some(Dialog::PartEdit(editor));
-            return out;
-        }
-        let number = editor.draft.text("part_number").trim().to_owned();
-        let toast = match &made.library {
-            Some(name) => strings::format(key!("toast-part-new-library"), &[&number, name]),
-            None => strings::format(key!("toast-part-new"), &[&number]),
-        };
-        self.notify(toast, true);
-        if another {
-            return self.part_new_like(*editor);
-        }
-        if let Some(form) = editor.cable_form.take() {
-            match editor.bus_part {
-                Some(b) => self.bus_part_made(*form, &number, b.field),
-                None => self.cable_type_made(*form, &number),
-            }
-            return Outcome::Done;
-        }
-        if let Some(mut chooser) = editor.back.take() {
-            chooser.query.text = number.clone();
-            chooser.cursor = None;
-            self.dialog = Some(Dialog::PartChoose(chooser));
-            self.part_refresh();
-        }
-        // Made from the view of a station not made yet with its empty head chosen, a part that can head a station is its
-        // head; else the part stands in the view's catalogue, offered, and nothing of the station changes unasked.
-        let from_head = self
-            .station_tab()
-            .is_some_and(|t| t.cursor == Some(crate::area::StationCursor::Head));
-        if from_head && self.station_draft().is_some_and(|d| d.head.is_none()) {
-            let head = serde_json::Map::from_iter([("head".to_owned(), serde_json::Value::String(number))]);
-            let _ = self.act_plc_rack_set(&head);
-        }
-        Outcome::Done
-    }
-}
-
-impl ShellModel {
-    /// The editor of `saved` open again on a new part that keeps everything but the part number and the cross-section
-    /// (Save and add another size): its own item ID, the form's way back kept.
-    fn part_new_like(&mut self, saved: PartEditor) -> Outcome {
-        let Some(project) = &self.project else {
-            return Outcome::Done;
-        };
-        let mut draft = saved.draft.clone();
-        draft.copy = match project.session.new_part_draft() {
-            Ok(d) => d.copy,
-            Err(e) => return draft_refusal(e),
-        };
-        // Both empty until typed; Save says what is missing, not the form as it opens.
-        for field in ["part_number", "cable.csa"] {
-            let _ = project.session.set_draft_field(&mut draft, field, "");
-        }
-        draft.messages.clear();
-        self.dialog = Some(Dialog::PartEdit(Box::new(PartEditor {
-            section: ew_api::part_fields::Group::Identity,
-            draft,
-            error: None,
-            ..saved
-        })));
-        Outcome::Done
-    }
-}
-
 /// Whether `rows` is the one bus row [`plc_preset`] gives a station, as it made it: `X1`, PROFINET, a controller or a
 /// device, nothing else filled in.
-fn preset_bus(rows: &[ew_api::BusRow]) -> bool {
+pub(super) fn preset_bus(rows: &[ew_api::BusRow]) -> bool {
     matches!(rows, [r] if ["controller", "device"].contains(&r.role.as_str())
     && *r == ew_api::BusRow {
         interface: "X1".to_owned(),
@@ -892,13 +654,13 @@ fn preset_bus(rows: &[ew_api::BusRow]) -> bool {
 }
 
 /// The words of `part.new`'s `plc`: the rack dialog's station kinds and `module`.
-const PLC_PRESETS: [&str; 5] = ["cpu", "remote", "valve_terminal", "compact", "module"];
+pub(super) const PLC_PRESETS: [&str; 5] = ["cpu", "remote", "valve_terminal", "compact", "module"];
 
 /// What a new part starts as when the rack dialog asks for it: `module` a module part; a station kind a station
 /// part with one bus interface (a CPU's leads the bus as a PROFINET controller, the others answer as devices) and, for
 /// a valve terminal and a compact device, eight channels of their own (outputs for the valves, inputs for the compact
 /// device). The person changes any of it in the editor; a preset the draft does not take is left out.
-fn plc_preset(session: &ew_api::Session, draft: &mut ew_api::PartDraft, word: &str) {
+pub(super) fn plc_preset(session: &ew_api::Session, draft: &mut ew_api::PartSheet, word: &str) {
     let mut set = |field: &str, value: &str| {
         let _ = session.set_draft_field(draft, field, value);
     };
@@ -964,7 +726,7 @@ impl ShellModel {
 /// A part card's changed members in words (never the sections as raw JSON): each member by its
 /// label, the sections as the interfaces and PLC fields that change ([`section_changes`]), the pins made again as
 /// their designations (their function template following them, unlisted).
-fn card_fields(fields: &[ew_api::FieldChange]) -> Vec<(String, String, String)> {
+pub(super) fn card_fields(fields: &[ew_api::FieldChange]) -> Vec<(String, String, String)> {
     let text = |v: &Option<Value>| match v {
         None => String::new(),
         Some(Value::String(s)) => s.clone(),

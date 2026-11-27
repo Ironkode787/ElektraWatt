@@ -7,7 +7,7 @@
 use crate::common::{Tmp, actual_size, done};
 use ew_viewmodel::ew_api::output::NavRole;
 use ew_viewmodel::navigators::NavKind;
-use ew_viewmodel::shell::{Dialog, ShellModel};
+use ew_viewmodel::shell::ShellModel;
 use serde_json::json;
 
 /// The key and the address of the first row of the PLC grid sorted by address.
@@ -62,8 +62,8 @@ fn a_finding_against_the_part_s_map_opens_the_module_s_part() {
     assert_eq!(offer.label, "Open the part's PLC section…");
     assert!(offer.enabled, "{:?}", offer.reason);
     done(&mut s, offer.id, offer.params.clone());
-    match s.dialog() {
-        Some(Dialog::PartEdit(e)) => assert_eq!(e.draft.plc.role, "module", "the card's part"),
-        other => panic!("the part editor: {other:?}"),
+    match s.parts_place().and_then(|p| p.sheet.as_ref()) {
+        Some(e) => assert_eq!(e.sheet.plc.role, "module", "the card's part"),
+        None => panic!("the part in Parts"),
     }
 }

@@ -197,12 +197,12 @@ fn add_bus_interface_opens_the_part_editor_on_a_new_interface() {
     done(&mut s, "symbol.close", json!({}));
     done(&mut s, "part.box", json!({"new": true}));
     done(&mut s, "part.box_details", json!({"bus": true}));
-    match s.dialog() {
-        Some(ew_viewmodel::shell::Dialog::PartEdit(e)) => {
-            assert_eq!(e.section.name(), "ports");
-            assert_eq!(e.draft.bus.len(), 1, "a new interface row");
+    match s.parts_place().and_then(|p| p.sheet.as_ref()) {
+        Some(e) => {
+            assert_eq!(e.group.map(|g| g.name()), Some("ports"));
+            assert_eq!(e.sheet.bus.len(), 1, "a new interface row");
         }
-        other => panic!("the part editor: {other:?}"),
+        None => panic!("the part in Parts"),
     }
 }
 
@@ -526,15 +526,15 @@ fn close_box_returns_to_the_ways_in_it_was_opened_from() {
 fn a_plc_card_s_pins_are_not_edited_on_the_box() {
     let tmp = Tmp::new("device-box-plc");
     let mut s = new_project(&tmp);
-    done(&mut s, "part.new", json!({"plc": "module"}));
+    done(&mut s, "parts.new", json!({"plc": "module"}));
     done(
         &mut s,
-        "part.field",
+        "parts.field",
         json!({"field": "manufacturer", "value": "Example"}),
     );
     done(
         &mut s,
-        "part.field",
+        "parts.field",
         json!({"field": "part_number", "value": "DI-8"}),
     );
     done(&mut s, "part.box", json!({}));

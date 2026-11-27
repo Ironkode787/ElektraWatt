@@ -7,7 +7,7 @@
 
 use crate::common::{Tmp, done};
 use ew_viewmodel::ew_api::library::LibraryTiers;
-use ew_viewmodel::shell::{Dialog, Mode, ShellModel};
+use ew_viewmodel::shell::{Mode, ShellModel};
 use serde_json::json;
 
 /// A closed 30 × 30 square in a DXF drawing that names no unit.
@@ -15,18 +15,18 @@ const SQUARE_DXF: &str = "0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1015\n0\nENDS
 
 fn fields(s: &mut ShellModel, values: &[(&str, &str)]) {
     for (field, value) in values {
-        done(s, "part.field", json!({"field": field, "value": value}));
+        done(s, "parts.field", json!({"field": field, "value": value}));
     }
 }
 
 /// The part editor's holes as (kind, size) and the number of the outline's lines, of LAMP-22 opened again.
 fn front_of(s: &mut ShellModel) -> (Vec<(String, String)>, usize) {
-    done(s, "part.edit", json!({"part": "LAMP-22"}));
-    let Some(Dialog::PartEdit(editor)) = s.dialog() else {
-        panic!("the part editor: {:?}", s.dialog())
+    done(s, "parts.open", json!({"part": "LAMP-22"}));
+    let Some(editor) = s.parts_place().and_then(|p| p.sheet.as_ref()) else {
+        panic!("the part in Parts")
     };
-    assert!(editor.draft.own && editor.draft.fork, "a part of My parts");
-    let t = editor.draft.table("mech.holes").expect("the holes");
+    assert!(editor.sheet.own && editor.sheet.fork, "a part of My parts");
+    let t = editor.sheet.table("mech.holes").expect("the holes");
     let at = |m: &str| t.columns.iter().position(|(c, _)| *c == m).expect(m);
     let holes = t
         .rows
@@ -38,7 +38,7 @@ fn front_of(s: &mut ShellModel) -> (Vec<(String, String)>, usize) {
             )
         })
         .collect();
-    (holes, editor.draft.outline.len())
+    (holes, editor.sheet.outline.len())
 }
 
 #[test]
@@ -47,7 +47,7 @@ fn a_part_of_my_parts_changes_its_front_view_and_holes() {
     let mine = LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), Vec::new(), Vec::new());
     let mut s = ShellModel::new(Mode::Gui, tmp.config().with_libraries(Some(mine)));
     crate::common::make_project(&mut s, &tmp.0.join("p.ew"), &[]);
-    done(&mut s, "part.new", json!({}));
+    done(&mut s, "parts.new", json!({}));
     fields(
         &mut s,
         &[
@@ -59,7 +59,7 @@ fn a_part_of_my_parts_changes_its_front_view_and_holes() {
             ("mech.front_shape", "round"),
         ],
     );
-    done(&mut s, "part.table_row", json!({"table": "mech.holes"}));
+    done(&mut s, "parts.row", json!({"table": "mech.holes"}));
     fields(
         &mut s,
         &[
@@ -69,13 +69,12 @@ fn a_part_of_my_parts_changes_its_front_view_and_holes() {
             ("mech.holes[0].hole.size", "22"),
         ],
     );
-    done(&mut s, "part.save", json!({}));
+    done(&mut s, "parts.save", json!({}));
     let (holes, lines) = front_of(&mut s);
     assert_eq!(holes, [("cutout".to_owned(), "22 mm".to_owned())]);
     assert_eq!(lines, 0);
     // A fixing and an outline, saved as the part's next version.
-    done(&mut s, "part.section", json!({"section": "cabinet"}));
-    done(&mut s, "part.table_row", json!({"table": "mech.holes"}));
+    done(&mut s, "parts.row", json!({"table": "mech.holes"}));
     fields(
         &mut s,
         &[
@@ -89,10 +88,10 @@ fn a_part_of_my_parts_changes_its_front_view_and_holes() {
     std::fs::write(&dxf, SQUARE_DXF).unwrap();
     done(
         &mut s,
-        "part.outline_import",
+        "parts.outline",
         json!({"path": dxf.to_string_lossy()}),
     );
-    done(&mut s, "part.save", json!({}));
+    done(&mut s, "parts.save", json!({}));
     done(&mut s, "preview.apply", json!({}));
     let (holes, lines) = front_of(&mut s);
     assert_eq!(
@@ -104,8 +103,8 @@ fn a_part_of_my_parts_changes_its_front_view_and_holes() {
     );
     assert_eq!(lines, 1);
     // Remove: the front is drawn by its shape again.
-    done(&mut s, "part.outline_remove", json!({}));
-    done(&mut s, "part.save", json!({}));
+    done(&mut s, "parts.field", json!({"field": "mech.front_2d", "value": ""}));
+    done(&mut s, "parts.save", json!({}));
     done(&mut s, "preview.apply", json!({}));
     let (_, lines) = front_of(&mut s);
     assert_eq!(lines, 0);

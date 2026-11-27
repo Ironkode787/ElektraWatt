@@ -651,3 +651,6 @@ via-gland-none-seals = geen wartel van de voorraad dicht { $p0 } mm af
 via-gland-hole-on-page = op pagina { $p0 }
 via-gland-hole-placed = geplaatst
 via-gland-hole-not-placed = niet geplaatst
+
+## Bewaren in Mijn artikelen (doc 07 §5.8)
+reason-part-keep = Alleen een artikel dat alleen in dit project staat, wordt in Mijn artikelen bewaard.

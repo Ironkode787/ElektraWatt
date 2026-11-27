@@ -148,6 +148,7 @@ mod workspaces;
 // The Macros and Libraries navigators, Save as macro… and Make variable.
 mod macros;
 pub mod part_dialog;
+pub mod parts_place;
 // The print pre-dialog.
 pub mod print;
 // The user's keymap and the keymap editor.
@@ -310,6 +311,8 @@ pub enum Screen {
     Wizard,
     /// The symbol editor (over the project, when one is open).
     SymbolEditor,
+    /// Parts, the one place for parts (doc 07 §5), over the project.
+    Parts,
     /// The open project: its pages, navigators and panes.
     Project,
     /// The start page, with no project open.
@@ -470,8 +473,6 @@ pub enum Dialog {
     /// Choose part…: the part selection dialog, a 640-px form with the search, the filters, the result list
     /// and Choose.
     PartChoose(Box<part_dialog::PartChooser>),
-    /// Edit part…: the part editor, a 640-px form with the editable members, the read-only ones and Save.
-    PartEdit(Box<part_dialog::PartEditor>),
     /// Output ▸ Print…: the print pre-dialog, its options beside the preview of the print
     /// set, which builds as a job; Print… and Open in PDF viewer hand the built set to the window's platform.
     Print(Box<print::PrintDialog>),
@@ -748,6 +749,8 @@ const TERMINAL_PICK_STEPS: u32 = 2;
 /// All state of the application shell.
 pub struct ShellModel {
     symbol_editor: Option<symbol_editor::SymbolEditor>,
+    /// Parts, the one place for parts, while it is shown.
+    parts: Option<Box<parts_place::PartsPlace>>,
     symbol_editor_generation: u64,
     /// What the symbol editor's Copy and Cut hold, from one draft to the next.
     symbol_clipboard: symbol_editor::Clipboard,
@@ -1322,6 +1325,7 @@ impl ShellModel {
             },
             macros: macros::MacroState::default(),
             symbol_editor: None,
+            parts: None,
             symbol_editor_generation: 0,
             symbol_clipboard: symbol_editor::Clipboard::default(),
             dispatch_log: None,
@@ -1419,7 +1423,7 @@ impl ShellModel {
     }
 
     /// Which screen the window shows (architecture §9.1): the first run while it lasts, else the company-standard
-    /// wizard, else the symbol editor, else the open project, else the start page.
+    /// wizard, else the symbol editor, else Parts, else the open project, else the start page.
     pub fn screen(&self) -> Screen {
         if self.first_run().is_some() {
             Screen::FirstRun
@@ -1427,6 +1431,8 @@ impl ShellModel {
             Screen::Wizard
         } else if self.symbol_editor().is_some() {
             Screen::SymbolEditor
+        } else if self.parts.is_some() && self.has_project() {
+            Screen::Parts
         } else if self.has_project() {
             Screen::Project
         } else {
@@ -2387,14 +2393,6 @@ impl ShellModel {
         {
             self.dialog_gen += 1;
             self.dialog = Some(stashed);
-            return Outcome::Done;
-        }
-        // Escape and Cancel in New cable type… return to the Cable form it was chosen in.
-        if let Some(Dialog::PartEdit(e)) = &mut self.dialog
-            && let Some(form) = e.cable_form.take()
-        {
-            self.dialog_gen += 1;
-            self.dialog = Some(Dialog::Form(*form));
             return Outcome::Done;
         }
         // Escape in a parameter form returns to the palette's list.

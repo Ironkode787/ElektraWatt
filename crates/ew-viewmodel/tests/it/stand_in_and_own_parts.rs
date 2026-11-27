@@ -30,11 +30,11 @@ fn the_stand_in_part_and_an_own_part_are_found_where_a_person_looks() {
         assert!(found(&mut s, q).iter().any(|id| id == "part.placeholder"), "{q}");
     }
     for q in ["delete part", "remove part"] {
-        assert!(found(&mut s, q).iter().any(|id| id == "part.remove_own"), "{q}");
+        assert!(found(&mut s, q).iter().any(|id| id == "parts.remove"), "{q}");
     }
     // A person who wants a PLC card of his own asks for it by those words too.
     for q in ["new part", "card", "module"] {
-        assert!(found(&mut s, q).iter().any(|id| id == "part.new"), "{q}");
+        assert!(found(&mut s, q).iter().any(|id| id == "parts.new"), "{q}");
     }
     let _ = s.dispatch("ui.dismiss", &json!({}));
 
@@ -58,7 +58,7 @@ fn the_stand_in_part_and_an_own_part_are_found_where_a_person_looks() {
     let _ = s.dispatch("ui.dismiss", &json!({}));
 
     done(&mut s, "view.command_tab", json!({"tab": "plc"}));
-    assert!(bar_offers(&s, "part.new"), "the PLC tab offers New part…");
+    assert!(bar_offers(&s, "parts.new"), "the PLC tab offers New part…");
 }
 
 /// Whether the bar on show offers `id`, as a button or in a split button's variants (New station…'s).

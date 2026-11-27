@@ -124,10 +124,10 @@ fn the_part_editor_by_keyboard() {
     let tmp = Tmp::new();
     let mut h = on_sample(&tmp);
     dispatch(&mut h, "select.set", json!({"refs": ["tag:-101F1"]}));
-    dispatch(&mut h, "part.edit", json!({}));
+    dispatch(&mut h, "parts.open", json!({}));
     settle(&mut h);
     settle(&mut h);
-    assert!(matches!(h.state().shell().dialog(), Some(Dialog::PartEdit(_))));
+    assert!(h.state().shell().parts_place().and_then(|p| p.sheet.as_ref()).is_some());
     // Every field is named by its label.
     for label in ["Maker", "Part number", "Description", "Sold by"] {
         let _ = field(&h, label);
@@ -146,11 +146,11 @@ fn the_part_editor_by_keyboard() {
     h.key_press(Key::End);
     h.event(egui::Event::Text(" C4".to_owned()));
     settle(&mut h);
-    let Some(Dialog::PartEdit(e)) = h.state().shell().dialog() else {
-        panic!("the part editor")
+    let Some(e) = h.state().shell().parts_place().and_then(|p| p.sheet.as_ref()) else {
+        panic!("the part in Parts")
     };
     assert_eq!(
-        e.draft.text("description"),
+        e.sheet.text("description"),
         "Miniature circuit breaker, 2 poles C4"
     );
     h.key_press(Key::Enter);
@@ -160,9 +160,8 @@ fn the_part_editor_by_keyboard() {
     let card = h.state().shell().properties().card().expect("the part card");
     assert!(matches!(card.origin, CardOrigin::Part(_)));
     // The technical data stand in a section of their own (picture A), each value named in words.
-    dispatch(&mut h, "part.edit", json!({}));
+    dispatch(&mut h, "parts.open", json!({}));
     settle(&mut h);
-    dispatch(&mut h, "part.section", json!({"section": "technical"}));
     settle(&mut h);
     let _ = field(&h, "Rated current");
     assert!(

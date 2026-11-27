@@ -125,7 +125,6 @@ pub fn show(
             | Dialog::SaveWorkspace { .. }
             | Dialog::Form(_)
             | Dialog::PartChoose(_)
-            | Dialog::PartEdit(_)
             | Dialog::Shortcuts
             | Dialog::Print(_)
             | Dialog::NewProject(_)
@@ -140,8 +139,6 @@ pub fn show(
         Dialog::NewProject(_) | Dialog::Templates(_) => Some(crate::dialog::form_width(&t, window)),
         // The table of text styles is a wide one: it grows with the window as the print pre-dialog does.
         Dialog::TextStyles(_) | Dialog::WorkshopStock(_) => Some(crate::dialog::preview_width(&t, window)),
-        // The part editor's sections stand beside their list: it grows with the window as the print pre-dialog does.
-        Dialog::PartEdit(e) if e.sectioned() => Some(crate::dialog::preview_width(&t, window)),
         // The rework list's rows take the width a wide table needs, as the text styles do.
         Dialog::Rework(_) => Some(crate::dialog::preview_width(&t, window)),
         Dialog::Labels(_) => Some(crate::dialog::form_width(&t, window)),
@@ -173,11 +170,7 @@ pub fn show(
     // focus to its first control.
     let primary_disabled = spec.primary.disabled.is_some();
     let refusal = shell.dialog_refusal();
-    // A form whose fields scroll says what is wrong in its footer row (the New part form).
-    let foot = match d {
-        Dialog::PartEdit(e) => e.foot_message(),
-        _ => None,
-    };
+    let foot: Option<String> = None;
     let clicked = crate::dialog::show_sized(
         ctx,
         &spec,
@@ -366,7 +359,6 @@ pub fn show(
             Dialog::Rework(d) => crate::rework::body(ui, d, events),
             Dialog::Labels(d) => crate::labels::body(ui, d, events),
             Dialog::PartChoose(c) => crate::part_dialog::chooser(ui, shell, c, just_opened, events),
-            Dialog::PartEdit(e) => crate::part_dialog::editor(ui, e, just_opened, events),
             Dialog::Print(p) => crate::print_dialog::body(ui, shell, p, events),
             Dialog::ConfirmDiscard { .. }
             | Dialog::ConfirmJournalDiscard

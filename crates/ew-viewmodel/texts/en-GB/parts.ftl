@@ -259,3 +259,63 @@ part-table-add-variants = Add variant
 part-table-add-mech-holes = Add hole
 part-table-remove = Remove row { $p0 }
 part-table-empty = None yet
+
+## Parts, the one place for parts (doc 07 §5)
+
+parts-tab-part = Part
+parts-title = Parts
+parts-new = New part
+parts-like-this = Like this
+parts-own = Make my own
+parts-own-from = Make my own from it
+parts-keep = Keep in my parts
+parts-remove = Remove
+parts-save = Save
+parts-save-use = Save and use for { $p0 }
+parts-discard = Discard
+parts-back = Back
+parts-back-without-choosing = Back without choosing
+parts-back-without-it = Back without it
+parts-strip-choosing = You are choosing a part for { $p0 }.
+parts-strip-form = A part for { $p0 }.
+parts-new-title = New part
+parts-none-open = Open a part from the list, or make a new one.
+parts-search-hint = Search number, maker, description, what it is for
+parts-search-name = Search parts
+parts-scope-all = All
+parts-scope-project = In this project
+parts-scope-mine = My parts
+parts-filter-kind = Kind
+parts-filter-kind-all = Every kind
+parts-filter-lacking = Lacks something
+parts-count = { $p0 ->
+    [one] { $p0 } part
+   *[other] { $p0 } parts
+}
+parts-used-by = { $p0 ->
+    [one] { $p0 } device of this project uses it
+   *[other] { $p0 } devices of this project use it
+}
+parts-changed = Changed, not saved
+parts-lives-mine = Mine · in My parts
+parts-lives-starter = Starter part
+parts-lives-here = Only in this project
+parts-lives-new = New, not saved
+parts-lock-starter = A starter part. It comes with the program and is the same on every PC, so it cannot be changed here.
+parts-lock-library = A part of a library you cannot write, so it cannot be changed here.
+parts-ready-for = Ready for
+parts-ready-all = Nothing a feature reads is missing.
+parts-schematic-picture = How the part is drawn on a schematic page
+parts-no-schematic = No symbol draws it yet.
+parts-no-front = Give it a width and a height to see its front.
+parts-saved-mine = { $p0 } is saved in My parts.
+reason-no-parts-place = Parts is not open.
+reason-no-part-open = No part is open in Parts.
+reason-part-not-yours = The part is not yours: make your own from it.
+reason-part-not-changed = Nothing was changed since the part was opened or saved.
+reason-part-own-already = The part is yours already: Like this makes another like it.
+reason-parts-unsaved = The part has changes that are not saved: Save or Discard them first.
+reason-part-remove-used = { $p0 ->
+    [one] { $p0 } device of this project uses the part.
+   *[other] { $p0 } devices of this project use the part.
+}

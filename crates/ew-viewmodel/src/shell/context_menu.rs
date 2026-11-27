@@ -253,7 +253,7 @@ impl ShellModel {
                 let module = session.channel_module(record.parse().ok()?)?;
                 let part = session.device_part(module)?;
                 self.aimed(
-                    "part.edit",
+                    "parts.open",
                     json!({ "part": format!("id:{part}") }),
                     strings::text(key!("messages-offer-plc-section")).to_owned(),
                 )

@@ -35,8 +35,6 @@ pub(crate) const PART_LIST_SHARE: f32 = 0.35;
 /// up to a share of the window, so it grows at 1920 × 1080).
 pub(crate) const KEYMAP_LIST_SHARE: f32 = 0.5;
 
-/// The share of the window's height the part editor's form takes once that is more than sixteen rows (doc 16a §2).
-pub(crate) const PART_FORM_SHARE: f32 = 0.6;
 
 /// The share of the symbol editor's canvas the start card takes once that is wider than `size.dialog.form`: a third
 /// of a wide window, so the lists of parts and symbols use the room of 2560 points.

@@ -216,7 +216,7 @@ impl ShellModel {
     }
 
     /// Lists the offers of the open dialog's query again (favourites and recent parts from the settings).
-    pub(super) fn part_refresh(&mut self) {
+    pub(crate) fn part_refresh(&mut self) {
         let favourites = parse_items(&self.settings.parts_favourites);
         let recent = parse_items(&self.settings.parts_recent);
         let Some(project) = &self.project else {

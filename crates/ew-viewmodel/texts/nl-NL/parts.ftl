@@ -254,3 +254,63 @@ part-table-add-variants = Variant toevoegen
 part-table-add-mech-holes = Gat toevoegen
 part-table-remove = Rij { $p0 } verwijderen
 part-table-empty = Nog geen
+
+## Artikelen, de ene plek voor artikelen
+
+parts-tab-part = Artikel
+parts-title = Artikelen
+parts-new = Nieuw artikel
+parts-like-this = Zoals dit
+parts-own = Mijn eigen maken
+parts-own-from = Mijn eigen ervan maken
+parts-keep = In mijn artikelen bewaren
+parts-remove = Verwijderen
+parts-save = Opslaan
+parts-save-use = Opslaan en gebruiken voor { $p0 }
+parts-discard = Verwerpen
+parts-back = Terug
+parts-back-without-choosing = Terug zonder te kiezen
+parts-back-without-it = Terug zonder artikel
+parts-strip-choosing = U kiest een artikel voor { $p0 }.
+parts-strip-form = Een artikel voor { $p0 }.
+parts-new-title = Nieuw artikel
+parts-none-open = Open een artikel uit de lijst, of maak een nieuw.
+parts-search-hint = Zoek op nummer, fabrikant, beschrijving, waarvoor het is
+parts-search-name = Artikelen zoeken
+parts-scope-all = Alle
+parts-scope-project = In dit project
+parts-scope-mine = Mijn artikelen
+parts-filter-kind = Soort
+parts-filter-kind-all = Elke soort
+parts-filter-lacking = Mist iets
+parts-count = { $p0 ->
+    [one] { $p0 } artikel
+   *[other] { $p0 } artikelen
+}
+parts-used-by = { $p0 ->
+    [one] { $p0 } apparaat van dit project gebruikt het
+   *[other] { $p0 } apparaten van dit project gebruiken het
+}
+parts-changed = Gewijzigd, niet opgeslagen
+parts-lives-mine = Van mij · in Mijn artikelen
+parts-lives-starter = Startartikel
+parts-lives-here = Alleen in dit project
+parts-lives-new = Nieuw, niet opgeslagen
+parts-lock-starter = Een startartikel. Het komt met het programma en is op elke pc hetzelfde, dus het kan hier niet gewijzigd worden.
+parts-lock-library = Een artikel van een bibliotheek die u niet kunt schrijven, dus het kan hier niet gewijzigd worden.
+parts-ready-for = Klaar voor
+parts-ready-all = Niets wat een functie leest ontbreekt.
+parts-schematic-picture = Hoe het artikel op een schemapagina wordt getekend
+parts-no-schematic = Nog geen symbool tekent het.
+parts-no-front = Geef het een breedte en een hoogte om zijn voorkant te zien.
+parts-saved-mine = { $p0 } is opgeslagen in Mijn artikelen.
+reason-no-parts-place = Artikelen is niet open.
+reason-no-part-open = Er is geen artikel open in Artikelen.
+reason-part-not-yours = Het artikel is niet van u: maak uw eigen ervan.
+reason-part-not-changed = Er is niets gewijzigd sinds het artikel werd geopend of opgeslagen.
+reason-part-own-already = Het artikel is al van u: Zoals dit maakt er nog een zoals het.
+reason-parts-unsaved = Het artikel heeft wijzigingen die niet zijn opgeslagen: sla ze eerst op of verwerp ze.
+reason-part-remove-used = { $p0 ->
+    [one] { $p0 } apparaat van dit project gebruikt het artikel.
+   *[other] { $p0 } apparaten van dit project gebruiken het artikel.
+}

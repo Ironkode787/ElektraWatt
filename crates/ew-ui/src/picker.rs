@@ -221,13 +221,13 @@ fn header(ui: &mut Ui, shell: &ShellModel, picker: &Picker, events: &mut Vec<Eve
         if components::button(
             ui,
             Kind::Secondary,
-            strings::text(key!("action-part-new")),
+            strings::text(key!("action-parts-new")),
             None,
             0.0,
         )
         .clicked()
         {
-            events.push(Event::Action("part.new", json!({})));
+            events.push(Event::Action("parts.new", json!({})));
         }
     }
 }

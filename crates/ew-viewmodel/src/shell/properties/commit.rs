@@ -1077,7 +1077,7 @@ impl ShellModel {
                     params.insert("add".to_owned(), Value::Bool(true));
                     self.act_part_choose(&params)
                 }
-                RowMenuItem::EditPart => self.act_part_edit(&Map::new()),
+                RowMenuItem::EditPart => self.act_parts_open(&Map::new()),
                 RowMenuItem::Placeholder => self.act_part_placeholder(&Map::new()),
                 RowMenuItem::GoToSource => self.props_go_to_source(&row),
                 RowMenuItem::DefinePotential => self.act_potential_draw(&Map::new()),

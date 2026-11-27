@@ -92,7 +92,7 @@ pub fn body(ui: &mut Ui, t: &Tokens, view: &PartCardView, title: bool, events: &
         let edit = strings::text(key!("action-part-edit-card"));
         if components::button(ui, Kind::Secondary, edit, None, 0.0).clicked() {
             let part = format!("id:{}", view.card.part);
-            events.push(Event::Action("part.edit", json!({ "part": part })));
+            events.push(Event::Action("parts.open", json!({ "part": part })));
         }
     }
 }

@@ -1661,7 +1661,7 @@ fn catalogue(ui: &mut Ui, t: &Tokens, shown: &StationShown, tab: &StationTab, ev
         )
         .clicked()
         {
-            events.push(Event::Action("part.new", json!({ "plc": kind })));
+            events.push(Event::Action("parts.new", json!({ "plc": kind })));
         }
         // A valve position that holds no valve is closed with a blanking plate: no part of the catalogue.
         if matches!(tab.cursor, Some(StationCursor::Position { .. }))

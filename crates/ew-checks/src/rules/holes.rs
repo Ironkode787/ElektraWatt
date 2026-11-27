@@ -343,7 +343,7 @@ impl Rule for HolesNotKnown {
 fn edit_part(part: &ew_schema::PartRef, section: &str) -> QuickFix {
     QuickFix {
         label: text!("fix-edit-part"),
-        command: "part.edit".to_owned(),
+        command: "parts.open".to_owned(),
         params: serde_json::json!({"part": part.copy.as_uuid().to_string(), "section": section}),
     }
 }

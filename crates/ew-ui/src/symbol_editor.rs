@@ -473,11 +473,11 @@ impl EditorView {
                         // The way from a symbol to a device: a part whose main function the saved symbol draws;
                         // the draft exported; Discard draft, the explicit way to drop the draft (Close editor keeps
                         // it), which asks first.
-                        let make_part = refusal("part.new");
+                        let make_part = refusal("parts.new");
                         let symbol = editor.published().unwrap_or_default();
                         let items = [
                             (
-                                "part.new",
+                                "parts.new",
                                 json!({ "symbol": symbol }),
                                 key!("symbol-make-part"),
                                 make_part,

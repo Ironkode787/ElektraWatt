@@ -50,7 +50,7 @@ fn a_part_removed_from_my_parts_stays_in_the_project_that_uses_it() {
     let tmp = Tmp::new("my-parts-remove");
     let mine = LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), Vec::new(), Vec::new());
     let mut s = project(&tmp, mine.clone(), "p.ew");
-    done(&mut s, "part.new", json!({"plc": "module"}));
+    done(&mut s, "parts.new", json!({"plc": "module"}));
     for (field, value) in [
         ("manufacturer", "Example"),
         ("part_number", "DI-4"),
@@ -58,9 +58,9 @@ fn a_part_removed_from_my_parts_stays_in_the_project_that_uses_it() {
         ("plc.count", "4"),
         ("plc.pin_of", "{n+1}"),
     ] {
-        done(&mut s, "part.field", json!({"field": field, "value": value}));
+        done(&mut s, "parts.field", json!({"field": field, "value": value}));
     }
-    done(&mut s, "part.save", json!({}));
+    done(&mut s, "parts.save", json!({}));
     // A device of it on the page.
     done(&mut s, "tool.place", json!({}));
     done(&mut s, "place.pick", json!({"part": "DI-4"}));
@@ -71,7 +71,7 @@ fn a_part_removed_from_my_parts_stays_in_the_project_that_uses_it() {
     }
     done(&mut s, "ui.dismiss", json!({}));
     // Its part editor offers the removal, apart from Save; it asks first, and its Remove takes the part out.
-    done(&mut s, "part.edit", json!({"part": "DI-4"}));
+    done(&mut s, "parts.open", json!({"part": "DI-4"}));
     let danger = |s: &ShellModel| {
         let dialog = s.dialog().cloned().expect("a dialog");
         let b = spec(&dialog, s).danger.expect("its danger button");
@@ -83,11 +83,11 @@ fn a_part_removed_from_my_parts_stays_in_the_project_that_uses_it() {
     let (label, action, params) = danger(&s);
     assert_eq!(
         (label.as_str(), action),
-        ("Remove from my parts library…", "part.remove_own")
+        ("Remove from my parts library…", "parts.remove")
     );
     done(&mut s, action, params);
     let (label, action, params) = danger(&s);
-    assert_eq!((label.as_str(), action), ("Remove", "part.remove_own"));
+    assert_eq!((label.as_str(), action), ("Remove", "parts.remove"));
     done(&mut s, action, params);
     assert!(
         s.dialog().is_none(),
@@ -119,7 +119,7 @@ fn a_part_removed_from_my_parts_stays_in_the_project_that_uses_it() {
     );
     // Removing it again is refused in words.
     assert_eq!(
-        refused(&mut s, "part.remove_own", json!({"part": "DI-4"})),
+        refused(&mut s, "parts.remove", json!({"part": "DI-4"})),
         "reason-part-not-own"
     );
     s.shutdown();

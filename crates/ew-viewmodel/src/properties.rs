@@ -2381,7 +2381,7 @@ pub enum RowMenuItem {
     AddPart,
     /// Type not known yet… on a Parts row, beside Choose part…: `part.placeholder` (the part dialog with its field).
     Placeholder,
-    /// Edit part… on a Parts row that names a part: `part.edit`.
+    /// Edit part… on a Parts row that names a part: `parts.open`.
     EditPart,
     /// Go to source on a derived or inherited row whose source is a row of a record or of the project (doc 16 §6.2):
     /// that row, with the cursor on it.
@@ -2420,7 +2420,7 @@ pub fn menu_label(item: RowMenuItem) -> &'static str {
         RowMenuItem::ChoosePart { .. } => strings::text(key!("action-part-choose")),
         RowMenuItem::AddPart => strings::text(key!("action-part-add")),
         RowMenuItem::Placeholder => strings::text(key!("action-part-placeholder")),
-        RowMenuItem::EditPart => strings::text(key!("action-part-edit")),
+        RowMenuItem::EditPart => strings::text(key!("action-part-edit-card")),
         RowMenuItem::GoToSource => strings::text(key!("props-action-go-to-source")),
         RowMenuItem::DefinePotential => strings::text(key!("action-potential-draw")),
         RowMenuItem::CpUnused { on: true } => strings::text(key!("action-cp-unused")),

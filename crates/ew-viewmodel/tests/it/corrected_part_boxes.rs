@@ -27,9 +27,9 @@ fn sockets(s: &ShellModel) -> TableBox {
 
 /// Edit part… on SW-6, its port count set to `ports`, saved: the card's lines of the boxes drawn anew.
 fn save_corrected(s: &mut ShellModel, ports: &str) -> Vec<String> {
-    done(s, "part.edit", json!({"part": "SW-6"}));
-    done(s, "part.field", json!({"field": "bus.0.ports", "value": ports}));
-    done(s, "part.save", json!({}));
+    done(s, "parts.open", json!({"part": "SW-6"}));
+    done(s, "parts.field", json!({"field": "bus.0.ports", "value": ports}));
+    done(s, "parts.save", json!({}));
     match s.properties().card().map(|c| &c.origin) {
         Some(CardOrigin::Part(card)) => card.boxes.clone(),
         other => panic!("the part's card: {other:?}"),
@@ -51,20 +51,20 @@ fn switch_drawn(tmp: &Tmp) -> ShellModel {
         "page.new",
         json!({"folio": "102", "type": "bus_topology", "title": "Network"}),
     );
-    done(&mut s, "part.new", json!({}));
+    done(&mut s, "parts.new", json!({}));
     for (field, value) in [("manufacturer", "Example"), ("part_number", "SW-6")] {
-        done(&mut s, "part.field", json!({"field": field, "value": value}));
+        done(&mut s, "parts.field", json!({"field": field, "value": value}));
     }
-    done(&mut s, "part.bus_row", json!({}));
+    done(&mut s, "parts.row", json!({"table": "bus"}));
     for (field, value) in [
         ("bus.0.interface", "X1"),
         ("bus.0.bus", "profinet"),
         ("bus.0.role", "passive"),
         ("bus.0.ports", "6"),
     ] {
-        done(&mut s, "part.field", json!({"field": field, "value": value}));
+        done(&mut s, "parts.field", json!({"field": field, "value": value}));
     }
-    done(&mut s, "part.save", json!({}));
+    done(&mut s, "parts.save", json!({}));
     done(&mut s, "page.goto", json!({"folio": "102"}));
     done(&mut s, "tool.place", json!({}));
     done(&mut s, "place.pick", json!({"part": "SW-6"}));

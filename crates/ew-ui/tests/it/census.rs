@@ -269,7 +269,6 @@ enum DialogKind {
     Recovery,
     ConfirmPurge,
     PartChoose,
-    PartEdit,
     ConfirmRemovePart,
     ConfirmReplaceDxf,
     Print,
@@ -308,8 +307,7 @@ impl DialogKind {
             Self::Form => Self::Recovery,
             Self::Recovery => Self::ConfirmPurge,
             Self::ConfirmPurge => Self::PartChoose,
-            Self::PartChoose => Self::PartEdit,
-            Self::PartEdit => Self::ConfirmRemovePart,
+            Self::PartChoose => Self::ConfirmRemovePart,
             Self::ConfirmRemovePart => Self::ConfirmReplaceDxf,
             Self::ConfirmReplaceDxf => Self::Print,
             Self::Print => Self::ExternalChange,
@@ -353,7 +351,6 @@ fn kind(d: &Dialog) -> DialogKind {
         Dialog::Recovery { .. } => DialogKind::Recovery,
         Dialog::ConfirmPurge { .. } => DialogKind::ConfirmPurge,
         Dialog::PartChoose(_) => DialogKind::PartChoose,
-        Dialog::PartEdit(_) => DialogKind::PartEdit,
         Dialog::ConfirmRemovePart { .. } => DialogKind::ConfirmRemovePart,
         Dialog::ConfirmReplaceDxf { .. } => DialogKind::ConfirmReplaceDxf,
         Dialog::Print(_) => DialogKind::Print,
@@ -468,14 +465,9 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             dispatch(&mut h, "file.close", json!({}));
             h
         }
-        DialogKind::PartChoose | DialogKind::PartEdit => {
+        DialogKind::PartChoose => {
             let mut h = simple("select.set", json!({"refs": ["tag:-101F1"]}));
-            let action = if kind == DialogKind::PartChoose {
-                ("part.choose", json!({"use": 0}))
-            } else {
-                ("part.edit", json!({}))
-            };
-            dispatch(&mut h, action.0, action.1);
+            dispatch(&mut h, "part.choose", json!({"use": 0}));
             h
         }
         // A part of My parts, made here, whose part editor asks before it is taken out.
@@ -490,12 +482,12 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             let mut shell = ShellModel::new(Mode::Gui, tmp.config().with_libraries(Some(tiers)));
             for (action, params) in [
                 ("file.open", json!({ "dir": dir.to_string_lossy() })),
-                ("part.new", json!({})),
-                ("part.field", json!({"field": "manufacturer", "value": "Example"})),
-                ("part.field", json!({"field": "part_number", "value": "SW-6"})),
-                ("part.save", json!({})),
-                ("part.edit", json!({"part": "SW-6"})),
-                ("part.remove_own", json!({})),
+                ("parts.new", json!({})),
+                ("parts.field", json!({"field": "manufacturer", "value": "Example"})),
+                ("parts.field", json!({"field": "part_number", "value": "SW-6"})),
+                ("parts.save", json!({})),
+                ("parts.open", json!({"part": "SW-6"})),
+                ("parts.remove", json!({})),
             ] {
                 assert_eq!(shell.dispatch(action, &params), Outcome::Done, "{action}");
             }

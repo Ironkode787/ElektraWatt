@@ -763,9 +763,9 @@ fn new_part_from_the_rack_starts_as_what_was_asked() {
     let tmp = Tmp::new();
     let mut h = new_project(&tmp);
     let draft_text =
-        |h: &egui_kittest::Harness<'static, ew_ui::app::App>, field: &str| match h.state().shell().dialog() {
-            Some(Dialog::PartEdit(e)) => e.draft.text(field).to_owned(),
-            other => panic!("the part editor: {other:?}"),
+        |h: &egui_kittest::Harness<'static, ew_ui::app::App>, field: &str| match h.state().shell().parts_place().and_then(|p| p.sheet.as_ref()) {
+            Some(e) => e.sheet.text(field).to_owned(),
+            None => panic!("a part open in Parts"),
         };
     dispatch(&mut h, "plc.new_station", json!({}));
     dispatch(&mut h, "plc.rack_set", json!({"kind": "remote"}));
@@ -780,9 +780,9 @@ fn new_part_from_the_rack_starts_as_what_was_asked() {
         ("part_number", "RIO-9"),
         ("description", "Remote head"),
     ] {
-        dispatch(&mut h, "part.field", json!({"field": field, "value": value}));
+        dispatch(&mut h, "parts.field", json!({"field": field, "value": value}));
     }
-    dispatch(&mut h, "part.save", json!({}));
+    dispatch(&mut h, "parts.save", json!({}));
     settle(&mut h);
     let head = h
         .state()

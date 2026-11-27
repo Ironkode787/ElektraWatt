@@ -134,7 +134,6 @@ pub(super) fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
         // The query, the window of results (50 rows, never the total) and the active row's
         // detail.
         Dialog::PartChoose(c) => part_choose_lines(model, c, lines),
-        Dialog::PartEdit(e) => part_edit_lines(e, lines),
         // The options, then the preview: its page and stamp, the progress, the empty state or the
         // failure.
         Dialog::Print(d) => print_lines(model, d, lines),

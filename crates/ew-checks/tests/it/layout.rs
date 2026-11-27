@@ -1146,7 +1146,7 @@ fn a_part_without_holes_on_a_surface_is_reported_once_with_its_devices() {
     assert!(found[0].contains("+J-E-2416-E1, +J-E-2416-E2"), "{}", found[0]);
     // Edit part… opens the part at In the cabinet, where its front and its holes are.
     let fix = findings_of(&m, "EW-LAY-017")[0].fix.clone().expect("Edit part…");
-    assert_eq!(fix.command, "part.edit");
+    assert_eq!(fix.command, "parts.open");
     assert_eq!(fix.params["section"], "cabinet");
     assert!(
         findings_of(&plate().build(), "EW-LAY-017").is_empty(),

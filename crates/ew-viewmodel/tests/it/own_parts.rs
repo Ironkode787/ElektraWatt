@@ -27,7 +27,7 @@ fn a_module_part_nothing_draws_is_listed_greyed_with_what_to_do() {
     let tmp = Tmp::new("own-parts-unfit");
     let mine = LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), Vec::new(), Vec::new());
     let mut s = new_project(&tmp, mine, "p.ew");
-    done(&mut s, "part.new", json!({"plc": "module"}));
+    done(&mut s, "parts.new", json!({"plc": "module"}));
     for (field, value) in [
         ("manufacturer", "Acme"),
         ("part_number", "DI-NP"),
@@ -36,9 +36,9 @@ fn a_module_part_nothing_draws_is_listed_greyed_with_what_to_do() {
         ("plc.count", "8"),
         ("plc.pin_of", ""),
     ] {
-        done(&mut s, "part.field", json!({"field": field, "value": value}));
+        done(&mut s, "parts.field", json!({"field": field, "value": value}));
     }
-    done(&mut s, "part.save", json!({}));
+    done(&mut s, "parts.save", json!({}));
     assert!(s.dialog().is_none(), "saved: {:?}", s.dialog());
     s.shutdown();
     drop(s);

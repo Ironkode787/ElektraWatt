@@ -1208,3 +1208,51 @@ fn strips_of(q: &Q, page: Id<Page>) -> Vec<CatalogueStrip> {
     out.sort_by(|a, b| a.tag.cmp(&b.tag).then(a.id.cmp(&b.id)));
     out
 }
+
+/// The gap between two pieces of a part's schematic picture: 8 mm.
+const PIECE_GAP: ew_units::Nm = ew_units::Nm(8_000_000);
+
+impl Session {
+    /// The schematic picture of `part` (doc 07 §5.6): each piece of its function template drawn by a symbol of its
+    /// function (the project's of the lowest ID, else the starter's), left to right in template order, as a page draws
+    /// a symbol's lines; with the picture's width and height. `None` when no piece has a symbol.
+    pub fn part_schematic(&self, part: &Part) -> Option<(ew_dl::DisplayList, (ew_units::Nm, ew_units::Nm))> {
+        let q = self.query();
+        let symbol_of = |def: Id<FnDef>| -> Option<SymbolDef> {
+            let draws = |s: &SymbolDef| s.rep_type == RepType::MultiLine && fndef_copy(&s.fndef) == def;
+            q.symbols()
+                .iter()
+                .filter(|(_, s)| draws(&s.item))
+                .min_by_key(|(id, _)| *id)
+                .map(|(_, s)| s.item.clone())
+                .or_else(|| {
+                    starter_docs().iter().find_map(|(_, _, d)| match d {
+                        LibDocument::Symbol(c) if draws(&c.item) => Some(c.item.clone()),
+                        _ => None,
+                    })
+                })
+        };
+        let mut list = ew_dl::DisplayList::new();
+        let (mut x, mut height) = (0i64, 0i64);
+        for entry in &part.function_template {
+            let Some(def) = symbol_of(fndef_copy(&entry.fndef)) else {
+                continue;
+            };
+            let geometry = ew_scene::symbol::lower(&def, ew_units::Orient2::R0);
+            let b = geometry.bounds;
+            let (w, h) = (b.max().x.0 - b.min().x.0, b.max().y.0 - b.min().y.0);
+            if x > 0 {
+                x = x.saturating_add(PIECE_GAP.0);
+            }
+            let shift = ew_units::Pt2::new(ew_units::Nm(x - b.min().x.0), ew_units::Nm(-b.min().y.0));
+            list.push(ew_dl::Item::group(
+                Some(ew_dl::Transform::from_translation(shift)),
+                None,
+                geometry.graphics.items,
+            ));
+            x = x.saturating_add(w.max(1));
+            height = height.max(h);
+        }
+        (x > 0).then(|| (list, (ew_units::Nm(x), ew_units::Nm(height.max(1)))))
+    }
+}

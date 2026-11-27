@@ -113,7 +113,7 @@ fn f1_and_the_guide_buttons_lead_to_the_guide_of_the_discipline() {
         done(&mut shell, action, json!({}));
         assert_eq!(shell.last_help(), Some(page), "{action}");
     }
-    done(&mut shell, "part.edit", json!({ "part": "EW-GEN-MCB-1" }));
+    done(&mut shell, "parts.open", json!({ "part": "EW-GEN-MCB-1" }));
     assert_eq!(f1(&mut shell), "how-to/own-parts.html");
     shell.shutdown();
 }

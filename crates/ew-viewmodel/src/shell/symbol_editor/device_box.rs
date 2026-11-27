@@ -9,11 +9,11 @@
 
 use super::{Outline, OutlineGroup, RowValue, Sheet, SheetRow, SymbolEditor, Todo, role_words, words};
 use crate::notifications::{Note, NoteTone, Offer, Validity, back_to_editor};
-use crate::shell::{Dialog, Outcome, ShellModel};
+use crate::shell::{Outcome, ShellModel};
 use crate::{key, strings};
 use ew_api::output::Uuid;
 use ew_api::part_box::{BoxSteps, Dir4, EDIT_STEP, PinsFrom};
-use ew_api::{PartDraft, PartDraftError};
+use ew_api::{PartSheet, PartDraftError};
 use serde_json::{Map, Value, json};
 
 /// The edges of a box in the order the pin table lists them, each with the word an action names it by.
@@ -64,11 +64,11 @@ pub struct PinLine {
 #[derive(Clone, Debug)]
 pub struct DeviceBox {
     /// The part's draft: its identity, its pins and its box.
-    pub draft: PartDraft,
+    pub draft: PartSheet,
     /// The draft as it was opened or last saved; equality decides unsaved changes.
-    saved: PartDraft,
-    undo: Vec<PartDraft>,
-    redo: Vec<PartDraft>,
+    saved: PartSheet,
+    undo: Vec<PartSheet>,
+    redo: Vec<PartSheet>,
     /// The selected pins, in the order they were selected.
     pub selection: Vec<u16>,
     /// Counts the changes, so the window reads the box again.
@@ -87,7 +87,7 @@ pub struct DeviceBox {
 }
 
 impl DeviceBox {
-    pub(super) fn new(draft: PartDraft) -> DeviceBox {
+    pub(super) fn new(draft: PartSheet) -> DeviceBox {
         DeviceBox {
             saved: draft.clone(),
             draft,
@@ -191,7 +191,7 @@ impl DeviceBox {
     }
 
     /// Takes `change` of the draft as one undo step; a change that changes nothing is none.
-    fn edit<T>(&mut self, change: impl FnOnce(&mut PartDraft) -> T) -> T {
+    fn edit<T>(&mut self, change: impl FnOnce(&mut PartSheet) -> T) -> T {
         // The table's order is held from the first edit of these pins on.
         if self
             .held
@@ -431,15 +431,15 @@ fn outcome_words(out: Outcome) -> Result<(), String> {
 }
 
 impl ShellModel {
-    /// The draft of the part the pin actions change: the device box editor's, else the part editor dialog's.
-    fn pin_draft(&mut self) -> Option<&mut PartDraft> {
+    /// The draft of the part the pin actions change: the device box editor's, else the open sheet of Parts.
+    fn pin_draft(&mut self) -> Option<&mut PartSheet> {
         if let Some(b) = self.symbol_editor.as_mut().and_then(|e| e.device_box.as_mut()) {
             return Some(&mut b.draft);
         }
-        match &mut self.dialog {
-            Some(Dialog::PartEdit(e)) => Some(&mut e.draft),
-            _ => None,
-        }
+        self.parts
+            .as_deref_mut()
+            .and_then(|p| p.sheet.as_mut())
+            .map(|o| &mut o.sheet)
     }
 
     /// `part.box {part?, new?}` (Pins and box… in the part editor, Edit this device's box… on a placed box, Device
@@ -468,10 +468,8 @@ impl ShellModel {
                 Some((l.parse::<Uuid>().ok()?, i.parse::<Uuid>().ok()?))
             });
         let mut copy_of = None;
-        let draft = if let Some(Dialog::PartEdit(editor)) = &self.dialog {
-            let draft = editor.draft.clone();
-            self.dialog = None;
-            draft
+        let draft = if let Some(open) = self.parts.as_deref().and_then(|p| p.sheet.as_ref()) {
+            open.sheet.clone()
         } else if let Some(at) = library {
             let Some((library, item)) = at else {
                 return crate::shell::failed(key!("error-bad-param"), &["part"]);
@@ -488,7 +486,7 @@ impl ShellModel {
             let made = if p.get("new") == Some(&Value::Bool(true)) {
                 project.session.new_part_draft()
             } else {
-                let copy = match self.part_edit_copy(p) {
+                let copy = match self.named_copy(p) {
                     Ok(Some(c)) => c,
                     Ok(None) => return Outcome::refused(key!("reason-part-edit-target")),
                     Err(e) => return e,
@@ -536,7 +534,7 @@ impl ShellModel {
         &mut self,
         library: Uuid,
         item: Uuid,
-    ) -> Result<(PartDraft, Option<String>), Outcome> {
+    ) -> Result<(PartSheet, Option<String>), Outcome> {
         let target = || Outcome::refused(key!("reason-part-edit-target"));
         let project = self
             .project
@@ -585,34 +583,19 @@ impl ShellModel {
         if bus {
             b.draft.add_bus_row();
         }
-        let manufacturers = project.session.part_manufacturers();
-        let name = if b.draft.new {
-            String::new()
-        } else {
-            format!(
-                "{} ({})",
-                b.draft.text("part_number"),
-                b.draft.text("manufacturer")
-            )
-        };
+        let _ = project;
         self.leave_box(b.from_project);
-        self.open_dialog(Dialog::PartEdit(Box::new(
-            crate::shell::part_dialog::PartEditor {
-                section: if bus {
-                    ew_api::part_fields::Group::Ports
-                } else {
-                    ew_api::part_fields::Group::Identity
-                },
-                draft: b.draft,
-                name,
-                manufacturers,
-                error: None,
-                back: None,
-                cable_type: false,
-                cable_form: None,
-                bus_part: None,
-            },
-        )))
+        self.enter_place();
+        self.open_sheet(b.draft, None);
+        if let Some(open) = self.parts.as_deref_mut().and_then(|p| p.sheet.as_mut()) {
+            open.changed = true;
+            open.group = Some(if bus {
+                ew_api::part_fields::Group::Ports
+            } else {
+                ew_api::part_fields::Group::Schematic
+            });
+        }
+        Outcome::Done
     }
 
     /// After the box is closed: back where it was opened from, the project or the editor's ways in (which offer the
@@ -692,7 +675,7 @@ impl ShellModel {
             .as_ref()
             .is_some_and(|e| e.device_box.is_some());
         let Some(draft) = self.pin_draft() else {
-            return Outcome::refused(key!("reason-no-part-editor"));
+            return Outcome::refused(key!("reason-no-part-open"));
         };
         if let Some(from) = draft.pins_from() {
             let names = p.get("add") == Some(&Value::Bool(true))
@@ -707,7 +690,7 @@ impl ShellModel {
         }
         // A place typed between two steps of the pin grid, or on a corner, and where the pin stands instead.
         let taken = std::cell::Cell::new(None);
-        let place = |d: &mut PartDraft, idx: u16, side: Dir4, mm: f64| -> bool {
+        let place = |d: &mut PartSheet, idx: u16, side: Dir4, mm: f64| -> bool {
             let at = (mm * 1e6).round() as i64;
             if !d.place_pin(idx, side, at) {
                 return false;
@@ -723,7 +706,7 @@ impl ShellModel {
             }
             true
         };
-        let change = |d: &mut PartDraft| -> Result<Option<u16>, String> {
+        let change = |d: &mut PartSheet| -> Result<Option<u16>, String> {
             if p.get("add") == Some(&Value::Bool(true)) {
                 return Ok(Some(d.add_pin(text("name"))));
             }
@@ -1118,7 +1101,10 @@ impl ShellModel {
         let command = if draft.new {
             project.session.new_part_command(&draft).map(|made| made.command)
         } else if draft.own && draft.fork {
-            project.session.own_part_update(&draft).map(|plan| plan.command)
+            project.session.own_part_update(&draft).and_then(|plan| {
+                plan.map(|p| p.command)
+                    .ok_or(ew_api::PartDraftError::Refused(key!("reason-part-edit-target").as_str()))
+            })
         } else {
             project.session.part_edit_command(&draft)
         }
@@ -1192,7 +1178,7 @@ impl ShellModel {
     /// `part.redraw_boxes {part}`: every box drawn of a device of the part redrawn as the part's layout says, where
     /// it stands; its wires follow their pins. One undo step for all of them (`box.redraw`), all or none.
     pub(crate) fn act_part_redraw_boxes(&mut self, p: &Map<String, Value>) -> Outcome {
-        let copy = match self.part_edit_copy(p) {
+        let copy = match self.named_copy(p) {
             Ok(Some(c)) => c,
             Ok(None) => return Outcome::refused(key!("reason-part-edit-target")),
             Err(e) => return e,

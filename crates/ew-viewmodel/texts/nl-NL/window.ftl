@@ -30,6 +30,7 @@ bar-go-to = Ga naar
 bar-follow-reference = Verwijzing volgen
 bar-device = Apparaat
 bar-symbol-editor = Symbooleditor
+bar-parts = Artikelen
 bar-terminal = Klem
 bar-marker = Aanduiding
 bar-wire = Draad

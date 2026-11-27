@@ -30,7 +30,7 @@ fn pins(s: &ShellModel) -> Vec<(u16, String, &'static str)> {
 fn a_card_s_pins_take_their_places_on_its_box_and_keep_their_names() {
     let tmp = Tmp::new("device-box-card");
     let mut s = new_project(&tmp);
-    done(&mut s, "part.new", json!({"plc": "module"}));
+    done(&mut s, "parts.new", json!({"plc": "module"}));
     for (field, value) in [
         ("manufacturer", "Example"),
         ("part_number", "DI-4"),
@@ -38,9 +38,9 @@ fn a_card_s_pins_take_their_places_on_its_box_and_keep_their_names() {
         ("plc.count", "4"),
         ("plc.pin_of", "{n+1}"),
     ] {
-        done(&mut s, "part.field", json!({"field": field, "value": value}));
+        done(&mut s, "parts.field", json!({"field": field, "value": value}));
     }
-    done(&mut s, "part.save", json!({}));
+    done(&mut s, "parts.save", json!({}));
     done(&mut s, "part.box", json!({"part": "DI-4"}));
     let first = pins(&s)
         .into_iter()

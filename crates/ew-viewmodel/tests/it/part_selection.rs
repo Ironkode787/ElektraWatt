@@ -445,7 +445,7 @@ fn the_part_editor_refuses_with_a_message() {
     let tmp = Tmp::new("part-sel-5");
     let mut s = writable(&tmp);
     select(&mut s, "-101F2");
-    done(&mut s, "part.edit", json!({}));
+    done(&mut s, "parts.open", json!({}));
     assert_eq!(
         lines(&s, "dialog "),
         ["dialog \"Edit part EW-GEN-MCB-2 (Generic)\""]
@@ -460,7 +460,7 @@ fn the_part_editor_refuses_with_a_message() {
         )]
     );
     // An unchanged draft.
-    assert_eq!(refused(&mut s, "part.save", json!({})), "reason-part-unchanged");
+    assert_eq!(refused(&mut s, "parts.save", json!({})), "reason-part-unchanged");
     let n = steps(&s);
     let cases: [(&str, &str, &str, &str); 4] = [
         ("manufacturer", "", "Maker", "A part needs a manufacturer"),
@@ -469,15 +469,15 @@ fn the_part_editor_refuses_with_a_message() {
         ("tech:rated_current", "4 Amp", "Rated current", "rated_current: "),
     ];
     for (field, value, label, message) in cases {
-        done(&mut s, "part.edit", json!({ "part": "EW-GEN-MCB-2" }));
-        done(&mut s, "part.field", json!({ "field": field, "value": value }));
+        done(&mut s, "parts.open", json!({ "part": "EW-GEN-MCB-2" }));
+        done(&mut s, "parts.field", json!({ "field": field, "value": value }));
         let invalid = lines(&s, "invalid ");
         assert_eq!(invalid.len(), 1, "{field}: {invalid:?}");
         assert!(
             invalid[0].starts_with(&format!("invalid \"{label}\" \"{message}")),
             "{invalid:?}"
         );
-        match s.dispatch("part.save", &json!({})) {
+        match s.dispatch("parts.save", &json!({})) {
             Outcome::Refused { .. } | Outcome::Failed { .. } => {}
             Outcome::Done => panic!("{field}: saved"),
         }
@@ -488,10 +488,10 @@ fn the_part_editor_refuses_with_a_message() {
         done(&mut s, "ui.dismiss", json!({}));
     }
     // A key twice (up to case).
-    done(&mut s, "part.edit", json!({}));
+    done(&mut s, "parts.open", json!({}));
     done(
         &mut s,
-        "part.field",
+        "parts.field",
         json!({ "field": "tech:Rated_Current", "value": "6 A" }),
     );
     assert_eq!(lines(&s, "invalid ").len(), 1, "{}", s.describe());
@@ -503,7 +503,7 @@ fn the_part_editor_refuses_with_a_message() {
     let mut s = tmp.sample_shell("101");
     select(&mut s, "-102F1");
     assert!(
-        !matches!(s.dispatch("part.edit", &json!({})), Outcome::Done),
+        !matches!(s.dispatch("parts.open", &json!({})), Outcome::Done),
         "a read-only project refuses the part editor"
     );
 }
@@ -516,14 +516,14 @@ fn an_edit_in_place_is_previewed() {
     let tmp = Tmp::new("part-sel-6");
     let mut s = writable(&tmp);
     select(&mut s, "-101F2");
-    done(&mut s, "part.edit", json!({}));
+    done(&mut s, "parts.open", json!({}));
     done(
         &mut s,
-        "part.field",
+        "parts.field",
         json!({ "field": "description", "value": "MCB 1P+N C4" }),
     );
     let n = steps(&s);
-    done(&mut s, "part.save", json!({}));
+    done(&mut s, "parts.save", json!({}));
     assert!(s.dialog().is_none());
     let text = s.describe();
     let card = text
@@ -643,7 +643,7 @@ fn a_library_copy_forks() {
     select(&mut s, "-101F2");
     done(&mut s, "part.choose", json!({ "use": 0 }));
     done(&mut s, "part.pick", json!({ "part": "EW-GEN-MCB-2" }));
-    done(&mut s, "part.edit", json!({}));
+    done(&mut s, "parts.open", json!({}));
     let version = starter_version("EW-GEN-MCB-2");
     assert_eq!(
         lines(&s, "source "),
@@ -653,10 +653,10 @@ fn a_library_copy_forks() {
     );
     done(
         &mut s,
-        "part.field",
+        "parts.field",
         json!({ "field": "description", "value": "MCB 1P+N C4" }),
     );
-    done(&mut s, "part.save", json!({}));
+    done(&mut s, "parts.save", json!({}));
     let note = lines(&s, "note ");
     assert_eq!(note.len(), 1, "{}", s.describe());
     let n = steps(&s);
@@ -666,7 +666,7 @@ fn a_library_copy_forks() {
     assert_eq!(cmd, "part.edit_copy");
     assert!(params["fork"].is_string(), "{params}");
     // F55 names the fork; a second edit is in place.
-    done(&mut s, "part.edit", json!({}));
+    done(&mut s, "parts.open", json!({}));
     assert!(lines(&s, "source ")[0].ends_with("fork off"), "{}", s.describe());
     assert_eq!(
         lines(&s, "field \"Description\""),
@@ -674,10 +674,10 @@ fn a_library_copy_forks() {
     );
     done(
         &mut s,
-        "part.field",
+        "parts.field",
         json!({ "field": "description", "value": "MCB 1P+N C6" }),
     );
-    done(&mut s, "part.save", json!({}));
+    done(&mut s, "parts.save", json!({}));
     assert!(lines(&s, "note ").is_empty(), "{}", s.describe());
     done(&mut s, "preview.apply", json!({}));
     let (_, params) = last(&s);

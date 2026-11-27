@@ -289,7 +289,7 @@ impl ShellModel {
             && value == super::cables::NEW_CABLE_TYPE
             && matches!(&self.dialog, Some(Dialog::Form(f)) if super::cables::chooses_cable_type(f))
         {
-            let _ = self.act_part_new(&Map::from_iter([("cable".to_owned(), Value::Bool(true))]));
+            let _ = self.act_parts_new(&Map::from_iter([("cable".to_owned(), Value::Bool(true))]));
             return;
         }
         // A bus line's Cable form: New bus cable… and New plug… open the small form of a new bus part for the
@@ -309,7 +309,7 @@ impl ShellModel {
                     ("plug".to_owned(), Value::Bool(name != "part")),
                     ("field".to_owned(), Value::String(name.to_owned())),
                 ]);
-                let _ = self.act_part_new(&params);
+                let _ = self.act_parts_new(&params);
                 return;
             }
             if name == "cable" {

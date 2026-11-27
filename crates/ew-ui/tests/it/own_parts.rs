@@ -42,10 +42,10 @@ pub(crate) fn fill(d: &mut Driver, name: &str, text: &str) {
 }
 
 /// The open part editor's draft.
-fn draft(d: &mut Driver) -> ew_viewmodel::ew_api::PartDraft {
-    match d.shell_mut().dialog() {
-        Some(Dialog::PartEdit(e)) => e.draft.clone(),
-        other => panic!("the part editor is open: {other:?}"),
+fn draft(d: &mut Driver) -> ew_viewmodel::ew_api::PartSheet {
+    match d.shell_mut().parts_place().and_then(|p| p.sheet.as_ref()) {
+        Some(e) => e.sheet.clone(),
+        None => panic!("a part is open in Parts"),
     }
 }
 
@@ -133,8 +133,8 @@ fn a_new_part_with_a_bus_interface_is_made_in_the_window_and_kept_in_my_parts() 
         ("X1", "profinet", "passive", "5")
     );
     press(&mut d, "Save");
-    let left = match d.shell_mut().dialog() {
-        Some(Dialog::PartEdit(e)) => Some((e.error.clone(), e.draft.messages.clone())),
+    let left = match d.shell_mut().parts_place().and_then(|p| p.sheet.as_ref()) {
+        Some(e) if e.sheet.new => Some((e.error.clone(), e.sheet.messages.clone())),
         _ => None,
     };
     assert_eq!(left, None, "Save closes the editor");
@@ -458,8 +458,8 @@ pub(crate) fn make_card(d: &mut Driver, number: &str, slots: &str) {
     assert!(preview, "the pin pattern's preview: {:?}", d.texts());
     fill(d, "Allowed slots", slots);
     press(d, "Save");
-    let left = match d.shell_mut().dialog() {
-        Some(Dialog::PartEdit(e)) => Some((e.error.clone(), e.draft.messages.clone())),
+    let left = match d.shell_mut().parts_place().and_then(|p| p.sheet.as_ref()) {
+        Some(e) if e.sheet.new => Some((e.error.clone(), e.sheet.messages.clone())),
         _ => None,
     };
     assert_eq!(left, None, "{number} is saved");
@@ -684,8 +684,8 @@ fn the_symbol_editor_makes_a_part_for_its_saved_symbol() {
     // Enter in a field saves, as Save does.
     d.input(&key("Enter"));
     d.settle();
-    let left = match d.shell_mut().dialog() {
-        Some(Dialog::PartEdit(e)) => Some((e.error.clone(), e.draft.messages.clone())),
+    let left = match d.shell_mut().parts_place().and_then(|p| p.sheet.as_ref()) {
+        Some(e) if e.sheet.new => Some((e.error.clone(), e.sheet.messages.clone())),
         _ => None,
     };
     assert_eq!(left, None, "the part is saved");
@@ -702,7 +702,7 @@ fn the_symbol_editor_makes_a_part_for_its_saved_symbol() {
 /// the dialog it opened.
 pub(crate) fn edit_part(d: &mut Driver, number: &str) {
     assert_eq!(
-        d.shell_mut().dispatch("part.edit", &json!({"part": number})),
+        d.shell_mut().dispatch("parts.open", &json!({"part": number})),
         Outcome::Done
     );
     d.input(&ew_ui::visual::Input::Hover { at: (5, 600) });
@@ -802,7 +802,7 @@ fn a_part_made_in_one_project_is_offered_in_the_next() {
     let mut first = new_project(&tmp);
     make_card(&mut first, "DI8-OWN", "");
     let s = first.shell_mut();
-    assert_eq!(s.dispatch("part.new", &json!({})), Outcome::Done);
+    assert_eq!(s.dispatch("parts.new", &json!({})), Outcome::Done);
     for (field, value) in [
         ("kind", "cable"),
         ("manufacturer", "Acme"),
@@ -810,10 +810,10 @@ fn a_part_made_in_one_project_is_offered_in_the_next() {
         ("cable.cores", "3"),
         ("cable.csa", "1.5"),
     ] {
-        let set = s.dispatch("part.field", &json!({"field": field, "value": value}));
+        let set = s.dispatch("parts.field", &json!({"field": field, "value": value}));
         assert_eq!(set, Outcome::Done, "{field}");
     }
-    assert_eq!(s.dispatch("part.save", &json!({})), Outcome::Done);
+    assert_eq!(s.dispatch("parts.save", &json!({})), Outcome::Done);
     assert!(s.dialog().is_none(), "saved: {:?}", s.dialog());
     assert_eq!(s.dispatch("file.save", &json!({})), Outcome::Done);
     s.shutdown();

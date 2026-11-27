@@ -20,7 +20,7 @@ use serde_json::{Map, Value};
 use crate::Session;
 use crate::library::ItemQuery;
 use crate::output::{FieldType, InputError, format_field_value};
-use crate::part_editor::{DraftMessage, PartDraft, PartDraftError, message};
+use crate::part_editor::{DraftMessage, PartSheet, PartDraftError, message};
 use crate::part_offers::lib_ref;
 
 /// The cell of a table's hole that holds its kind ([`DraftTable::hole`]).
@@ -217,7 +217,7 @@ fn set_at(v: &mut Value, path: &str, value: Value) {
     set(v, &members, value);
 }
 
-impl PartDraft {
+impl PartSheet {
     /// The groups the editor lists for the draft, in the sheet's order: Identity and Technical data always; a group of
     /// declared rows or tables where a field of it holds for a part of the draft's kind; the pins where the kind has
     /// them; the cable's form for a cable; the network ports and the PLC section where the declaration gives the kind
@@ -462,7 +462,7 @@ fn check_gland(json: &Value) -> Result<(), PartDraftError> {
 /// Front view and holes written into the part's `json` (doc 07 §5): the imported outline where Import outline… or
 /// Remove changed it; then its checks, in words: a round front needs the same width and height, and a hole's centre
 /// lies on the front.
-fn apply_front(draft: &PartDraft, json: &mut Value) -> Result<(), PartDraftError> {
+fn apply_front(draft: &PartSheet, json: &mut Value) -> Result<(), PartDraftError> {
     let held = draft.original.mech.as_ref().map(|m| &m.front_2d);
     if held.map_or(!draft.outline.is_empty(), |h| *h != draft.outline) {
         let outline = if draft.outline.is_empty() {
@@ -609,7 +609,7 @@ impl Session {
     /// drawing without a line.
     pub fn draft_outline_import(
         &self,
-        draft: &mut PartDraft,
+        draft: &mut PartSheet,
         path: &std::path::Path,
     ) -> Result<usize, String> {
         if !draft.section_editable(Group::Cabinet) {
@@ -757,7 +757,7 @@ impl Session {
     /// Sets a declared row's or table cell's text in `draft` and checks it; `None` when `field` is neither.
     pub(crate) fn set_row_text(
         &self,
-        draft: &mut PartDraft,
+        draft: &mut PartSheet,
         field: &str,
         text: &str,
     ) -> Option<Result<(), PartDraftError>> {
@@ -804,7 +804,7 @@ impl Session {
     /// The draft's declared rows and tables written into `p` (checked again): a row's value replaces the member, an
     /// empty text leaves it out; a table's rows replace the list, each over the item it was opened from so that the
     /// members the editor does not show stay. Returns the documents the named library parts need.
-    pub(crate) fn apply_rows(&self, draft: &PartDraft, p: &mut Part) -> Result<Vec<Value>, PartDraftError> {
+    pub(crate) fn apply_rows(&self, draft: &PartSheet, p: &mut Part) -> Result<Vec<Value>, PartDraftError> {
         let q = self.query();
         let original = serde_json::to_value(&draft.original).unwrap_or(Value::Null);
         let mut json = serde_json::to_value(&*p).unwrap_or(Value::Null);

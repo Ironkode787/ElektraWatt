@@ -359,24 +359,24 @@ fn a_new_bus_cable_and_plug_are_made_in_the_cable_form() {
     d.settle();
     let part_field = |d: &mut ew_ui::visual::Driver, field: &str, value: &str| {
         let p = json!({"field": field, "value": value});
-        assert_eq!(d.shell_mut().dispatch("part.field", &p), Outcome::Done);
+        assert_eq!(d.shell_mut().dispatch("parts.field", &p), Outcome::Done);
     };
     let new_cable = option(&mut d, "part", "New bus cable");
     d.shell_mut().set_form_field("part", &new_cable);
     {
-        let Some(Dialog::PartEdit(e)) = d.shell_mut().dialog() else {
+        let Some(e) = d.shell_mut().parts_place().and_then(|p| p.sheet.as_ref()) else {
             panic!("the New bus cable form");
         };
         assert_eq!(e.title(), "New bus cable");
-        assert_eq!(e.draft.text("cable.bus"), "profibus_dp");
+        assert_eq!(e.sheet.text("cable.bus"), "profibus_dp");
         assert_eq!(
-            e.draft.cable.table,
+            e.sheet.cable.table,
             [
                 ("A".to_owned(), "GN".to_owned()),
                 ("B".to_owned(), "RD".to_owned())
             ]
         );
-        assert_eq!(e.draft.text("cable.shield"), "true");
+        assert_eq!(e.sheet.text("cable.shield"), "true");
     }
     for (f, v) in [
         ("manufacturer", "Maker"),
@@ -386,7 +386,7 @@ fn a_new_bus_cable_and_plug_are_made_in_the_cable_form() {
     ] {
         part_field(&mut d, f, v);
     }
-    assert_eq!(d.shell_mut().dispatch("part.save", &json!({})), Outcome::Done);
+    assert_eq!(d.shell_mut().dispatch("parts.save", &json!({})), Outcome::Done);
     d.settle();
     let cable = field_value(&mut d, "part");
     assert_eq!(
@@ -397,7 +397,7 @@ fn a_new_bus_cable_and_plug_are_made_in_the_cable_form() {
     let new_plug = option(&mut d, "plug_b", "New plug");
     d.shell_mut().set_form_field("plug_b", &new_plug);
     {
-        let Some(Dialog::PartEdit(e)) = d.shell_mut().dialog() else {
+        let Some(e) = d.shell_mut().parts_place().and_then(|p| p.sheet.as_ref()) else {
             panic!("the New plug form");
         };
         assert_eq!(e.title(), "New bus plug");
@@ -411,10 +411,10 @@ fn a_new_bus_cable_and_plug_are_made_in_the_cable_form() {
         part_field(&mut d, f, v);
     }
     {
-        let Some(Dialog::PartEdit(e)) = d.shell_mut().dialog() else {
+        let Some(e) = d.shell_mut().parts_place().and_then(|p| p.sheet.as_ref()) else {
             panic!("the New plug form");
         };
-        let words = e.draft.text("description");
+        let words = e.sheet.text("description");
         assert!(
             words.contains("PROFIBUS DP")
                 && words.contains("angled")
@@ -422,7 +422,7 @@ fn a_new_bus_cable_and_plug_are_made_in_the_cable_form() {
             "{words}"
         );
     }
-    assert_eq!(d.shell_mut().dispatch("part.save", &json!({})), Outcome::Done);
+    assert_eq!(d.shell_mut().dispatch("parts.save", &json!({})), Outcome::Done);
     d.settle();
     let plug = field_value(&mut d, "plug_b");
     assert_eq!(

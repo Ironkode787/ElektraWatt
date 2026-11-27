@@ -32,10 +32,10 @@ fn removing_a_part_from_my_parts_asks_and_cancel_keeps_it() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     for (action, params) in [
-        ("part.new", json!({})),
-        ("part.field", json!({"field": "manufacturer", "value": "Example"})),
-        ("part.field", json!({"field": "part_number", "value": "SW-6"})),
-        ("part.save", json!({})),
+        ("parts.new", json!({})),
+        ("parts.field", json!({"field": "manufacturer", "value": "Example"})),
+        ("parts.field", json!({"field": "part_number", "value": "SW-6"})),
+        ("parts.save", json!({})),
     ] {
         assert_eq!(d.shell_mut().dispatch(action, &params), Outcome::Done, "{action}");
     }
@@ -49,8 +49,8 @@ fn removing_a_part_from_my_parts_asks_and_cancel_keeps_it() {
     );
     press(&mut d, "Cancel");
     assert!(
-        matches!(d.shell_mut().dialog(), Some(Dialog::PartEdit(_))),
-        "Cancel returns to the part editor"
+        d.shell_mut().dialog().is_none() && d.shell_mut().parts_place().and_then(|p| p.sheet.as_ref()).is_some(),
+        "Cancel returns to the part in Parts"
     );
     assert!(in_my_parts(&tmp, "SW-6"), "Cancel leaves the part in My parts");
     press(&mut d, "Remove from my parts library…");

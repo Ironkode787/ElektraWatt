@@ -8,7 +8,7 @@ use crate::own_parts::{fill, new_project, press, records};
 use crate::relays_paste_and_ip_wires::key;
 use crate::support::Tmp;
 
-use ew_viewmodel::shell::{Dialog, Outcome};
+use ew_viewmodel::shell::Outcome;
 use serde_json::json;
 
 /// The owner met no way to give a part its footprint. A new part is typed with its width, height, depth, its mounting
@@ -43,7 +43,7 @@ fn a_new_part_takes_its_size_and_a_saved_one_changes_it_through_the_card() {
     // Below the fold of the editor's scrolled body: the action the fields send.
     for (field, value) in [("mech.clearance.top", "10"), ("mech.mount_kind", "ts35x7_5")] {
         let set = json!({"field": field, "value": value});
-        assert_eq!(d.shell_mut().dispatch("part.field", &set), Outcome::Done);
+        assert_eq!(d.shell_mut().dispatch("parts.field", &set), Outcome::Done);
     }
     d.settle();
     press(&mut d, "Save");
@@ -60,16 +60,16 @@ fn a_new_part_takes_its_size_and_a_saved_one_changes_it_through_the_card() {
     // Edited again: the width changes through the part's update card.
     let copy = part["id"].as_str().expect("the copy's ID").to_owned();
     let edit = json!({"part": format!("id:{copy}")});
-    assert_eq!(d.shell_mut().dispatch("part.edit", &edit), Outcome::Done);
+    assert_eq!(d.shell_mut().dispatch("parts.open", &edit), Outcome::Done);
     d.settle();
-    let text = match d.shell_mut().dialog() {
-        Some(Dialog::PartEdit(e)) => e.draft.text("mech.width").to_owned(),
-        other => panic!("the part editor: {other:?}"),
+    let text = match d.shell_mut().parts_place().and_then(|p| p.sheet.as_ref()) {
+        Some(e) => e.sheet.text("mech.width").to_owned(),
+        None => panic!("a part open in Parts"),
     };
     assert_eq!(text, "6.2", "the editor shows the saved width");
     let width = json!({"field": "mech.width", "value": "12"});
-    assert_eq!(d.shell_mut().dispatch("part.field", &width), Outcome::Done);
-    assert_eq!(d.shell_mut().dispatch("part.save", &json!({})), Outcome::Done);
+    assert_eq!(d.shell_mut().dispatch("parts.field", &width), Outcome::Done);
+    assert_eq!(d.shell_mut().dispatch("parts.save", &json!({})), Outcome::Done);
     d.settle();
     assert!(
         matches!(

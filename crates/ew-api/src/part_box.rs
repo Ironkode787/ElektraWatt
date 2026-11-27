@@ -8,7 +8,7 @@
 //! them as rows ([`PinRow`]: name and potential) which a person adds to, removes from and renames; Save writes the
 //! pattern and the main template entry's pins. A part with a PLC section, with bus interfaces, or drawn with a
 //! symbol of its own keeps its pins: they come from its channels, its ports or its symbol ([`PinsFrom`]). Where a
-//! card's or a bus device's pins stand on its box is the box's, edited as any box's ([`PartDraft::places_pins`]).
+//! card's or a bus device's pins stand on its box is the box's, edited as any box's ([`PartSheet::places_pins`]).
 //!
 //! **The layout** ([`ew_schema::PartBox`], `Part.box`) is the box's size and, for each pin, the edge it stands on
 //! and its distance along that edge. [`steps`] reads it onto a connection grid: distances taken up to whole grid
@@ -23,7 +23,7 @@ use ew_schema::{BoxCp, CpData, Part, PotentialType, Representation, TemplateFn};
 pub use ew_schema::{Dir4, PartBox, PartBoxPin};
 use ew_units::{Grid, Nm, Pt2};
 
-use crate::part_editor::{PartDraft, PartDraftError, enum_words, message};
+use crate::part_editor::{PartSheet, PartDraftError, enum_words, message};
 use crate::{AnyCommand, Session};
 
 /// The connection grid's step the device box is edited on, in nanometres: the native 4 mm.
@@ -309,7 +309,7 @@ impl BoxSteps {
 /// relative to it, direction)`.
 pub type PlacedBox = ((i64, i64), Vec<(i64, i64)>, Vec<(u16, (i64, i64), Dir4)>);
 
-impl PartDraft {
+impl PartSheet {
     /// Where the pins come from when they are not edited here; `None` for a part whose pins are the person's to
     /// change: a part drawn as a box, or one with neither pins nor functions yet.
     pub fn pins_from(&self) -> Option<PinsFrom> {
@@ -561,12 +561,12 @@ impl Session {
     /// The draft's pins and device box over the part `p`: the CP pattern with the rows' names and potentials (a kept
     /// pin keeps its other members), the main template entry drawing every pin (a part without a template gets the
     /// black box as its main function), and the layout. A part whose pins come from its channels or interfaces
-    /// ([`PartDraft::pins_from`]) keeps its pins and takes the layout; one drawn with a symbol is left as it is.
+    /// ([`PartSheet::pins_from`]) keeps its pins and takes the layout; one drawn with a symbol is left as it is.
     ///
     /// # Errors
     ///
     /// [`PartDraftError::Field`] on `pins` for a name that is no designation.
-    pub(crate) fn apply_pins(&self, draft: &PartDraft, p: &mut Part) -> Result<(), PartDraftError> {
+    pub(crate) fn apply_pins(&self, draft: &PartSheet, p: &mut Part) -> Result<(), PartDraftError> {
         if draft.pins_from().is_some() {
             if draft.places_pins() && draft.box_ != draft.original.box_ {
                 p.box_.clone_from(&draft.box_);
@@ -652,12 +652,12 @@ impl Session {
         self.query().parts().iter().map(|(id, _)| id.as_uuid()).collect()
     }
 
-    /// Every part drawn as a box with pins of its own ([`PartDraft::drawn_as_box`]): those the project holds, then
+    /// Every part drawn as a box with pins of its own ([`PartSheet::drawn_as_box`]): those the project holds, then
     /// those of every installed library that it does not hold, each with its draft (without the names of its
     /// functions).
-    pub fn box_parts(&self) -> Vec<(crate::PartPick, PartDraft)> {
+    pub fn box_parts(&self) -> Vec<(crate::PartPick, PartSheet)> {
         let q = self.query();
-        let mut out: Vec<(crate::PartPick, PartDraft)> = q
+        let mut out: Vec<(crate::PartPick, PartSheet)> = q
             .parts()
             .iter()
             .map(|(id, c)| {

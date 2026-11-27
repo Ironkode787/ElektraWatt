@@ -677,6 +677,13 @@ impl CommandBarHost {
                             UiBuilder::new().max_rect(row.shrink2(vec2(t.space_3, 0.0))),
                             |ui| editor_view.toolbar(ui, shell, events),
                         );
+                    } else if shell.screen() == ew_viewmodel::shell::Screen::Parts {
+                        ui.painter()
+                            .rect_filled(row, theme::SQUARE, t.surface_panel.color32());
+                        ui.scope_builder(
+                            UiBuilder::new().max_rect(row.shrink2(vec2(t.space_3, 0.0))),
+                            |ui| crate::parts_place::toolbar(ui, shell, events),
+                        );
                     } else {
                         command_row(ui, &t, &model, row, events);
                     }

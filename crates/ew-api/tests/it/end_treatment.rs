@@ -485,7 +485,7 @@ fn the_part_of_an_end_set_by_hand_is_a_link() {
         })
         .collect();
     run(&mut s, "workshop.stock", json!({ "stock": stock_now })).expect("the stock as it was");
-    let refused = match run(&mut s, "part.delete", json!({ "copy": fork })).expect_err("named by an end") {
+    let refused = match run(&mut s, "parts.remove", json!({ "copy": fork })).expect_err("named by an end") {
         ew_api::CmdError::Model(_, Some(words)) => words.to_string(),
         other => panic!("refused in words: {other}"),
     };

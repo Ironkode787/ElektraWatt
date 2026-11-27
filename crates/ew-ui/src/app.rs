@@ -250,6 +250,8 @@ pub struct App {
     /// The page view of the wizard's preview.
     preview_view: PageView,
     symbol_editor_view: crate::symbol_editor::EditorView,
+    /// The view state of Parts (doc 07 §5).
+    parts_view: crate::parts_place::PlaceView,
     dock: Dock,
     initial: Option<PathBuf>,
     bindings: Vec<Binding>,
@@ -365,6 +367,7 @@ impl App {
             area_splitters: 0,
             preview_view: PageView::new(),
             symbol_editor_view: crate::symbol_editor::EditorView::default(),
+            parts_view: crate::parts_place::PlaceView::default(),
             dock,
             initial,
             // Built by the first frame from the shell's keymap (`App::sync_bindings`).

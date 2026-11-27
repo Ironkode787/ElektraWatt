@@ -403,15 +403,15 @@ fn box_with_three_pins(tmp: &Tmp) -> Driver {
         "file.new",
         json!({"dir": tmp.0.join("p.ew"), "template": "builtin"}),
     );
-    done(&mut d, "part.new", json!({}));
+    done(&mut d, "parts.new", json!({}));
     done(
         &mut d,
-        "part.field",
+        "parts.field",
         json!({"field": "manufacturer", "value": "Example"}),
     );
     done(
         &mut d,
-        "part.field",
+        "parts.field",
         json!({"field": "part_number", "value": "DRV-1"}),
     );
     d.settle();

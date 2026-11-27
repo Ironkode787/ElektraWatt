@@ -666,3 +666,6 @@ via-gland-none-seals = no gland of the stock seals { $p0 } mm
 via-gland-hole-on-page = on page { $p0 }
 via-gland-hole-placed = placed
 via-gland-hole-not-placed = not placed
+
+## Keep in my parts (doc 07 §5.8)
+reason-part-keep = Only a part that is only in this project is kept in My parts.

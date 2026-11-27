@@ -69,7 +69,7 @@ pub enum PartDraftError {
 /// The part editor's draft: the editable members as texts, their messages, and the read-only members the
 /// editor shows.
 #[derive(Clone, PartialEq, Debug)]
-pub struct PartDraft {
+pub struct PartSheet {
     /// The held copy.
     pub copy: Uuid,
     /// The texts of [`identity_fields`], in that order.
@@ -96,7 +96,7 @@ pub struct PartDraft {
     /// The template's function names (read-only).
     pub functions: Vec<String>,
     /// The part's pins (its CP pattern): added to, removed from and renamed while they are the person's to change
-    /// ([`PartDraft::pins_from`]).
+    /// ([`PartSheet::pins_from`]).
     pub pins: Vec<crate::part_box::PinRow>,
     /// The device box: its size and where each pin stands on it; `None` for a box drawn by two clicks.
     pub box_: Option<ew_schema::PartBox>,
@@ -127,6 +127,9 @@ pub struct PartDraft {
     pub drawn_faces: Vec<String>,
     /// That symbol's function definition, the new part's main template entry.
     pub(crate) fndef: Option<LibRef>,
+    /// The library and the item the part was opened from (the project's ID for a part only in this project); `None`
+    /// for a new part.
+    pub source: Option<(Uuid, Uuid)>,
     pub(crate) original: Part,
     pub(crate) manufacturer: (LibRef, Vec<Value>),
 }
@@ -339,7 +342,7 @@ pub(crate) fn bus_section(rows: &[BusRow]) -> Result<Option<BusSection>, PartDra
     }))
 }
 
-impl PartDraft {
+impl PartSheet {
     /// The text of a field of [`identity_fields`], a declared row or table cell (`mech.width`, `accessories[0].qty`),
     /// `tech:<key>` or `bus.<row>.<member>`; `""` for another.
     pub fn text(&self, field: &str) -> &str {
@@ -630,7 +633,7 @@ impl Session {
     /// # Errors
     ///
     /// [`crate::ApiError::NotHeld`] when the project holds no part copy `copy`.
-    pub fn part_draft(&self, copy: Uuid) -> Result<PartDraft, crate::ApiError> {
+    pub fn part_draft(&self, copy: Uuid) -> Result<PartSheet, crate::ApiError> {
         let q = self.query();
         let c: LibCopy<Part> = (**q
             .parts()
@@ -649,7 +652,7 @@ impl Session {
     /// # Errors
     ///
     /// [`crate::ApiError::NotHeld`] when no installed library holds that part.
-    pub fn library_part_draft(&self, library: Uuid, item: Uuid) -> Result<PartDraft, crate::ApiError> {
+    pub fn library_part_draft(&self, library: Uuid, item: Uuid) -> Result<PartSheet, crate::ApiError> {
         let copy = ew_ids::v5::lib_copy_id::<Part>(library, item).as_uuid();
         if self.query().parts().get(Id::from_uuid(copy)).is_some() {
             return self.part_draft(copy);
@@ -674,7 +677,7 @@ impl Session {
 
     /// The draft of a library's part `c` that the project does not hold, without the names of its functions; a
     /// manufacturer the project does not hold either is named by its library's record.
-    pub(crate) fn unheld_draft(&self, q: &Q, c: LibCopy<Part>) -> PartDraft {
+    pub(crate) fn unheld_draft(&self, q: &Q, c: LibCopy<Part>) -> PartSheet {
         let copy = ew_ids::v5::lib_copy_id::<Part>(c.library_id.as_uuid(), c.item_id.as_uuid());
         let maker = c.item.manufacturer.clone();
         let mut draft = self.draft_of(q, c, copy.as_uuid());
@@ -688,7 +691,7 @@ impl Session {
     }
 
     /// The draft of the part copy `c` under the copy ID `copy`, without the names of its functions.
-    pub(crate) fn draft_of(&self, q: &Q, c: LibCopy<Part>, copy: Uuid) -> PartDraft {
+    pub(crate) fn draft_of(&self, q: &Q, c: LibCopy<Part>, copy: Uuid) -> PartSheet {
         let project = q.project().id.as_uuid();
         let lib = c.library_id.as_uuid();
         let p = &c.item;
@@ -749,7 +752,8 @@ impl Session {
                     })
             });
         let (rows, tables) = self.part_rows(q, p);
-        PartDraft {
+        PartSheet {
+            source: Some((lib, c.item_id.as_uuid())),
             copy,
             fields,
             tech,
@@ -829,7 +833,7 @@ impl Session {
     }
 
     /// Sets a field of the draft from its text and checks it: the text is kept either way, a field that does not
-    /// parse gets its message ([`PartDraft::message`]) and the error. `tech:<key>` sets a technical value (an empty
+    /// parse gets its message ([`PartSheet::message`]) and the error. `tech:<key>` sets a technical value (an empty
     /// text removes it): a text that starts with a digit parses by the property grid's quantity rule, any other as an
     /// identifier; a key given twice (up to case) is refused.
     ///
@@ -839,7 +843,7 @@ impl Session {
     /// field the editor does not have.
     pub fn set_draft_field(
         &self,
-        draft: &mut PartDraft,
+        draft: &mut PartSheet,
         field: &str,
         text: &str,
     ) -> Result<(), PartDraftError> {
@@ -924,7 +928,7 @@ impl Session {
         }
     }
 
-    fn check_field(&self, draft: &mut PartDraft, field: &str, t: &str) -> Result<(), DraftMessage> {
+    fn check_field(&self, draft: &mut PartSheet, field: &str, t: &str) -> Result<(), DraftMessage> {
         let ident = |t: &str| {
             Ident::from_input(t).map_err(|e| message(field, key!("error-part-value"), &[&e.to_string()]))
         };
@@ -986,7 +990,7 @@ impl Session {
         }
     }
 
-    fn set_tech(&self, draft: &mut PartDraft, key: &str, t: &str) -> Result<(), DraftMessage> {
+    fn set_tech(&self, draft: &mut PartSheet, key: &str, t: &str) -> Result<(), DraftMessage> {
         let field = format!("tech:{key}");
         if Ident::from_input(key).is_err() || key.trim().is_empty() || key != key.trim() {
             return Err(message(
@@ -1044,7 +1048,7 @@ impl Session {
 
     /// The draft's part item and the manufacturer documents it needs; the first message of a field that does not
     /// parse is the refusal.
-    pub(crate) fn draft_part(&self, draft: &PartDraft) -> Result<(Part, Vec<Value>), PartDraftError> {
+    pub(crate) fn draft_part(&self, draft: &PartSheet) -> Result<(Part, Vec<Value>), PartDraftError> {
         if let Some(m) = draft.messages.first() {
             return Err(PartDraftError::Field(m.clone()));
         }
@@ -1120,7 +1124,7 @@ impl Session {
     ///
     /// [`PartDraftError::Field`] for the first field that does not parse; [`PartDraftError::Refused`]
     /// (`reason-part-unchanged`) when the part equals the copy's.
-    pub fn part_edit_command(&self, draft: &PartDraft) -> Result<AnyCommand, PartDraftError> {
+    pub fn part_edit_command(&self, draft: &PartSheet) -> Result<AnyCommand, PartDraftError> {
         let (mut part, copies) = self.draft_part(draft)?;
         // A project-local part of the person's own takes its forms' sections too; any part its pins and device box.
         if draft.own && !draft.fork {
@@ -1148,7 +1152,7 @@ impl Session {
     ///
     /// As [`Session::part_edit_command`]; a refused preview is [`PartDraftError::Field`] on `part` with the
     /// command's message.
-    pub fn part_edit_plan(&self, draft: &PartDraft) -> Result<PartEditPlan, PartDraftError> {
+    pub fn part_edit_plan(&self, draft: &PartSheet) -> Result<PartEditPlan, PartDraftError> {
         let command = self.part_edit_command(draft)?;
         let q = self.query();
         let held = q

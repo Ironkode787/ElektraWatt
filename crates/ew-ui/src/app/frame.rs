@@ -452,6 +452,7 @@ impl App {
                 Screen::FirstRun => first_run::show(ui, &self.shell, events),
                 Screen::Wizard => wizard::show(ui, &self.shell, &mut self.preview_view, events),
                 Screen::SymbolEditor => self.symbol_editor_view.show(ui, &self.shell, events),
+                Screen::Parts => self.parts_view.show(ui, &self.shell, events),
                 Screen::Project => {
                     let App {
                         shell,

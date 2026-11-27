@@ -1282,13 +1282,80 @@ pub(super) fn part_dialog_open(m: &ShellModel) -> Result<(), Text> {
     }
 }
 
-/// The part editor's own actions need the editor and a writable project.
-pub(super) fn part_editor_open(m: &ShellModel) -> Result<(), Text> {
-    writable(m)?;
-    if matches!(m.dialog(), Some(crate::shell::Dialog::PartEdit(_))) {
+/// Parts is shown (doc 07 §5).
+pub(super) fn parts_shown(m: &ShellModel) -> Result<(), Text> {
+    if m.parts_place().is_some() {
         Ok(())
     } else {
-        Err(key!("reason-no-part-editor").into())
+        Err(key!("reason-no-parts-place").into())
+    }
+}
+
+/// The open sheet of Parts, in a writable project.
+fn open_sheet(m: &ShellModel) -> Result<&crate::shell::parts_place::OpenSheet, Text> {
+    writable(m)?;
+    m.parts_place()
+        .and_then(|p| p.sheet.as_ref())
+        .ok_or_else(|| key!("reason-no-part-open").into())
+}
+
+/// The open part is the person's to change: his own, or new.
+pub(super) fn part_editable(m: &ShellModel) -> Result<(), Text> {
+    if open_sheet(m)?.editable() {
+        Ok(())
+    } else {
+        Err(key!("reason-part-not-yours").into())
+    }
+}
+
+/// Save: the open part is his to change and was changed (a new part always is).
+pub(super) fn part_savable(m: &ShellModel) -> Result<(), Text> {
+    part_editable(m)?;
+    let open = open_sheet(m)?;
+    if open.changed || open.sheet.new {
+        Ok(())
+    } else {
+        Err(key!("reason-part-not-changed").into())
+    }
+}
+
+/// Discard: the open part was changed since it was opened or saved.
+pub(super) fn part_changed(m: &ShellModel) -> Result<(), Text> {
+    let open = open_sheet(m)?;
+    if open.changed || open.sheet.new {
+        Ok(())
+    } else {
+        Err(key!("reason-part-not-changed").into())
+    }
+}
+
+/// Make my own from it: the open part is not his.
+pub(super) fn part_not_mine(m: &ShellModel) -> Result<(), Text> {
+    match open_sheet(m)?.lives {
+        ew_api::parts::Lives::NotMine { .. } => Ok(()),
+        _ => Err(key!("reason-part-own-already").into()),
+    }
+}
+
+/// Keep in my parts: the open part is only in this project.
+pub(super) fn part_only_here(m: &ShellModel) -> Result<(), Text> {
+    match open_sheet(m)?.lives {
+        ew_api::parts::Lives::OnlyHere => Ok(()),
+        _ => Err(key!("reason-part-keep").into()),
+    }
+}
+
+/// Remove…: the open part is in My parts, or only in this project and used by no device.
+pub(super) fn part_removable(m: &ShellModel) -> Result<(), Text> {
+    let open = open_sheet(m)?;
+    match open.lives {
+        ew_api::parts::Lives::Mine => Ok(()),
+        ew_api::parts::Lives::OnlyHere if open.sheet.users == 0 => Ok(()),
+        ew_api::parts::Lives::OnlyHere => Err(strings::keyed(
+            key!("reason-part-remove-used"),
+            vec![ew_api::TextArg::Number(i64::try_from(open.sheet.users).unwrap_or(i64::MAX))],
+        )),
+        _ => Err(key!("reason-part-not-own").into()),
     }
 }
 

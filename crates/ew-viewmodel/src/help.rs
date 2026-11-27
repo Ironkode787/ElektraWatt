@@ -357,9 +357,7 @@ fn own_topic(action: &str) -> Option<&'static str> {
         "project.purge_assets" => "dialog-purge",
         "nav.goto" | "page.goto" => "dialog-goto-page",
         "part.choose" | "part.pick" | "part.search" | "part.favourite" => "dialog-part-choose",
-        "part.edit" | "part.new" | "part.save" | "part.field" | "part.pin" | "part.bus_row" => {
-            "guide-own-parts"
-        }
+        a if a.starts_with("parts.") || a == "part.pin" => "guide-own-parts",
         "page.title_block" | "field.new" | "field.rename" | "field.remove" => "dialog-form",
         a if a.starts_with("frame.") => "edit-frame",
         "page.add_legend" => Thing::PanelLayout.topic(),
@@ -767,6 +765,10 @@ pub fn context_topic(model: &ShellModel) -> String {
     if let Some(editor) = model.symbol_editor() {
         return symbol_editor_topic(editor).to_owned();
     }
+    // Parts makes and changes your own parts: the guide that walks through it.
+    if model.parts_place().is_some() {
+        return "guide-own-parts".to_owned();
+    }
     if let Some(topic) = focus_topic(model) {
         return topic;
     }
@@ -939,10 +941,8 @@ pub fn dialog_topic(dialog: &Dialog) -> &'static str {
         // Replacing an earlier DXF set: the export's own section.
         Dialog::ConfirmReplaceDxf { .. } => action_topic("file.export_dxf").unwrap_or("dialog-form"),
         Dialog::PartChoose(_) => "dialog-part-choose",
-        // New cable type… makes a cable part: the cables' section.
-        Dialog::PartEdit(e) if e.cable_type => Thing::Cable.topic(),
-        // The part editor makes your own parts, and takes one out of My parts: the guide that walks through it.
-        Dialog::PartEdit(_) | Dialog::ConfirmRemovePart { .. } => "guide-own-parts",
+        // Remove… of Parts takes a part out of My parts: the guide that walks through your own parts.
+        Dialog::ConfirmRemovePart { .. } => "guide-own-parts",
         Dialog::Print(_) => "dialog-print",
         Dialog::ExternalChange { .. } => "dialog-external-change",
         Dialog::ConfirmUpgrade { .. } => "dialog-upgrade",

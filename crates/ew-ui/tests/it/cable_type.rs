@@ -29,8 +29,10 @@ fn shown(d: &mut Driver) {
 
 /// The open dialog's title.
 fn title(d: &mut Driver) -> String {
+    if let Some(e) = d.shell_mut().parts_place().and_then(|p| p.sheet.as_ref()) {
+        return e.title();
+    }
     match d.shell_mut().dialog() {
-        Some(Dialog::PartEdit(e)) => e.title(),
         Some(Dialog::Form(f)) => ew_viewmodel::strings::text(f.title_key).to_owned(),
         other => panic!("no form: {other:?}"),
     }
@@ -69,7 +71,7 @@ fn a_cable_type_is_made_in_the_cable_form_and_chosen_there() {
     fill(&mut d, "Number of cores", "4");
     assert_eq!(
         d.shell_mut().dispatch(
-            "part.field",
+            "parts.field",
             &serde_json::json!({"field": "cable.marking", "value": "numbers"})
         ),
         Outcome::Done
@@ -84,9 +86,9 @@ fn a_cable_type_is_made_in_the_cable_form_and_chosen_there() {
     shown(&mut d);
     // The next size of the series: everything kept but the part number and the cross-section.
     assert_eq!(title(&mut d), "New cable type");
-    match d.shell_mut().dialog() {
-        Some(Dialog::PartEdit(e)) => {
-            let t = |f: &str| e.draft.text(f).to_owned();
+    match d.shell_mut().parts_place().and_then(|p| p.sheet.as_ref()) {
+        Some(e) => {
+            let t = |f: &str| e.sheet.text(f).to_owned();
             assert_eq!(
                 [
                     t("manufacturer"),
@@ -138,14 +140,14 @@ fn a_new_part_of_kind_cable_has_the_cable_section() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     assert_eq!(
-        d.shell_mut().dispatch("part.new", &serde_json::json!({})),
+        d.shell_mut().dispatch("parts.new", &serde_json::json!({})),
         Outcome::Done
     );
     shown(&mut d);
     assert!(d.find("Number of cores").is_none(), "a device part has none");
     assert_eq!(
         d.shell_mut().dispatch(
-            "part.field",
+            "parts.field",
             &serde_json::json!({"field": "kind", "value": "cable"})
         ),
         Outcome::Done

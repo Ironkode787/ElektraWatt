@@ -51,7 +51,7 @@ fn wire_ends(s: &ShellModel) -> Vec<Vec<String>> {
 fn a_wire_keeps_its_pin_when_the_card_s_pins_are_numbered_again() {
     let tmp = Tmp::new("corrected-card-wires");
     let mut s = new_project(&tmp);
-    done(&mut s, "part.new", json!({"plc": "module"}));
+    done(&mut s, "parts.new", json!({"plc": "module"}));
     for (field, value) in [
         ("manufacturer", "Example"),
         ("part_number", "DI-4S"),
@@ -61,9 +61,9 @@ fn a_wire_keeps_its_pin_when_the_card_s_pins_are_numbered_again() {
         ("plc.l_plus", "L+"),
         ("plc.m", "M"),
     ] {
-        done(&mut s, "part.field", json!({"field": field, "value": value}));
+        done(&mut s, "parts.field", json!({"field": field, "value": value}));
     }
-    done(&mut s, "part.save", json!({}));
+    done(&mut s, "parts.save", json!({}));
     // The card drawn by two corners, a push button beside it.
     done(&mut s, "tool.place", json!({}));
     done(&mut s, "place.pick", json!({"part": "DI-4S"}));
@@ -107,9 +107,9 @@ fn a_wire_keeps_its_pin_when_the_card_s_pins_are_numbered_again() {
     wired.sort();
     assert_eq!(wire_ends(&s), [wired.clone()], "the wire as drawn");
     // Six inputs: the pins are numbered again.
-    done(&mut s, "part.edit", json!({"part": "DI-4S"}));
-    done(&mut s, "part.field", json!({"field": "plc.count", "value": "6"}));
-    done(&mut s, "part.save", json!({}));
+    done(&mut s, "parts.open", json!({"part": "DI-4S"}));
+    done(&mut s, "parts.field", json!({"field": "plc.count", "value": "6"}));
+    done(&mut s, "parts.save", json!({}));
     done(&mut s, "preview.apply", json!({}));
     done(&mut s, "page.goto", json!({"folio": "101"}));
     assert_eq!(wire_ends(&s), [wired], "the wire still ends at L+");

@@ -407,7 +407,7 @@ pub const SPLITS: &[(&str, &[&str])] = &[
         ],
     ),
     // New station… and New part…, for a card or a head station of one's own.
-    ("plc.new_station", &["plc.new_station", "part.new"]),
+    ("plc.new_station", &["plc.new_station", "parts.new"]),
 ];
 
 /// The tab's next step (doc 16a §5.2): the one Primary button at the right end of the command row.
@@ -667,6 +667,10 @@ pub fn shown_command_bar(model: &ShellModel) -> CommandBarModel {
         bar.collapsible = false;
         bar.tabs = vec![(bar.tab, strings::text(key!("symbol-title")).to_owned())];
         bar.workspaces.clear();
+    } else if model.screen() == crate::shell::Screen::Parts {
+        bar.collapsible = false;
+        bar.tabs = vec![(bar.tab, strings::text(key!("parts-tab-part")).to_owned())];
+        bar.workspaces.clear();
     }
     bar
 }
@@ -674,7 +678,7 @@ pub fn shown_command_bar(model: &ShellModel) -> CommandBarModel {
 /// Whether the command bar the window shows is collapsed to its tab row: the project's bar's collapse, never over
 /// the symbol editor ([`shown_command_bar`]).
 pub fn shown_collapsed(model: &ShellModel) -> bool {
-    model.command_bar_collapsed() && model.symbol_editor().is_none()
+    model.command_bar_collapsed() && model.symbol_editor().is_none() && model.parts_place().is_none()
 }
 
 /// The Draw tab's groups whose commands act on the selection: the canvas context menu offers them.
@@ -1036,7 +1040,7 @@ pub fn navigator_row_menu(
         {
             match model.device_part(*device) {
                 Some(copy) => item(
-                    "part.edit",
+                    "parts.open",
                     serde_json::json!({ "part": format!("id:{copy}") }),
                     key!("action-part-give-size"),
                 )

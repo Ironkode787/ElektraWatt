@@ -333,7 +333,7 @@ fn what_is_wrong_is_said_at_the_place_with_its_fix() {
     let tmp = Tmp::new();
     let (mut h, id) = rack_with(&tmp, &[]);
     // A module part of one's own that goes into slots 1 and 2 only.
-    dispatch(&mut h, "part.new", json!({"plc": "module"}));
+    dispatch(&mut h, "parts.new", json!({"plc": "module"}));
     for (field, value) in [
         ("manufacturer", "Acme"),
         ("part_number", "DI-12"),
@@ -342,9 +342,9 @@ fn what_is_wrong_is_said_at_the_place_with_its_fix() {
         ("plc.count", "8"),
         ("plc.slots", "1-2"),
     ] {
-        dispatch(&mut h, "part.field", json!({"field": field, "value": value}));
+        dispatch(&mut h, "parts.field", json!({"field": field, "value": value}));
     }
-    dispatch(&mut h, "part.save", json!({}));
+    dispatch(&mut h, "parts.save", json!({}));
     settle(&mut h);
     assert!(h.state().shell().dialog().is_none(), "the part is saved");
     assert_eq!(station_of(&h), id, "the view is still on show");

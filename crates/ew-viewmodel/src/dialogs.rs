@@ -177,8 +177,6 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         // An empty search is said once, in the list (not here); Choose is disabled while the list is
         // empty, with its reason.
         Dialog::PartChoose(c) => part_choose_spec(c),
-        // Save (Enter) and Cancel; a fork says that the library is not changed.
-        Dialog::PartEdit(e) => part_edit_spec(e),
         // Apply (the choices, Enter), All mine, All theirs, Decide later (Escape); the list of
         // fields with base, mine and theirs is the dialog's.
         Dialog::ExternalChange { rows } => {
@@ -639,13 +637,13 @@ fn purge_spec(files: &[String]) -> DialogSpec {
     }
 }
 
-/// Taking part `number` (`part` as `part.remove_own` takes it) out of My parts: Cancel the Primary, Remove
-/// apart; what goes and what stays in one sentence.
-fn remove_part_spec(part: &str, number: &str) -> DialogSpec {
+/// Taking the open part `number` of Parts out of My parts: Cancel the Primary, Remove apart; what goes and what stays
+/// in one sentence.
+fn remove_part_spec(_part: &str, number: &str) -> DialogSpec {
     DialogSpec {
         danger: Some(DialogButton::new(
             key!("dialog-remove"),
-            DialogAnswer::Action("part.remove_own", json!({ "part": part, "confirm": true })),
+            DialogAnswer::Action("parts.remove", json!({ "confirm": true })),
         )),
         asks: true,
         ..small(
@@ -692,85 +690,6 @@ fn part_choose_spec(c: &crate::shell::part_dialog::PartChooser) -> DialogSpec {
         secondary: vec![cancel()],
         form: true,
         ..small(c.title(), Vec::new(), choose)
-    }
-}
-
-/// Edit part: a form with Save and Cancel.
-fn part_edit_spec(e: &crate::shell::part_dialog::PartEditor) -> DialogSpec {
-    // A part of one's own says what a correction does to the devices already drawn; a part one cannot change says
-    // why, and Copy as a part of your own is the way out.
-    let d = &e.draft;
-    let body = if e.cable_type {
-        vec![strings::text(key!("part-cable-type-note")).to_owned()]
-    } else if d.new {
-        vec![strings::text(key!("part-new-note")).to_owned()]
-    } else if d.own && d.users > 0 {
-        vec![strings::format(key!("part-own-users"), &[&d.users.to_string()])]
-    } else if d.own {
-        Vec::new()
-    } else {
-        let mut lines = Vec::new();
-        if d.fork {
-            lines.push(strings::text(key!("part-edit-fork-note")).to_owned());
-        }
-        if let Some(library) = &d.library {
-            lines.push(strings::format(key!("part-read-only"), &[library]));
-        }
-        lines
-    };
-    let mut secondary = vec![cancel()];
-    if !d.new && !d.own {
-        secondary.insert(
-            0,
-            DialogButton::new(
-                key!("part-copy-own"),
-                DialogAnswer::Action("part.new", json!({ "from": d.copy.to_string() })),
-            ),
-        );
-    }
-    // A new cable type is one size of a series: the next size is typed in the same form.
-    if d.new && d.text("kind") == "cable" {
-        secondary.insert(
-            0,
-            DialogButton::new(
-                key!("part-save-another"),
-                DialogAnswer::Action("part.save", json!({ "another": true })),
-            ),
-        );
-    }
-    // A part of My parts is taken out of it there; the project keeps its copy, which the toast says. A part of the
-    // project's own is deleted, greyed while a device uses it; a library's part says that Save makes the project's own.
-    let danger = if d.own && d.fork {
-        Some(DialogButton::new(
-            key!("part-remove-own"),
-            DialogAnswer::Action("part.remove_own", Value::Null),
-        ))
-    } else if !d.new {
-        let mut b = DialogButton::new(
-            key!("part-delete"),
-            DialogAnswer::Action("part.delete", Value::Null),
-        );
-        b.disabled = if d.fork {
-            Some(strings::text(key!("part-delete-library")).to_owned())
-        } else {
-            (d.users > 0).then(|| strings::format(key!("part-delete-used"), &[&d.users.to_string()]))
-        };
-        Some(b)
-    } else {
-        None
-    };
-    DialogSpec {
-        secondary,
-        danger,
-        form: true,
-        ..small(
-            e.title(),
-            body,
-            DialogButton::new(
-                key!("dialog-save"),
-                DialogAnswer::Action("part.save", Value::Null),
-            ),
-        )
     }
 }
 
