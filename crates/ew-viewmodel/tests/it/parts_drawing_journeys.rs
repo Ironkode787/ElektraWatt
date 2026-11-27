@@ -1007,9 +1007,21 @@ fn the_version_row_reads_the_library_s_version() {
     };
     done(&mut s, "parts.open", json!({}));
     done(&mut s, "parts.new_symbol", json!({}));
-    assert_eq!(row(&s, "version"), Some(RowValue::Text(Some("1.0.0".into()))), "what Save gives a new one");
-    done(&mut s, "parts.field", json!({"field": "symbol.name", "value": "Versioned"}));
-    done(&mut s, "parts.field", json!({"field": "symbol.licence", "value": "CC0-1.0"}));
+    assert_eq!(
+        row(&s, "version"),
+        Some(RowValue::Text(Some("1.0.0".into()))),
+        "what Save gives a new one"
+    );
+    done(
+        &mut s,
+        "parts.field",
+        json!({"field": "symbol.name", "value": "Versioned"}),
+    );
+    done(
+        &mut s,
+        "parts.field",
+        json!({"field": "symbol.licence", "value": "CC0-1.0"}),
+    );
     draw_contact(&mut s);
     done(&mut s, "parts.save", json!({}));
     done(
@@ -1021,7 +1033,11 @@ fn the_version_row_reads_the_library_s_version() {
     let address = s.settings().symbols_recent.first().cloned().expect("saved");
     done(&mut s, "parts.back", json!({"discard": true}));
     done(&mut s, "parts.open", json!({"symbol": address}));
-    assert_eq!(row(&s, "version"), Some(RowValue::Text(Some("1.0.1".into()))), "its library's version");
+    assert_eq!(
+        row(&s, "version"),
+        Some(RowValue::Text(Some("1.0.1".into()))),
+        "its library's version"
+    );
     assert_eq!(row(&s, "licence"), Some(RowValue::Text(Some("CC0-1.0".into()))));
 }
 
@@ -1032,9 +1048,17 @@ fn back_without_it_returns_to_the_page_and_keeps_the_part_aside() {
     let tmp = Tmp::new("drawing-back-to-page");
     let mut s = project(&tmp);
     done(&mut s, "parts.new", json!({"start": "device"}));
-    done(&mut s, "parts.field", json!({"field": "part_number", "value": "HALF-TYPED"}));
+    done(
+        &mut s,
+        "parts.field",
+        json!({"field": "part_number", "value": "HALF-TYPED"}),
+    );
     done(&mut s, "parts.new_symbol", json!({}));
-    done(&mut s, "parts.field", json!({"field": "symbol.name", "value": "Tested"}));
+    done(
+        &mut s,
+        "parts.field",
+        json!({"field": "symbol.name", "value": "Tested"}),
+    );
     draw_contact(&mut s);
     done(&mut s, "symbol.scratch", json!({}));
     let page = |s: &ShellModel| {
@@ -1049,10 +1073,16 @@ fn back_without_it_returns_to_the_page_and_keeps_the_part_aside() {
     assert!(s.symbol_editor().is_some(), "the page's drawing");
     done(&mut s, "parts.back", json!({}));
     assert!(s.symbol_editor().is_none());
-    assert!(s.parts_place().is_some_and(|p| p.aside), "Parts waits aside, the page shows");
+    assert!(
+        s.parts_place().is_some_and(|p| p.aside),
+        "Parts waits aside, the page shows"
+    );
     assert_eq!(page(&s), before, "the page as it was");
     done(&mut s, "parts.open", json!({}));
-    let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the part is kept");
+    let open = s
+        .parts_place()
+        .and_then(|p| p.sheet.as_ref())
+        .expect("the part is kept");
     assert!(open.changed, "with its typing");
     assert_eq!(open.title(), "HALF-TYPED");
 }

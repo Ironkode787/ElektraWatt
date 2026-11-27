@@ -457,8 +457,12 @@ impl Session {
             let original = &draft.original.function_template;
             let before = piece_entries(&draft.original);
             let mut used = vec![false; before.len()];
-            let rows: Vec<(usize, &PieceRow)> =
-                draft.pieces.iter().enumerate().filter(|(_, r)| !r.what.is_empty()).collect();
+            let rows: Vec<(usize, &PieceRow)> = draft
+                .pieces
+                .iter()
+                .enumerate()
+                .filter(|(_, r)| !r.what.is_empty())
+                .collect();
             let mut same: Vec<Option<usize>> = Vec::with_capacity(rows.len());
             for (_, row) in &rows {
                 let k = (0..before.len()).find(|&k| !used[k] && before[k].0 == **row);
@@ -476,7 +480,8 @@ impl Session {
                 let was = (0..before.len())
                     .find(|&k| !used[k] && before[k].0.what == row.what && before[k].0.symbol == row.symbol)
                     .or_else(|| {
-                        (0..before.len()).find(|&k| !used[k] && !row.symbol.is_empty() && before[k].0.symbol == row.symbol)
+                        (0..before.len())
+                            .find(|&k| !used[k] && !row.symbol.is_empty() && before[k].0.symbol == row.symbol)
                     });
                 let symbol = match was {
                     Some(k) => {
