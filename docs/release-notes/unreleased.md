@@ -647,3 +647,12 @@ change here.
   (`representation, page_item`), and nothing selected reads "0 elementen" in Dutch, not "0 items"
 - behaviour-change: the Properties header shows its finding chips as glyphs before the title is cut when the chip
   that says where every value is from ("generated") stands beside them; that chip was left out of the measure
+- text-change: every phrase of a Properties chip and the line under a wire's Length and Way rows read in the window's
+  language; the older phrases ("its PLC station", "with …", "stored ways", "hole table", "routed", "protected by …",
+  a hole's "tap M5", "moved", "left out" and others) stayed English in the Dutch window. The English the window showed
+  stays; `ew query wire_props` and the describe text now print the window's words where they differed ("from cable
+  -101W1, core BN", "built-in default: the project has no profile that sets it", "no default tube, medium tube or tube
+  part", "medium defined at …"), and `ew query device_tag --explain` of an earth symbol "an earth symbol: a connection
+  to earth, no device, so no tag"
+- api-break: `ew_api::output::Provenance`'s `Inherited::from`, `Derived::via`, `Overridden::note` and `Frozen::note`
+  are texts by key (`ew_api::Text`), `Provenance::Told` goes into `Derived`, and `PropRow::note` is a text

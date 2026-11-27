@@ -111,12 +111,12 @@ prop-source-rating = protected by { $p0 }, rated { $p1 } A · { $p2 }
 prop-source-size-profile = size profile { $p0 }
 prop-source-project = project default
 prop-source-built-in = built-in default of derivation profile { $p0 }
-prop-via-core = cable { $p0 }, core { $p1 }
+prop-via-core = from cable { $p0 }, core { $p1 }
 prop-via-potential = potential definition { $p0 }
 prop-via-colour-profile = potential { $p0 } · colour profile '{ $p1 }'
 prop-via-rating = potential { $p0 } · protected by { $p1 }, rated { $p2 } A · { $p3 }
 prop-via-size-profile = potential { $p0 } · size profile '{ $p1 }' · class { $p2 }
-prop-via-built-in = built-in default ({ $p0 })
+prop-via-built-in = built-in default: the project has no profile that sets it
 prop-via-override = override
 
 ## Where a length comes from, as the wire list, the tube list and the cable overview print it

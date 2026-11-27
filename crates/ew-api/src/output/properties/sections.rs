@@ -317,7 +317,7 @@ fn workshop_defaults(cx: &SheetCx<'_>, built: &mut [Built]) {
                 text,
             };
             b.row.provenance = Provenance::Derived {
-                via: "project default".into(),
+                via: text!("via-project-default"),
             };
         }
     }
@@ -364,7 +364,7 @@ fn label_file_row(q: &Q, built: &mut Vec<Built>) {
             Provenance::Authored
         } else {
             Provenance::Derived {
-                via: "project default".into(),
+                via: text!("via-project-default"),
             }
         },
         actions: Vec::new(),

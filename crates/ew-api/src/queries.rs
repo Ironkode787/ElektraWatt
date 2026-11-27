@@ -984,9 +984,8 @@ fn ids_to_words(q: &Q, text: &str) -> String {
 /// The provenance's text: a derived row's `via`, a frozen or overridden row's note.
 fn provenance_text(p: &Provenance) -> Option<String> {
     match p {
-        Provenance::Derived { via } => Some(via.clone()),
-        Provenance::Told { via } => Some(via.to_string()),
-        Provenance::Frozen { note } | Provenance::Overridden { note } => Some(note.clone()),
+        Provenance::Derived { via } => Some(via.to_string()),
+        Provenance::Frozen { note } | Provenance::Overridden { note } => Some(note.to_string()),
         Provenance::Inherited { from } => Some(format!("inherited from {from}")),
         _ => None,
     }

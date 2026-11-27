@@ -122,7 +122,7 @@ fn a_cable_s_gland_rows_say_how_in_texts() {
             .find(|r| r.key == key)
             .unwrap_or_else(|| panic!("no row {key}"));
         match &row.provenance {
-            ew_api::output::Provenance::Told { via } => (
+            ew_api::output::Provenance::Derived { via } => (
                 via.key(),
                 via.args().iter().map(ToString::to_string).collect::<Vec<_>>(),
             ),

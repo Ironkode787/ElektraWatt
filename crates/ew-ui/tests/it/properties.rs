@@ -35,15 +35,15 @@ fn press(h: &mut Harness<'_, App>, key: Key) {
     settle(h);
 }
 
-/// The value text and provenance of row `key` of the grid's sheet.
-fn row(h: &Harness<'_, App>, key: &str) -> (String, Provenance) {
+/// The value text and the provenance chip's text of row `key` of the grid's sheet.
+fn row(h: &Harness<'_, App>, key: &str) -> (String, String) {
     let sheet = h.state().shell().properties().sheet().expect("a sheet");
     let (_, r) = find_row(sheet, key).unwrap_or_else(|| panic!("no row {key}"));
     let text = match &r.value {
         RowValue::One { text, .. } => text.clone(),
         other => format!("{other:?}"),
     };
-    (text, r.provenance.clone())
+    (text, ew_viewmodel::properties::chip_text(&r.provenance))
 }
 
 /// Moves the grid's row cursor with the arrow keys until it is on `key` (bounded).
@@ -149,9 +149,7 @@ fn a_wires_colour_through_the_editor_and_undo() {
         row(&h, "connection/derived.colour"),
         (
             "DBU".to_owned(),
-            Provenance::Derived {
-                via: "potential 24V/102F1:2 · colour profile 'DBU/WH 24 V'".into()
-            }
+            "f derived · potential 24V/102F1:2 · colour profile 'DBU/WH 24 V'".to_owned()
         )
     );
     // The row's group names it with its value and chip.
@@ -196,9 +194,7 @@ fn a_wires_colour_through_the_editor_and_undo() {
         row(&h, "connection/derived.colour"),
         (
             "BU".to_owned(),
-            Provenance::Overridden {
-                note: "override (CDP)".into()
-            }
+            "! overridden · override (CDP)".to_owned()
         )
     );
     // Undo: derived DBU again.
@@ -206,7 +202,7 @@ fn a_wires_colour_through_the_editor_and_undo() {
     settle(&mut h);
     let (text, prov) = row(&h, "connection/derived.colour");
     assert_eq!(text, "DBU");
-    assert!(matches!(prov, Provenance::Derived { .. }), "{prov:?}");
+    assert!(prov.starts_with("f derived"), "{prov}");
 }
 
 #[test]
@@ -220,9 +216,7 @@ fn the_description_override_from_the_keyboard() {
         row(&h, "page/derived.description"),
         (
             "Conveyor drive with a pneumatic clamp".to_owned(),
-            Provenance::Inherited {
-                from: "project description".into()
-            }
+            "^ inherited · project description".to_owned()
         )
     );
     // F6 to the grid, the description row, Enter (Override), the new text, Enter.
@@ -237,9 +231,7 @@ fn the_description_override_from_the_keyboard() {
         row(&h, "page/derived.description"),
         (
             "Control Cabinet Expansion".to_owned(),
-            Provenance::Overridden {
-                note: "override · project description is 'Conveyor drive with a pneumatic clamp'".into()
-            }
+            "! overridden · override · project description is 'Conveyor drive with a pneumatic clamp'".to_owned()
         )
     );
     let findings = &h.state().shell().properties().sheet().unwrap().header.findings;
@@ -276,7 +268,7 @@ fn the_description_override_from_the_keyboard() {
     press(&mut h, Key::Enter);
     let (text, prov) = row(&h, "page/derived.description");
     assert_eq!(text, "Conveyor drive with a pneumatic clamp");
-    assert!(matches!(prov, Provenance::Inherited { .. }), "{prov:?}");
+    assert!(prov.starts_with("^ inherited"), "{prov}");
     assert!(
         !h.state()
             .shell()
@@ -417,9 +409,7 @@ fn a_choice_editor_option_is_picked_with_the_mouse() {
         row(&h, "connection/derived.colour"),
         (
             "BU".to_owned(),
-            Provenance::Overridden {
-                note: "override (CDP)".into()
-            }
+            "! overridden · override (CDP)".to_owned()
         )
     );
 }
@@ -1298,8 +1288,8 @@ fn an_identifier_stays_whole_beside_its_chip_in_a_narrow_column() {
     let (tag, provenance) = row(&h, "device/derived.tag");
     assert_eq!(tag, "-X1031:71");
     assert!(
-        !matches!(provenance, Provenance::Authored),
-        "a chip stands by the tag: {provenance:?}"
+        provenance != ew_viewmodel::properties::chip_text(&Provenance::Authored),
+        "a chip stands by the tag: {provenance}"
     );
     dispatch(&mut h, "props.focus", json!({}));
     settle(&mut h);

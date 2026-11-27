@@ -55,9 +55,9 @@ pub(super) fn fluid_line_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid]) -> Vec<
             .and_then(|d| EndpointKey::of(&d.at).and_then(ew_derive::CpRef::of))
             .map(|cp| cp_label(q, cp));
         let via = match (medium, def) {
-            (Some(_), Some(at)) => format!("medium definition at {at}"),
-            (Some(_), None) => "carried through the valves".to_owned(),
-            (None, _) => "no medium definition".to_owned(),
+            (Some(_), Some(at)) => text!("via-medium-definition-at", at),
+            (Some(_), None) => text!("via-through-valves"),
+            (None, _) => text!("via-no-medium"),
         };
         medium_per.push((
             medium.map(|m| Value::String(m.as_uuid().to_string())),
@@ -73,7 +73,7 @@ pub(super) fn fluid_line_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid]) -> Vec<
         .flatten()
         .collect::<Vec<_>>()
         .join(" ");
-        let mut sources: Vec<String> = Vec::new();
+        let mut sources: Vec<crate::Text> = Vec::new();
         for s in [
             &props.od.as_ref().map(|v| &v.source),
             &props.id.as_ref().map(|v| &v.source),
@@ -83,36 +83,30 @@ pub(super) fn fluid_line_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid]) -> Vec<
         .flatten()
         {
             let words = match s {
-                TubeSource::Project => "project default tube".to_owned(),
-                TubeSource::Medium(m) => format!("medium '{}'", name(*m)),
-                TubeSource::Part(p) => format!(
-                    "tube part {}",
+                TubeSource::Project => text!("via-project-default-tube"),
+                TubeSource::Medium(m) => text!("via-medium", name(*m)),
+                TubeSource::Part(p) => text!(
+                    "via-tube-part",
                     q.parts()
                         .get(*p)
                         .map(|c| c.item.part_number.as_str().to_owned())
                         .unwrap_or_default()
                 ),
-                TubeSource::Override => "override".to_owned(),
+                TubeSource::Override => text!("via-override"),
             };
             if !sources.contains(&words) {
                 sources.push(words);
             }
         }
-        let provenance = if sources.is_empty() {
-            Provenance::Derived {
-                via: "no tube specification".to_owned(),
-            }
-        } else {
-            Provenance::Derived {
-                via: sources.join(" · "),
-            }
+        let provenance = Provenance::Derived {
+            via: super::via_joined(sources).unwrap_or_else(|| text!("via-no-tube-spec")),
         };
         tube_per.push(((!text.is_empty()).then_some(Value::String(text)), provenance));
     }
     let options: Vec<String> = media.iter().map(|(id, _)| id.as_uuid().to_string()).collect();
     // Tubes of one medium defined at different ports read as that medium with each place it is defined at, not as
     // "varies" (the re-test: two tubes set at once read "varies (2)").
-    let mut vias: Vec<String> = Vec::new();
+    let mut vias: Vec<crate::Text> = Vec::new();
     for (_, p) in &medium_per {
         if let Provenance::Derived { via } = p
             && !vias.contains(via)
@@ -120,8 +114,10 @@ pub(super) fn fluid_line_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid]) -> Vec<
             vias.push(via.clone());
         }
     }
-    if vias.len() > 1 && medium_per.windows(2).all(|w| w[0].0 == w[1].0) {
-        let via = vias.join(" · ");
+    if vias.len() > 1
+        && medium_per.windows(2).all(|w| w[0].0 == w[1].0)
+        && let Some(via) = super::via_joined(vias)
+    {
         for (_, p) in &mut medium_per {
             *p = Provenance::Derived { via: via.clone() };
         }
@@ -218,9 +214,9 @@ pub(super) fn source_medium_row(q: &Q, cx: &SheetCx<'_>, device: Id<Device>) -> 
     let (f, idx) = source_port(q, device)?;
     let (medium, def) = medium_at(q, EndpointKey::Cp(f, idx));
     let via = match (medium, def) {
-        (Some(_), Some(at)) => format!("medium definition at {}", cp_label(q, at)),
-        (Some(_), None) => "carried through the valves".to_owned(),
-        (None, _) => "no medium yet".to_owned(),
+        (Some(_), Some(at)) => text!("via-medium-definition-at", cp_label(q, at).to_string()),
+        (Some(_), None) => text!("via-through-valves"),
+        (None, _) => text!("via-no-medium-yet"),
     };
     let media = q.table::<Medium>();
     let options: Vec<String> = media.iter().map(|(id, _)| id.as_uuid().to_string()).collect();
@@ -377,9 +373,9 @@ pub(super) fn fluid_port_rows(q: &Q, device: Id<Device>) -> Vec<Built> {
         .map(|(n, (f, idx, designation))| {
             let (medium, def) = medium_at(q, EndpointKey::Cp(f, idx));
             let via = match (medium, def) {
-                (Some(_), Some(at)) => format!("medium definition at {}", cp_label(q, at)),
-                (Some(_), None) => "carried through the valves".to_owned(),
-                (None, _) => "no medium at its source".to_owned(),
+                (Some(_), Some(at)) => text!("via-medium-definition-at", cp_label(q, at).to_string()),
+                (Some(_), None) => text!("via-through-valves"),
+                (None, _) => text!("via-port-no-medium"),
             };
             // The source: the device whose port defines the medium (the first definition of it).
             let source = medium

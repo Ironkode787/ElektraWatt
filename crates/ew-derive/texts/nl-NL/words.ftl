@@ -107,12 +107,12 @@ prop-source-rating = beveiligd door { $p0 }, { $p1 } A · { $p2 }
 prop-source-size-profile = maatprofiel { $p0 }
 prop-source-project = projectstandaard
 prop-source-built-in = ingebouwde standaard van afleidingsprofiel { $p0 }
-prop-via-core = kabel { $p0 }, ader { $p1 }
+prop-via-core = van kabel { $p0 }, ader { $p1 }
 prop-via-potential = potentiaaldefinitie { $p0 }
 prop-via-colour-profile = potentiaal { $p0 } · kleurprofiel '{ $p1 }'
 prop-via-rating = potentiaal { $p0 } · beveiligd door { $p1 }, { $p2 } A · { $p3 }
 prop-via-size-profile = potentiaal { $p0 } · maatprofiel '{ $p1 }' · klasse { $p2 }
-prop-via-built-in = ingebouwde standaard ({ $p0 })
+prop-via-built-in = ingebouwde standaard: het project heeft geen profiel dat deze waarde bepaalt
 prop-via-override = overschreven
 
 ## Where a length comes from, as the wire list, the tube list and the cable overview print it

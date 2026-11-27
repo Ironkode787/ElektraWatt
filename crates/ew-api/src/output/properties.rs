@@ -190,7 +190,7 @@ pub struct PropRow {
     pub link: Option<RowLink>,
     /// A line under the row that says how its value is made (doc 12-3d §9: "Routed: 821 mm of way, 50 mm reserve at
     /// each end and a 300 mm door loop, rounded up to 1225 mm"; the way in words); `None` for every other row.
-    pub note: Option<String>,
+    pub note: Option<crate::Text>,
 }
 
 /// A link a Properties row offers beside its value: its words, and the window's actions it runs, in order (the page to
@@ -301,7 +301,9 @@ pub enum RowValue {
     Absent,
 }
 
-/// Where a value comes from (doc 16 §2.2).
+/// Where a value comes from (doc 16 §2.2). Each phrase of the chip is a text by key with its arguments, which a window
+/// renders in its language and the command line prints in English (architecture §18); none is read back out of a
+/// sentence.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Provenance {
     /// Stored on the record.
@@ -309,29 +311,22 @@ pub enum Provenance {
     /// Taken from another record.
     Inherited {
         /// From where.
-        from: String,
+        from: crate::Text,
     },
     /// Computed.
     Derived {
-        /// How (the chip text).
-        via: String,
-    },
-    /// Computed, how in words a window renders in its language (architecture §18): a key with its arguments, never
-    /// read back out of a sentence. A row whose how is new says it so; the older rows' `Derived` English is
-    /// still turned into words by the viewmodel's phrase table.
-    Told {
         /// How.
         via: crate::Text,
     },
     /// A stored override of a derived value.
     Overridden {
-        /// The chip text.
-        note: String,
+        /// What it overrides, and how.
+        note: crate::Text,
     },
     /// A frozen value.
     Frozen {
-        /// The chip text.
-        note: String,
+        /// How.
+        note: crate::Text,
     },
     /// From a library copy.
     Library {
@@ -349,6 +344,12 @@ pub enum Provenance {
         /// The number of distinct values.
         count: usize,
     },
+}
+
+/// The phrases of one chip in one, ` · ` between them ("override (CDP) · no supply found upstream of -F1, …"); `None`
+/// for none.
+pub(crate) fn via_joined(parts: impl IntoIterator<Item = crate::Text>) -> Option<crate::Text> {
+    parts.into_iter().reduce(|a, b| text!("via-joined", a, b))
 }
 
 /// What a row offers.
@@ -512,7 +513,11 @@ fn tag_provenance(q: &Q, device: Id<Device>, tag: Option<&ew_derive::Tag>) -> Pr
         Some(TagSource::Frozen) => {
             let hidden = tag.is_some_and(|t| !t.sign_on_pages);
             Provenance::Frozen {
-                note: if hidden { "frozen (sign hidden)" } else { "frozen" }.to_owned(),
+                note: if hidden {
+                    text!("via-frozen-sign-hidden")
+                } else {
+                    text!("via-frozen")
+                },
             }
         }
         Some(TagSource::Child) => {
@@ -523,7 +528,7 @@ fn tag_provenance(q: &Q, device: Id<Device>, tag: Option<&ew_derive::Tag>) -> Pr
                 .map(|p| device_tag_text(q, p))
                 .unwrap_or_default();
             Provenance::Derived {
-                via: format!("child of {parent}"),
+                via: text!("via-child-of", parent),
             }
         }
         Some(TagSource::Terminal) => {
@@ -534,23 +539,20 @@ fn tag_provenance(q: &Q, device: Id<Device>, tag: Option<&ew_derive::Tag>) -> Pr
                 .map(|s| device_tag_text(q, s))
                 .unwrap_or_default();
             Provenance::Derived {
-                via: format!("terminal of strip {strip}"),
+                via: text!("via-terminal-of-strip", strip),
             }
         }
         Some(TagSource::Scheme { key, .. }) => Provenance::Derived {
-            via: format!("numbering scheme '{key}'"),
+            via: text!("via-numbering-scheme", key.as_str()),
         },
         Some(TagSource::EarthConnection) => Provenance::Derived {
-            via: "an earth connection, no tag".into(),
+            via: text!("via-earth-connection"),
         },
         None => Provenance::Derived {
-            via: "numbering".into(),
+            via: text!("via-numbering"),
         },
     }
 }
-
-/// The `via` of the main-location row: the main representation's folio and anchor cell.
-const MAIN_LOCATION_VIA: &str = "main representation";
 
 /// The property sheet's texts that `ew query` shares: the provenance of a row the query backs and
 /// a record's title.
@@ -562,8 +564,9 @@ impl Session {
 
     /// The provenance of a device's main-location row (its folio and cell), as the property sheet shows it.
     pub(crate) fn main_location_provenance() -> Provenance {
+        // The main representation's folio and anchor cell.
         Provenance::Derived {
-            via: MAIN_LOCATION_VIA.into(),
+            via: text!("via-main-representation"),
         }
     }
 
@@ -574,7 +577,7 @@ impl Session {
         potential: &str,
         class: Option<&ew_schema::CircuitClass>,
     ) -> String {
-        prop_via(q, source, potential, class)
+        prop_via(q, source, potential, class).to_string()
     }
 
     /// A member value of a re-import's conflict row in words: as the property grid shows the
@@ -692,7 +695,7 @@ fn terminal_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid], built: &mut Vec<Buil
             (
                 label.map(Value::String),
                 Provenance::Derived {
-                    via: "strip groups".into(),
+                    via: text!("via-strip-groups"),
                 },
             )
         })

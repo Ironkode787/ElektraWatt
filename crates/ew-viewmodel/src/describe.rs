@@ -627,11 +627,10 @@ fn user(text: &str) -> String {
 fn provenance_words(p: &Provenance) -> String {
     match p {
         Provenance::Authored => "authored".to_owned(),
-        Provenance::Inherited { from } => format!("inherited \"{}\"", user(from)),
-        Provenance::Derived { via } => format!("derived \"{}\"", user(via)),
-        Provenance::Told { via } => format!("derived \"{}\"", user(&via.to_string())),
-        Provenance::Overridden { note } => format!("overridden \"{}\"", user(note)),
-        Provenance::Frozen { note } => format!("frozen \"{}\"", user(note)),
+        Provenance::Inherited { from } => format!("inherited \"{}\"", user(&from.to_string())),
+        Provenance::Derived { via } => format!("derived \"{}\"", user(&via.to_string())),
+        Provenance::Overridden { note } => format!("overridden \"{}\"", user(&note.to_string())),
+        Provenance::Frozen { note } => format!("frozen \"{}\"", user(&note.to_string())),
         // `<library>/<item> v<version>`: the version only, the IDs are UUIDs.
         Provenance::Library { item } => format!(
             "library \"{}\"",

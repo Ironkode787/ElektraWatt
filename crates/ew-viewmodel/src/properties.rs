@@ -2468,206 +2468,30 @@ pub fn action_label(action: RowAction) -> &'static str {
     })
 }
 
-/// The phrases `ew-api` builds a provenance chip's text from, in English for the CLI and the JSON, each with
-/// its key: a fixed phrase (`None`), or the text before and after one argument.
-const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
-    ("frozen (sign hidden)", None, key!("chip-via-frozen-sign-hidden")),
-    ("frozen", None, key!("chip-via-frozen")),
-    ("numbering", None, key!("chip-via-numbering")),
-    ("main representation", None, key!("chip-via-main-representation")),
-    ("strip groups", None, key!("chip-via-strip-groups")),
-    ("function definition", None, key!("chip-via-function-definition")),
-    ("override (CDP)", None, key!("chip-via-override-cdp")),
-    ("wire numbering", None, key!("chip-via-wire-numbering")),
-    // A wire's length (doc 13 §3.3).
-    ("typed by hand", None, key!("chip-via-typed-by-hand")),
-    // A wire's end (doc 13 §4.2, §4.5).
-    ("set by hand", None, key!("chip-via-set-by-hand")),
-    (
-        "rule (unverified): fine-stranded wire, clamp kind not known",
-        None,
-        key!("chip-via-rule-assumed-both"),
-    ),
-    (
-        "rule (unverified): fine-stranded wire",
-        None,
-        key!("chip-via-rule-assumed-class"),
-    ),
-    (
-        "rule (unverified): clamp kind not known",
-        None,
-        key!("chip-via-rule-assumed-clamp"),
-    ),
-    ("rule (unverified)", None, key!("chip-via-rule-unverified")),
-    (
-        "rule: fine-stranded wire, clamp kind not known",
-        None,
-        key!("chip-via-rule-verified-assumed-both"),
-    ),
-    (
-        "rule: fine-stranded wire",
-        None,
-        key!("chip-via-rule-verified-assumed-class"),
-    ),
-    (
-        "rule: clamp kind not known",
-        None,
-        key!("chip-via-rule-verified-assumed-clamp"),
-    ),
-    ("rule", None, key!("chip-via-rule-verified")),
-    ("made outside the project", None, key!("chip-via-made-outside")),
-    (
-        "several wires share this stretch: set a wire's own values in the Connections table",
-        None,
-        key!("chip-via-shared-stretch"),
-    ),
-    ("workshop stock", None, key!("chip-via-workshop-stock")),
-    ("workshop marking", None, key!("chip-via-workshop-marking")),
-    (
-        "no length: type it here, or the fitter measures the wire",
-        None,
-        key!("chip-via-no-length"),
-    ),
-    ("cut with its cable ", Some(""), key!("chip-via-cut-with-cable")),
-    ("connectivity", None, key!("chip-via-connectivity")),
-    ("project description", None, key!("chip-via-project-description")),
-    (
-        "cross-reference format",
-        None,
-        key!("chip-via-cross-reference-format"),
-    ),
-    ("project default", None, key!("chip-via-project-default")),
-    ("override", None, key!("chip-via-override")),
-    ("primary part", None, key!("chip-via-primary-part")),
-    ("layout label", None, key!("chip-via-layout-label")),
-    ("part", None, key!("chip-via-part")),
-    (
-        "rail length less placements and end brackets",
-        None,
-        key!("chip-via-rail-length"),
-    ),
-    ("path", None, key!("chip-via-path")),
-    (
-        "override on another connection",
-        None,
-        key!("chip-via-override-on-another"),
-    ),
-    ("child of ", Some(""), key!("chip-via-child-of")),
-    ("terminal of strip ", Some(""), key!("chip-via-terminal-of-strip")),
-    ("numbering scheme '", Some("'"), key!("chip-via-numbering-scheme")),
-    (
-        "structure box on page ",
-        Some(""),
-        key!("chip-via-structure-box-on-page"),
-    ),
-    ("page ", Some(""), key!("chip-via-page")),
-    ("override on ", Some(""), key!("chip-via-override-on")),
-    (
-        "project description is '",
-        Some("'"),
-        key!("chip-via-project-description-is"),
-    ),
-    (
-        "potential definition at ",
-        Some(""),
-        key!("chip-via-potential-definition-at"),
-    ),
-    (
-        "potential definition ",
-        Some(""),
-        key!("chip-via-potential-definition"),
-    ),
-    ("potential ", Some(""), key!("chip-via-potential")),
-    ("colour profile '", Some("'"), key!("chip-via-colour-profile")),
-    ("size profile '", Some("'"), key!("chip-via-size-profile")),
-    ("class ", Some(""), key!("chip-via-class")),
-    (
-        "no supply found upstream of ",
-        Some(", so its rating is not used"),
-        key!("chip-via-no-supply-upstream"),
-    ),
-    (
-        "no supply found upstream, so no protective device sizes it",
-        None,
-        key!("chip-via-no-supply"),
-    ),
-    (
-        "no protective device upstream sizes it",
-        None,
-        key!("chip-via-no-protection"),
-    ),
-    ("built-in default (", Some(")"), key!("chip-via-built-in-default")),
-    // A tube's medium and tube.
-    (
-        "medium definition at ",
-        Some(""),
-        key!("chip-via-medium-definition-at"),
-    ),
-    (
-        "carried through the valves",
-        None,
-        key!("chip-via-through-valves"),
-    ),
-    ("no medium definition", None, key!("chip-via-no-medium")),
-    // A source without a medium says what to do.
-    ("no medium yet", None, key!("chip-via-no-medium-yet")),
-    ("no medium at its source", None, key!("chip-via-port-no-medium")),
-    (
-        "project default tube",
-        None,
-        key!("chip-via-project-default-tube"),
-    ),
-    ("medium '", Some("'"), key!("chip-via-medium")),
-    ("tube part ", Some(""), key!("chip-via-tube-part")),
-    ("no tube specification", None, key!("chip-via-no-tube-spec")),
-    // A valve's position.
-    ("on no valve terminal", None, key!("chip-via-no-terminal")),
-    // A valve's solenoids.
-    ("PLC output ", Some(""), key!("chip-via-plc-output")),
-    ("no PLC output", None, key!("chip-via-no-plc-output")),
-    ("the valve's part", None, key!("chip-via-valve-part")),
-    ("its plug", None, key!("chip-via-plug")),
-    // An earth symbol's tag row.
-    (
-        "an earth connection, no tag",
-        None,
-        key!("chip-via-earth-connection"),
-    ),
-];
-
-/// A provenance chip's words in the UI language: each ` · `-separated part of `ew-api`'s English
-/// text by its [`CHIP_PHRASES`] key, its argument kept; a part without a phrase stays as it is.
-fn chip_words(text: &str) -> String {
-    text.split(" · ")
-        .map(|part| {
-            // A cable's core names two things: the cable and the core.
-            if let Some((cable, core)) = part.strip_prefix("cable ").and_then(|p| p.split_once(", core ")) {
-                return strings::format(key!("chip-via-cable-core"), &[cable, core]);
-            }
-            CHIP_PHRASES
-                .iter()
-                .find_map(|(before, after, key)| match after {
-                    None => (part == *before).then(|| strings::text(*key).to_owned()),
-                    Some(after) => {
-                        let arg = part.strip_prefix(before)?.strip_suffix(after)?;
-                        Some(strings::format(*key, &[arg]))
-                    }
-                })
-                .unwrap_or_else(|| part.to_owned())
-        })
-        .collect::<Vec<_>>()
-        .join(" · ")
+/// Whether the phrase `t`, or a phrase it is made of, is said by one of the keys `keys`.
+fn says(t: &ew_api::Text, keys: &[&str]) -> bool {
+    keys.contains(&t.key())
+        || t.args()
+            .iter()
+            .any(|a| matches!(a, ew_api::TextArg::Text(part) if says(part, keys)))
 }
 
-/// The provenance chip's text (an icon glyph and words, never colour alone; FR-UI-025).
+/// The first phrase of `t`: its first part where it is phrases joined (`via-joined`), else itself.
+fn first_phrase(t: &ew_api::Text) -> &ew_api::Text {
+    match t.args().first() {
+        Some(ew_api::TextArg::Text(part)) if t.key() == "via-joined" => first_phrase(part),
+        _ => t,
+    }
+}
+
+/// The provenance chip's text (an icon glyph and words, never colour alone; FR-UI-025), its phrase in the UI language.
 pub fn chip_text(p: &Provenance) -> String {
     match p {
         Provenance::Authored => strings::text(key!("chip-authored")).to_owned(),
-        Provenance::Inherited { from } => strings::format(key!("chip-inherited"), &[&chip_words(from)]),
-        Provenance::Derived { via } => strings::format(key!("chip-derived"), &[&chip_words(via)]),
-        Provenance::Told { via } => strings::format(key!("chip-derived"), &[&strings::render(via)]),
-        Provenance::Overridden { note } => strings::format(key!("chip-overridden"), &[&chip_words(note)]),
-        Provenance::Frozen { note } => strings::format(key!("chip-frozen"), &[&chip_words(note)]),
+        Provenance::Inherited { from } => strings::format(key!("chip-inherited"), &[&strings::render(from)]),
+        Provenance::Derived { via } => strings::format(key!("chip-derived"), &[&strings::render(via)]),
+        Provenance::Overridden { note } => strings::format(key!("chip-overridden"), &[&strings::render(note)]),
+        Provenance::Frozen { note } => strings::format(key!("chip-frozen"), &[&strings::render(note)]),
         Provenance::Library { item } => strings::format(key!("chip-library"), &[item]),
         Provenance::Generated { block } => strings::format(key!("chip-generated"), &[block]),
         Provenance::Varies { count } => strings::format(key!("chip-varies"), &[&count.to_string()]),
@@ -2678,32 +2502,42 @@ pub fn chip_text(p: &Provenance) -> String {
 /// from a structure box on a page), "inherited" for any other inheritance; a derived value from a potential definition,
 /// a profile, a cable's core or a default by that source ("potential", "profile", "cable", "default"); else the kind
 /// ("derived", "override", "frozen", "library", "generated", "varies"); an authored value has no chip (the word is
-/// empty). [`chip_text`] is the whole text (the tooltip and the accessible description).
+/// empty). [`chip_text`] is the whole text (the tooltip and the accessible description). The source is read from the
+/// keys of the phrase, never from its words.
 pub fn chip_word(p: &Provenance) -> &'static str {
     match p {
         Provenance::Authored => "",
-        Provenance::Inherited { from } if from.starts_with("page ") || from.contains(" on page ") => {
+        Provenance::Inherited { from } if says(from, &["via-page", "via-structure-box-on-page"]) => {
             strings::text(key!("chip-word-page"))
         }
         Provenance::Inherited { .. } => strings::text(key!("chip-word-inherited")),
         // A size that no protective device's rating sizes says why where it shows: for want of a supply, or of a
         // protective device upstream.
-        Provenance::Derived { via } if via.contains("no supply found upstream") => {
+        Provenance::Derived { via } if says(via, &["via-no-supply-upstream", "via-no-supply"]) => {
             strings::text(key!("chip-word-no-supply"))
         }
-        Provenance::Derived { via } if via.contains("no protective device upstream") => {
+        Provenance::Derived { via } if says(via, &["via-no-protection"]) => {
             strings::text(key!("chip-word-no-protection"))
         }
         // A wire property names the level of the chain it comes from.
-        Provenance::Derived { via } if via.contains(" profile '") => strings::text(key!("chip-word-profile")),
-        Provenance::Derived { via } if via.starts_with("potential definition ") => {
+        Provenance::Derived { via } if says(via, &["prop-via-colour-profile", "prop-via-size-profile"]) => {
+            strings::text(key!("chip-word-profile"))
+        }
+        Provenance::Derived { via }
+            if ["prop-via-potential", "via-potential-definition-at"].contains(&first_phrase(via).key()) =>
+        {
             strings::text(key!("chip-word-potential"))
         }
-        Provenance::Derived { via } if via.starts_with("cable ") => strings::text(key!("chip-word-cable")),
-        Provenance::Derived { via } if via == "project default" || via.starts_with("built-in default") => {
+        Provenance::Derived { via } if first_phrase(via).key() == "prop-via-core" => {
+            strings::text(key!("chip-word-cable"))
+        }
+        Provenance::Derived { via }
+            if ["via-project-default", "prop-source-project"].contains(&via.key())
+                || first_phrase(via).key() == "prop-via-built-in" =>
+        {
             strings::text(key!("chip-word-default"))
         }
-        Provenance::Derived { .. } | Provenance::Told { .. } => strings::text(key!("chip-word-derived")),
+        Provenance::Derived { .. } => strings::text(key!("chip-word-derived")),
         Provenance::Overridden { .. } => strings::text(key!("chip-word-override")),
         Provenance::Frozen { .. } => strings::text(key!("chip-word-frozen")),
         Provenance::Library { .. } => strings::text(key!("chip-word-library")),
@@ -2830,27 +2664,34 @@ mod tests {
     /// Doc 16a §6.8: the chip names the source in one word; an authored value has none.
     #[test]
     fn the_chip_word_names_the_source() {
-        let inherited = |from: &str| Provenance::Inherited { from: from.into() };
+        let inherited = |from: ew_api::Text| Provenance::Inherited { from };
+        let derived = |via: ew_api::Text| Provenance::Derived { via };
         assert_eq!(chip_word(&Provenance::Authored), "");
-        assert_eq!(chip_word(&inherited("page 101")), "page");
-        assert_eq!(chip_word(&inherited("structure box on page 103")), "page");
-        assert_eq!(chip_word(&inherited("project description")), "inherited");
-        assert_eq!(chip_word(&inherited("-X1")), "inherited");
+        assert_eq!(chip_word(&inherited(ew_api::text!("via-page", "101"))), "page");
         assert_eq!(
-            chip_word(&Provenance::Derived {
-                via: "numbering".into()
-            }),
-            "derived"
+            chip_word(&inherited(ew_api::text!("via-structure-box-on-page", "103"))),
+            "page"
         );
+        assert_eq!(chip_word(&inherited(ew_api::text!("via-project-description"))), "inherited");
+        assert_eq!(chip_word(&inherited(ew_api::Text::bare("-X1"))), "inherited");
+        assert_eq!(chip_word(&derived(ew_api::text!("via-numbering"))), "derived");
+        // The source is read from the phrase's keys, also where it joins others.
+        let unfed = ew_api::text!(
+            "via-joined",
+            ew_api::text!("via-connectivity"),
+            ew_api::text!("via-no-supply")
+        );
+        assert_eq!(chip_word(&derived(unfed)), "no supply");
+        assert_eq!(chip_word(&derived(ew_api::text!("via-project-default"))), "default");
         assert_eq!(
             chip_word(&Provenance::Overridden {
-                note: "override".into()
+                note: ew_api::text!("via-override")
             }),
             "override"
         );
         assert_eq!(
             chip_word(&Provenance::Frozen {
-                note: "frozen".into()
+                note: ew_api::text!("via-frozen")
             }),
             "frozen"
         );

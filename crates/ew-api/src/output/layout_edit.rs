@@ -491,8 +491,8 @@ fn bool_row(kind: &str, name: &str, on: bool, command: &str) -> PropRow {
     )
 }
 
-fn derived_of(via: &str) -> Provenance {
-    Provenance::Derived { via: via.to_owned() }
+fn derived_of(via: crate::Text) -> Provenance {
+    Provenance::Derived { via }
 }
 
 /// The rows of a layout record; `None` for any other kind or a missing record. Rows of several records are not
@@ -646,7 +646,7 @@ fn surface_rows(q: &Q, id: Id<MountingSurface>) -> Option<Vec<PropRow>> {
         k,
         "holes",
         holes.to_string(),
-        derived_of("hole table"),
+        derived_of(text!("via-hole-table")),
         None,
     ));
     Some(rows)
@@ -724,7 +724,7 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
     let current = realised.map(|c| part_number(q, c)).unwrap_or_default();
     let mut part_row = choice_row(k, "realised_part", current, options, Some("layout.move"));
     if p.part.is_none() {
-        part_row.provenance = derived_of("primary part");
+        part_row.provenance = derived_of(text!("via-primary-part"));
     }
     rows.push(part_row);
     let turn = quarter(&p.pose);
@@ -787,17 +787,17 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
                     mm_text(q, i128::from(h.0))
                 )
             };
-            rows.push(text_row(k, "front", text, derived_of("part"), None));
+            rows.push(text_row(k, "front", text, derived_of(text!("via-part")), None));
         }
         match ew_derive::layout::behind_door(q, id) {
             Some(d) => {
                 let text = mm_with_unit(i128::from(d.0), comma(q));
-                rows.push(text_row(k, "behind_door", text, derived_of("part"), None));
+                rows.push(text_row(k, "behind_door", text, derived_of(text!("via-part")), None));
             }
             // A device in a door without a depth (doc 12 §7): the closed door is not checked for it.
             None if s.kind == ew_schema::SurfaceKind::Door => {
                 let text = ew_derive::text!("placement-depth-unknown").to_string();
-                rows.push(text_row(k, "behind_door", text, derived_of("part"), None));
+                rows.push(text_row(k, "behind_door", text, derived_of(text!("via-part")), None));
             }
             None => {}
         }
@@ -843,7 +843,7 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
             k,
             "label",
             (*label).clone(),
-            derived_of("layout label"),
+            derived_of(text!("via-layout-label")),
             None,
         ));
     }
@@ -855,7 +855,7 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
         } else {
             format!("{} \u{d7} {} mm", mm_text(q, w), mm_text(q, h))
         };
-        rows.push(text_row(k, "footprint", text, derived_of("part"), None));
+        rows.push(text_row(k, "footprint", text, derived_of(text!("via-part")), None));
         let clearance = g
             .part
             .as_ref()
@@ -876,7 +876,7 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
             }
             _ => "none".to_owned(),
         };
-        rows.push(text_row(k, "clearance", text, derived_of("part"), None));
+        rows.push(text_row(k, "clearance", text, derived_of(text!("via-part")), None));
         // On the plate: what it takes out of it, and the room to the closed door where the enclosure part gives it.
         if face.is_none() {
             let room = q
@@ -897,7 +897,7 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
                 k,
                 "reaches",
                 reach.to_string(),
-                derived_of("part"),
+                derived_of(text!("via-part")),
                 None,
             ));
         }
@@ -936,17 +936,21 @@ enum HoleOwner {
 
 /// The words of how a hole is made, for a row's chip: "Ø 22.3", "Ø 4.2 · tap M5", "92 × 92" (the chip puts "tap" in
 /// the window's language).
-fn made_chip(m: &ew_derive::layout::Made) -> String {
+fn made_chip(m: &ew_derive::layout::Made) -> crate::Text {
     use ew_derive::layout::Made;
     let d = |n: ew_units::Nm| format!("\u{d8} {}", ew_derive::mm_tenth(i128::from(n.0)));
     match m {
-        Made::Drill { d: n } | Made::Punch { d: n } => d(*n),
-        Made::Tap { drill, screw } => format!("{} \u{b7} tap M{}", d(*drill), screw.mm().unwrap_or_default()),
-        Made::Cut { w, h, .. } => format!(
+        Made::Drill { d: n } | Made::Punch { d: n } => crate::Text::bare(d(*n)),
+        Made::Tap { drill, screw } => text!(
+            "via-hole-tap",
+            d(*drill),
+            screw.mm().unwrap_or_default().to_string()
+        ),
+        Made::Cut { w, h, .. } => crate::Text::bare(format!(
             "{} \u{d7} {}",
             ew_derive::mm_tenth_short(i128::from(w.0)),
             ew_derive::mm_tenth_short(i128::from(h.0))
-        ),
+        )),
     }
 }
 
@@ -983,13 +987,13 @@ fn hole_rows(
         let mut r = if let (Some(f), false) = (feature, omitted) {
             let (x, y) = ew_derive::layout::from_datum(q, s, (i128::from(f.at.x.0), i128::from(f.at.y.0)));
             let text = format!("{}{}{} mm", mm_text(q, x), list_sep(q), mm_text(q, y));
-            let via = format!("H{} \u{b7} {}", f.no, made_chip(&f.made));
+            let via = text!("via-hole", f.no.to_string(), made_chip(&f.made));
             let provenance = if choice.is_some_and(|c| c.offset.is_some()) {
                 Provenance::Overridden {
-                    note: format!("moved \u{b7} {via}"),
+                    note: text!("via-hole-moved", via),
                 }
             } else {
-                derived_of(&via)
+                derived_of(via)
             };
             text_row(kind, &name, text, provenance, cmd)
         } else {
@@ -999,7 +1003,7 @@ fn hole_rows(
                 &name,
                 String::new(),
                 Provenance::Overridden {
-                    note: "left out".to_owned(),
+                    note: text!("via-hole-left-out"),
                 },
                 cmd,
             )
@@ -1159,7 +1163,7 @@ fn carrier_rows(q: &Q, id: Id<Carrier>) -> Option<Vec<PropRow>> {
                     k,
                     "free_length",
                     mm_with_unit(free, comma(q)),
-                    derived_of("rail length less placements and end brackets"),
+                    derived_of(text!("via-rail-length")),
                     None,
                 ));
             }
@@ -1183,7 +1187,7 @@ fn carrier_rows(q: &Q, id: Id<Carrier>) -> Option<Vec<PropRow>> {
                 k,
                 "length",
                 mm_with_unit(length, comma(q)),
-                derived_of("path"),
+                derived_of(text!("via-path")),
                 None,
             ));
             rows.extend(fill_rows(q, id, d));
@@ -1230,7 +1234,7 @@ fn fill_rows(q: &Q, id: Id<Carrier>, d: &ew_schema::DuctParams) -> Vec<PropRow> 
         k,
         "wires",
         fill.wires.len().to_string(),
-        derived_of("stored ways"),
+        derived_of(text!("via-stored-ways")),
         None,
     );
     wires.link = (!ids.is_empty()).then(|| super::properties::RowLink {
@@ -1239,8 +1243,8 @@ fn fill_rows(q: &Q, id: Id<Carrier>, d: &ew_schema::DuctParams) -> Vec<PropRow> 
     });
     let inner = duct_inner_words(q, &fill, d).to_string();
     vec![
-        text_row(k, "inner_area", inner, derived_of("part"), None),
-        text_row(k, "fill", words, derived_of("stored ways"), None),
+        text_row(k, "inner_area", inner, derived_of(text!("via-part")), None),
+        text_row(k, "fill", words, derived_of(text!("via-stored-ways")), None),
         wires,
     ]
 }
@@ -1280,7 +1284,7 @@ fn ways_row(q: &Q, id: Id<Placement>) -> Option<PropRow> {
         "placement",
         "ways",
         text.to_string(),
-        derived_of("stored ways"),
+        derived_of(text!("via-stored-ways")),
         None,
     );
     row.link = (stale > 0).then(|| super::properties::RowLink {

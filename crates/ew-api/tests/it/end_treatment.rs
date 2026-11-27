@@ -195,15 +195,13 @@ fn an_end_set_by_hand_prints_as_set_and_a_misfit_is_reported() {
         .find(|r| r.key == "connection/derived.to_end")
         .expect("the To end row");
     assert_eq!(
-        (&row.value, &row.provenance, row.path.as_str()),
+        (&row.value, common::chip(&row.provenance), row.path.as_str()),
         (
             &ew_api::output::RowValue::One {
                 json: json!("ring_lug"),
                 text: "ring_lug".into()
             },
-            &ew_api::output::Provenance::Overridden {
-                note: "set by hand".into()
-            },
+            ("overridden", "set by hand".into()),
             "derived.to_end"
         )
     );
@@ -339,15 +337,13 @@ fn an_unset_workshop_setting_shows_its_default() {
         .find(|r| r.key == "project/settings.workshop.two_wires")
         .expect("the Two wires row");
     assert_eq!(
-        (&row.value, &row.provenance),
+        (&row.value, common::chip(&row.provenance)),
         (
             &ew_api::output::RowValue::One {
                 json: json!("twin_ferrule"),
                 text: "twin_ferrule".into()
             },
-            &ew_api::output::Provenance::Derived {
-                via: "project default".into()
-            }
+            ("derived", "project default".into())
         )
     );
 }
@@ -610,7 +606,7 @@ fn an_end_is_reset_where_it_is_stored() {
 /// a length typed in Properties is where the Connections table writes it, the wire's first own connection.
 #[test]
 fn properties_of_a_shared_stretch_are_read_only() {
-    use ew_api::output::{Provenance, RowAction};
+    use ew_api::output::RowAction;
     use ew_derive::WireRecordSet;
     let mut s = common::sample();
     let (shared, own) = {
@@ -654,11 +650,11 @@ fn properties_of_a_shared_stretch_are_read_only() {
             row.actions
         );
         assert_eq!(
-            row.provenance,
-            Provenance::Derived {
-                via: "several wires share this stretch: set a wire's own values in the Connections table"
-                    .into()
-            },
+            common::chip(&row.provenance),
+            (
+                "derived",
+                "several wires share this stretch: set a wire's own values in the Connections table".into()
+            ),
             "{key}"
         );
     }

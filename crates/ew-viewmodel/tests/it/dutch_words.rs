@@ -1105,8 +1105,13 @@ fn navigator_cells_kinds_and_chips_read_in_dutch() {
             .find(|l| l.starts_with("1P") && l.ends_with(" 1-2"))
             .expect("the 1P breaker -102F1")
     };
+    // A chip of two phrases, each in the window's language.
     let chip = Provenance::Derived {
-        via: "potential definition at -X1:1 · colour profile 'DBU/WH 24 V'".into(),
+        via: ew_api::text!(
+            "via-joined",
+            ew_api::text!("via-potential-definition-at", "-X1:1"),
+            ew_api::text!("via-workshop-stock")
+        ),
     };
     for (locale, kind, state, direction, valve, chip_words) in [
         (
@@ -1115,7 +1120,7 @@ fn navigator_cells_kinds_and_chips_read_in_dutch() {
             "used",
             "source",
             "1P MCB 1-2",
-            "f derived · potential definition at -X1:1 · colour profile 'DBU/WH 24 V'",
+            "f derived · potential definition at -X1:1 · workshop stock",
         ),
         (
             "nl",
@@ -1123,7 +1128,7 @@ fn navigator_cells_kinds_and_chips_read_in_dutch() {
             "gebruikt",
             "bron",
             "1P-installatieautomaat 1-2",
-            "f afgeleid · potentiaaldefinitie bij -X1:1 · kleurprofiel 'DBU/WH 24 V'",
+            "f afgeleid · potentiaaldefinitie bij -X1:1 · werkplaatsvoorraad",
         ),
     ] {
         done(&mut shell, "view.language", json!({ "value": locale }));
@@ -1456,5 +1461,24 @@ fn a_carrier_reads_in_the_windows_language() {
     done(&mut shell, "view.language", json!({"value": "en"}));
     done(&mut shell, "select.set", json!({"ids": [duct.to_string()]}));
     assert_eq!(title(&shell), "Duct 1");
+    shell.shutdown();
+}
+
+/// Every phrase of a Properties chip reads in the window's language: in Dutch the cross-section of 102's wire from the
+/// breaker -102F1 names the breaker that protects it in Dutch, where its "protected by …, rated 16 A" stood in English
+/// among the Dutch phrases.
+#[test]
+fn every_phrase_of_a_properties_chip_reads_in_dutch() {
+    let tmp = Tmp::new("ft2334");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "102");
+    done(&mut shell, "select.set", json!({"refs": ["wire:-102F1:2 -> -X1021:1/a"]}));
+    done(&mut shell, "view.language", json!({ "value": "nl" }));
+    let chip = {
+        let sheet = shell.properties().sheet().expect("a sheet");
+        let (_, row) = ew_viewmodel::properties::find_row(sheet, "connection/derived.csa").expect("the row");
+        ew_viewmodel::properties::chip_text(&row.provenance)
+    };
+    assert!(chip.contains("beveiligd door -102F1") && !chip.contains("protected by"), "{chip}");
+    done(&mut shell, "view.language", json!({ "value": "en" }));
     shell.shutdown();
 }

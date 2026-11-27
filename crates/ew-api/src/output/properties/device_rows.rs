@@ -266,7 +266,7 @@ impl Session {
                             .and_then(|r| folio_of(q, r.page))
                             .unwrap_or_default();
                         Provenance::Inherited {
-                            from: format!("page {folio}"),
+                            from: text!("via-page", folio),
                         }
                     }
                     SlotSource::Parent => {
@@ -276,7 +276,9 @@ impl Session {
                             .and_then(|x| x.aspects.terminal.as_ref().map(|t| t.strip).or(x.parent))
                             .map(|p| device_tag_text(q, p))
                             .unwrap_or_default();
-                        Provenance::Inherited { from }
+                        Provenance::Inherited {
+                            from: crate::Text::bare(from),
+                        }
                     }
                     // The structure box around the main representation (FR-PRJ-020).
                     SlotSource::StructureBox => {
@@ -286,7 +288,7 @@ impl Session {
                             .and_then(|r| folio_of(q, r.page))
                             .unwrap_or_default();
                         Provenance::Inherited {
-                            from: format!("structure box on page {folio}"),
+                            from: text!("via-structure-box-on-page", folio),
                         }
                     }
                 };
@@ -335,13 +337,13 @@ impl Session {
                     Some(m) => (
                         position.map(|p| Value::String(p.to_string())),
                         Provenance::Derived {
-                            via: format!("child of {}", device_tag_text(q, *m)),
+                            via: text!("via-child-of", device_tag_text(q, *m)),
                         },
                     ),
                     None => (
                         None,
                         Provenance::Derived {
-                            via: "on no valve terminal".to_owned(),
+                            via: text!("via-no-terminal"),
                         },
                     ),
                 })
@@ -397,7 +399,7 @@ impl Session {
                         text,
                     },
                     provenance: Provenance::Derived {
-                        via: "its valve positions".to_owned(),
+                        via: text!("via-valve-positions"),
                     },
                     actions: Vec::new(),
                 }));
@@ -455,7 +457,7 @@ impl Session {
                         text: part,
                     },
                     provenance: Provenance::Derived {
-                        via: format!("with {}", with.join(", ")),
+                        via: text!("via-with", with.join(", ")),
                     },
                     actions: vec![RowAction::Edit],
                 }));
@@ -501,7 +503,7 @@ impl Session {
                     json: Value::String(part.clone()),
                     text: part,
                 },
-                provenance: via.map_or(Provenance::Authored, |via| Provenance::Told { via }),
+                provenance: via.map_or(Provenance::Authored, |via| Provenance::Derived { via }),
                 actions: vec![RowAction::Edit],
             }));
             let hole = g.placed.and_then(|f| {
@@ -533,7 +535,7 @@ impl Session {
                     json: Value::String(text.clone()),
                     text,
                 },
-                provenance: Provenance::Told { via },
+                provenance: Provenance::Derived { via },
                 actions: Vec::new(),
             }));
         }
@@ -556,7 +558,7 @@ impl Session {
                     ty: FieldType::Enum { options },
                     value,
                     provenance: Provenance::Derived {
-                        via: "its PLC station".to_owned(),
+                        via: text!("via-plc-station"),
                     },
                     actions,
                 })
@@ -606,7 +608,7 @@ impl Session {
                 let via = s
                     .output
                     .as_ref()
-                    .map_or_else(|| "no PLC output".to_owned(), |o| format!("PLC output {o}"));
+                    .map_or_else(|| text!("via-no-plc-output"), |o| text!("via-plc-output", o.clone()));
                 // A terminal valve's solenoid says where it is driven from: an output inside the terminal,
                 // or a pin of a multipin terminal's plug; the window words it.
                 let seat = match &s.seat {
@@ -662,7 +664,7 @@ impl Session {
                 ty: FieldType::Link { kind: "plug".into() },
                 value,
                 provenance: Provenance::Derived {
-                    via: "its plug".to_owned(),
+                    via: text!("via-plug"),
                 },
                 actions: Vec::new(),
             }));
@@ -731,7 +733,7 @@ impl Session {
                     (
                         labels.get(n).map(|(l, _)| Value::String(l.clone())),
                         Provenance::Derived {
-                            via: "function definition".into(),
+                            via: text!("via-function-definition"),
                         },
                     )
                 })

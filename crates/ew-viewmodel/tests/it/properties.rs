@@ -105,12 +105,9 @@ fn a_wire_override_and_its_reset() {
     done(&mut shell, "select.set", json!({"refs": [W29]}));
     assert_eq!(text(&shell, "connection/derived.csa"), "2.5 mm²");
     assert_eq!(
-        provenance(&shell, "connection/derived.csa"),
-        Provenance::Derived {
-            via: "potential 24V/102F1:2 · protected by -102F1, rated 16 A · IEC 60204-1:2016 Table 6, method B2, \
-                  PVC-insulated copper, 40 °C"
-                .into()
-        }
+        ew_viewmodel::properties::chip_text(&provenance(&shell, "connection/derived.csa")),
+        "f derived · potential 24V/102F1:2 · protected by -102F1, rated 16 A · IEC 60204-1:2016 Table 6, method B2, \
+         PVC-insulated copper, 40 °C"
     );
     let before = steps(&shell);
     done(
@@ -124,10 +121,8 @@ fn a_wire_override_and_its_reset() {
     assert_eq!(steps(&shell), before + 1);
     assert_eq!(text(&shell, "connection/derived.csa"), "1 mm²");
     assert_eq!(
-        provenance(&shell, "connection/derived.csa"),
-        Provenance::Overridden {
-            note: "override (CDP)".into()
-        }
+        ew_viewmodel::properties::chip_text(&provenance(&shell, "connection/derived.csa")),
+        "! overridden · override (CDP)"
     );
     done(
         &mut shell,
@@ -163,10 +158,8 @@ fn props_set_on_a_wires_derived_value_overrides_it() {
     assert_eq!(steps(&shell), before + 1);
     assert_eq!(text(&shell, "connection/derived.csa"), "1 mm²");
     assert_eq!(
-        provenance(&shell, "connection/derived.csa"),
-        Provenance::Overridden {
-            note: "override (CDP)".into()
-        }
+        ew_viewmodel::properties::chip_text(&provenance(&shell, "connection/derived.csa")),
+        "! overridden · override (CDP)"
     );
     shell.shutdown();
 }
@@ -1003,10 +996,8 @@ fn a_terminal_lists_its_connection_point_labels() {
     assert_eq!(text(&shell, "device/derived.cp[0]"), "-X1011:L1/a");
     assert_eq!(text(&shell, "device/derived.cp[1]"), "-X1011:L1/b");
     assert_eq!(
-        provenance(&shell, "device/derived.cp[0]"),
-        Provenance::Derived {
-            via: "function definition".into()
-        }
+        ew_viewmodel::properties::chip_text(&provenance(&shell, "device/derived.cp[0]")),
+        "f derived · function definition"
     );
     let d = shell.describe();
     assert!(d.contains("  category \"Connection points\" expanded"), "{d}");

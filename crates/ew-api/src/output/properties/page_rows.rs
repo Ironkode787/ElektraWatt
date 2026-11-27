@@ -48,11 +48,15 @@ impl Session {
             let provenance = if overridden {
                 any_override = true;
                 Provenance::Overridden {
-                    note: format!("override · project description is '{project_description}'"),
+                    note: text!(
+                        "via-joined",
+                        text!("via-override"),
+                        text!("via-project-description-is", project_description.clone())
+                    ),
                 }
             } else {
                 Provenance::Inherited {
-                    from: "project description".into(),
+                    from: text!("via-project-description"),
                 }
             };
             per.push((Some(Value::String(text)), provenance));
@@ -92,7 +96,7 @@ impl Session {
                 (
                     (!x.text.is_empty()).then(|| Value::String(x.text.clone())),
                     Provenance::Derived {
-                        via: "cross-reference format".into(),
+                        via: text!("via-cross-reference-format"),
                     },
                 )
             })
@@ -143,7 +147,7 @@ impl Session {
                 ty: FieldType::Link { kind: "valve".into() },
                 value,
                 provenance: Provenance::Derived {
-                    via: "the valve's part".into(),
+                    via: text!("via-valve-part"),
                 },
                 actions: Vec::new(),
             }));

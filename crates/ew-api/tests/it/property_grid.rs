@@ -305,7 +305,7 @@ fn a_representation_reaches_three_sections_with_derived_rows() {
     let tag = row(&sheet, "device/derived.tag");
     assert_eq!(one(tag), "-101F1");
     assert!(
-        matches!(&tag.provenance, Provenance::Derived { via } if via.starts_with("numbering scheme '")),
+        matches!(&tag.provenance, Provenance::Derived { via } if via.to_string().starts_with("numbering scheme '")),
         "{:?}",
         tag.provenance
     );
@@ -342,12 +342,7 @@ fn frozen_tags_wire_chips_and_the_page_description() {
     .expect("the frozen tag");
     let sheet = s.property_sheet(&[uc1]);
     let tag = row(&sheet, "device/derived.tag");
-    assert_eq!(
-        tag.provenance,
-        Provenance::Frozen {
-            note: "frozen".into()
-        }
-    );
+    assert_eq!(crate::common::chip(&tag.provenance), ("frozen", "frozen".into()));
     assert_eq!(tag.actions, [RowAction::Edit, RowAction::Unfreeze]);
     // 102.1: the rating of the breaker that protects it (its control class's 0.75 mm² carries less than 16 A)
     // and the colour profile name the supplying rows.
@@ -356,22 +351,24 @@ fn frozen_tags_wire_chips_and_the_page_description() {
     let csa = row(&sheet, "connection/derived.csa");
     assert_eq!(one(csa), "2.5 mm²");
     assert_eq!(
-        csa.provenance,
-        Provenance::Derived {
-            via: format!(
+        crate::common::chip(&csa.provenance),
+        (
+            "derived",
+            format!(
                 "potential 24V/102F1:2 · protected by -102F1, rated 16 A · {}",
                 ew_derive::current_table_basis()
             )
-        }
+        )
     );
     assert_eq!(csa.actions, [RowAction::Override]);
     let colour = row(&sheet, "connection/derived.colour");
     assert_eq!(one(colour), "DBU");
     assert_eq!(
-        colour.provenance,
-        Provenance::Derived {
-            via: "potential 24V/102F1:2 · colour profile 'DBU/WH 24 V'".into()
-        }
+        crate::common::chip(&colour.provenance),
+        (
+            "derived",
+            "potential 24V/102F1:2 · colour profile 'DBU/WH 24 V'".into()
+        )
     );
     // The shield wire with its cross-section overridden on the connection (CDP).
     let w20 = crate::common::sample_shield(&s).as_uuid();
@@ -383,10 +380,8 @@ fn frozen_tags_wire_chips_and_the_page_description() {
     let sheet = s.property_sheet(&[w20]);
     let csa = row(&sheet, "connection/derived.csa");
     assert_eq!(
-        csa.provenance,
-        Provenance::Overridden {
-            note: "override (CDP)".into()
-        }
+        crate::common::chip(&csa.provenance),
+        ("overridden", "override (CDP)".into())
     );
     assert!(csa.actions.contains(&RowAction::Reset));
     // Page 101: the description is the project's.
@@ -395,10 +390,8 @@ fn frozen_tags_wire_chips_and_the_page_description() {
     let d = row(&sheet, "page/derived.description");
     assert_eq!(one(d), "Conveyor drive with a pneumatic clamp");
     assert_eq!(
-        d.provenance,
-        Provenance::Inherited {
-            from: "project description".into()
-        }
+        crate::common::chip(&d.provenance),
+        ("inherited", "project description".into())
     );
     assert_eq!(d.path, "description_override");
     // The sample is clean under the checks: page 101's header counts no finding.
@@ -415,10 +408,8 @@ fn a_wires_length_row_says_where_its_length_comes_from() {
     let length = row(&sheet, "connection/derived.length");
     assert_eq!(one(length), "400 mm");
     assert_eq!(
-        length.provenance,
-        Provenance::Overridden {
-            note: "typed by hand".into()
-        }
+        crate::common::chip(&length.provenance),
+        ("overridden", "typed by hand".into())
     );
     assert_eq!(length.actions, [RowAction::Reset]);
     // Typed through `Session::layout_edit`, on the wire's first own connection, as the Connections table writes it.
@@ -426,18 +417,17 @@ fn a_wires_length_row_says_where_its_length_comes_from() {
     let sheet = s.property_sheet(&[wire(&s, "102.1")]);
     let length = row(&sheet, "connection/derived.length");
     assert_eq!(
-        length.provenance,
-        Provenance::Derived {
-            via: "No way yet: Route on page 902 gives it one, or type its length here".into()
-        }
+        crate::common::chip(&length.provenance),
+        (
+            "derived",
+            "No way yet: Route on page 902 gives it one, or type its length here".into()
+        )
     );
     assert_eq!(length.actions, [RowAction::Override]);
     let sheet = s.property_sheet(&[wire(&s, "-101W1 BN")]);
     assert_eq!(
-        row(&sheet, "connection/derived.length").provenance,
-        Provenance::Derived {
-            via: "cut with its cable -101W1".into()
-        }
+        crate::common::chip(&row(&sheet, "connection/derived.length").provenance),
+        ("derived", "cut with its cable -101W1".into())
     );
 }
 
@@ -599,10 +589,11 @@ fn the_project_has_its_settings_rows_and_d06_shows_its_finding() {
     let d = row(&sheet, "page/derived.description");
     assert_eq!(one(d), "Control Cabinet Expansion");
     assert_eq!(
-        d.provenance,
-        Provenance::Overridden {
-            note: "override · project description is 'Conveyor drive with a pneumatic clamp'".into()
-        }
+        crate::common::chip(&d.provenance),
+        (
+            "overridden",
+            "override · project description is 'Conveyor drive with a pneumatic clamp'".into()
+        )
     );
     assert_eq!(d.actions, [RowAction::Override, RowAction::Reset]);
     assert!(

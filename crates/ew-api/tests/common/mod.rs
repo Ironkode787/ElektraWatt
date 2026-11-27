@@ -516,3 +516,19 @@ pub fn colleague_sample() -> Session {
     as_colleagues(&mut lib);
     session_of(project, records, lib)
 }
+
+/// A provenance as its kind's word and its phrase in English (`("derived", "project default")`); empty for a kind
+/// without a phrase.
+pub fn chip(p: &ew_api::output::Provenance) -> (&'static str, String) {
+    use ew_api::output::Provenance as P;
+    match p {
+        P::Authored => ("authored", String::new()),
+        P::Inherited { from } => ("inherited", from.to_string()),
+        P::Derived { via } => ("derived", via.to_string()),
+        P::Overridden { note } => ("overridden", note.to_string()),
+        P::Frozen { note } => ("frozen", note.to_string()),
+        P::Library { item } => ("library", item.clone()),
+        P::Generated { block } => ("generated", block.clone()),
+        P::Varies { count } => ("varies", count.to_string()),
+    }
+}

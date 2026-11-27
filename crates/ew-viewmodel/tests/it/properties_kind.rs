@@ -166,7 +166,7 @@ fn only_the_rows_that_belong_are_shown() {
         matches!(&port.value, RowValue::One { text, .. } if text == none),
         "{port:?}"
     );
-    let what_to_do = strings::text(ew_viewmodel::key!("chip-via-port-no-medium"));
+    let what_to_do = strings::text(ew_viewmodel::key!("via-port-no-medium"));
     assert!(chip_text(&port.provenance).contains(what_to_do), "{port:?}");
     done(&mut s, "page.goto", json!({"folio": "101"}));
     let coil = place(&mut s, json!({"part": "EW-GEN-RLY-1", "template": 0}), (10, 10));

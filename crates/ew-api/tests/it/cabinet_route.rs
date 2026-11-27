@@ -43,8 +43,8 @@ fn wire_row(s: &Session, number: &str, name: &str) -> Option<(String, String)> {
                 _ => String::new(),
             };
             let chip = match &r.provenance {
-                ew_api::output::Provenance::Derived { via } => via.clone(),
-                ew_api::output::Provenance::Overridden { note } => note.clone(),
+                ew_api::output::Provenance::Derived { via } => via.to_string(),
+                ew_api::output::Provenance::Overridden { note } => note.to_string(),
                 _ => String::new(),
             };
             (text, chip)
@@ -780,7 +780,8 @@ fn a_wire_selected_with_its_every_stretch_reads_as_that_wire() {
     assert!(
         length
             .note
-            .as_deref()
+            .as_ref()
+            .map(ToString::to_string)
             .is_some_and(|n| n.starts_with("Routed: ") && n.contains("door loop")),
         "{:?}",
         length.note
@@ -788,7 +789,8 @@ fn a_wire_selected_with_its_every_stretch_reads_as_that_wire() {
     let way = row("connection/derived.way");
     assert!(
         way.note
-            .as_deref()
+            .as_ref()
+            .map(ToString::to_string)
             .is_some_and(|n| n.starts_with("From -104E1:X2, across the hinge onto the plate, into duct 1")),
         "{:?}",
         way.note

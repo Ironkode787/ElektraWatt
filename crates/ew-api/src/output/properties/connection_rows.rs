@@ -84,7 +84,7 @@ pub(super) fn potential_row(q: &Q, cx: &SheetCx<'_>, kind: &str, ends: &[Vec<End
             per.push((
                 None,
                 Provenance::Derived {
-                    via: "connectivity".into(),
+                    via: text!("via-connectivity"),
                 },
             ));
             continue;
@@ -100,11 +100,11 @@ pub(super) fn potential_row(q: &Q, cx: &SheetCx<'_>, kind: &str, ends: &[Vec<End
                     .and_then(ew_derive::CpRef::of)
                     .map(|cp| cp_label(q, cp))
                     .unwrap_or_default();
-                format!("potential definition at {at}")
+                text!("via-potential-definition-at", at)
             }
             _ => {
                 defs.insert(None);
-                "connectivity".to_owned()
+                text!("via-connectivity")
             }
         };
         per.push((
@@ -258,23 +258,24 @@ impl Session {
                     // A size set by hand behind a breaker no supply reaches is checked against no rating: said.
                     PropSource::Override(at) if at == c => {
                         can_reset = true;
-                        let mut note = "override (CDP)".to_owned();
-                        if let Some(ew_derive::Unrated::UnfedProtection(device)) = unrated {
-                            note.push_str(&format!(
-                                " · no supply found upstream of {}, so its rating is not used",
-                                device_tag_text(q, device)
-                            ));
+                        let unfed = match unrated {
+                            Some(ew_derive::Unrated::UnfedProtection(device)) => {
+                                Some(text!("via-no-supply-upstream", device_tag_text(q, device)))
+                            }
+                            _ => None,
+                        };
+                        let note = super::via_joined(std::iter::once(text!("via-override-cdp")).chain(unfed));
+                        Provenance::Overridden {
+                            note: note.unwrap_or_else(|| text!("via-override-cdp")),
                         }
-                        Provenance::Overridden { note }
                     }
                     PropSource::Override(at) => {
                         can_override = true;
-                        let on = numbers
-                            .number(*at)
-                            .map_or_else(|| "another connection".to_owned(), |n| n.label.clone());
-                        Provenance::Overridden {
-                            note: format!("override on {on}"),
-                        }
+                        let note = numbers.number(*at).map_or_else(
+                            || text!("via-override-on-another"),
+                            |n| text!("via-override-on", n.label.clone()),
+                        );
+                        Provenance::Overridden { note }
                     }
                     // A core's cross-section and colour are the cable's: changed at the cable.
                     other @ PropSource::Conductor(_) => Provenance::Derived {
@@ -282,26 +283,19 @@ impl Session {
                     },
                     other => {
                         can_override = true;
-                        let mut via = prop_via(q, other, &potential, class.as_ref());
+                        let via = prop_via(q, other, &potential, class.as_ref());
                         // A size from the profile that no protective device's rating sizes says why at the size: a
                         // device that nothing feeds, no supply, or no protective device upstream.
-                        if other.level() < 3
-                            && let Some(why) = unrated
-                        {
-                            via.push_str(&match why {
-                                ew_derive::Unrated::UnfedProtection(device) => format!(
-                                    " · no supply found upstream of {}, so its rating is not used",
-                                    device_tag_text(q, device)
-                                ),
-                                ew_derive::Unrated::NoSupply => {
-                                    " · no supply found upstream, so no protective device sizes it".to_owned()
-                                }
-                                ew_derive::Unrated::NoProtection => {
-                                    " · no protective device upstream sizes it".to_owned()
-                                }
-                            });
+                        let why = unrated.filter(|_| other.level() < 3).map(|why| match why {
+                            ew_derive::Unrated::UnfedProtection(device) => {
+                                text!("via-no-supply-upstream", device_tag_text(q, device))
+                            }
+                            ew_derive::Unrated::NoSupply => text!("via-no-supply"),
+                            ew_derive::Unrated::NoProtection => text!("via-no-protection"),
+                        });
+                        Provenance::Derived {
+                            via: super::via_joined(std::iter::once(via.clone()).chain(why)).unwrap_or(via),
                         }
-                        Provenance::Derived { via }
                     }
                 };
                 per.push((Some(value), provenance));
@@ -363,11 +357,11 @@ impl Session {
             }
             let provenance = if frozen {
                 Provenance::Frozen {
-                    note: "frozen".into(),
+                    note: text!("via-frozen"),
                 }
             } else {
                 Provenance::Derived {
-                    via: "wire numbering".into(),
+                    via: text!("via-wire-numbering"),
                 }
             };
             per.push((Some(Value::String(printed)), provenance));
@@ -413,8 +407,9 @@ impl Session {
 
 /// The chip of a row of a wire's own values on a stretch several wires share (a star's feed arm, a chain's arm at a
 /// clamp): no one wire's value shows there, and none is set there.
-const SHARED_STRETCH: &str =
-    "several wires share this stretch: set a wire's own values in the Connections table";
+fn shared_stretch() -> crate::Text {
+    text!("via-shared-stretch")
+}
 
 /// The one wire every connection of `conns` is a stretch of: a selection of a wire's stretches (the Connections table
 /// selects a wire's every stretch, a trunk it shares with other wires included) reads as that wire; `None` for an
@@ -474,12 +469,7 @@ fn length_row(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Built {
         let record = match wire_of_selection(q, &records, conns, *c) {
             Err(()) => {
                 shared = true;
-                per.push((
-                    None,
-                    Provenance::Derived {
-                        via: SHARED_STRETCH.into(),
-                    },
-                ));
+                per.push((None, Provenance::Derived { via: shared_stretch() }));
                 continue;
             }
             Ok(r) => r,
@@ -573,9 +563,7 @@ fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
         for c in conns {
             let Some(record) = wire_of(c) else {
                 let p = if shared {
-                    Provenance::Derived {
-                        via: SHARED_STRETCH.into(),
-                    }
+                    Provenance::Derived { via: shared_stretch() }
                 } else {
                     Provenance::Authored
                 };
@@ -593,10 +581,10 @@ fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
                 },
                 match end_marker.marked_by {
                     ew_derive::MarkedBy::Hand => Provenance::Overridden {
-                        note: "set by hand".into(),
+                        note: text!("via-set-by-hand"),
                     },
                     ew_derive::MarkedBy::Setting => Provenance::Derived {
-                        via: "workshop marking".into(),
+                        via: text!("via-workshop-marking"),
                     },
                 },
             ));
@@ -610,7 +598,7 @@ fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
                 EndTreatment::Connector | EndTreatment::External | EndTreatment::Unknown { .. } => None,
             };
             let set_by_hand = || Provenance::Overridden {
-                note: "set by hand".into(),
+                note: text!("via-set-by-hand"),
             };
             let hand_end = end.treated_by == TreatedBy::Hand;
             by_hand_end |= hand_end;
@@ -620,10 +608,10 @@ fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
                 match end.treated_by {
                     TreatedBy::Hand => set_by_hand(),
                     TreatedBy::Rule { row, assumed } => Provenance::Derived {
-                        via: rule_words(row, assumed.class, assumed.clamp).into(),
+                        via: rule_words(row, assumed.class, assumed.clamp),
                     },
                     TreatedBy::Outside => Provenance::Derived {
-                        via: "made outside the project".into(),
+                        via: text!("via-made-outside"),
                     },
                 },
             ));
@@ -634,7 +622,7 @@ fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
                     set_by_hand()
                 } else {
                     Provenance::Derived {
-                        via: "workshop stock".into(),
+                        via: text!("via-workshop-stock"),
                     }
                 },
             ));
@@ -691,19 +679,19 @@ fn end_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built> {
 /// The chip of an end the rule table's row `row` decided (doc 13 §4.2): "rule", "(unverified)" while the row's own flag
 /// (`TreatmentRule::verified`) says no panel builder has confirmed it, and what it assumed: the wire fine-stranded
 /// (`class`), the clamp's kind (`clamp`).
-fn rule_words(row: u8, class: bool, clamp: bool) -> &'static str {
+fn rule_words(row: u8, class: bool, clamp: bool) -> crate::Text {
     let verified = ew_derive::TREATMENT_RULES
         .iter()
         .any(|r| r.row == row && r.verified);
     match (verified, class, clamp) {
-        (false, true, true) => "rule (unverified): fine-stranded wire, clamp kind not known",
-        (false, true, false) => "rule (unverified): fine-stranded wire",
-        (false, false, true) => "rule (unverified): clamp kind not known",
-        (false, false, false) => "rule (unverified)",
-        (true, true, true) => "rule: fine-stranded wire, clamp kind not known",
-        (true, true, false) => "rule: fine-stranded wire",
-        (true, false, true) => "rule: clamp kind not known",
-        (true, false, false) => "rule",
+        (false, true, true) => text!("via-rule-assumed-both"),
+        (false, true, false) => text!("via-rule-assumed-class"),
+        (false, false, true) => text!("via-rule-assumed-clamp"),
+        (false, false, false) => text!("via-rule-unverified"),
+        (true, true, true) => text!("via-rule-verified-assumed-both"),
+        (true, true, false) => text!("via-rule-verified-assumed-class"),
+        (true, false, true) => text!("via-rule-verified-assumed-clamp"),
+        (true, false, false) => text!("via-rule-verified"),
     }
 }
 
@@ -806,19 +794,19 @@ fn way_row(q: &Q, conns: &[Id<Connection>]) -> Option<Built> {
             text,
         },
         provenance: Provenance::Derived {
-            via: ew_derive::text::wire_length_source(&r.length).to_string(),
+            via: ew_derive::text::wire_length_source(&r.length),
         },
         actions: Vec::new(),
     });
     built.row.link = link;
-    built.row.note = Some(ew_derive::text::way_line(q, &way).to_string());
+    built.row.note = Some(ew_derive::text::way_line(q, &way));
     Some(built)
 }
 
 /// The chip of a wire's Length row (doc 12 §9): how its length is made, in the words of the derivation, in English.
 /// A typed length says what Route gives where it laid the wire; a missing one of a cabinet's wire what Route does or
 /// why it finds no way, naming the cabinet's page.
-fn length_note(q: &Q, r: &ew_derive::WireRecord) -> String {
+fn length_note(q: &Q, r: &ew_derive::WireRecord) -> crate::Text {
     use ew_derive::layout::{
         CabinetWire, Planned, RouteScope, RouteStatus, cabinet_page, plan_routes, route_status,
         routed_length, space_of_wire,
@@ -854,7 +842,7 @@ fn length_note(q: &Q, r: &ew_derive::WireRecord) -> String {
             _ => ew_derive::text!("length-none"),
         },
     };
-    text.to_string()
+    text
 }
 
 /// The chip text of a wire property's source below level 7, in the words of the derivation's `prop-via-*` texts (the
@@ -864,7 +852,7 @@ pub(super) fn prop_via(
     source: &PropSource,
     potential: &str,
     class: Option<&ew_schema::CircuitClass>,
-) -> String {
+) -> crate::Text {
     let src = q.project().languages.as_ref().map(|l| l.source.to_string());
     match source {
         PropSource::Conductor(c) => {
@@ -916,10 +904,9 @@ pub(super) fn prop_via(
             )
         }
         PropSource::ProjectDefault => ew_derive::text!("prop-source-project"),
-        PropSource::BuiltIn { profile } => ew_derive::text!("prop-via-built-in", profile.as_str()),
+        PropSource::BuiltIn { .. } => ew_derive::text!("prop-via-built-in"),
         PropSource::Override(_) => ew_derive::text!("prop-via-override"),
     }
-    .to_string()
 }
 
 #[cfg(test)]
@@ -931,7 +918,7 @@ mod tests {
     fn a_rule_says_unverified_from_its_own_flag() {
         for r in &ew_derive::TREATMENT_RULES {
             for (class, clamp) in [(false, false), (true, false), (false, true), (true, true)] {
-                let words = rule_words(r.row, class, clamp);
+                let words = rule_words(r.row, class, clamp).to_string();
                 assert_eq!(
                     words.contains("(unverified)"),
                     !r.verified,
