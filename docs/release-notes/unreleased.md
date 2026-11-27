@@ -702,8 +702,8 @@ change here.
   function with pins (also the power supply, terminals and bus ports) and a device box, so a symbol of your own for a
   black-box part's function is drawn there (Ready-made function goes); a symbol's Version, Licence and Source are
   rows of its sheet; Other marks on the Drawing tab sets the cross-reference point at the drawing's centre;
-  Discipline is no longer asked: it follows from What it is and the page; a pin's function pin follows from the order
-  the pins are drawn in (Map to pin goes)
+  Discipline is no longer asked: it follows from What it is and the page; a pin stands for the function's next pin
+  as it is drawn, and its Function pin row (under More) chooses another (Map to pin goes)
 - behaviour-change: a new symbol from a page starts without a name (To do asks for one first), says when What it is
   was taken from the symbol drawn last, names its page's grid, shows the tag a device of it would get (-K?), and its
   strip warns when its grid is not the page's; a piece's symbol is named after the piece and the part, its pane is

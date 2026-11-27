@@ -741,3 +741,53 @@ fn a_symbol_s_version_licence_source_and_centre_are_kept() {
     assert_eq!(row(&s, "licence").value, RowValue::Text(Some("CC0-1.0".into())));
     assert_eq!(row(&s, "source").value, RowValue::Text(Some("my own drawing".into())));
 }
+
+/// A pin's function pin is chosen in its Properties (Function pin, under More; it was Map to pin): the two pins of a
+/// contact swap, Undo takes it back, and a pin the function has not is refused in words, nothing changed.
+#[test]
+fn a_pin_s_function_pin_is_chosen_in_its_properties() {
+    let tmp = Tmp::new("symbol-pin-map");
+    let mut s = project(&tmp);
+    done(&mut s, "parts.open", json!({}));
+    done(&mut s, "parts.new_symbol", json!({}));
+    draw_contact(&mut s);
+    let fn_of = |s: &ShellModel, i: usize| s.symbol_editor().unwrap().draft.symbol.cps.iter().nth(i).unwrap().fn_cp;
+    let (a, b) = (fn_of(&s, 0), fn_of(&s, 1));
+    assert_ne!(a, b, "each pin stands for one of the contact's");
+    done(&mut s, "symbol.select", json!({"items": ["cp:0"]}));
+    done(&mut s, "symbol.prop", json!({"key": "pin", "value": b.to_string()}));
+    assert_eq!((fn_of(&s, 0), fn_of(&s, 1)), (b, a), "swapped");
+    done(&mut s, "symbol.undo", json!({}));
+    assert_eq!((fn_of(&s, 0), fn_of(&s, 1)), (a, b), "Undo takes it back");
+    done(&mut s, "symbol.select", json!({"items": ["cp:0"]}));
+    let refused = crate::common::failed(&mut s, "symbol.prop", json!({"key": "pin", "value": "65000"}));
+    assert!(!refused.is_empty());
+    assert_eq!((fn_of(&s, 0), fn_of(&s, 1)), (a, b), "nothing changed");
+}
+
+/// A symbol older than the version his library holds is refused in words, in English and in Dutch: Save would replace
+/// the newer version.
+#[test]
+fn an_older_version_of_his_symbol_is_refused_in_both_languages() {
+    let tmp = Tmp::new("symbol-older");
+    let mut s = project(&tmp);
+    done(&mut s, "parts.open", json!({}));
+    done(&mut s, "parts.new_symbol", json!({}));
+    done(&mut s, "parts.field", json!({"field": "symbol.name", "value": "Older"}));
+    draw_contact(&mut s);
+    done(&mut s, "parts.save", json!({}));
+    let file = tmp.0.join("older.symbol.json");
+    std::fs::write(&file, serde_json::to_vec(&s.symbol_editor().unwrap().draft).unwrap()).unwrap();
+    done(
+        &mut s,
+        "symbol.draw",
+        json!({"tool": "rectangle", "x": -4, "y": 4, "x2": 4, "y2": 8}),
+    );
+    done(&mut s, "parts.save", json!({}));
+    for (locale, words) in [("en", "newer version"), ("nl", "nieuwere versie")] {
+        assert!(ew_viewmodel::strings::set_locale(locale));
+        done(&mut s, "symbol.open", json!({"file": file, "discard": true}));
+        let message = crate::common::failed(&mut s, "parts.save", json!({}));
+        assert!(message.contains(words), "{locale}: {message}");
+    }
+}
