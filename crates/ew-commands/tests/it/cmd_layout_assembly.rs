@@ -521,6 +521,32 @@ fn override2_a_concurrent_placement_of_a_member_conflicts() {
     );
 }
 
+/// Route's plan is derived from the whole project (the wire records read the potentials, the bonds, the pages in their
+/// order through their sections): a prepared `layout.route` does not apply over a new section, which can renumber the
+/// wires and so change the order Route lays them in.
+#[test]
+fn a_prepared_route_reads_every_table() {
+    let mut f = fx();
+    let route = ew_commands::commands::LayoutRoute {
+        space: f.space,
+        wires: Vec::new(),
+        all: true,
+    };
+    let preview = f.e.preview(&route).unwrap();
+    let base = preview.base_rev();
+    f.e.execute(&ew_commands::commands::CreateSection {
+        number: 7,
+        folio_range: (700, 799),
+        title: ew_mltext::MlText::neutral("Later"),
+        divider: false,
+    })
+    .unwrap();
+    assert!(
+        !preview.read_set().unchanged_since(f.e.model(), base),
+        "Route read the sections"
+    );
+}
+
 /// Next-fit from the rail start in DT order; one notice per device not placed, in list
 /// order, with the table's texts; the outcome names the carrier.
 #[test]

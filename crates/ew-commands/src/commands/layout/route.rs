@@ -7,7 +7,7 @@
 use super::*;
 
 use ew_derive::layout::{CabinetWire, Planned, RouteScope, cabinet_name, cabinet_wires, plan_routes};
-use ew_schema::{CommittedRoute, Conductor, Connection, Junction, MacroDef, SymbolDef};
+use ew_schema::{CommittedRoute, Connection};
 
 use crate::command::Counts;
 
@@ -50,25 +50,10 @@ impl Command for LayoutRoute {
                 text!("refusal-params-space-gone"),
             ));
         }
-        // The plan reads the whole cabinet: its records, the wiring and the parts.
+        // The plan reads the whole project through the wire records (the wiring, the potentials, the pages in their
+        // order, the parts, the shop's settings) and the cabinet's layout: every table, not a list kept in step by hand.
         let _ = tx.project();
-        let _ = tx.iter::<Enclosure>();
-        let _ = tx.iter::<MountingSurface>();
-        let _ = tx.iter::<Carrier>();
-        let _ = tx.iter::<Placement>();
-        let _ = tx.iter::<CommittedRoute>();
-        let _ = tx.iter::<Device>();
-        let _ = tx.iter::<Function>();
-        let _ = tx.iter::<Representation>();
-        let _ = tx.iter::<Connection>();
-        let _ = tx.iter::<Junction>();
-        let _ = tx.iter::<Conductor>();
-        let _ = tx.iter::<Page>();
-        let _ = tx.iter::<StructureNode>();
-        let _ = tx.iter::<LibCopy<Part>>();
-        let _ = tx.iter::<LibCopy<SymbolDef>>();
-        let _ = tx.iter::<LibCopy<FnDef>>();
-        let _ = tx.iter::<LibCopy<MacroDef>>();
+        tx.read_every_table();
         let q = Q::new(tx.base_model());
         let scope = if self.all {
             RouteScope::All

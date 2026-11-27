@@ -428,6 +428,16 @@ impl<'a> TxBuilder<'a> {
         Ok(())
     }
 
+    /// Records a read of every table, for a command whose plan is derived from the whole project through a query
+    /// over the base snapshot (Route's: the wire records read the wiring, the potentials, the pages and their order,
+    /// the parts and the layout): a prepared transaction of it applies to no later snapshot that changed any of them.
+    pub fn read_every_table(&self) {
+        self.reads
+            .borrow_mut()
+            .tables
+            .extend(ew_model::TABLE_KINDS.iter().copied());
+    }
+
     /// Every current record of kind `T`, in ID order. Records a whole-table read.
     pub fn iter<T: Entity>(&self) -> Vec<Arc<T>> {
         self.reads.borrow_mut().tables.insert(T::KIND);
