@@ -27,8 +27,10 @@ your drawing grid, **Snap to grid** and the tool you left the last time.
   the **Drawing grid** and **Snap to grid**, **Test on a page** and **Export draft**, and at its right end the next step:
   **Save and place on 102** for a page, **Save and use for -102S1** for a drawing like a placed symbol, **Done** for a
   piece, else **Save** (`Ctrl+Enter`). Each tool's tooltip says what it does and how.
-- <a id="the-outline"></a>**The short sheet**, on the left: **Name** and **What it is**, typed and chosen where they stand, and what follows
-  from them: where the symbol is **Listed under** and the grid its pins stand on. A symbol that is not yours (a starter
+- <a id="the-outline"></a>**The short sheet**, on the left: **Name** and **What it is**, typed and chosen where they stand, its
+  **Version** (Save gives the next), **Licence** and **Source** (yours to type; Make my own from it keeps the source's),
+  and what follows from them: where the symbol is **Listed under** and the grid its pins stand on. A new symbol from a
+  page starts without a name: To do asks for one first. A symbol that is not yours (a starter
   symbol, one of a library you cannot write, one only in this project) reads as it is, with a line that says why and
   **Make my own from it**. A saved symbol of yours offers **New part drawn with it…**. Under it **the outline** lists
   what the symbol consists of: its pins (designation, and the potential each carries), its texts and its shapes; a
@@ -82,11 +84,15 @@ saved.
 
 ## What the symbol is
 
-**What it is** asks what the symbol stands for, in a panel builder's words: a device box, a normally open contact, a
-coil, a protective device, a pressure, position or temperature switch, an indicator light, a heater, a terminal. It
-decides how the program lists and checks the symbol's device (a contact is listed with its coil, a terminal in the
-terminal diagram) and where the browsers list it, which **Listed under** follows. A symbol drawn for a fluid page is
-drawn as pneumatic, and its kinds are those of fluid power; one pin can differ, in its rows.
+**What it is** asks what the symbol stands for, in a panel builder's words: a device box with pins of its own, or any
+function of the starter set with pins (a normally open contact, a coil, a power supply, a terminal, a bus port, a
+valve), whatever the page, by the names the pieces table uses. A function chosen is the one the symbol draws: its pins
+stand for the function's in the order they are drawn, and a part on that function (the starter's power supply, say)
+is drawn with your symbol. It decides how the program lists and checks the symbol's device (a contact is listed with
+its coil, a terminal in the terminal diagram) and where the browsers list it, which **Listed under** follows; the
+discipline follows from it and the page, and is not asked. A first symbol on an electrical page is a normally open
+contact, elsewhere a device box. **Other marks ▸ Cross-reference point at the drawing's centre** keeps that point at
+the centre whatever the drawing holds.
 
 ## Saving, testing and leaving
 
@@ -182,7 +188,7 @@ The window and `.ewui` scripts share these actions:
 | `parts.new_symbol` | optional `like`: `last` (a copy of the symbol saved last), `selected` (like the symbol selected on the page), `hand` (the drawing in hand again); optional `discard: true` |
 | `parts.open` | `symbol`: `library:<library UUID>:<item UUID>`, `id:<copy UUID>` of the project's, or a key |
 | `parts.draw` | `what: "box"` (optional `part`), or `piece` (its index on the sheet) with `from` (`new`, `change`); without them the drawing in hand; `done: true` back to the Part tab |
-| `parts.field` | `field`: `symbol.name` or `symbol.what` (a word of What it is), `value` |
+| `parts.field` | `field`: `symbol.name`, `symbol.what` (`box` or a starter function's key), `symbol.licence` or `symbol.source`, `value` |
 | `parts.save`, `parts.back`, `parts.own`, `parts.discard` | none: the next step, the way back, Make my own from it, Discard |
 | `parts.find` | `shelf`: `parts` or `symbols`, with `text` and `scope` (`all`, `project`, `mine`) |
 | `symbol.open` | `file`, optional import `key` (default: the file's name), optional `discard: true` |
@@ -252,9 +258,8 @@ primitives/pins per symbol; archive names, CRCs, decompression ratio and XML dep
 
 ## The function types
 
-What **What it is** chooses sets one of these function types. The type decides which pins the symbol has and how its
-device is listed and checked; which types are offered follows the symbol's discipline: a valve for a fluid symbol, a
-contact or a coil for an electrical one, a port for a bus one, a black box for each.
+Each function **What it is** offers has one of these function types. The type decides how its device is listed and
+checked.
 
 | Function type | For |
 |---|---|

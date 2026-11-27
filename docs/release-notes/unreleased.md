@@ -695,8 +695,25 @@ change here.
   a page draws the piece with it where the page has it, else with the first symbol of its function
 - behaviour-change: a part's box is arranged in Parts (Arrange…, Arrange its box… and Add pin on a placed box): the
   device box editor goes, the pins are the sheet's one list, Done gives the part the box and nothing is saved until
-  the part is; a box part is laid out when it is saved, and Save's card names each placed box of the part it draws
-  anew (its Apply redraws them in one undo step; Redraw them goes)
+  the part is; Done on a box he changed gives the part its layout (a box nobody arranged keeps none: Place draws it by
+  its two corners as before, and saving another field of the part changes none of its boxes), and Save's card names
+  each placed box of the part it draws anew (its Apply redraws them in one undo step; Redraw them goes)
+- behaviour-change: what the old symbol editor did and where it is done now: What it is offers every starter
+  function with pins (also the power supply, terminals and bus ports) and a device box, so a symbol of your own for a
+  black-box part's function is drawn there (Ready-made function goes); a symbol's Version, Licence and Source are
+  rows of its sheet; Other marks on the Drawing tab sets the cross-reference point at the drawing's centre;
+  Discipline is no longer asked: it follows from What it is and the page; a pin's function pin follows from the order
+  the pins are drawn in (Map to pin goes)
+- behaviour-change: a new symbol from a page starts without a name (To do asks for one first), says when What it is
+  was taken from the symbol drawn last, names its page's grid, shows the tag a device of it would get (-K?), and its
+  strip warns when its grid is not the page's; a piece's symbol is named after the piece and the part, its pane is
+  the part's, and Use it for every part with this piece… gives it to your other parts with that piece after a card
+  that names them; a symbol of no part lists the parts drawn with it; the box is a pin table with Add a pin and its
+  size in steps of a 4 mm page
+- behaviour-change: Arrange its box… and the device browser's Arrange… work from a page; Ctrl+S and File ▸ Save on the
+  drawing are the strip's Save (a symbol that is not yours is no longer published, a box is finished); Save and place
+  keeps a part open in Parts; with no project open a piece's new symbol is given to it
+- api-add: `parts.use_for_all {apply?, cancel?}`; `symbol.draw` takes `centre` for the cross-reference point
 - api-break: `parts.new_symbol {like?}` and `parts.draw {what?, part?, piece?, from?, done?}` are new, `parts.open`
   takes `symbol` and `parts.find` takes `shelf`; `symbol.new`, `symbol.start`, `symbol.edit`, `symbol.fork`,
   `symbol.copy_edit`, `symbol.replace`, `symbol.save`, `symbol.close`, `symbol.directory`, `symbol.function`,
