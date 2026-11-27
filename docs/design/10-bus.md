@@ -19,8 +19,8 @@ present only on a connector or device with a termination switch (FR-BUS-004).
   topology page. [03](03-domain-model.md) §14 derives them the same way: a stored member order
   would be a second copy of what the topology page already states.
 - **Bus connectors** are devices of kind `BusConnector` with a port function (role Passive). That function has an
-  In entry (A1, B1), an Out entry (A2, B2, optional CPs), a device side and `termination`. -3X1 mates with -201U1's
-  DP socket through a `Bus` connection without a cable.
+  In entry (A1, B1), an Out entry (A2, B2, optional CPs), a device side and `termination`. A connector mates with a
+  station's DP socket through a `Bus` connection without a cable.
 - **Bus cables** are ordinary cables ([08](08-connections-terminals-cables.md) §7.5) drawn single-line as one
   `Connection{kind: Bus(BusLine{cable})}` (FR-CBL-008).
 - **A bus line's cable and plugs from the window.** Cable… on selected bus lines (the Draw tab's
@@ -56,7 +56,7 @@ present only on a connector or device with a termination switch (FR-BUS-004).
   of its bus system reached over bus lines from its ends) and gives the segment's ports one logical net: the one net
   they name, else, with two ports or more, a new `LogicalNet` named for the bus system (`PROFIBUS DP`, then
   `PROFIBUS DP 2` …) whose master is the CP of the one `master` or `controller` port. A passive port (a bus plug)
-  passes the net through and takes none, as -3X1 does: two stations joined plug to plug are one net.
+  passes the net through and takes none, as a bus connector does: two stations joined plug to plug are one net.
   It never changes a net a port names (two nets in one segment stay EW-BUS-010's). No member is added:
   `logical_net` was there, and an older 0.1 build reads the net as any other. The physical net goes the same way:
   the one physical net the segment's ports name, a
@@ -81,48 +81,69 @@ present only on a connector or device with a termination switch (FR-BUS-004).
     its Properties, or "Use <tag>" in the new-station dialog) is a station of that PLC. A **network switch**, a device
     no part of which has a PLC section and one of whose interfaces has more than two sockets, belongs to the PLC with
     no rack: no station view opens, a toast with Undo names the PLC, and its menu offers no Rack…. Put it on a bus page
-    places every interface of the station not drawn there, a box each, and makes a bus-topology page when the project
-    has none; a station whose part has no bus interface is refused in words. The starter valve terminals have their bus
+    draws the station there as its one box (below) and makes a bus-topology page when the project has none; a
+    station whose part has no bus interface is refused in words. The starter valve terminals have their bus
     node as an interface: EW-GEN-VTM-1 PROFIBUS DP, EW-GEN-VTM-2 PROFINET.
   A part without pins whose first interface has a starter port function names that function as its main template
   entry (`box.black` draws such an entry as a box with a socket per CP, the function staying a normal one). A later
   device-description import fills the same members: the interfaces, their roles and their socket counts. The PLC
   exchange exports the stations of a configuration project, so a switch or a device without a PLC section is left out
   of the AML file (no refusal).
-- **A device on a bus-topology page is drawn as its interfaces.** A box of format 0.1
-  draws the CPs of one function (`BoxCp.idx` is a CP of the representation's first function, and an older build reads
-  it so), and an interface is one port function with one address; so the smallest model that shows every port of a
-  device with several interfaces is **one box per interface**, side by side: the CPU EW-GEN-CPU-2 stands as a box DP
-  and a box X1, a head station with one DP interface as one box, a switch as its X1. Each box is the black-box frame
-  of type `topology` on the interface's port function, with a socket per port (`P1` … `Pn` for an interface that
-  counts n, else one socket, the port function's first CP, named by the interface); a box of several sockets names
-  its interface in its middle, every box prints the device's tag and the interface's address, and the first box alone
-  its part. Its supply pins are not on the bus page: they are its black box on a schematic page, which the device's
-  unplaced function places there (the black box tool draws an unplaced black-box function). `bus.place_ports` draws
-  them in one step: for a new device of a part (from the device browser, the template functions made as
-  `device.place` makes them, none drawn there) or an existing one (Place port `<interface>` on a station's row while
-  a bus-topology page is shown, and the Bus panel's Ports not drawn yet); each interface takes the function that
-  carries it, else a port-less bus-port function of the device, else a new port function of its bus's starter FnDef
-  (the PROFINET port's for a bus without one), whose port it gets as N5 gives one. Nothing is added to the format: an
-  older 0.1 build reads every box as any black box.
-  The boxes of one device behave as one box where a
-  person would expect one: a box dragged, or moved by the keyboard, takes the other boxes of its device's interfaces on
-  that page with it, one `rep.move`; the row of boxes being drawn stands inside the frame's drawing area, the whole
-  row moved by whole grid steps where its second corner would let a box run past the edge, and it is refused in words
-  ("Another device stands here: draw the boxes of the bus interfaces on a free place") where a box of it would cover a
-  device drawn on the page, and with its size where it is larger than the area. Each box is still selected, reshaped
-  and deleted on its own. A device placed first on a bus page takes its tag from that page (no other page draws
-  it); when its own box is drawn later on a schematic page (Place here, the device browser's unplaced function, Draw on
-  a page…), its tag becomes that page's, by the numbering rule that a device's tag names the page of its main function
-  (FR-NUM-007, doc 03 §5.1). Decided for the toast, not for keeping the tag: the tag that names the page with the device's supply
-  and channels is the one cross-references, lists and the cabinet take, and keeping the bus page's would need an
-  exception in the rule `ew_derive::MainRep`, which the numbering shares. The toast names both tags and why
-  ("-105A1 is now -104A1: a device takes its tag from the page that draws its own box, not from a bus page, which shows
-  its interfaces").
+- **A device on a bus-topology page is one box,** whatever number of interfaces it has. The box is the black-box
+  frame of type `topology` drawing every port function of the device's bus part (`functions`, in the part's interface
+  order), with a socket per port: `P1` … `Pn` of an interface that counts n, else one socket, the port function's
+  first CP. A box CP names the function whose CP it is (`BoxCp.function`, an optional member; absent, the
+  representation's first function, so the box of a device with one interface carries none), and
+  `Representation::box_fn_cp` is the one rule by which every reader turns a box CP into a function CP
+  (`ew_derive::rep_drawn_cps`). Where the sockets stand is the part's box ([07](07-symbols-parts-macros.md) §2.5): a
+  socket listed there stands at its edge and distance, so a part arranged in Parts is placed with one click; a part
+  without a layout is drawn by two corners, its sockets laid out as an unarranged box's pins are (the first half on
+  top, the rest below, in the part's interface order). A schematic page draws the same box with its pins, a bus page
+  with its sockets: each page shows what is wired on it.
+  - **A socket reads** as the device prints it: on a box of one interface `P1` … `Pn` with the interface in the box's
+    middle, or the interface alone for its one socket ("DP"); on a box of two or more interfaces each socket is led by
+    its interface ("X1 P1", "X1 P2") and a single socket is the interface ("X2", "DP"), nothing in the middle.
+  - **The addresses** stand in the frame's `bus_address` slot, one line per interface with an address in the part's
+    order, led by the interface on a box of two or more ("X1: Node rio1 192.168.0.11", "DP: Node 2"); a box of one
+    interface prints its address alone ("Node 3"), and a passive interface prints none. The box prints the device's
+    tag, part and one cross-reference.
+  - **Placing.** `bus.place_ports` draws the box in one step: for a new device of a part (from the device browser, the
+    template functions made as `device.place` makes them, none drawn there) or an existing one (Place here, or Place
+    port `<interface>` on a station's row while a bus-topology page is shown, and the Bus panel's Ports not drawn yet).
+    Each interface takes the function that carries it, else a port-less bus-port function of the device, else a new
+    port function of its bus's starter FnDef (the PROFINET port's for a bus without one), whose port it gets as N5
+    gives one. `replace` names boxes of the same device on the page that the new box takes the place of, in the same
+    step: a bus line at one of their CPs keeps its end, and its route's last segment follows the new socket as a
+    dragged box's wires do. Place port on a page where the device's box stands draws that box again with every
+    interface. The box stands inside the frame's drawing area, moved in by whole grid steps where it would run past
+    the edge, and is refused in words where it would cover a device drawn on the page ("Another device stands here:
+    draw the box on a free place"), and with its size where it is larger than the area.
+  - **As one thing.** The box is selected, moved, sized (its grips, `box.reshape`) and deleted as any box; deleting it
+    deletes no function. Deleting one interface's function takes that interface's sockets off the box in the same step
+    and leaves the box for the others. Properties of the box shows a section per interface, Network port
+    `<interface>`, with its address, termination and nets. A part's Save redraws the box as it redraws any box of its
+    devices (doc 07 §2.5), each socket following its own function. Its supply pins are not on the bus page: they are
+    its box on a schematic page, which the device's unplaced function places there (the black box tool draws an
+    unplaced black-box function).
+  - **A page drawn with one box per interface,** as earlier versions drew a device with several interfaces, opens and
+    prints as it was, and a box of it dragged takes the other boxes of its device on that page with it (one
+    `rep.move`). *Draw as one box* (`bus.one_box`, in a box's menu, offered while a selected box belongs to a device
+    drawn as two or more boxes on the page shown) draws each selected device as its one box where its first box stood
+    (the leftmost, then the topmost), as large as that box or as its part's box needs, the old boxes replaced in one
+    undo step (`bus.place_ports` with `replace`); it is refused in words where the box would cover another device or
+    leave the drawing area. Nothing converts a page by itself.
+  - **Its tag.** A device placed first on a bus page takes its tag from that page (no other page draws
+    it); when its own box is drawn later on a schematic page (Place here, the device browser's unplaced function, Draw on
+    a page…), its tag becomes that page's, by the numbering rule that a device's tag names the page of its main function
+    (FR-NUM-007, doc 03 §5.1). Decided for the toast, not for keeping the tag: the tag that names the page with the device's supply
+    and channels is the one cross-references, lists and the cabinet take, and keeping the bus page's would need an
+    exception in the rule `ew_derive::MainRep`, which the numbering shares. The toast names both tags and why
+    ("-105A1 is now -104A1: a device takes its tag from the page that draws its own box, not from a bus page, which shows
+    its interfaces").
 - **External partners** are placeholder devices with `PlcStation{role: ExternalPartner}`, `BusNode`, a `BusPort`
-  and an `ExternalRef` (project, location, device), but no parts. They are excluded from the BOM (FR-BUS-005). On
-  folio 3, the external interruption point "DP" inside the External Connection box is the physical segment end, and
-  its `ExternalRef` names JE-N1000-03 in +J-E-206.
+  and an `ExternalRef` (project, location, device), but no parts. They are excluded from the BOM (FR-BUS-005). An
+  external interruption point inside an External Connection box is the physical segment end, and its `ExternalRef`
+  names the partner's device and location.
 
 ---
 

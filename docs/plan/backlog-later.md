@@ -191,6 +191,7 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-2282 `ew-derive, ew-reports`: Bundles and the wiring sequence (FR-LAY-054), with the machine exports that sort by them (plan M4 §5): a shop without a wire machine wires device by device.
 - FT-2283 `ew-derive, ew-commands`: Cables in the cabinet's ways: a cable inside the cabinet laid as one object with its outer diameter and its length routed (FR-CBL-010); a cable that leaves the cabinet routed to its gland (`cable_glands`, doc 12 §3.9) with a typed outer length (FR-CBL-020); a pre-assembled cable's way against its length (FR-LAY-050, EW-LAY-014); a cable counted in a duct's fill. M4 keeps a cable's length typed or its part's, as the sample's are.
 - FT-2284 `ew-derive`: Ways to a side wall, the roof or the floor and between two doors (Route lays wires on the plate and into the doors, doc 12 §8.2), and a calibration factor with offsets per device family (FR-LAY-052) once a built cabinet's cut lengths are compared with the routed ones.
+- FT-2353 `ew-viewmodel, ew-commands`: Move to page… between bus-topology pages: a device's one box moved to another bus page with its bus lines to devices that stay kept as pairs of interruption points, as on schematic pages (doc 06 §3.4), and the segments derived across the pair. Left out of the one box per device (doc 10 §2.7): Cut and Paste moves the device and removes its bus lines, which are drawn again.
 
 ## Packaging and release
 
