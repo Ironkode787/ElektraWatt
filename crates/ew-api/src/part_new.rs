@@ -620,7 +620,8 @@ impl Session {
 
     /// A new part's draft with the identity, the technical data and the sections of the draft `held` of a part (a held
     /// copy's, or a library part's that the project does not hold, [`Session::library_part_draft`]): Make my own and
-    /// New part like this; Save makes it a part of his own.
+    /// New part like this; Save makes it a part of his own. Of the other part's facts (`meta`) it keeps where the data
+    /// came from and the licence; its key is its own number's and its status a new part's.
     ///
     /// # Errors
     ///
@@ -643,9 +644,15 @@ impl Session {
         draft.start = held.start;
         draft.pieces = held.pieces.clone();
         draft.levels = held.levels.clone();
-        // The held item keeps what the forms do not show (pins, template, other sections); a new item ID and key.
+        // The held item keeps what the forms do not show (pins, template, other sections), where its data came from and
+        // its licence; it has a new item ID and key, and the status of a new part of one's own. Nothing else of its
+        // facts is carried: a fork's source, its confidence and its date are the other part's.
         let mut original = held.original.clone();
-        original.meta = Default::default();
+        original.meta = ew_schema::ItemMeta {
+            licence: held.original.meta.licence.clone(),
+            sources: held.original.meta.sources.clone(),
+            ..Default::default()
+        };
         draft.original = original;
         draft.manufacturer = held.manufacturer.clone();
         Ok(draft)

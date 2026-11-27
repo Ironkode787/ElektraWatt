@@ -134,6 +134,46 @@ fn a_part_only_in_this_project_is_kept_in_my_parts() {
     assert!(s.keep_in_my_parts(here).is_err());
 }
 
+/// Make my own from a starter part (and so Like this): the new part keeps where its data came from and its licence,
+/// takes its own number as its key, and starts with the status of a new part; nothing else of the starter part's
+/// facts (its confidence) is carried.
+#[test]
+fn a_part_made_from_another_keeps_its_sources_and_licence() {
+    let tmp = ew_testdir::Tmp::new("parts-place-own-meta");
+    let mut s = project(&tmp.0);
+    let starter = s
+        .library_parts()
+        .into_iter()
+        .find(|c| c.item.part_number.as_str() == "EW-GEN-TRM-1")
+        .expect("the starter terminal");
+    assert!(
+        starter.item.meta.licence.is_some() && !starter.item.meta.sources.is_empty(),
+        "the starter terminal says where it came from: {:?}",
+        starter.item.meta
+    );
+    let sheet = s
+        .library_part_draft(starter.library_id.as_uuid(), starter.item_id.as_uuid())
+        .expect("its sheet");
+    let mut own = s.new_part_draft_copying(&sheet).expect("a part of one's own");
+    for (f, v) in [("manufacturer", "Example"), ("part_number", "MY-TRM")] {
+        s.set_draft_field(&mut own, f, v).expect(f);
+    }
+    let made = s.new_part_command(&own).expect("the new part's command");
+    run(&mut s, &made.command);
+    let q = s.query();
+    let (_, copy) = q
+        .parts()
+        .iter()
+        .find(|(_, c)| c.item.part_number.as_str() == "MY-TRM")
+        .expect("the project holds MY-TRM");
+    let meta = &copy.item.meta;
+    assert_eq!(meta.licence, starter.item.meta.licence);
+    assert_eq!(meta.sources, starter.item.meta.sources);
+    assert_eq!(meta.key.as_ref().map(|k| k.as_str()), Some("MY-TRM"));
+    assert_eq!(meta.status, ew_schema::ItemStatus::default());
+    assert!(meta.confidence.is_empty(), "{meta:?}");
+}
+
 /// Ready for says what a part lacks only for a feature that reads parts of its kind (doc 07 §5.7), asked of every part
 /// of the starter content: the output load of a PLC module or station alone, the coil of a valve with solenoids alone,
 /// no footprint or rail of an accessory (a plug, a bridge), and no pins of a piece that has none (an air service unit).
