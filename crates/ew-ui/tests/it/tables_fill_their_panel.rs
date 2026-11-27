@@ -68,7 +68,7 @@ fn the_connections_table_opens_with_its_lengths_in_view_at_1920() {
         .find(|n| {
             n.accesskit_node()
                 .label()
-                .is_some_and(|l| l.starts_with("Length") && l.contains("400 mm"))
+                .is_some_and(|l| l.starts_with("Length mm") && l.contains("400"))
         })
         .expect("101.1's Length cell")
         .rect();

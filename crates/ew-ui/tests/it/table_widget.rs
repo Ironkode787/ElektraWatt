@@ -343,7 +343,7 @@ fn paste_resolve_and_apply_without_a_pointer() {
     assert_eq!(steps(shell), n + 1, "one command");
     assert!(shell.table_gesture().is_none());
     let vals = texts(shell, NavKind::Cables, "mm²");
-    assert_eq!(&vals[first..first + 2], ["0.75 mm²", "1.5 mm²"]);
+    assert_eq!(&vals[first..first + 2], ["0.75", "1.5"]);
     h.state_mut().shell_mut().shutdown();
 }
 
