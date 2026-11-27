@@ -7120,11 +7120,14 @@ msgid ""
 "names a part by its number: a new row starts as that part (its pins, what it "
 "is drawn as, its clamps, what it comes with) and takes its own columns over "
 "it, so that a family is one part made on its sheet and a table of the "
-"others. The map is saved under the name in **Saved as**, and the next table "
-"of that source is read the same way."
+"others. A column mapped to **Cable ▸ Number of cores** (a column named Cores "
+"is mapped already) gives a cable that many numbered cores, of the "
+"cross-section a column mapped to **Cable ▸ Cross-section** gives; an empty "
+"cell leaves its cores as they are. The map is saved under the name in "
+"**Saved as**, and the next table of that source is read the same way."
 msgstr ""
 
-#: src/how-to/own-parts.md:121
+#: src/how-to/own-parts.md:123
 msgid ""
 "**An EPLAN parts file** (an EDZ, or a parts XML): before the first EDZ of a "
 "session a notice says that the EPLAN Data Portal's terms restrict its data "
@@ -7133,20 +7136,20 @@ msgid ""
 "the changed fields before anything changes."
 msgstr ""
 
-#: src/how-to/own-parts.md:124
+#: src/how-to/own-parts.md:126
 msgid ""
 "**An outline drawing** (DXF) gives the open part its front outline, as "
 "**Import outline…** does."
 msgstr ""
 
-#: src/how-to/own-parts.md:125
+#: src/how-to/own-parts.md:127
 msgid ""
 "**A symbol file**, on the **Symbols** shelf or on the drawing: a "
 "QElectroTech element, an EPLAN symbol file or a DXF drawing opens as a "
 "drawing of your own."
 msgstr ""
 
-#: src/how-to/own-parts.md:128
+#: src/how-to/own-parts.md:130
 msgid ""
 "What a table or a parts file brings stands in the list as **This import**: "
 "each row **new**, **changed**, **the same** as the part in My parts, or "
@@ -7158,31 +7161,31 @@ msgid ""
 "**Discard** drops the set."
 msgstr ""
 
-#: src/how-to/own-parts.md:134
+#: src/how-to/own-parts.md:136
 msgid "Change many parts at once"
 msgstr ""
 
-#: src/how-to/own-parts.md:136
+#: src/how-to/own-parts.md:138
 msgid ""
 "In the list of Parts, hold **Ctrl** and click each part to take it in or out "
 "of the selection, or hold **Shift** and click to take the rows from the open "
 "part to that one."
 msgstr ""
 
-#: src/how-to/own-parts.md:138
+#: src/how-to/own-parts.md:140
 msgid ""
 "The sheet shows the fields the parts share: a value they all have, or "
 "**mixed** under a field they differ in. Where they have the same pins, the "
 "**Connections** table's cells are there too (\"Pin 1 · Clamp\")."
 msgstr ""
 
-#: src/how-to/own-parts.md:140
+#: src/how-to/own-parts.md:142
 msgid ""
 "Type a value: it goes to all of them. A field you leave **mixed** stays as "
 "each part has it."
 msgstr ""
 
-#: src/how-to/own-parts.md:141
+#: src/how-to/own-parts.md:143
 msgid ""
 "**Save** saves each part as its next version in My parts. Where the open "
 "project uses them, the card beside the sheet names how many parts and which "
@@ -7191,14 +7194,14 @@ msgid ""
 "keeps what you saved)."
 msgstr ""
 
-#: src/how-to/own-parts.md:145
+#: src/how-to/own-parts.md:147
 msgid ""
 "A starter part among them is not yours to change: a line names it, and "
 "**Make my own from** it starts a part of your own from it. A part only in "
 "this project is kept in My parts first (**Keep in my parts**)."
 msgstr ""
 
-#: src/how-to/own-parts.md:148
+#: src/how-to/own-parts.md:150
 msgid ""
 "**Export** in the bar of Parts writes the selected parts, or the open one, "
 "as a table (CSV, or Excel for a name ending in `.xlsx`), one column per "
@@ -7209,18 +7212,18 @@ msgid ""
 "**the same**."
 msgstr ""
 
-#: src/how-to/own-parts.md:153
+#: src/how-to/own-parts.md:155
 msgid "A device that is a box with pins"
 msgstr ""
 
-#: src/how-to/own-parts.md:155
+#: src/how-to/own-parts.md:157
 msgid ""
 "A circuit protector, a power supply, a drive: a device the program has no "
 "symbol for is drawn as a box with its pins on the edges. The part says which "
 "pins it has and where they stand."
 msgstr ""
 
-#: src/how-to/own-parts.md:158
+#: src/how-to/own-parts.md:160
 msgid ""
 "Under **On the schematic**, **Pins** lists the part's pins, each with its "
 "name and the potential it carries. **Add pin** adds one, the cross at a "
@@ -7229,7 +7232,7 @@ msgid ""
 "symbol takes that symbol's connections: the group lists them and says so."
 msgstr ""
 
-#: src/how-to/own-parts.md:162
+#: src/how-to/own-parts.md:164
 msgid ""
 "Choose **Arrange…**. The box opens as the drawing of Parts: drag each pin "
 "along its edge or onto another edge, drag the box's edges to size it, choose "
@@ -7237,7 +7240,7 @@ msgid ""
 "part](../reference/symbol-editor.md#the-box-of-a-part))."
 msgstr ""
 
-#: src/how-to/own-parts.md:165
+#: src/how-to/own-parts.md:167
 msgid ""
 "**Draw ▸ Place ▸ Device from part…** then places the part's box with one "
 "click, laid out as you drew it. On the page the box's edges and pins can "
@@ -7250,18 +7253,18 @@ msgid ""
 "left and right sides are horizontal."
 msgstr ""
 
-#: src/how-to/own-parts.md:171
+#: src/how-to/own-parts.md:173
 msgid ""
 "To change the box of a device already drawn, choose **Arrange its box…** in "
 "its menu. Save's card names each box of the part it draws anew, and its "
 "Apply redraws them."
 msgstr ""
 
-#: src/how-to/own-parts.md:174
+#: src/how-to/own-parts.md:176
 msgid "A part drawn with your own symbol"
 msgstr ""
 
-#: src/how-to/own-parts.md:176
+#: src/how-to/own-parts.md:178
 msgid ""
 "A piece's **Symbol** cell, under **On the schematic ▸ Drawn as**, offers the "
 "symbols of what the piece is; **Draw a new symbol…** draws one for it, its "
@@ -7272,7 +7275,7 @@ msgid ""
 "symbol](../reference/symbol-editor.md))."
 msgstr ""
 
-#: src/how-to/own-parts.md:181
+#: src/how-to/own-parts.md:183
 msgid ""
 "The PLC exchange with PLC software exports the stations of a configuration "
 "project; a switch or a device without a PLC section is not in the exported "
