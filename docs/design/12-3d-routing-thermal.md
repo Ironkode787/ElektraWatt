@@ -305,7 +305,10 @@ kind verbatim and does not delete it) is not read either; the next Route on its 
 else it does. A Route that lays nothing and only removes them is still a change: its card opens with the lead "Route:
 cabinet +CAB. 3 ways of wires this cabinet no longer lays are removed. Nothing has changed yet.", Apply is its own undo
 step and its toast says "Removed 3 ways of wires +CAB no longer lays."; `ew route --page` removes them, says so and
-saves.
+saves. Whatever else a Route does, no way goes unsaid: its card names the ways it removes before Apply ("2 ways of
+wires +CAB no longer lays are removed: 101.8, 103.2", the one text `ew route` prints too), and its toast counts them
+after the wires it routed. A wire made unfinished (an end of it not known yet) loses its stored way so, and gets a new
+one from the Route after it is finished.
 
 ### 8.6 Duct fill
 

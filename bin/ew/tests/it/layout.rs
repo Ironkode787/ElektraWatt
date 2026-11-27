@@ -185,8 +185,9 @@ fn route_that_lays_nothing_removes_the_ways_of_wires_the_cabinet_no_longer_lays(
     let o = t.ew(&["route", &p, "--page", "902", "--dry-run"]);
     let text = stdout(&o);
     assert!(
-        text.starts_with("Every wire of +CAB has its way.\nWould remove ")
-            && text.ends_with(" ways of wires +CAB no longer lays.\n"),
+        text.starts_with("Every wire of +CAB has its way.\n")
+            && text.contains(" ways of wires +CAB no longer lays are removed: 101.8, ")
+            && text.ends_with(".\n"),
         "{text}{}",
         stderr(&o)
     );

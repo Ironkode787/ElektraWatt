@@ -931,3 +931,9 @@ package-about-drilling-folder = Per surface with holes: a template to print at 1
 package-about-lists-folder = The workshop lists, each as the list's Excel export.
 package-about-manifest = The same list for a program, with a SHA-256 of each file.
 package-contents-made-by = Made by ElektraWatt { $p0 }.
+# Route's card and `ew route`: the stored ways a Route removes (doc 12-3d §8.5); `$count` is `one` or `many`, `$n`
+# its number.
+route-ways-removed = { $count ->
+        [one] 1 way of a wire { $cabinet } no longer lays is removed: { $wires }
+       *[many] { $n } ways of wires { $cabinet } no longer lays are removed: { $wires }
+    }

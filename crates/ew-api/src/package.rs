@@ -283,7 +283,7 @@ impl std::fmt::Display for PackageError {
 impl std::error::Error for PackageError {}
 
 /// The text of the key `key` with the count `n`: its `$n`, and `$count` `one` or `many`, which its pattern selects on.
-fn counted(key: &'static str, n: usize) -> Text {
+pub(crate) fn counted(key: &'static str, n: usize) -> Text {
     Text::checked_by_macro(
         key,
         crate::text_english(key).unwrap_or(key),

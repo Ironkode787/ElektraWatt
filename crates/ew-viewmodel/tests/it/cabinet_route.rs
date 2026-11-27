@@ -318,3 +318,47 @@ fn a_wire_selected_in_the_table_is_headed_by_its_number_and_ends() {
         "Connection (1)"
     );
 }
+
+/// A Route that lays wires and removes stored ways names the removed ways on its card before Apply (doc 12-3d §8.5):
+/// -103F1 left without a location makes 101.8 unfinished, and its way goes with Route every wire again; the card says
+/// "… ways of wires +CAB no longer lays are removed: … 101.8 …", the toast after Apply says what it routed and how
+/// many ways it removed, and Undo brings the way back (the next Route names it again).
+#[test]
+fn route_names_the_ways_it_removes_also_when_it_lays_other_wires() {
+    let tmp = Tmp::new("vm-cabinet-named-gone");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "902");
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-103F1"}],
+            "path": "structure.location", "value": "none"}}),
+    );
+    let removed = |shell: &ShellModel| {
+        let card = cabinet_card(shell).expect("the card");
+        card.columns()
+            .0
+            .iter()
+            .flatten()
+            .map(|g| g.heading.clone())
+            .find(|h| h.contains(" no longer lays are removed: "))
+    };
+    done(&mut shell, "layout.route", json!({}));
+    done(&mut shell, "layout.route_card", json!({"all": true}));
+    let card = cabinet_card(&shell).expect("the card");
+    assert!(!card.route.lengths.is_empty(), "it lays the cabinet's wires");
+    let words = removed(&shell).expect("the card names the ways it removes");
+    assert!(words.contains("101.8"), "{words}");
+    done(&mut shell, "preview.apply", json!({}));
+    assert!(
+        toasts(&shell)
+            .iter()
+            .any(|t| t.starts_with("Routed ") && t.contains(" Removed ") && t.contains(" no longer lays.")),
+        "{:?}",
+        toasts(&shell)
+    );
+    done(&mut shell, "edit.undo", json!({}));
+    done(&mut shell, "layout.route", json!({}));
+    let words = removed(&shell).expect("the way is back, so Route removes it again");
+    assert!(words.contains("101.8"), "{words}");
+    shell.shutdown();
+}

@@ -164,6 +164,21 @@ pub struct CabinetRoute {
     /// The stored ways of wires the cabinet no longer lays (doc 12-3d §8.5), which the plan removes whatever else it
     /// does.
     pub gone: usize,
+    /// The wires of those ways, each by its number or its ends, in the wire list's order; a way whose wire is no
+    /// physical wire any more is counted in `gone` and named by none.
+    pub gone_wires: Vec<String>,
+}
+
+impl CabinetRoute {
+    /// The ways the plan removes, in words, as Route's card and `ew route` say them before and when it stores them
+    /// ("2 ways of wires +CAB no longer lays are removed: 101.8, 103.2"); `None` where it removes none.
+    pub fn gone_words(&self) -> Option<Text> {
+        (self.gone > 0).then(|| {
+            crate::package::counted(key!("route-ways-removed"), self.gone)
+                .with("cabinet", self.cabinet.clone())
+                .with("wires", self.gone_wires.join(", "))
+        })
+    }
 }
 
 /// The layout space and plate of the panel page `page`: the space of the enclosure whose plate it shows.
@@ -516,12 +531,23 @@ fn card(
         site: Vec::new(),
         without: Vec::new(),
         ways: Vec::new(),
-        gone: now
-            .table::<ew_schema::CommittedRoute>()
-            .iter()
-            .filter(|(id, c)| c.space == space && !after.table::<ew_schema::CommittedRoute>().contains(*id))
-            .count(),
+        gone: 0,
+        gone_wires: Vec::new(),
     };
+    // The stored ways the plan removes, and the wires they were laid for.
+    let gone: std::collections::BTreeSet<Id<ew_schema::Connection>> = now
+        .table::<ew_schema::CommittedRoute>()
+        .iter()
+        .filter(|(id, c)| c.space == space && !after.table::<ew_schema::CommittedRoute>().contains(*id))
+        .map(|(_, c)| c.wire)
+        .collect();
+    out.gone = gone.len();
+    out.gone_wires = now
+        .get::<WireRecordSet>(())
+        .iter()
+        .filter(|r| gone.contains(&r.wire.id))
+        .map(|r| r.number.clone().unwrap_or_else(|| ends_text(now, r)))
+        .collect();
     // The lanes: each duct's planned ways side by side across its width, in the plan's order.
     let mut lanes: std::collections::BTreeMap<
         Id<ew_schema::Carrier>,

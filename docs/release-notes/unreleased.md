@@ -881,3 +881,7 @@ change here.
 - behaviour-change: a change made in Properties to one record says in its toast what the command did beside the row
   (a module attached to its station, a bus port that keeps its role under its new part), as a change of several
   records and a card already did; it said nothing
+- behaviour-change: Route's card on a cabinet's page names the stored ways it removes before Apply ("2 ways of wires
+  +CAB no longer lays are removed: 101.8, 103.2"), and its toast counts them after the wires it routed, also when it
+  routes wires beside them; `ew route --page` prints the same sentence, which said "Removed 2 ways of wires +CAB no
+  longer lays." (or "Would remove …" with `--dry-run`)

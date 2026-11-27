@@ -146,17 +146,26 @@ impl CabinetCard {
         CardColumns(vec![
             vec![group(key!("cabinet-route-ducts"), ducts)],
             vec![group(key!("cabinet-route-lengths"), lengths)],
-            vec![
+            [
                 group(key!("cabinet-route-typed"), typed),
                 group(key!("cabinet-route-site-heading"), site),
                 group(key!("cabinet-route-without"), without),
-                CardGroup {
-                    heading: String::new(),
-                    count: None,
-                    rows: Vec::new(),
-                    tick: Some(tick),
-                },
-            ],
+            ]
+            .into_iter()
+            // The stored ways Apply removes, named before it does (doc 12-3d §8.5).
+            .chain(r.gone_words().map(|t| CardGroup {
+                heading: strings::render(&t),
+                count: None,
+                rows: Vec::new(),
+                tick: None,
+            }))
+            .chain([CardGroup {
+                heading: String::new(),
+                count: None,
+                rows: Vec::new(),
+                tick: Some(tick),
+            }])
+            .collect(),
         ])
     }
 }
@@ -287,12 +296,15 @@ impl ShellModel {
         let cabinet = c.route.cabinet.clone();
         let out = self.apply_bulk_card(card);
         if out == Outcome::Done {
-            let text = if routed == 0 && gone > 0 {
-                strings::format_counted(count_key!("toast-cabinet-gone"), gone, &[&cabinet])
-            } else {
-                strings::format_counted(count_key!("toast-cabinet-routed"), routed, &[&cabinet])
-            };
-            self.notify(text, true);
+            // What it routed, then the ways it removed: also when it routed wires beside them.
+            let routed = (routed > 0 || gone == 0)
+                .then(|| strings::format_counted(count_key!("toast-cabinet-routed"), routed, &[&cabinet]));
+            let removed =
+                (gone > 0).then(|| strings::format_counted(count_key!("toast-cabinet-gone"), gone, &[&cabinet]));
+            let undo = self.undo_offer();
+            let sentences = routed.into_iter().chain(removed).collect();
+            self.notes
+                .push(crate::notifications::Note::of("edit", sentences).offering([undo]));
         }
         out
     }

@@ -916,3 +916,9 @@ package-about-drilling-folder = Per vlak met gaten: een boorsjabloon om op 100 %
 package-about-lists-folder = De werkplaatslijsten, elk als de Excel-export van de lijst.
 package-about-manifest = Dezelfde lijst voor een programma, met een SHA-256 van elk bestand.
 package-contents-made-by = Gemaakt door ElektraWatt { $p0 }.
+# De kaart van Routeren en `ew route`: de opgeslagen lopen die Routeren verwijdert (doc 12-3d §8.5); `$count` is
+# `one` of `many`, `$n` het aantal.
+route-ways-removed = { $count ->
+        [one] 1 loop van een draad die { $cabinet } niet meer legt, wordt verwijderd: { $wires }
+       *[many] { $n } lopen van draden die { $cabinet } niet meer legt, worden verwijderd: { $wires }
+    }
