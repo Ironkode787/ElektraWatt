@@ -41,7 +41,52 @@ pub fn gland_nut(g: &GlandSection) -> Nm {
 
 /// The gap between two glands in a row as the workshop keeps it: `nut_a / 2 + nut_b / 2 + web` ([`gland_nut`]).
 pub fn gland_pitch(a: &GlandSection, b: &GlandSection, web: Nm) -> Nm {
-    Nm(gland_nut(a).0 / 2 + gland_nut(b).0 / 2 + web.0)
+    nut_pitch(gland_nut(a), gland_nut(b), web)
+}
+
+/// The gap between the centres of two glands whose nuts are `a` and `b` across their flats: half of each and the web.
+fn nut_pitch(a: Nm, b: Nm, web: Nm) -> Nm {
+    Nm(a.0 / 2 + b.0 / 2 + web.0)
+}
+
+/// The nut of the gland that sits in a placed gland hole `hole` (doc 12 §3.9): that of the first gland of `glands`
+/// made for the hole's thread (its cable's gland, then the workshop stock's), else 1.4 × the thread. The hole is a
+/// fact, so a cable whose gland changed since still has the gland of its hole in it. `None` for a hole that is no
+/// gland's.
+pub fn hole_nut<'g>(hole: &ew_schema::Hole, mut glands: impl Iterator<Item = &'g GlandSection>) -> Option<Nm> {
+    let ew_schema::Hole::Gland(thread) = hole else {
+        return None;
+    };
+    Some(match glands.find(|g| g.thread == *thread) {
+        Some(g) => gland_nut(g),
+        None => Nm(i64::from(thread.mm().unwrap_or(0)) * 1_400_000),
+    })
+}
+
+/// Where a single gland whose nut is `nut`, dropped at `at` (the surface frame), goes beside the glands placed already
+/// on its surface (`placed`: each one's centre and nut) (doc 12 §3.9): at an end of a row of them, at the pitch of the
+/// two nuts and `web`, where the drop lies within one pitch of that place (the nearest such end); else at the drop.
+/// The one rule of the drop and of the outline that floats before it.
+pub fn gland_snap(placed: &[((i128, i128), Nm)], nut: Nm, web: Nm, at: (i128, i128)) -> (i128, i128) {
+    let mut best: Option<(i128, (i128, i128))> = None;
+    for ((u, v), other) in placed {
+        let pitch = i128::from(nut_pitch(*other, nut, web).0);
+        for side in [-1, 1] {
+            let place = (u + side * pitch, *v);
+            // A row's end only: no gland of the row stands closer to that place than the pitch.
+            if placed
+                .iter()
+                .any(|((pu, pv), _)| pv == v && (pu - place.0).abs() < pitch)
+            {
+                continue;
+            }
+            let d = (place.0 - at.0).abs().max((place.1 - at.1).abs());
+            if d < pitch && best.is_none_or(|(bd, _)| d < bd) {
+                best = Some((d, place));
+            }
+        }
+    }
+    best.map_or(at, |(_, place)| place)
 }
 
 /// The centres of a row of glands along the surface's first axis, from the first's (0), each one pitch from the one

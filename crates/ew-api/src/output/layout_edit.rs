@@ -2527,54 +2527,51 @@ impl Session {
 
     /// Where the gland of `cable` dropped alone at `at` (the surface frame) goes on `surface` (doc 12 §3.9): at an end
     /// of a row of glands placed there already, at the pitch of the two nuts and the workshop's web between holes,
-    /// where the drop lies within one pitch of that place (the nearest such end); else at the drop.
+    /// where the drop lies within one pitch of that place (the nearest such end); else at the drop
+    /// ([`Session::gland_snap_of`]).
     pub fn gland_snap(&self, surface: Uuid, cable: Uuid, at: (i128, i128)) -> (i128, i128) {
+        self.gland_snap_of(surface, cable).map_or(at, |s| s.snap(at))
+    }
+
+    /// What a single gland of `cable` snaps to on `surface` ([`GlandSnap`]): the glands placed there already, each with
+    /// the nut of the gland its stored hole takes ([`ew_derive::layout::hole_nut`]), and its own nut; `None` where
+    /// the cable has no gland that waits in the cabinet of the surface. The drop and the outline that floats before it
+    /// read the same.
+    pub fn gland_snap_of(&self, surface: Uuid, cable: Uuid) -> Option<GlandSnap> {
         let q = self.query();
-        let Some(s) = q.table::<MountingSurface>().get(Id::from_uuid(surface)) else {
-            return at;
-        };
-        let Some(space) = q.table::<Enclosure>().get(s.enclosure).map(|e| e.space) else {
-            return at;
-        };
+        let s = q.table::<MountingSurface>().get(Id::from_uuid(surface))?;
+        let space = q.table::<Enclosure>().get(s.enclosure).map(|e| e.space)?;
         let glands = q.get::<ew_derive::layout::CableGlands>(space);
         let section = |c: Id<ew_schema::Device>| {
             let part = glands.iter().find(|g| g.cable == c)?.part.clone().ok()?;
             ew_derive::layout::gland_section(&q, &part)
         };
-        let Some(new) = section(Id::from_uuid(cable)) else {
-            return at;
-        };
+        let nut = ew_derive::layout::gland_nut(&section(Id::from_uuid(cable))?);
         let web = q
             .project()
             .settings
             .workshop
             .min_web
             .unwrap_or(crate::checks::rules::holes::DEFAULT_WEB);
-        let placed: Vec<(i128, i128, ew_schema::GlandSection)> = q
+        let stock: Vec<ew_schema::GlandSection> = q
+            .project()
+            .settings
+            .workshop
+            .stock
+            .iter()
+            .filter_map(|p| ew_derive::layout::gland_section(&q, p))
+            .collect();
+        let placed = q
             .table::<ew_schema::SurfaceFeature>()
             .iter()
-            .filter(|(_, f)| f.surface == s.id && f.cable != Some(Id::from_uuid(cable)))
-            .filter_map(|(_, f)| Some((i128::from(f.at.x.0), i128::from(f.at.y.0), section(f.cable?)?)))
+            .filter(|(_, f)| f.surface == s.id && f.cable.is_some_and(|c| c.as_uuid() != cable))
+            .filter_map(|(_, f)| {
+                let own = section(f.cable?);
+                let nut = ew_derive::layout::hole_nut(&f.hole, own.iter().chain(&stock))?;
+                Some(((i128::from(f.at.x.0), i128::from(f.at.y.0)), nut))
+            })
             .collect();
-        let mut best: Option<(i128, (i128, i128))> = None;
-        for (u, v, sec) in &placed {
-            let pitch = i128::from(ew_derive::layout::gland_pitch(sec, &new, web).0);
-            for side in [-1, 1] {
-                let place = (u + side * pitch, *v);
-                // A row's end only: no gland of the row stands closer to that place than the pitch.
-                if placed
-                    .iter()
-                    .any(|(pu, pv, _)| pv == v && (pu - place.0).abs() < pitch)
-                {
-                    continue;
-                }
-                let d = (place.0 - at.0).abs().max((place.1 - at.1).abs());
-                if d < pitch && best.is_none_or(|(bd, _)| d < bd) {
-                    best = Some((d, place));
-                }
-            }
-        }
-        best.map_or(at, |(_, place)| place)
+        Some(GlandSnap { placed, nut, web })
     }
 
     /// Whether `feature` is a hole made for a cable's gland (`SurfaceFeature.for_cable`): what Keep it as a hole
@@ -2800,6 +2797,24 @@ impl Session {
             params: json!({"page": page.to_string(), "surface": view.surface.as_uuid().to_string(),
                 "datum_at": [x, y], "label_mode": mode, "scale": {"one_to": n}}),
         })
+    }
+}
+
+/// What a single gland dropped on a surface snaps to (doc 12 §3.9, [`Session::gland_snap_of`]): the glands placed there
+/// already, each with its centre in the surface frame and the nut of the gland its hole takes, the dropped gland's nut
+/// and the workshop's web between holes. The tool that floats the gland's outline holds it, so that the outline stands
+/// where the drop puts it.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct GlandSnap {
+    placed: Vec<((i128, i128), ew_units::Nm)>,
+    nut: ew_units::Nm,
+    web: ew_units::Nm,
+}
+
+impl GlandSnap {
+    /// Where the gland dropped at `at` (the surface frame) goes ([`ew_derive::layout::gland_snap`]).
+    pub fn snap(&self, at: (i128, i128)) -> (i128, i128) {
+        ew_derive::layout::gland_snap(&self.placed, self.nut, self.web, at)
     }
 }
 

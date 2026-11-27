@@ -875,3 +875,6 @@ change here.
   EW-LAY-008, so a fill just over the limit reads "61 % · over 60 %", never "60 % · over 60 %"
 - behaviour-change: the SQL view's `api_v1_wire.length_nm` and `length_source` hold each wire's length and where it
   comes from as the wire list prints them (typed, cable, routed, stale, missing, site); both were NULL for every wire
+- behaviour-change: a single cable gland dragged near a row of glands placed already floats its outline where its drop
+  snaps to, at the row's end, not under the pointer; the row's glands are pitched by the gland their drilled hole takes,
+  not by a gland their cable was given since

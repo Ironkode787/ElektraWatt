@@ -247,3 +247,59 @@ fn glands_dragged_from_unplaced_show_their_outline_until_dropped() {
     assert_eq!(s.tool().name(), "select");
     s.shutdown();
 }
+
+/// A single gland dragged near a row of glands placed already floats its outline where its drop puts it (doc 12 §3.9):
+/// -103W1's nut stands at the row's end beside -101W1's M20, not at the pointer, and the drop places it there.
+#[test]
+fn a_single_glands_outline_stands_where_its_drop_snaps_to() {
+    let tmp = Tmp::new("gland-snap-ghost");
+    let mut s = tmp.sample_in(Mode::Gui, true, "905");
+    let t = s.panel_tables().expect("905's tables");
+    let sheet = |u: i128, v: i128| {
+        s.canvas()
+            .unwrap()
+            .page()
+            .snapper
+            .page_to_sheet(t.to_page((u * MM, v * MM)))
+    };
+    let (pointer, snapped) = (sheet(112, 131), sheet(115, 125));
+    // -103W1's hole stands at (115, 125) mm, 35 mm right of -101W1's M20: it goes, and its gland waits.
+    let own = t
+        .features
+        .iter()
+        .find(|f| (i128::from(f.at.0), i128::from(f.at.1)) == (115 * MM, 125 * MM))
+        .expect("-103W1's gland hole")
+        .id;
+    done(&mut s, "select.set", json!({"ids": [own.to_string()]}));
+    done(&mut s, "edit.delete_selection", json!({}));
+    done(&mut s, "tool.place_glands", json!({"cables": "tag:-103W1"}));
+    done(&mut s, "canvas.pointer", at(pointer, json!({})));
+    let centre = s
+        .tool_overlay()
+        .items
+        .iter()
+        .find_map(|i| match i {
+            ew_viewmodel::tools::OverlayItem::Polyline { points, .. } => {
+                let corners = &points[..points.len() - 1];
+                let n = corners.len() as i64;
+                Some((
+                    corners.iter().map(|p| p.0).sum::<i64>() / n,
+                    corners.iter().map(|p| p.1).sum::<i64>() / n,
+                ))
+            }
+            _ => None,
+        })
+        .expect("the gland's outline");
+    let near = |a: (i64, i64), b: (i64, i64)| (a.0 - b.0).abs() <= 2 && (a.1 - b.1).abs() <= 2;
+    assert!(near(centre, snapped), "the outline at {centre:?}, the drop's place {snapped:?}");
+    done(&mut s, "canvas.release", at(pointer, json!({})));
+    let placed = s.panel_tables().expect("905's tables");
+    assert!(
+        placed
+            .features
+            .iter()
+            .any(|f| (i128::from(f.at.0), i128::from(f.at.1)) == (115 * MM, 125 * MM)),
+        "placed at the row's end"
+    );
+    s.shutdown();
+}

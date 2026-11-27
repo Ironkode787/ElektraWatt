@@ -36,3 +36,36 @@ fn a_single_gland_snaps_to_the_end_of_a_row_and_stays_where_dropped_far_from_it(
         (300 * MM, 200 * MM)
     );
 }
+
+/// A placed gland is pitched by the gland its stored hole takes, not by its cable's proposal since: -101W1 given an
+/// M32 gland keeps its M20 hole, and -103W1 still snaps 35 mm to its right.
+#[test]
+fn a_gland_snaps_against_the_hole_drilled_not_the_cables_new_gland() {
+    let mut s = common::sample();
+    let q = s.query();
+    let bottom = q
+        .table::<ew_schema::MountingSurface>()
+        .iter()
+        .find(|(_, f)| f.kind == ew_schema::SurfaceKind::Bottom)
+        .map(|(id, _)| id.as_uuid())
+        .expect("the sample's bottom");
+    let m32 = q
+        .table::<ew_schema::LibCopy<ew_schema::Part>>()
+        .iter()
+        .find(|(_, c)| c.item.part_number.as_str() == "EW-GEN-GLD-M32")
+        .map(|(id, _)| id.as_uuid())
+        .expect("the stock's M32 gland");
+    drop(q);
+    let first = s.resolve_reference("tag:-101W1").expect("-101W1");
+    let cable = s.resolve_reference("tag:-103W1").expect("-103W1");
+    common::run_cmd(
+        &mut s,
+        "fields.set",
+        serde_json::json!({"kind": "device", "targets": [first.to_string()], "path": "gland",
+            "value": {"copy": m32.to_string()}}),
+    );
+    assert_eq!(
+        s.gland_snap(bottom, cable, (112 * MM, 131 * MM)),
+        (115 * MM, 125 * MM)
+    );
+}

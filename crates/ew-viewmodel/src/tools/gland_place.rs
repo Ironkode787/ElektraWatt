@@ -21,28 +21,32 @@ pub struct GlandPlaceTool {
     /// Their glands in their row: each nut's centre along the surface's first axis from the first's, and its room
     /// across its corners, surface nm (`Session::gland_row`).
     row: Vec<(i128, i128)>,
+    /// What a single gland snaps to (`Session::gland_snap_of`): its outline stands where its drop puts it.
+    snap: Option<ew_api::output::GlandSnap>,
     /// The last pointer or cursor point, sheet nm.
     last: Option<(i64, i64)>,
 }
 
 impl GlandPlaceTool {
-    /// The tool armed with the glands of `cables` laid as `row`.
-    pub fn new(cables: String, row: Vec<(i128, i128)>) -> GlandPlaceTool {
+    /// The tool armed with the glands of `cables` laid as `row`, a single gland snapping by `snap`.
+    pub fn new(cables: String, row: Vec<(i128, i128)>, snap: Option<ew_api::output::GlandSnap>) -> GlandPlaceTool {
         GlandPlaceTool {
             cables,
             row,
+            snap,
             last: None,
         }
     }
 
-    /// The outline of the glands with the first centred at `at` (sheet nm): each nut a dashed hexagon in the ghost's
-    /// colour.
+    /// The outline of the glands with the first centred at `at` (sheet nm), a single gland where its drop snaps to:
+    /// each nut a dashed hexagon in the ghost's colour.
     fn track(&mut self, at: (i64, i64), cx: &ToolCx<'_>) -> ToolOutput {
         self.last = Some(at);
         let Some(panel) = cx.page.panel.as_deref() else {
             return ToolOutput::None;
         };
-        let (u, v) = super::layout::surface_of_sheet(cx, panel, at);
+        let at = super::layout::surface_of_sheet(cx, panel, at);
+        let (u, v) = self.snap.as_ref().map_or(at, |s| s.snap(at));
         let items = self
             .row
             .iter()

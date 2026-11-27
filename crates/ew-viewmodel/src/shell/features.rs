@@ -180,12 +180,16 @@ impl ShellModel {
             Err(out) => return out,
         };
         let ids: Vec<ew_api::output::Uuid> = cables.iter().filter_map(|c| c.parse().ok()).collect();
-        let row = self
-            .project
-            .as_ref()
-            .map(|x| x.session.gland_row(tables.surface, &ids))
+        let session = self.project.as_ref().map(|x| &x.session);
+        let row = session
+            .map(|s| s.gland_row(tables.surface, &ids))
             .unwrap_or_default();
-        self.activate_tool(Box::new(crate::tools::GlandPlaceTool::new(list, row)));
+        // A single gland snaps to a row placed already, as its drop does (`glands_place`).
+        let snap = match (session, ids.as_slice()) {
+            (Some(s), [one]) => s.gland_snap_of(tables.surface, *one),
+            _ => None,
+        };
+        self.activate_tool(Box::new(crate::tools::GlandPlaceTool::new(list, row, snap)));
         Outcome::Done
     }
 
