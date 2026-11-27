@@ -5,9 +5,9 @@
 {"action":"cursor.set","params":{"x_mm":101.124,"y_mm":112.867}}
 {"action":"canvas.activate","params":{}}
 {"action":"tool.wire","params":{}}
-{"action":"cursor.set","params":{"x_mm":101.124,"y_mm":95.905}}
+{"action":"cursor.set","params":{"pin":"-102Q1:14"}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":101.124,"y_mm":108.952}}
+{"action":"cursor.set","params":{"pin":"-102E1:X1"}}
 {"action":"canvas.activate","params":{}}
 {"action":"ui.dismiss","params":{}}
 {"action":"file.save","params":{}}

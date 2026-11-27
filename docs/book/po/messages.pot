@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-27T06:51:14Z\n"
+"POT-Creation-Date: 2026-11-27T09:13:58Z\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2892,10 +2892,14 @@ msgid ""
 "**Positions are the positions you click.** Every `at <x> <y> mm` is a point "
 "of the sheet, the same coordinates `canvas.press`, `canvas.pointer` and "
 "`cursor.set` take: `cursor.set` with a `cp` line's position puts the grid "
-"cursor on that connection point, and the cursor line names it."
+"cursor on that connection point, and the cursor line names it. `cursor.set` "
+"with `pin` (`-102F1:2`, as a `cp` line names it) puts it there by name, and "
+"with `tag` (`-102F1`) on the insertion point of that device's one symbol on "
+"the page, so a script that names them still reaches them when the page is "
+"laid out anew."
 msgstr ""
 
-#: src/how-to/text-interface.md:16
+#: src/how-to/text-interface.md:18
 msgid ""
 "**A `wire` line ends with a point on the wire** (`at <x> <y> mm`) where a "
 "click with the Select tool picks that wire and nothing else. A wire whose "
@@ -2905,18 +2909,18 @@ msgid ""
 "either way round; a junction end is `junction <n>`)."
 msgstr ""
 
-#: src/how-to/text-interface.md:21
+#: src/how-to/text-interface.md:23
 msgid "Place symbols"
 msgstr ""
 
-#: src/how-to/text-interface.md:23
+#: src/how-to/text-interface.md:25
 msgid ""
 "`place.pick` (or Insert, Symbol... and the picker) arms the Place tool; "
 "`nav.goto` with a cell (`101-B2`) or `cursor.set` moves the ghost, and "
 "`canvas.activate` (Enter) places it."
 msgstr ""
 
-#: src/how-to/text-interface.md:25
+#: src/how-to/text-interface.md:27
 msgid ""
 "**Autoconnect.** When the ghost's free connection points face free "
 "connection points on the page, the ghost proposes wires to them: "
@@ -2934,11 +2938,11 @@ msgid ""
 "poles stand closer together gets both poles wired."
 msgstr ""
 
-#: src/how-to/text-interface.md:35
+#: src/how-to/text-interface.md:37
 msgid "Freeze a tag"
 msgstr ""
 
-#: src/how-to/text-interface.md:37
+#: src/how-to/text-interface.md:39
 msgid ""
 "Select the device (`select.set` with `refs` `[\"tag:-101S1\"]`) and set its "
 "frozen tag as the page should print it: `props.set` with `row` "
@@ -2948,11 +2952,11 @@ msgid ""
 "several steps."
 msgstr ""
 
-#: src/how-to/text-interface.md:42 src/reference/window/panels.md:101
+#: src/how-to/text-interface.md:44 src/reference/window/panels.md:101
 msgid "Terminal strips"
 msgstr ""
 
-#: src/how-to/text-interface.md:44
+#: src/how-to/text-interface.md:46
 msgid ""
 "`strip.new` creates an empty terminal strip; the toast names it. It draws "
 "nothing until its first terminal is placed: `tool.place_terminal` with "
@@ -2973,7 +2977,7 @@ msgid ""
 "with a message that lists the project's strips."
 msgstr ""
 
-#: src/how-to/text-interface.md:56
+#: src/how-to/text-interface.md:58
 msgid ""
 "In the Terminal strips navigator a row is named by what it prints: a "
 "terminal by its tag, the strip's label, a colon and its own (`-X1031:1`), "
@@ -2982,7 +2986,7 @@ msgid ""
 "`rows` `[\"-X1021:1\",\"-X1021:2\"]`, a `column` and a `value`)."
 msgstr ""
 
-#: src/how-to/text-interface.md:60
+#: src/how-to/text-interface.md:62
 msgid ""
 "A terminal's connection points print `strip:terminal/clamp` (`-X1021:1/b`): "
 "the starter terminal has clamp `a` on side 1 (internal) and `b` on side 2 "
@@ -2991,11 +2995,11 @@ msgid ""
 "`#n` in connection-point order: `-X1:1/a#1` and `-X1:1/a#2`."
 msgstr ""
 
-#: src/how-to/text-interface.md:64
+#: src/how-to/text-interface.md:66
 msgid "Bridge terminals"
 msgstr ""
 
-#: src/how-to/text-interface.md:66
+#: src/how-to/text-interface.md:68
 msgid ""
 "Select two or more terminals of one strip on the page (click the first "
 "terminal symbol, Shift+click the others, or `select.set` with their "
@@ -3013,11 +3017,11 @@ msgid ""
 "refusal names the reason."
 msgstr ""
 
-#: src/how-to/text-interface.md:76
+#: src/how-to/text-interface.md:78
 msgid "External points"
 msgstr ""
 
-#: src/how-to/text-interface.md:78
+#: src/how-to/text-interface.md:80
 msgid ""
 "`structure.new` with `kind` `location` and the location (`+J-E-206`), then "
 "`external_ref.new` with the location, the device and the connection, once "
@@ -3025,7 +3029,7 @@ msgid ""
 "reference's label is `<device>:<connection>` (`JE-N1000-03:L`)."
 msgstr ""
 
-#: src/how-to/text-interface.md:81
+#: src/how-to/text-interface.md:83
 msgid ""
 "With the Interruption point tool armed, `ip.external` takes that label, or "
 "the label after the location as the page prints it (`+J-E-206 / "
@@ -3033,11 +3037,11 @@ msgid ""
 "reference has fails with a message that lists the labels the project has."
 msgstr ""
 
-#: src/how-to/text-interface.md:85
+#: src/how-to/text-interface.md:87
 msgid "Draw wires"
 msgstr ""
 
-#: src/how-to/text-interface.md:87
+#: src/how-to/text-interface.md:89
 msgid ""
 "With the Wire tool armed, put the grid cursor on a connection point (its "
 "`cp` position), press Enter, move to the other end and press Enter. The "
@@ -3045,7 +3049,7 @@ msgid ""
 "commit."
 msgstr ""
 
-#: src/how-to/text-interface.md:90
+#: src/how-to/text-interface.md:92
 msgid ""
 "`cp.next` and `cp.previous` step the cursor through the page's connection "
 "points in reading order of the cell **column by column** (column 0 to 16, "
@@ -3054,18 +3058,18 @@ msgid ""
 "`cursor.set` needs no walk."
 msgstr ""
 
-#: src/how-to/text-interface.md:93
+#: src/how-to/text-interface.md:95
 msgid ""
 "**Ending a wire on a wire** makes a junction there and splits that wire. The "
 "route's `end` names the wire it would split by its ends (`@102-D4 -102S1:13 "
 "-> -102Q1:13`): check it before Enter when two wires run through one cell."
 msgstr ""
 
-#: src/how-to/text-interface.md:96
+#: src/how-to/text-interface.md:98
 msgid "Delete"
 msgstr ""
 
-#: src/how-to/text-interface.md:98
+#: src/how-to/text-interface.md:100
 msgid ""
 "`edit.delete_selection` (Delete) deletes what is selected on the page shown: "
 "a representation, a wire, a junction or an item. A device selected by its "
@@ -3075,11 +3079,11 @@ msgid ""
 "refused (`reason-not-on-page`)."
 msgstr ""
 
-#: src/how-to/text-interface.md:103
+#: src/how-to/text-interface.md:105
 msgid "Save and export"
 msgstr ""
 
-#: src/how-to/text-interface.md:105
+#: src/how-to/text-interface.md:107
 msgid ""
 "`file.save` saves. `file.export_pdf` with a file name writes the PDF; the "
 "toast names the file, its page count and its size."

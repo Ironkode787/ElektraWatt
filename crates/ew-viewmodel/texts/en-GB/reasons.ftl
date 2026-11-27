@@ -14,6 +14,12 @@ reason-place-wire-off-sheet = Not placed: this wire runs off the sheet here; mov
 reason-nothing-selected = Nothing is selected
 error-wire-reference = No wire of the page shown runs "{ $p0 }"; name one as the page text does: wire:<end> -> <end>
 error-wire-ambiguous = Several wires of the page shown run "{ $p0 }"; click the one you mean
+# cursor.set names its place one way: millimetres, a pin or the symbol of a device.
+error-cursor-one-place = Name the place one way: x_mm and y_mm, a pin or a tag
+error-cursor-no-pin = No pin "{ $p0 }" is drawn on the page shown; name one as the page text does: -102F1:2
+error-cursor-pin-many = The pin "{ $p0 }" is drawn { $p1 } times on the page shown; name the place in millimetres
+error-cursor-no-symbol = No symbol of { $p0 } is drawn on the page shown
+error-cursor-symbol-many = { $p0 } is drawn { $p1 } times on the page shown; name one of its pins
 reason-not-on-page = The selection is drawn on another page; go to that page to delete it
 reason-no-picker = The picker is not open
 

@@ -1524,9 +1524,19 @@ impl ShellModel {
         }
     }
 
+    /// `cursor.set`: the grid cursor at the grid point nearest to `x_mm`, `y_mm`, to a pin (`pin`) or to the symbol of
+    /// a device (`tag`) on the page shown; with none of them the cursor goes.
     pub(crate) fn act_cursor_set(&mut self, p: &Map<String, Value>) -> Outcome {
         let point = or_return!(point_mm(p));
+        let pin = or_return!(string_param(p, "pin"));
+        let tag = or_return!(string_param(p, "tag"));
         let g = or_return!(self.group_param(p));
+        let point = match (point, pin, tag) {
+            (point, None, None) => point,
+            (None, Some(pin), None) => Some(or_return!(self.named_pin_point(g, pin))),
+            (None, None, Some(tag)) => Some(or_return!(self.named_symbol_point(g, tag))),
+            _ => return failed(key!("error-cursor-one-place"), &[]),
+        };
         match self.canvas_mut(g) {
             Some(c) => {
                 match point {
@@ -1537,6 +1547,61 @@ impl ShellModel {
                 Outcome::Done
             }
             None => Outcome::refused(key!("reason-no-page")),
+        }
+    }
+
+    /// The point of the one pin `label` names on the page group `g` shows, as the page text prints it (`-102F1:2`):
+    /// a script that names a pin reaches it wherever the layout has put it.
+    fn named_pin_point(&self, g: usize, label: &str) -> Result<(i64, i64), Outcome> {
+        let Some(c) = self.canvas_of(g) else {
+            return Err(Outcome::refused(key!("reason-no-page")));
+        };
+        let points: Vec<(i64, i64)> = c
+            .page()
+            .tables
+            .cps
+            .iter()
+            .filter(|cp| cp.label == label)
+            .map(|cp| c.page().snapper.page_to_sheet(cp.at))
+            .collect();
+        match points.as_slice() {
+            [one] => Ok(*one),
+            [] => Err(failed(key!("error-cursor-no-pin"), &[label])),
+            many => Err(failed(
+                key!("error-cursor-pin-many"),
+                &[label, &many.len().to_string()],
+            )),
+        }
+    }
+
+    /// The insertion point of the one symbol of the device `tag` names (a command-log reference's tag) on the page
+    /// group `g` shows.
+    fn named_symbol_point(&self, g: usize, tag: &str) -> Result<(i64, i64), Outcome> {
+        let project = crate::shell::gated(&self.project)?;
+        let device = project
+            .session
+            .resolve_reference(&format!("tag:{tag}"))
+            .map_err(|why| Outcome::Failed {
+                message: super::tools::rejected_words("", Some(&why)),
+            })?;
+        let Some(c) = self.canvas_of(g) else {
+            return Err(Outcome::refused(key!("reason-no-page")));
+        };
+        let points: Vec<(i64, i64)> = c
+            .page()
+            .tables
+            .reps
+            .iter()
+            .filter(|r| r.device == Some(device))
+            .map(|r| c.page().snapper.page_to_sheet(r.pos))
+            .collect();
+        match points.as_slice() {
+            [one] => Ok(*one),
+            [] => Err(failed(key!("error-cursor-no-symbol"), &[tag])),
+            many => Err(failed(
+                key!("error-cursor-symbol-many"),
+                &[tag, &many.len().to_string()],
+            )),
         }
     }
 

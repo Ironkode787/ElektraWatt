@@ -1,12 +1,12 @@
 {"$schema":"ew.uiscript/1","label":"brief-ut-t2-wire reference solution"}
 {"action":"tool.wire","params":{}}
-{"action":"cursor.set","params":{"x_mm":22.838,"y_mm":35.885}}
+{"action":"cursor.set","params":{"pin":"24V"}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":38.495,"y_mm":35.885}}
+{"action":"cursor.set","params":{"pin":"-102F1:1"}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":48.933,"y_mm":35.885}}
+{"action":"cursor.set","params":{"pin":"-102F1:2"}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":85.467,"y_mm":43.714}}
+{"action":"cursor.set","params":{"pin":"-X1021:1/a"}}
 {"action":"canvas.activate","params":{}}
 {"action":"ui.dismiss","params":{}}
 {"action":"file.save","params":{}}

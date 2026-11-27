@@ -12,7 +12,9 @@ its tag, cell, symbol and position, its `cp` lines (connection points, the wires
 
 - **Positions are the positions you click.** Every `at <x> <y> mm` is a point of the sheet, the same coordinates
   `canvas.press`, `canvas.pointer` and `cursor.set` take: `cursor.set` with a `cp` line's position puts the grid cursor
-  on that connection point, and the cursor line names it.
+  on that connection point, and the cursor line names it. `cursor.set` with `pin` (`-102F1:2`, as a `cp` line names it)
+  puts it there by name, and with `tag` (`-102F1`) on the insertion point of that device's one symbol on the page, so
+  a script that names them still reaches them when the page is laid out anew.
 - **A `wire` line ends with a point on the wire** (`at <x> <y> mm`) where a click with the Select tool picks that wire
   and nothing else. A wire whose drawn route runs along another wire or through a symbol for its whole length has no
   such point; select it by its ends instead: `select.set` with `refs` `["wire:-101F1:1 -> -103F1:1"]` (the ends as the

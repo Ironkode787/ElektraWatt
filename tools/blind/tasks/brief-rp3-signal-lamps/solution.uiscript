@@ -12,13 +12,13 @@
 {"action":"canvas.activate","params":{"alt":true}}
 {"action":"ui.dismiss","params":{}}
 {"action":"tool.wire","params":{}}
-{"action":"cursor.set","params":{"x_mm":148.531,"y_mm":108.952}}
+{"action":"cursor.set","params":{"pin":"-102E2:X1"}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":132.874,"y_mm":108.952}}
+{"action":"cursor.set","params":{"pin":"-102E1:X1"}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":148.531,"y_mm":116.781}}
+{"action":"cursor.set","params":{"pin":"-102E2:X2"}}
 {"action":"canvas.activate","params":{}}
-{"action":"cursor.set","params":{"x_mm":132.874,"y_mm":116.781}}
+{"action":"cursor.set","params":{"pin":"-102E1:X2"}}
 {"action":"canvas.activate","params":{}}
 {"action":"ui.dismiss","params":{}}
 {"action":"layout.route","params":{}}

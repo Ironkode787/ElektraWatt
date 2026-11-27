@@ -323,7 +323,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ))),
     )),
     keeps_banner(with_params(
-        "x_mm?:mm, y_mm?:mm, group?:uint",
+        "x_mm?:mm, y_mm?:mm, pin?:text, tag?:text, group?:uint",
         hidden(in_canvas(act(
             "cursor.set",
             View,
