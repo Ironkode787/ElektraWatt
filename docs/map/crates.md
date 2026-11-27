@@ -175,7 +175,7 @@ The `Session` facade shared by every front-end.
 | `src/part_box.rs` |  | The device box of a part (doc 07 §2.5, "The device box"): the pins a part of one's own has and where they stand on the box a device of it is drawn as. |
 | `src/part_cable.rs` |  | The cable section of a cable part as a form (New cable type…): the number of cores, the cross-section, with or without a protective conductor, how the cores are marked, shielded or not, as texts checked one by one, and the cable as it will read (`3G1.5 · BN BU GNYE`). |
 | `src/part_editor.rs` | large | The sheet's draft (FR-PRT-022). |
-| `src/part_new.rs` |  | A new part made in the window (`part.new`): [`Session::new_part_draft`] opens Parts on an empty draft; [`Session::new_part_command`] turns the draft into the part and the one command that brings it into the project. |
+| `src/part_new.rs` |  | A new part made in the window (`parts.new`): [`Session::new_part_draft`] opens Parts on an empty draft; [`Session::new_part_command`] turns the draft into the part and the one command that brings it into the project. |
 | `src/part_offers.rs` |  | The part selection dialog's data. |
 | `src/part_pieces.rs` |  | On the schematic, as tables of the sheet (doc 07 §5.4): a part drawn with symbols is drawn as its **pieces** (a coil, a main contact), each what it is (a starter function) with its pins, and a terminal as its **levels**, each with its left and right clamp. |
 | `src/part_plc.rs` |  | The PLC section of a new part as a form (doc 10 §2.6): what the part is in the PLC model, its channels, the pin pattern, the supply pins, the allowed slots and a station's module limit, as texts checked one by one. |
