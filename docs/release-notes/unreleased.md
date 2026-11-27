@@ -827,3 +827,8 @@ change here.
 - behaviour-change: a part's Technical data offers the named values its kind has (a device's rated current, load
   current, power and voltage, a terminal's colour) as fields to type into, also where the part holds none yet; a part
   whose kind names none and that holds none (a ferrule) has no Technical data group
+- behaviour-change: while Parts is shown the status bar no longer shows the page's grid, zoom, pointer and selection
+- behaviour-change: New part… while values typed into several parts are not saved asks Save, Discard or Stay; Export
+  as a table writes the parts as they are saved and says that what was typed is not in the file
+- text-change: Parts counts one part as one ("1 part written to …"), an import's Save reads "<file> saved to My
+  parts: 2 new, 0 changed", and Save of several parts counts the parts it wrote

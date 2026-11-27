@@ -20,7 +20,7 @@
 use ew_api::output::{SelectionWords, WireEnd};
 
 use crate::canvas::{GridLabel, grid_label, mm1, zoom_percent_text};
-use crate::shell::{AccessMode, ShellModel};
+use crate::shell::{AccessMode, Screen, ShellModel};
 use crate::strings;
 use crate::{count_key, key};
 
@@ -542,15 +542,17 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
         if !hide_job && let Some(job) = model.jobs().newest_running() {
             out.push(field(StatusKind::Job, job_field(model, job), Tone::Normal));
         }
+        // What holds on a page (its selection, the pointer, its grid and zoom) is not said while Parts is shown.
+        let on_page = model.screen() != Screen::Parts;
         let selected = model.canvas_selected();
-        if selected > 0 {
+        if on_page && selected > 0 {
             out.push(field(
                 StatusKind::Selection,
                 strings::format(key!("status-selected"), &[&selected.to_string()]),
                 Tone::Normal,
             ));
         }
-        if let Some(canvas) = model.canvas() {
+        if let Some(canvas) = model.canvas().filter(|_| on_page) {
             if let Some((x, y)) = model.shown_point() {
                 let text = match canvas.page().cell_text((x, y)) {
                     Some(cell) => strings::format(key!("status-cursor-cell"), &[&cell, &mm1(x), &mm1(y)]),

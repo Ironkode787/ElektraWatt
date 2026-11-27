@@ -708,3 +708,23 @@ fn the_canvas_prints_every_text_where_the_export_does() {
     );
     shell.shutdown();
 }
+
+/// While Parts is shown the status bar says nothing of the page behind it (its grid, its zoom, its selection): only
+/// what holds in Parts; back on the page, they are there again.
+#[test]
+fn the_status_bar_says_nothing_of_the_page_while_parts_is_shown() {
+    use ew_viewmodel::status::{StatusKind, bar};
+    let tmp = Tmp::new("status-in-parts");
+    let mut shell = tmp.sample_shell("103");
+    let page_fields = |shell: &ShellModel| {
+        bar(shell, false)
+            .into_iter()
+            .filter(|f| matches!(f.kind, StatusKind::Grid | StatusKind::Zoom | StatusKind::Selection | StatusKind::Cursor))
+            .count()
+    };
+    assert!(page_fields(&shell) > 0, "the page's grid and zoom");
+    done(&mut shell, "parts.open", json!({}));
+    assert_eq!(page_fields(&shell), 0);
+    done(&mut shell, "parts.back", json!({}));
+    assert!(page_fields(&shell) > 0, "the page's again");
+}
