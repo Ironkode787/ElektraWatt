@@ -35,6 +35,9 @@ use symbols::{pieces_section, symbol_shelf};
 
 /// The width of the list at 1920 × 1080, and at 2560 × 1440 (doc 07 §5.1).
 const LIST_WIDTH: [f32; 2] = [360.0, 420.0];
+/// The width of the drawing's left pane, which takes the list's place while a drawing shows (doc 07 §5.6): its short
+/// sheet and its tables read whole; it grows to 2560 × 1440 as the list does.
+pub(crate) const DRAWING_PANE_WIDTH: [f32; 2] = [416.0, 476.0];
 /// The width of the pictures.
 const PICTURES_WIDTH: [f32; 2] = [500.0, 560.0];
 /// The width of the sheet's contents list (doc 16a §6.27).
@@ -42,7 +45,7 @@ const CONTENTS_WIDTH: f32 = 168.0;
 /// The widest sheet, in one column and in two.
 const SHEET_WIDTH: [f32; 2] = [1000.0, 1380.0];
 /// The window width from which the place is laid out for 2560 × 1440.
-const WIDE: f32 = 2200.0;
+pub(crate) const WIDE: f32 = 2200.0;
 
 /// The place's view state: the group the sheet scrolls to on the next frame.
 #[derive(Default)]

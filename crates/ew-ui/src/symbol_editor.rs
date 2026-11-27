@@ -458,8 +458,10 @@ impl EditorView {
         };
         help(ui, full, ew_viewmodel::help::EditorPart::Other);
         let styles = shell.symbol_text_styles();
-        // The side panels keep their width; the drawing takes the room (doc 16a §2).
-        let left_w = (t.size_panel_left + 2.0 * t.space_4)
+        // The side panels keep their width; the drawing takes the room (doc 16a §2). The left pane is the place's
+        // (it stands where the list stood).
+        let wide = usize::from(ui.ctx().content_rect().width() >= crate::parts_place::WIDE);
+        let left_w = crate::parts_place::DRAWING_PANE_WIDTH[wide]
             .min(full.width() * crate::theme::shares::SYMBOL_PANEL_SHARE);
         let right_w = (t.size_panel_left + t.size_property_label)
             .min(full.width() * crate::theme::shares::SYMBOL_PANEL_SHARE);
@@ -1121,39 +1123,64 @@ fn piece_head(
     ui.add_space(t.space_2);
     ui.label(egui::RichText::new(label(key!("parts-drawn-as-head"))).strong());
     let kinds = ew_viewmodel::ew_api::part_pieces::piece_kinds();
-    // Each column a third of the pane, a cell cut at it (its whole text on hover): the table never widens the pane.
-    let col = ((ui.available_width() - 2.0 * ui.spacing().item_spacing.x) / 3.0).max(0.0);
+    let cells: Vec<[String; 3]> = d
+        .pieces
+        .iter()
+        .enumerate()
+        .map(|(i, row)| {
+            let what = kinds
+                .iter()
+                .find(|k| k.key == row.what)
+                .map_or_else(|| row.what.clone(), |k| strings::render(&k.words));
+            let symbol = if i == piece.index {
+                if editor.stored() && !editor.dirty() {
+                    ew_viewmodel::shell::symbol_editor::display_name(&editor.draft)
+                } else {
+                    label(key!("parts-piece-mine-not-saved")).to_owned()
+                }
+            } else {
+                open.piece_symbols
+                    .get(i)
+                    .and_then(|c| c.iter().find(|(a, _)| *a == row.symbol))
+                    .map(|(_, n)| n.clone())
+                    .unwrap_or_default()
+            };
+            [what, row.pins.clone(), symbol]
+        })
+        .collect();
+    let heads = [
+        key!("parts-piece-what"),
+        key!("parts-piece-pins"),
+        key!("parts-piece-symbol"),
+    ];
+    // Each column as wide as its widest cell; where What it is and Symbol do not both fit beside Pins, the wider of
+    // them is cut (its whole text on hover), never under half of what Pins leaves: the table never widens the pane.
+    let font = theme::font(&t.type_body);
+    let widest = |c: usize| {
+        cells
+            .iter()
+            .map(|r| r[c].as_str())
+            .chain([label(heads[c])])
+            .map(|s| {
+                ui.painter()
+                    .layout_no_wrap(s.to_owned(), font.clone(), theme::NONE)
+                    .size()
+                    .x
+            })
+            .fold(0.0_f32, f32::max)
+    };
+    let left = (ui.available_width() - 2.0 * ui.spacing().item_spacing.x - widest(1)).max(0.0);
+    let col = (left - widest(0).min(widest(2))).max(left / 2.0);
     egui::Grid::new("piece-head-drawn-as")
         .num_columns(3)
         .striped(true)
         .max_col_width(col)
         .show(ui, |ui| {
-            for head in [
-                key!("parts-piece-what"),
-                key!("parts-piece-pins"),
-                key!("parts-piece-symbol"),
-            ] {
+            for head in heads {
                 ui.label(crate::components::small_secondary(&t, label(head)));
             }
             ui.end_row();
-            for (i, row) in d.pieces.iter().enumerate() {
-                let what = kinds
-                    .iter()
-                    .find(|k| k.key == row.what)
-                    .map_or_else(|| row.what.clone(), |k| strings::render(&k.words));
-                let symbol = if i == piece.index {
-                    if editor.stored() && !editor.dirty() {
-                        ew_viewmodel::shell::symbol_editor::display_name(&editor.draft)
-                    } else {
-                        label(key!("parts-piece-mine-not-saved")).to_owned()
-                    }
-                } else {
-                    open.piece_symbols
-                        .get(i)
-                        .and_then(|c| c.iter().find(|(a, _)| *a == row.symbol))
-                        .map(|(_, n)| n.clone())
-                        .unwrap_or_default()
-                };
+            for (i, row) in cells.into_iter().enumerate() {
                 let mark = |s: String| {
                     let text = egui::RichText::new(s);
                     if i == piece.index {
@@ -1162,7 +1189,7 @@ fn piece_head(
                         text
                     }
                 };
-                for cell in [what, row.pins.clone(), symbol] {
+                for cell in row {
                     ui.add(egui::Label::new(mark(cell)).truncate());
                 }
                 ui.end_row();

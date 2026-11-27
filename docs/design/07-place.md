@@ -196,8 +196,9 @@ on its rail with its size. They follow each value as it is typed.
 on a box, the Symbol cell of a piece, a symbol of the Symbols shelf. The bar goes to its Drawing tab, the list
 gives its place to what is being drawn (the part's Drawn as table, or its pins and ports, and the outline of the
 symbol: its pins, texts and shapes, each row a click to the thing, and To do, what keeps it from being saved, or
-Ready to save), and Properties on the right shows the rows of what is selected. A strip over the drawing says in a
-sentence what is being drawn and for what. Done returns to the sheet; nothing is saved until the part is.
+Ready to save) in a pane of 416 px (476 px at 2560 × 1440) where a Drawn as row reads whole, and Properties on the
+right shows the rows of what is selected. A strip over the drawing says in a sentence what is being drawn and for
+what. Done returns to the sheet; nothing is saved until the part is.
 
 - **Arranging a box.** The box stands as a device of the part is drawn. A pin is dragged along its edge or onto
   another one; an edge or a corner is dragged to size the box, the pins on the edge that moves going with it, the
