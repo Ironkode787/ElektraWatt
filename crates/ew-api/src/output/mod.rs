@@ -403,6 +403,8 @@ pub struct ExportOptions {
     /// Draw the pages' underlays under them (FR-IMP-030): the window's canvas always, an export only when the user
     /// prints underlays.
     pub underlays: bool,
+    /// Draw the screen-only layer too (the window's canvas): on a door's page the plate faint behind it (doc 12 §3.8).
+    pub screen: bool,
 }
 
 /// The asset bytes an export draws its image items with, by SHA-256: a snapshot of the project's asset
@@ -1023,6 +1025,13 @@ pub(crate) fn export_pages_hooked(
         }
         let mut sheet = p.underlay.clone();
         sheet.items.extend(p.scene.sheet_list().items);
+        if options.screen
+            && let Some(list) = p.scene.layer(ew_dl::Layer::Highlights)
+        {
+            sheet
+                .items
+                .extend(p.scene.map.apply_display_list(list, Some(&p.scene.geometry)).items);
+        }
         let (content, report) = ew_scene::images::resolve_images(&sheet, &|sha| assets.get(sha));
         let page = PdfPage {
             destination: page_destination(p.entry.page),

@@ -224,6 +224,7 @@ corner-top-right = Top right
 hinge-left = Left
 hinge-right = Right
 hinge-word = Hinge
+door-edge-word = Door's edge
 
 ## How a part mounts, and a carrier's label (doc 12 §2.5)
 

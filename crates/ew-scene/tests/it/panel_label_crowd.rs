@@ -55,6 +55,7 @@ fn row(show: LabelShow, moved: Option<Pt2>) -> PageView {
                     shaped: None,
                     item: Some(u32::try_from(i + 3).unwrap()),
                     moved: if i == 0 { moved } else { None },
+                    outside: false,
                 })
                 .collect(),
             show,

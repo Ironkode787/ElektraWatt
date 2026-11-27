@@ -127,6 +127,8 @@ pub enum KindName {
     Carrier,
     /// `placement`: `edit.delete` only.
     Placement,
+    /// `surface_feature`, a hole by hand: `edit.delete` only.
+    SurfaceFeature,
 }
 
 impl KindName {
@@ -160,6 +162,7 @@ impl KindName {
             KindName::MountingSurface => Kind::MountingSurface,
             KindName::Carrier => Kind::Carrier,
             KindName::Placement => Kind::Placement,
+            KindName::SurfaceFeature => Kind::SurfaceFeature,
         }
     }
 }

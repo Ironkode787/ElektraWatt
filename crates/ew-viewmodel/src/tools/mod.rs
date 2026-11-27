@@ -1068,6 +1068,8 @@ pub enum EntityKind {
     Carrier,
     /// A report block embedded on a panel page, its legend (from the page's panel tables).
     Block,
+    /// A hole by hand on a panel page (from the page's panel tables).
+    Feature,
 }
 
 impl EntityKind {
@@ -1082,6 +1084,7 @@ impl EntityKind {
             EntityKind::Placement => "placement",
             EntityKind::Carrier => "carrier",
             EntityKind::Block => "report_block",
+            EntityKind::Feature => "surface_feature",
         }
     }
 }
@@ -1115,6 +1118,8 @@ pub fn page_entity_kind(page: &CanvasPage, e: EntityRef) -> Option<EntityKind> {
             Some(EntityKind::Carrier)
         } else if panel.block(e.0).is_some() {
             Some(EntityKind::Block)
+        } else if panel.features.contains(&e.0) {
+            Some(EntityKind::Feature)
         } else {
             None
         }

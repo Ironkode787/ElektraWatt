@@ -489,7 +489,7 @@ schematic symbol.
   EW-GEN-GLD-M20, -103W1 (12.5 mm) EW-GEN-GLD-M25. Without one the cable says why: "the part EW-GEN-CBL-17 gives no
   outer diameter" or "no gland of the stock seals 23 mm", each with what to do (Edit part…, Choose gland…).
 - **The glands wait to be placed** as devices that go in a cut-out do: Unplaced devices lists them under Glands, each
-  named by its cable ("-103W1 · gland M25"), and a panel page's HUD says "2 glands to place: Bottom". He drags one, or
+  named by its cable ("-103W1 · gland M25"), and a panel page's HUD says "2 glands to place: Bottom" (on a side's, the top's or the bottom's own page its button is Place cable glands). He drags one, or
   several selected, onto the bottom (or the top or a side; a door and the plate refuse a gland in words: "A gland goes
   through a wall of the cabinet: place it on the bottom, the top or a side"). Several dropped together stand in a row
   from the drop to the right, in the list's order, each **at the pitch the program proposes so that the nuts clear each
@@ -604,15 +604,15 @@ never `frame` or `tables`.
 
 | Layer | Content |
 |---|---|
-| `surface` | the plate's page: the enclosure outline, the plate outline and the usable polygon thin dashed; any other surface's page: its sheet's outline and its edge margin thin dashed; a door's hinge as a row of short ticks outside its hinge edge with the word "Hinge"; the datum mark at the datum corner (two short arrows along the edges, "0"); and under the drawing the caption, the surface seen from its side: "Mounting plate, seen from the front", "Door, seen from outside", "Bottom, seen from below; the door's edge at the top" |
+| `surface` | the plate's page: the enclosure outline, the plate outline and the usable polygon thin dashed; any other surface's page: its sheet's outline and its edge margin thin dashed; a door's hinge as a row of short ticks outside its hinge edge with the word "Hinge"; the datum mark at the datum corner (two short arrows along the edges, "0"); and under the drawing the caption, the surface seen from its side: "Mounting plate, seen from the front", "Door, seen from outside", "Bottom, seen from below; the door's edge at the top"; on the top's and the bottom's page "Door's edge" outside the edge that meets the door |
 | `carriers` | per carrier by ID its outline rectangles, a rail's axis as a chain line and a duct's "W×H" label in millimetres |
 | `placements` | per placement by ID its `front_2d` outline, else its front shape (a rectangle, or a circle for `round`), else its footprint rectangle (an unknown footprint dashed); a screwed part on a door's or a wall's page dashed, since it sits inside |
 | `labels` | the labels (§5.3) |
-| `features` | per hole of `surface_features`: a round hole as its circle at true size, a rectangle as its outline with its corner radius, each with a centre mark; thin solid where no footprint covers it, thin dashed under a footprint (a hidden line); a hole by hand carries its `SurfaceFeature`'s entity, a derived one its owner's |
+| `features` | per hole of `surface_features`: a round hole as its circle at true size, a rectangle as its outline with its corner radius, each with a centre mark; thin solid where no footprint covers it, thin dashed under a footprint (a hidden line); a hole by hand carries its `SurfaceFeature`'s entity, a derived one its owner's; a cable's gland also draws the room of its nut thin dashed and its cable's tag under it |
 | `dims` | empty: dimensions are not built (§5.5) |
 | `tables` | an embedded legend |
 | `frame` | frame and title block |
-| `highlights` | selection, findings; screen only, never exported; on a door's page also the plate's footprints behind the door in the tertiary text colour, so a handle is put in front of its switch |
+| `highlights` | selection, findings; screen only, never exported; on a door's page also the plate's rails, ducts and footprints behind the door in the tertiary text colour, so a handle is put in front of its switch |
 
 Carrier outlines and duct labels carry the carrier's entity, footprints and labels the placement's; the surface
 outlines and a rail's axis carry none, so a click on a footprint selects the placement. **Labels knock out the
@@ -630,7 +630,8 @@ and the datum's "0" are in the project's language at the label style's paper hei
 - **Fitting policy.** The label keeps its style's paper height. The fit test compares the label's ink box plus 0.1 mm
   per side with the footprint's paper rectangle. If it does not fit, the label is turned by 90°; if it still does not
   fit, it is placed outside with a leader; it is never shrunk. At 1:5 the sample's 18 mm breaker -102F1 is 3.6 mm wide
-  on paper: its tag fits turned.
+  on paper: its tag fits turned. On a door's or a wall's page every tag stands outside its front, above it first: across
+  the front it would cross the centre mark of the cut-out.
 
 `layout.label` is a constant of `ew-scene` bound to the `xref.device` style (1.83 mm em), not a slot kind of the symbol
 library. The ink box is estimated as the shaped text's advance + 0.2 mm by the face's cap height + 0.2 mm, plus the

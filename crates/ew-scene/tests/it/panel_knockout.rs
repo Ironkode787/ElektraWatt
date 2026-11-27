@@ -53,6 +53,7 @@ fn view(labels: bool) -> PageView {
         shaped: None,
         item: None,
         moved: None,
+        outside: false,
     };
     PageView {
         kind: PageKind::Panel,

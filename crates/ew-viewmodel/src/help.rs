@@ -625,7 +625,7 @@ pub fn thing_at(model: &ShellModel, page: &CanvasPage, e: ew_dl::EntityRef, poin
             }
         }
         Some(EntityKind::StructureBox) => Thing::Box,
-        Some(EntityKind::Placement | EntityKind::Carrier) => Thing::PanelLayout,
+        Some(EntityKind::Placement | EntityKind::Carrier | EntityKind::Feature) => Thing::PanelLayout,
         Some(EntityKind::Block) => Thing::List,
         // What the program draws itself: a generated page's list, an overview's devices.
         None if generated(model, page) => Thing::List,

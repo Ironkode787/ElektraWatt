@@ -63,7 +63,9 @@ pub use accessories::{Bracket, GroupAccessories, RailBrackets, rail_items};
 pub use assembly::{member_order, member_slot};
 pub use carrier::{PathError, RailAxis, check_path, path_length};
 pub use fit::{Fit, Profile, RAIL_FITS, fits_rail, fits_surface};
-pub use glands::{CableGland, CableGlands, NoGland, cable_outer_diameter, gland_pitch, gland_section};
+pub use glands::{
+    CableGland, CableGlands, NoGland, cable_outer_diameter, gland_nut, gland_pitch, gland_section,
+};
 pub use holes::{
     Feature, HOLE_SIZES, HoleSizes, Made, Owner, SizeFamily, SurfaceFeatures, carrier_fixings, chosen,
     duct_fixing_default, fixings, hole_size, made, placement_holes, rail_fixing_default,

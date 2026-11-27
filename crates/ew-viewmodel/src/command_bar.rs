@@ -1515,8 +1515,33 @@ fn select_prompt(model: &ShellModel, stack: &mut usize, buttons: &mut Vec<HudBut
                 serde_json::json!({ "kind": "unplaced" }),
             )
         };
+        // The cables' glands that wait (doc 12 §3.9): placed on a side, the top or the bottom's own page, else that
+        // page first.
+        let glands = |t: &ew_api::output::PanelTables, buttons: &mut Vec<HudButton>| {
+            let (n, wall) = model.glands_waiting(t.surface);
+            if n == 0 {
+                return None;
+            }
+            buttons.push(if wall {
+                button(
+                    strings::text(key!("action-layout-glands-place")).to_owned(),
+                    "layout.glands_place",
+                    serde_json::Value::Null,
+                )
+            } else {
+                button(
+                    strings::text(key!("hud-layout-bottom")).to_owned(),
+                    "layout.surface_page",
+                    serde_json::json!({ "surface": "bottom" }),
+                )
+            });
+            Some(strings::format_count(crate::count_key!("hud-layout-glands"), n))
+        };
         match model.panel_tables() {
             None => strings::text(key!("hud-layout-start")).to_owned(),
+            // A door, a side, the top or the bottom: the glands that wait, else Select's hint. The first steps below
+            // are the plate's.
+            Some(t) if !t.plate => glands(&t, buttons).unwrap_or_else(hint),
             // A plate with no device on it says the next step.
             Some(t) if t.placements.is_empty() && !t.unplaced.is_empty() => {
                 buttons.push(unplaced());
@@ -1560,7 +1585,7 @@ fn select_prompt(model: &ShellModel, stack: &mut usize, buttons: &mut Vec<HudBut
                 ));
                 strings::format_count(crate::count_key!("hud-layout-cutout"), n)
             }
-            Some(_) => hint(),
+            Some(t) => glands(&t, buttons).unwrap_or_else(hint),
         }
     } else if let Some(list) = model.list_pages(model.page_index()) {
         // A list of more than one page says which page this is, with its way to the pages beside it.

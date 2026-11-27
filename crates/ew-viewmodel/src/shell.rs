@@ -1758,8 +1758,9 @@ impl ShellModel {
         p.session
             .export_pages(&ExportOptions {
                 pages: PageSelection::Folios(vec![folio.to_owned()]),
-                // The canvas shows the page's underlays (FR-IMP-030).
+                // The canvas shows the page's underlays (FR-IMP-030) and its screen-only layer.
                 underlays: true,
+                screen: true,
                 ..ExportOptions::default()
             })
             .map_err(|e| e.to_string())

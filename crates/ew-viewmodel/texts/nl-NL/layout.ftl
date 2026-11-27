@@ -366,3 +366,8 @@ hud-layout-cutout = { $p0 ->
         [one] 1 apparaat komt in een uitsparing
        *[other] { $p0 } apparaten komen in een uitsparing
     }
+hud-layout-bottom = Onderkant
+hud-layout-glands = { $p0 ->
+        [one] 1 wartel te plaatsen
+       *[other] { $p0 } wartels te plaatsen
+    }

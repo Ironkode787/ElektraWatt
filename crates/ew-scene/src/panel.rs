@@ -25,7 +25,7 @@
 //! |---|---|
 //! | [`Layer::Surface`](ew_dl::Layer::Surface) | the enclosure outline ([`Pen::P052`]), the plate outline ([`Pen::P026`]), the usable polygon thin dashed ([`Pen::P013`], 4:2) |
 //! | [`Layer::Carriers`](ew_dl::Layer::Carriers) | per carrier by ID: its outline rectangles ([`Pen::P026`]); a rail's axis as a chain line ([`Pen::P013`], dash-dot); a duct's "W×H" label in mm, in the layout-label style, centred on its longest segment and turned to read bottom to top on a vertical one. The outlines and the axis are cut around every placement label's knockout box (see below) |
-//! | [`Layer::Features`](ew_dl::Layer::Features) | per hole of the surface ([`FeatureDraw`]): a round hole as its circle at true size, a rectangle as its outline, each with a centre cross ([`Pen::P013`]); dashed under a footprint |
+//! | [`Layer::Features`](ew_dl::Layer::Features) | per hole of the surface ([`FeatureDraw`]): a round hole as its circle at true size, a rectangle as its outline, each with a centre cross ([`Pen::P013`]); dashed under a footprint ([`Pen::P026`], so that its dashes show at 1:5); a cable's gland with its nut's room thin dashed and its cable's tag under it |
 //! | [`Layer::Placements`](ew_dl::Layer::Placements) | per placement by ID: its `front_2d` outline (FR-LAY-011), else its footprint rectangle ([`Pen::P026`]; an unknown footprint 4:2 dashed); then each derived end bracket ([`BracketDraw`]) as a rectangle in the footprints' pen ([`Pen::P026`]), by its strip's placement, then its rectangle |
 //! | [`Layer::Labels`](ew_dl::Layer::Labels) | per placement by ID: its label (see below), after the page items' texts |
 //!
@@ -210,6 +210,8 @@ pub struct FeatureDraw {
     /// The entity a click selects: a hole by hand's own record, a derived hole's owner; `None` for a derived hole
     /// under a footprint, where a click selects the footprint.
     pub entity: Option<ew_ids::Uuid>,
+    /// A cable's gland: its cable's tag, written under it, and its nut's size across, drawn dashed around the hole.
+    pub gland: Option<(String, Nm)>,
 }
 
 /// What a surface view labels each placement with (doc 12 §5.3, the view's `labels`).
@@ -248,6 +250,9 @@ pub struct SurfaceOutline {
     pub datum: Option<(Pt2, (i8, i8), String)>,
     /// The caption under the drawing ("Door, seen from outside").
     pub caption: Option<String>,
+    /// The top's or the bottom's edge that meets the door, named outside it ("Door's edge"): its words, and whether it
+    /// is the sheet's upper edge on the page (else its lower edge).
+    pub door_edge: Option<(String, bool)>,
 }
 
 /// One carrier as `carrier_geometry` gives it.
@@ -304,6 +309,9 @@ pub struct PanelLabel {
     /// Where a person moved the label to: its centre as an offset from the footprint's centre, in the surface's frame
     /// (the placement's `label_at`); `None`: placed by the rules.
     pub moved: Option<Pt2>,
+    /// Its tag stands above or below the footprint, never inside it: a front in a door or a wall, whose centre mark it
+    /// would cross.
+    pub outside: bool,
 }
 
 /// How a label was placed (the fit steps), in the order they are tried.
@@ -440,12 +448,25 @@ pub fn place_label(
     fp: Rect,
     bounds: Option<Rect>,
 ) -> PlacedLabel {
+    place_label_in(fonts, style, text, shaped, fp, bounds, true)
+}
+
+/// [`place_label`], inside the footprint only where `inside` allows it (a front in a door stands its tag outside).
+pub fn place_label_in(
+    fonts: &ew_text::FontSet,
+    style: &ew_text::TextStyle,
+    text: &str,
+    shaped: &Shaped,
+    fp: Rect,
+    bounds: Option<Rect>,
+    inside: bool,
+) -> PlacedLabel {
     let m = fonts.vertical_metrics(style);
     let desc = if has_descender(text) { m.descent } else { Nm::ZERO };
     let adv = shaped.advance();
     let w = Nm(adv.0 + 2 * LABEL_PAD.0);
     let h = Nm(m.cap_height.0 + desc.0 + 2 * LABEL_PAD.0);
-    match fit(w, h, fp.width(), fp.height()) {
+    match fit(w, h, fp.width(), fp.height()).filter(|_| inside) {
         Some(f @ (LabelFit::Horizontal | LabelFit::Turned)) => {
             let at = centre(fp);
             let angle = if f == LabelFit::Turned {
@@ -874,6 +895,23 @@ impl Builder<'_> {
             .or(s.sheet)
             .or(s.plate)
             .and_then(|r| p.rect(r));
+        if let (Some((words, upper)), Some(r)) = (&s.door_edge, s.sheet.and_then(|r| p.rect(r))) {
+            let (y, align) = if *upper {
+                (Nm(r.min().y.0 - CAPTION_GAP.0 / 4), &Align::BottomCentre)
+            } else {
+                (Nm(r.max().y.0 + CAPTION_GAP.0 / 4), &Align::TopCentre)
+            };
+            self.text(&TextSpec {
+                text: words,
+                at: Pt2::new(centre(r).x, y),
+                angle: Angle2::ZERO,
+                align,
+                style_key: LAYOUT_LABEL_STYLE,
+                entity,
+                link: None,
+                items: &[],
+            });
+        }
         if let (Some(caption), Some(r)) = (&s.caption, outer) {
             self.text(&TextSpec {
                 text: caption,
@@ -893,10 +931,8 @@ impl Builder<'_> {
         }
     }
 
-    /// [`Layer::Highlights`](ew_dl::Layer::Highlights) of a panel page: the plate's footprints behind a door, thin
-    /// dashed in a faint grey (on the screen only).
     /// [`Layer::Features`](ew_dl::Layer::Features): every hole of the surface at true size with its centre cross,
-    /// dashed under a footprint.
+    /// dashed under a footprint; a cable's gland with its nut's room dashed and its cable's tag under it.
     pub(crate) fn panel_features(&mut self, view: &PageView) {
         let Some(panel) = &view.panel else { return };
         let p = panel.projection;
@@ -912,7 +948,7 @@ impl Builder<'_> {
                 continue;
             };
             let stroke = if f.hidden {
-                Stroke::pen(Pen::P013).dashed(DashPattern::Dash42)
+                Stroke::pen(Pen::P026).dashed(DashPattern::Dash42)
             } else {
                 Stroke::pen(Pen::P013)
             };
@@ -945,9 +981,31 @@ impl Builder<'_> {
                     None,
                 )));
             }
+            if let Some((tag, nut)) = &f.gland {
+                let room = i64::try_from(p.length(i128::from(nut.0)) / 2).unwrap_or(hw).max(hw);
+                self.push(with(Item::path(
+                    Path::circle(c, Nm(room)),
+                    Some(Stroke::pen(Pen::P013).dashed(DashPattern::Dash42)),
+                    None,
+                )));
+                if let Some(under) = at(0, room.saturating_add(LABEL_PAD.0)) {
+                    self.text(&TextSpec {
+                        text: tag,
+                        at: under,
+                        angle: Angle2::ZERO,
+                        align: &Align::TopCentre,
+                        style_key: LAYOUT_LABEL_STYLE,
+                        entity: EntityRef(f.entity.unwrap_or_default()),
+                        link: None,
+                        items: &[],
+                    });
+                }
+            }
         }
     }
 
+    /// [`Layer::Highlights`](ew_dl::Layer::Highlights) of a panel page: the plate's rails, ducts and footprints behind
+    /// a door, thin dashed in a faint grey (on the screen only).
     pub(crate) fn panel_highlights(&mut self, view: &PageView) {
         let Some(panel) = &view.panel else { return };
         let p = &panel.projection;
@@ -999,7 +1057,7 @@ impl Builder<'_> {
             if panel.show == LabelShow::TagsOrNumbers {
                 let inside = !text.is_empty()
                     && matches!(
-                        place_label(self.fonts, &style, text, &shaped, fp, bounds).fit,
+                        place_label_in(self.fonts, &style, text, &shaped, fp, bounds, !l.outside).fit,
                         LabelFit::Horizontal | LabelFit::Turned
                     );
                 if inside || item.is_none() {
@@ -1066,7 +1124,7 @@ impl Builder<'_> {
                     placed
                 }
             } else {
-                let placed = place_label(self.fonts, &style, text, &shaped, fp, bounds);
+                let placed = place_label_in(self.fonts, &style, text, &shaped, fp, bounds, !l.outside);
                 if matches!(placed.fit, LabelFit::Above | LabelFit::Below) {
                     let adv = shaped.advance();
                     sides = Some([

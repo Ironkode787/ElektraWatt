@@ -157,6 +157,18 @@ impl ShellModel {
         )
     }
 
+    /// How many cables' glands wait to be placed in the cabinet of `surface`, and whether `surface` takes them (a side,
+    /// the top or the bottom): the panel page's HUD.
+    pub fn glands_waiting(&self, surface: ew_api::output::Uuid) -> (usize, bool) {
+        self.project.as_ref().map_or((0, false), |p| {
+            let wall = p
+                .session
+                .surface_kind_word(surface)
+                .is_some_and(|w| matches!(w, "left" | "right" | "top" | "bottom"));
+            (p.session.waiting_glands(surface).len(), wall)
+        })
+    }
+
     /// The title of Add hole here…: "Add a hole to -UC1 door".
     pub fn feature_form_title(&self) -> String {
         let words = self

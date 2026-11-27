@@ -367,3 +367,8 @@ hud-layout-cutout = { $p0 ->
         [one] 1 device goes in a cut-out
        *[other] { $p0 } devices go in a cut-out
     }
+hud-layout-bottom = Bottom
+hud-layout-glands = { $p0 ->
+        [one] 1 gland to place
+       *[other] { $p0 } glands to place
+    }

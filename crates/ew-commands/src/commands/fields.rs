@@ -615,7 +615,8 @@ impl SetFields {
             | KindName::Enclosure
             | KindName::MountingSurface
             | KindName::Carrier
-            | KindName::Placement => {
+            | KindName::Placement
+            | KindName::SurfaceFeature => {
                 return Err(CmdError::internal("fields.set: kind without settable fields"));
             }
         }

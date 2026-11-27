@@ -83,6 +83,7 @@ fn page(show: LabelShow, linked: bool) -> PageView {
                     shaped: None,
                     item: Some(*n),
                     moved: None,
+                    outside: false,
                 })
                 .collect(),
             show,

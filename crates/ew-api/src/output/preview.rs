@@ -164,6 +164,7 @@ impl Session {
         let options = super::ExportOptions {
             pages: super::PageSelection::Folios(vec![folio.to_owned()]),
             underlays: true,
+            screen: true,
             ..super::ExportOptions::default()
         };
         let q = self.query_over(preview.candidate());

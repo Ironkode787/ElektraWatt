@@ -1323,8 +1323,15 @@ pub(crate) fn centred_datum(
     })?;
     let (uc, vc) = ((bounds.0 + bounds.2) / 2, (bounds.1 + bounds.3) / 2);
     let projection = Projection::on_sheet(ew_units::Pt2::ORIGIN, scale, map.scale_ppb);
+    // A door, a side, the top and the bottom fill their page: they stand higher by half of their caption's room (its
+    // gap and a line), so that the caption stays clear of the title block.
+    let room = if s.kind == ew_schema::SurfaceKind::Plate {
+        0
+    } else {
+        (i128::from(ew_scene::panel::CAPTION_GAP.0) + 4_000_000) / 2
+    };
     let x = i128::from(mid.x.0) - projection.length(uc);
-    let y = i128::from(mid.y.0) + projection.length(vc);
+    let y = i128::from(mid.y.0) + projection.length(vc) - room;
     Some((i64::try_from(x).ok()?, i64::try_from(y).ok()?))
 }
 

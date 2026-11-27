@@ -34,14 +34,15 @@ pub fn cable_outer_diameter(part: &Part) -> Option<Nm> {
         })
 }
 
-/// The gap between two glands in a row as the workshop keeps it: `nut_a / 2 + nut_b / 2 + web`, a gland without a
-/// nut size counted at 1.4 × its thread (doc 12 §3.9).
+/// A gland's nut across its flats: its own, else 1.4 × its thread (doc 12 §3.9).
+pub fn gland_nut(g: &GlandSection) -> Nm {
+    g.nut
+        .unwrap_or_else(|| Nm(i64::from(g.thread.mm().unwrap_or(0)) * 1_400_000))
+}
+
+/// The gap between two glands in a row as the workshop keeps it: `nut_a / 2 + nut_b / 2 + web` ([`gland_nut`]).
 pub fn gland_pitch(a: &GlandSection, b: &GlandSection, web: Nm) -> Nm {
-    let nut = |g: &GlandSection| {
-        g.nut
-            .unwrap_or_else(|| Nm(i64::from(g.thread.mm().unwrap_or(0)) * 1_400_000))
-    };
-    Nm(nut(a).0 / 2 + nut(b).0 / 2 + web.0)
+    Nm(gland_nut(a).0 / 2 + gland_nut(b).0 / 2 + web.0)
 }
 
 /// Why a cable has no gland the program can propose.

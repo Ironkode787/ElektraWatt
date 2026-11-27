@@ -208,6 +208,13 @@ fn surface_outline(q: &Q, s: &MountingSurface) -> SurfaceOutline {
                 words(&ew_derive::text::hinge_word()),
             )
         });
+        // Seen from above, the door's edge is the page's lower one; seen from below, its upper one.
+        let door_edge = match s.kind {
+            ew_schema::SurfaceKind::Top => Some(false),
+            ew_schema::SurfaceKind::Bottom => Some(true),
+            _ => None,
+        }
+        .map(|upper| (words(&ew_derive::text::door_edge_word()), upper));
         return SurfaceOutline {
             surface: s.id,
             enclosure: None,
@@ -218,6 +225,7 @@ fn surface_outline(q: &Q, s: &MountingSurface) -> SurfaceOutline {
             hinge,
             datum: sheet.map(corner_of),
             caption,
+            door_edge,
         };
     }
     let enclosure = q.table::<Enclosure>().get(s.enclosure).cloned().and_then(|e| {
@@ -250,6 +258,7 @@ fn surface_outline(q: &Q, s: &MountingSurface) -> SurfaceOutline {
         hinge: None,
         datum: plate.map(corner_of),
         caption,
+        door_edge: None,
     }
 }
 
@@ -274,14 +283,12 @@ fn behind_door(q: &Q, door: &MountingSurface) -> Vec<Rect> {
             e.y.checked_sub(door.frame.t[1])?,
         ))
     };
-    placements(q, &placements_on(q, plate))
+    // The plate's rails and ducts, then its devices.
+    let outlines: Vec<Rect> = carriers(q, plate).into_iter().flat_map(|c| c.outline).collect();
+    outlines
         .into_iter()
-        .filter_map(|d| {
-            Some(Rect::from_points(
-                shift(d.footprint.min())?,
-                shift(d.footprint.max())?,
-            ))
-        })
+        .chain(placements(q, &placements_on(q, plate)).into_iter().map(|d| d.footprint))
+        .filter_map(|r| Some(Rect::from_points(shift(r.min())?, shift(r.max())?)))
         .collect()
 }
 
@@ -429,6 +436,11 @@ fn labels(q: &Q, page: Id<Page>, view: &SurfaceViewOf, ids: &[Id<Placement>]) ->
             .collect()
     };
     let placements = q.table::<Placement>();
+    // A front in a door or a wall carries the centre mark of its cut-out: its tag stands outside it.
+    let outside = q
+        .table::<MountingSurface>()
+        .get(view.surface)
+        .is_some_and(|s| s.kind != ew_schema::SurfaceKind::Plate);
     ids.iter()
         .filter_map(|id| {
             let g = q.get::<PlacementGeometry>(*id);
@@ -442,6 +454,7 @@ fn labels(q: &Q, page: Id<Page>, view: &SurfaceViewOf, ids: &[Id<Placement>]) ->
                 shaped,
                 item: items.get(id).copied(),
                 moved: placements.get(*id).and_then(|p| p.label_at),
+                outside,
             })
         })
         .collect()
@@ -519,9 +532,19 @@ pub(crate) fn panel_view(q: &Q, page: Id<Page>, parts: Parts) -> Option<PanelVie
 }
 
 /// The holes of `surface` as its features layer draws them (`ew_derive::layout::SurfaceFeatures`): at their made size,
-/// dashed where a footprint covers the centre; a hole by hand selects its record, a derived one its first owner.
+/// dashed where a footprint covers the centre; a hole by hand selects its record, a derived one its first owner; a
+/// cable's gland with its cable's tag and its nut.
 fn feature_draws(q: &Q, surface: &MountingSurface) -> Vec<ew_scene::panel::FeatureDraw> {
-    use ew_derive::layout::{Made, Owner, PlacementGeometry, SurfaceFeatures};
+    use ew_derive::layout::{CableGlands, Made, Owner, PlacementGeometry, SurfaceFeatures, gland_nut, gland_section};
+    let glands = q
+        .table::<Enclosure>()
+        .get(surface.enclosure)
+        .map(|e| q.get::<CableGlands>(e.space));
+    let gland = |feature: Id<ew_schema::SurfaceFeature>| {
+        let g = glands.as_ref()?.iter().find(|g| g.placed == Some(feature))?;
+        let nut = g.part.as_ref().ok().and_then(|p| gland_section(q, p)).map(|s| gland_nut(&s))?;
+        Some((ew_derive::short_tag(q, g.cable), nut))
+    };
     let footprints: Vec<Rect> = placements_on(q, surface.id)
         .into_iter()
         .chain(
@@ -546,12 +569,17 @@ fn feature_draws(q: &Q, surface: &MountingSurface) -> Vec<ew_scene::panel::Featu
                 Owner::Placement { p, .. } => Some(p.as_uuid()),
                 Owner::Carrier { c, .. } => Some(c.as_uuid()),
             };
+            let gland = f.owners.iter().find_map(|o| match o {
+                Owner::ByHand { feature } => gland(*feature),
+                _ => None,
+            });
             Some(ew_scene::panel::FeatureDraw {
                 at: f.at,
                 size: f.made.extent(),
                 round: !matches!(f.made, Made::Cut { .. }),
                 hidden,
                 entity,
+                gland,
             })
         })
         .collect()
@@ -793,6 +821,8 @@ pub struct PanelTables {
     pub decimal_comma: bool,
     /// The report blocks embedded on the page (its legend), by ID: what Select picks, drags and resizes there.
     pub blocks: Vec<PanelBlock>,
+    /// The surface's holes by hand, by ID: what Delete takes off it.
+    pub features: Vec<Uuid>,
 }
 
 /// A report block embedded on a panel page (a legend), page nm.
@@ -1159,6 +1189,12 @@ pub(crate) fn panel_tables_of(q: &Q, folio: &str, page: Id<Page>) -> Option<Pane
         show: view.show,
         decimal_comma: comma(q),
         blocks: blocks_of(q, page),
+        features: q
+            .table::<ew_schema::SurfaceFeature>()
+            .iter()
+            .filter(|(_, f)| f.surface == surface.id)
+            .map(|(id, _)| id.as_uuid())
+            .collect(),
     })
 }
 

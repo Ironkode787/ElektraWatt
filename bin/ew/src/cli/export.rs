@@ -518,6 +518,7 @@ pub(super) fn run_export_report_pdf(
         monochrome: false,
         date,
         underlays: false,
+        screen: false,
     };
     let pdf = match session.export_pdf(&options) {
         Ok(p) => p,
@@ -983,6 +984,7 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs, io: &mut Io<'_>) -> i32 {
         monochrome: false,
         date,
         underlays: a.underlays,
+        screen: false,
     };
     let (written, findings) = match a.format {
         PageFormat::Pdf => {

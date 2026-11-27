@@ -220,6 +220,7 @@ corner-top-right = Rechtsboven
 hinge-left = Links
 hinge-right = Rechts
 hinge-word = Scharnier
+door-edge-word = Deurkant
 
 ## Hoe een artikel gemonteerd wordt, en het label van een drager (doc 12 §2.5)
 

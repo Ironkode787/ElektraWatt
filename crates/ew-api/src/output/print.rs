@@ -377,6 +377,7 @@ pub(crate) fn print_set_hooked(
             date: options.date,
             // The print set prints no underlay (FR-IMP-030: an export prints them only when asked).
             underlays: false,
+            screen: false,
         },
         assets,
         ctl,

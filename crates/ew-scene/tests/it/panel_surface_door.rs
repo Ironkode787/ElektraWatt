@@ -45,6 +45,7 @@ fn door(right: bool) -> PageView {
                 hinge: Some((right, "Hinge".to_owned())),
                 datum: Some((mm(0, 0), (1, 1), "0".to_owned())),
                 caption: Some("Door, seen from outside".to_owned()),
+                door_edge: None,
             }),
             bounds: Some(sheet),
             carriers: Vec::new(),
@@ -109,4 +110,55 @@ fn the_plate_behind_the_door_is_a_highlight_only() {
             "{l:?} draws no plate footprint"
         );
     }
+}
+
+#[test]
+fn a_front_s_tag_stands_outside_it_a_gland_names_its_cable_and_the_door_s_edge_is_named() {
+    use ew_scene::panel::{FeatureDraw, PanelLabel, PlacementDraw};
+    // A 40 mm pushbutton front at (300, 400) mm, 8 mm across on paper: its tag fits across it, yet stands outside.
+    let front = Rect::from_points(mm(280, 380), mm(320, 420));
+    let mut v = door(false);
+    let panel = v.panel.as_mut().unwrap();
+    let placement = Id::from_uuid(Uuid::from_u128(0x73));
+    panel.placements.push(PlacementDraw {
+        placement,
+        footprint: front,
+        unknown: false,
+        outline: Vec::new(),
+        round: true,
+    });
+    panel.labels.push(PanelLabel {
+        placement,
+        text: "-102S1".to_owned(),
+        footprint: front,
+        shaped: None,
+        item: None,
+        moved: None,
+        outside: true,
+    });
+    // A gland M20 with a 24 mm nut at (80, 125) mm.
+    panel.features.push(FeatureDraw {
+        at: mm(80, 125),
+        size: (Nm(20_500_000), Nm(20_500_000)),
+        round: true,
+        hidden: false,
+        entity: None,
+        gland: Some(("-101W1".to_owned(), Nm(24_000_000))),
+    });
+    panel.surface.as_mut().unwrap().door_edge = Some(("Door's edge".to_owned(), true));
+    let on_page = |r: Rect| v.panel.as_ref().unwrap().projection.rect(r).unwrap();
+    let word = |t: &[(String, Rect)], s: &str| t.iter().find(|(x, _)| x == s).map(|(_, r)| *r).unwrap();
+
+    let tag = word(&texts(&v, Layer::Labels), "-102S1");
+    let fp = on_page(front);
+    assert!(
+        tag.max().y <= fp.min().y || tag.min().y >= fp.max().y,
+        "above or below the front, never across its centre: {tag:?} {fp:?}"
+    );
+    // The gland's tag under its nut's room: the centre 125 mm up is paper y 225 mm, the nut 2.4 mm across.
+    let cable = word(&texts(&v, Layer::Features), "-101W1");
+    assert!(cable.min().y >= Nm(226_200_000), "under the gland: {cable:?}");
+    // The door's edge above the sheet's upper edge (paper y 90 mm).
+    let edge = word(&texts(&v, Layer::Surface), "Door's edge");
+    assert!(edge.max().y <= Nm(90_000_000), "above the upper edge: {edge:?}");
 }

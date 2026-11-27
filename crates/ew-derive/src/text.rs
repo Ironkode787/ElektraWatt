@@ -963,6 +963,11 @@ pub fn hinge_word() -> Text {
     text!("hinge-word")
 }
 
+/// The words the top's and the bottom's page write at the edge that meets the door: "Door's edge".
+pub fn door_edge_word() -> Text {
+    text!("door-edge-word")
+}
+
 /// How a hole is made, as the hole table's Hole cell and a hole's Properties say it (doc 13 §9.2): "Ø 22.3", "Ø 4.2,
 /// tap M5", "92 × 92, R 2"; a diameter to the 0.1 mm, a rectangle's sides to the millimetre.
 pub fn made(m: &crate::layout::Made) -> Text {

@@ -445,3 +445,13 @@ change here.
   is offered by the part chooser only where a gland is asked for
 - behaviour-change: the sample's cabinet has its bottom on page 905 with the glands of -101W1 and -103W1
 - api-add: `layout.glands_place {surface, at, cables}` and the action `layout.glands_place {cables?, x?, y?}`
+- behaviour-change: a door's, a side's, the top's and the bottom's page: every tag stands above its front (it crossed the
+  centre mark of a round front's cut-out), the cut-out under a front is dashed so that it shows at 1:5, the plate's
+  rails, ducts and devices stand faint behind a door on the screen (they were missing), the drawing stands higher so
+  that its caption is clear of the title block, a gland draws its nut's room dashed and its cable's tag under it, and
+  the top's and the bottom's page name the edge that meets the door ("Door's edge")
+- behaviour-change: the bar under a panel page counts the glands that wait ("2 glands to place") with Place cable glands
+  on a side's, the top's or the bottom's page and Bottom elsewhere; a door's or a wall's page no longer says the
+  plate's first steps ("No device has the location +CAB yet" stood under the bottom with its glands placed)
+- behaviour-change: Delete takes a selected hole by hand or gland off its surface (`edit.delete` takes
+  `surface_feature`); a gland taken off waits again
