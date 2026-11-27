@@ -343,15 +343,16 @@ pub(crate) enum Top {
     Layout(LayoutArgs),
     /// Route the wires of the pages.
     ///
-    /// Runs the window's Route on the page `--page <folio>` names, else on every drawn page but the panel-layout
-    /// pages: the wires that are unrouted, broken or routed by the program are routed as nets, with trunks where the
-    /// pins allow, and the plan is saved in one step per page. With `--selection <ids>` (record IDs joined by `,`) it
-    /// routes the connections named and every connection with an end on a representation named, whoever shaped
-    /// them. A wire without a way keeps its route, or stays unrouted, and is listed with what is in its way.
-    /// `--arrange` runs Arrange and route instead: the symbols are put in line with the pins they are wired to, on the
-    /// side those pins face, within the rules of the page's kind, and then routed; symbols kept in place stay.
-    /// `--dry-run` prints the plan and saves nothing. `--json` prints `ew.route-result/1`. Exit 0 when no wire is left
-    /// without a way, 1 when one is, 2 on usage, open, an unknown folio, a refused command and save errors.
+    /// Runs the window's Route on the page `--page <folio>` names, else on every drawn page but the panel-layout pages:
+    /// the wires that are unrouted, broken or routed by the program are routed as nets, with trunks where the pins
+    /// allow, and the plan is saved in one step per page. With `--selection <ids>` (record IDs joined by `,`) it routes
+    /// the connections named and every connection with an end on a representation named, whoever shaped them. A wire
+    /// without a way keeps its route, or stays unrouted, and is listed with what is in its way. `--arrange` runs
+    /// Arrange and route instead: the symbols are put in line with the pins they are wired to, on the side those pins
+    /// face, within the rules of the page's kind, and then routed; symbols kept in place stay. On the page of a
+    /// cabinet's mounting plate it routes that cabinet's due wires through the ducts, as its Route does. `--dry-run`
+    /// prints the plan and saves nothing. `--json` prints `ew.route-result/1`. Exit 0 when no wire is left without a
+    /// way, 1 when one is, 2 on usage, open, an unknown folio, a refused command and save errors.
     Route(RouteArgs),
     /// List, search, reindex, create and import into libraries.
     ///
