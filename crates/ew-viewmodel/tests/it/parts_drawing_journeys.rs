@@ -934,3 +934,61 @@ fn an_older_version_of_his_symbol_is_refused_in_both_languages() {
         assert!(message.contains(words), "{locale}: {message}");
     }
 }
+
+/// Open in Parts on a symbol the page shows opens it as his library holds it now, not as the project embedded it
+/// earlier: a later version saved there is the one drawn, his to change. A test copy, which no library holds, opens as
+/// the project's copy and says so.
+#[test]
+fn open_in_parts_opens_the_library_s_current_version_of_a_placed_symbol() {
+    let tmp = Tmp::new("open-current-version");
+    let mut s = project(&tmp);
+    done(&mut s, "parts.new_symbol", json!({}));
+    done(
+        &mut s,
+        "parts.field",
+        json!({"field": "symbol.name", "value": "Flow switch"}),
+    );
+    draw_contact(&mut s);
+    // Save and place on 101: the page embeds this version.
+    done(&mut s, "parts.save", json!({}));
+    click(&mut s, (10, 10));
+    let copy = tables(&s).reps[0].symbol;
+    let address = s
+        .settings()
+        .symbols_recent
+        .first()
+        .cloned()
+        .expect("the saved symbol");
+    // A later version in his library; the page keeps the one it took.
+    done(&mut s, "parts.open", json!({"symbol": address}));
+    done(
+        &mut s,
+        "symbol.draw",
+        json!({"tool": "line", "x": 2, "y": 2, "x2": 4, "y2": 2}),
+    );
+    done(&mut s, "parts.save", json!({}));
+    let current = s.symbol_editor().expect("the drawing").draft.clone();
+    // The picker's Open in Parts names the page's symbol by its copy.
+    done(&mut s, "parts.open", json!({"symbol": format!("id:{copy}")}));
+    let editor = s.symbol_editor().expect("the drawing");
+    assert_eq!(
+        editor.draft.symbol.graphics, current.symbol.graphics,
+        "the library's version, with its later line"
+    );
+    assert!(editor.locked.is_none(), "his own, to change");
+    // A test copy is the project's alone.
+    done(&mut s, "symbol.scratch", json!({}));
+    let test_copy = tables(&s)
+        .reps
+        .iter()
+        .map(|r| r.symbol)
+        .find(|c| *c != copy)
+        .expect("the test copy");
+    done(&mut s, "parts.open", json!({"symbol": format!("id:{test_copy}")}));
+    assert_eq!(
+        s.symbol_editor().expect("the drawing").locked.as_deref(),
+        Some(ew_viewmodel::strings::text(ew_viewmodel::key!(
+            "parts-symbol-lock-project"
+        ))),
+    );
+}

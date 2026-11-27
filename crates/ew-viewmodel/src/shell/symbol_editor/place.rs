@@ -517,43 +517,23 @@ impl ShellModel {
         }
     }
 
-    /// `parts.open {symbol}`: the symbol at `address` (a library address, or `id:<copy>` of the project's) in the
+    /// `parts.open {symbol}`: the symbol at `address` (a library address, `id:<copy>` of the project's, or a key) in the
     /// drawing of the place, as a symbol of his own: his own (My parts, or another library he can write) is changed
-    /// where it lives; another reads as it is, with Make my own from it.
+    /// where it lives; another reads as it is, with Make my own from it. A symbol a library holds opens as that library
+    /// holds it now, whatever version the project embeds; the project's copy only where no library has it.
     pub(crate) fn open_symbol(&mut self, address: &str) -> Outcome {
         let registry = match self.symbol_registry() {
             Ok(r) => r,
             Err(message) => return Outcome::Failed { message },
         };
+        let current = self.library_symbol_address(address, &registry);
+        let address = current.as_deref().unwrap_or(address);
         let source = address.strip_prefix("id:").unwrap_or(address);
-        // The library it lives in: named by its address, the project's copy's own, else the one that holds its key.
+        // The library it lives in, named by its address; none for a copy only the project holds.
         let home = address
             .strip_prefix("library:")
             .and_then(|r| r.split_once(':'))
-            .and_then(|(l, _)| l.parse::<Uuid>().ok())
-            .or_else(|| {
-                let session = self.parts_session()?;
-                let q = session.query();
-                let held = q
-                    .symbols()
-                    .iter()
-                    .find(|(id, _)| id.as_uuid().to_string() == source)?;
-                Some(held.1.library_id.as_uuid())
-            })
-            .or_else(|| {
-                registry.libraries().into_iter().find_map(|l| {
-                    registry
-                        .documents(l.id, schema::Kind::Symbol)
-                        .into_iter()
-                        .any(|d| match d {
-                            schema::LibDocument::Symbol(s) => {
-                                s.item.meta.key.as_ref().is_some_and(|k| k.as_str() == source)
-                            }
-                            _ => false,
-                        })
-                        .then_some(l.id)
-                })
-            });
+            .and_then(|(l, _)| l.parse::<Uuid>().ok());
         let found = home.and_then(|l| registry.libraries().into_iter().find(|i| i.id == l));
         // It keeps its own key: the library's document's, the project's copy's, else the key it was named by.
         let key_of = |s: &schema::SymbolDef| s.meta.key.as_ref().map(|k| k.as_str().to_owned());
@@ -613,6 +593,41 @@ impl ShellModel {
             editor.opened_from = Some(address.to_owned());
         }
         Outcome::Done
+    }
+
+    /// The library address (`library:<library>:<item>`) of the symbol `address` names where an installed library holds
+    /// it: the item a project's copy (`id:<copy>`) was taken from, or the symbol of a key; `None` for a library address
+    /// already, and for a symbol no library holds.
+    fn library_symbol_address(&self, address: &str, registry: &ew_api::library::Registry) -> Option<String> {
+        if address.starts_with("library:") {
+            return None;
+        }
+        let held = address.strip_prefix("id:").and_then(|copy| {
+            let session = self.parts_session()?;
+            let q = session.query();
+            let (_, s) = q
+                .symbols()
+                .iter()
+                .find(|(id, _)| id.as_uuid().to_string() == copy)?;
+            Some((s.library_id.as_uuid(), s.item_id.as_uuid()))
+        });
+        registry.libraries().into_iter().find_map(|l| {
+            registry
+                .documents(l.id, schema::Kind::Symbol)
+                .into_iter()
+                .find_map(|d| match d {
+                    schema::LibDocument::Symbol(s) => {
+                        let is = match held {
+                            Some((library, item)) => {
+                                s.library_id.as_uuid() == library && s.item_id.as_uuid() == item
+                            }
+                            None => s.item.meta.key.as_ref().is_some_and(|k| k.as_str() == address),
+                        };
+                        is.then(|| ew_api::part_pieces::library_address(&s))
+                    }
+                    _ => None,
+                })
+        })
     }
 
     /// The parts a page draws with the drawing's symbol (its sheet's Parts drawn with it, doc 07 §5.6): a symbol a
