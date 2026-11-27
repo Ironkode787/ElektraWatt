@@ -975,6 +975,12 @@ pub fn hinge_word() -> Text {
     text!("hinge-word")
 }
 
+/// `t`, a text of this crate's (a label set, a surface, a template), in the language `lang` (en-GB where it has none):
+/// a file's name in the project's language (doc 13-package §8.2), as a list's file is named by its kind's name.
+pub fn name_in(t: &Text, lang: Option<&ew_mltext::LangTag>) -> String {
+    crate::catalogue().text_for(t, lang)
+}
+
 /// A template's file name without its extension: "+CAB Door template" (doc 13 §9.1).
 pub fn template_file(location: &str, surface: &str) -> Text {
     text!("template-file", location, surface)

@@ -229,3 +229,38 @@ fn a_part_of_one_s_own_puts_its_holes_on_the_door_s_drawings() {
         .count();
     assert_eq!(after, before + 2, "the own part's two fixings, through the door");
 }
+
+/// In a Dutch project the label files and the drawings for drilling are named in Dutch, in the words the window uses
+/// for the same things, as the lists' files are: no English name is left in them.
+#[test]
+fn a_dutch_project_names_its_label_files_and_drawings_for_drilling_in_dutch() {
+    let mut s = common::sample();
+    common::run_cmd(
+        &mut s,
+        "project.settings.set",
+        json!({"member": "languages", "value": {"source": "nl-NL"}}),
+    );
+    let labels: Vec<String> = s
+        .label_files(&ew_api::LabelScope::All, None, None)
+        .expect("the label files")
+        .into_iter()
+        .map(|f| f.name)
+        .collect();
+    assert!(labels.iter().any(|n| n.contains(" Draadmerkers ")), "{labels:?}");
+    assert!(!labels.iter().any(|n| n.contains("markers")), "{labels:?}");
+    let ask = DrillingAsk {
+        surfaces: vec![door(&s).as_uuid()],
+        paper: Paper::A4,
+        template: true,
+        dxf: true,
+        date: None,
+    };
+    let drilling: Vec<String> = s
+        .drilling_files(&ask)
+        .expect("the drawings")
+        .into_iter()
+        .map(|f| f.name)
+        .collect();
+    assert!(drilling.iter().any(|n| n.ends_with(" Deur boormal.pdf")), "{drilling:?}");
+    assert!(!drilling.iter().any(|n| n.contains("Door") || n.contains("template")), "{drilling:?}");
+}

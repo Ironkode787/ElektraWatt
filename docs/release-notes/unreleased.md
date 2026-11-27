@@ -671,3 +671,6 @@ change here.
   it is dropped
 - api-add: the window's action `tool.place_glands {cables}` (the gland place tool a drag arms), `Session::gland_row`,
   `ew_derive::layout::gland_row`; `PanelTables::features` holds each hole by hand with its centre (`PanelFeature`)
+- behaviour-change: in a Dutch project the label files and the drawings for drilling are named in Dutch, in Labels…,
+  Drilling…, `ew export labels`, `ew export drilling` and the package ("SAMPLE-E Draadmerkers EW-GEN-MRK-1.xlsx",
+  "+CAB Deur boormal.pdf", "+CAB Deur.dxf"); they kept their English names

@@ -236,7 +236,10 @@ impl Session {
                 continue;
             }
             let location = location_of(&q, &s);
-            let surface_words = words(&ew_derive::text::surface_word(&face.kind, face.door, face.doors));
+            let surface = ew_derive::text::surface_word(&face.kind, face.door, face.doors);
+            let surface_words = words(&surface);
+            // The files are named in the project's language, from the one home of each name (doc 13-package §8.2).
+            let surface_name = ew_derive::text::name_in(&surface, lang.as_ref());
             let lower = surface_words.to_lowercase();
             let seen = ew_derive::text::surface_seen(&face.kind);
             let corner = surface_datum(&q, &s);
@@ -320,7 +323,7 @@ impl Session {
                     ],
                 ));
                 let file = ew_export::drilling_dxf(&DrillSheet {
-                    name: format!("{} {surface_words}.dxf", location).trim().to_owned(),
+                    name: format!("{} {surface_name}.dxf", location).trim().to_owned(),
                     extent: (lo, hi),
                     layers,
                 });
@@ -494,7 +497,10 @@ impl Session {
                         placement: None,
                     });
                 }
-                let stem = words(&ew_derive::text::template_file(&location, &surface_words));
+                let stem = ew_derive::text::name_in(
+                    &ew_derive::text::template_file(&location, &surface_name),
+                    lang.as_ref(),
+                );
                 let mut options =
                     ew_export::PdfOptions::new(ask.date.unwrap_or_else(|| super::model_date(&q)));
                 options.title = Some(stem.clone());

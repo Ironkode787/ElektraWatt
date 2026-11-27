@@ -29,7 +29,6 @@ what the owner's test of 0.3.5 finds is added here.
 - FT-2346 `ew-viewmodel, ew-ui`: A device made in Parts without network ports or PLC channels cannot be given that group afterwards; the sheet's contents offer the groups a part of its kind may have.
 - FT-2347 `ew-api`: Parts finds a part of the project by its number, maker, description and GTIN, and not by its order number or a property of its own, which the library's search matches. One rule for both.
 - FT-2348 `ew-testkit`: The sample has no created and no edited date, so its package is named with 1980-01-01 and its title blocks show no dates. The sample's script gives it a date.
-- FT-2350 `ew-api`: In a Dutch project the label files and the drawings for drilling keep English file names (`… Wire markers ….xlsx`, `… Door template.pdf`), in Labels…, Drilling… and the package. The names follow the project's language, as the lists' names do.
 
 #### The page's drawing
 
