@@ -577,6 +577,7 @@ impl Session {
         }
         Ok(PackageJob {
             model: self.world().model,
+            generation: self.store().map(ew_store::Store::generation),
             ask: ask.clone(),
             plan,
         })
@@ -600,6 +601,8 @@ fn marks_words(set: LabelSet) -> Text {
 /// asked and the plan it was asked on. It is `Send`; the `Session` is not.
 pub struct PackageJob {
     model: ew_model::Model,
+    /// The session's store generation, which a workbook's metadata names as `ew export report` does.
+    generation: Option<u64>,
     ask: PackageAsk,
     plan: PackagePlan,
 }
@@ -693,9 +696,11 @@ impl PackageJob {
                 about: words(&text!("package-about-pages")),
             });
         }
-        // The workshop lists, each as `ew export report --kind <kind> --format xlsx` writes it.
+        // The workshop lists, each as `ew export report --kind <kind> --format xlsx` writes it: the session's revision
+        // and store generation in the hidden sheet `_ew`, not the copy's.
         let mut meta = s.workbook_meta(Some(plan.date));
         meta.rev = rev;
+        meta.generation = self.generation;
         for m in &plan.members {
             let PackageMember::List(kind) = m.member else {
                 continue;

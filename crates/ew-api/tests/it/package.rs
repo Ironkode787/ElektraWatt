@@ -183,9 +183,10 @@ fn the_package_is_the_same_bytes_twice_and_its_manifest_names_each_entry() {
     ew_testdir::compare_or_bless(&expected, contents.as_bytes());
 }
 
-/// Each list of the package is the list's Excel export: the wire list's sheet is the one `ew export report --kind
-/// wire_list --format xlsx` writes; every strip of the sample has its rows in the assembly lists; Contents counts the
-/// field wires without a length, with their reason.
+/// Each list of the package is the list's Excel export: the wire list's file is the one `ew export report --kind
+/// wire_list --format xlsx` writes, byte for byte, its hidden sheet `_ew` with the session's revision and store
+/// generation too (the package is made on a copy of the snapshot); every strip of the sample has its rows in the
+/// assembly lists; Contents counts the field wires without a length, with their reason.
 #[test]
 fn the_lists_are_the_lists_exports_and_contents_counts_the_wires_without_a_length() {
     let s = common::sample();
@@ -208,7 +209,12 @@ fn the_lists_are_the_lists_exports_and_contents_counts_the_wires_without_a_lengt
     };
     drop(q);
     let member = one_of_kind(&entries, "wire_list");
-    assert_eq!(sheet(&member.data), sheet(&wires));
+    assert!(
+        member.data == wires,
+        "the wire list's file:\n{}\n---\n{}",
+        workbook_dump(&member.data).unwrap_or_default(),
+        workbook_dump(&wires).unwrap_or_default()
+    );
     let assembly = sheet(&one_of_kind(&entries, "assembly_list").data);
     for strip in ["-X1011", "-X1021", "-X1031"] {
         assert!(assembly.contains(strip), "{strip}");
