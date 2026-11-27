@@ -741,3 +741,4 @@ change here.
   counts it and draws its strips as long as the corrected plate and bracket make them; the library's part was counted
 - behaviour-change: in a Dutch project the sheets of a drilling template print their words in Dutch (the band, the
   edges to lay it on, the 100 mm bar, each hole's words), and the DXF its datum; they were printed in English
+- api-add: `ew_api::output::mm_words` and `mm_with_unit`, the one text of a length in millimetres that Properties shows

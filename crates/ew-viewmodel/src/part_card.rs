@@ -43,17 +43,6 @@ impl PartCardView {
     }
 }
 
-/// Millimetres of a length in nanometres, the shortest decimal.
-fn mm(nm: i64) -> String {
-    let whole = nm / 1_000_000;
-    let frac = (nm % 1_000_000).abs();
-    if frac == 0 {
-        whole.to_string()
-    } else {
-        format!("{whole}.{}", format!("{frac:06}").trim_end_matches('0'))
-    }
-}
-
 /// The card's words (module documentation).
 pub fn card_words(card: &PartCard) -> CardWords {
     let title = [card.manufacturer.as_str(), card.number.as_str()]
@@ -80,7 +69,7 @@ pub fn card_words(card: &PartCard) -> CardWords {
         let dims: Vec<String> = [s.width, s.height, s.depth]
             .into_iter()
             .flatten()
-            .map(mm)
+            .map(|n| ew_api::output::mm_words(i128::from(n), false))
             .collect();
         let mut parts: Vec<String> = Vec::new();
         if !dims.is_empty() {
@@ -128,16 +117,5 @@ pub fn card_words(card: &PartCard) -> CardWords {
         size,
         gives,
         source,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::mm;
-
-    #[test]
-    fn millimetres_are_the_shortest_decimal() {
-        assert_eq!(mm(45_000_000), "45");
-        assert_eq!(mm(7_500_000), "7.5");
     }
 }

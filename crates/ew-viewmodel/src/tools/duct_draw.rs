@@ -20,7 +20,7 @@ use serde_json::{Value, json};
 
 use super::layout::{sheet_of_surface, surface_of_sheet};
 use super::rail_draw::{
-    DrawPart, dominant, drawable, midpoint, mm_of, point_json, reach_at, snap_lines, snap_point,
+    DrawPart, dominant, drawable, midpoint, point_json, reach_at, snap_lines, snap_point,
 };
 use super::{
     Anchor, Button, CanvasEvent, Ghost, Mods, Overlay, OverlayItem, Style, Token, Tool, ToolCx, ToolKey,
@@ -129,7 +129,13 @@ impl DuctDrawTool {
             let b = sheet[sheet.len() - 1];
             items.push(OverlayItem::Label {
                 at: midpoint(a, b),
-                text: strings::format(key!("draw-duct-size"), &[&mm_of(panel, w), &mm_of(panel, h)]),
+                text: strings::format(
+                    key!("draw-duct-size"),
+                    &[
+                        &ew_api::output::mm_words(w, panel.decimal_comma),
+                        &ew_api::output::mm_words(h, panel.decimal_comma),
+                    ],
+                ),
                 anchor: Anchor::Beside,
             });
         }

@@ -144,15 +144,16 @@ pub(crate) fn mm_text(q: &Q, nm: i128) -> String {
     mm_words(nm, comma(q))
 }
 
-/// Millimetres as the shortest decimal, with a decimal comma where `comma` (`7.5`, `7,5`).
-fn mm_words(nm: i128, comma: bool) -> String {
+/// Millimetres as the shortest decimal, with a decimal comma where `comma` (`7.5`, `7,5`): the one text of a length in
+/// millimetres, Properties' and the window's (with its unit, [`mm_with_unit`]).
+pub fn mm_words(nm: i128, comma: bool) -> String {
     let text = ew_derive::mm_exact(nm);
     if comma { text.replace('.', ",") } else { text }
 }
 
 /// A length in words, with its unit (`250 mm`, `7,5 mm` where `comma`): the one text of a length a Properties row
 /// shows, set or unset, which its parser ([`parse_mm`]) reads back.
-pub(crate) fn mm_with_unit(nm: i128, comma: bool) -> String {
+pub fn mm_with_unit(nm: i128, comma: bool) -> String {
     format!("{} mm", mm_words(nm, comma))
 }
 
@@ -2549,7 +2550,7 @@ impl Session {
             .settings
             .workshop
             .min_web
-            .unwrap_or(ew_units::Nm(5_000_000));
+            .unwrap_or(crate::checks::rules::holes::DEFAULT_WEB);
         let placed: Vec<(i128, i128, ew_schema::GlandSection)> = q
             .table::<ew_schema::SurfaceFeature>()
             .iter()

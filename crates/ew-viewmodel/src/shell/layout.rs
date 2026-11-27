@@ -29,20 +29,6 @@ use crate::tools::{
 };
 use crate::{count_key, key};
 
-/// Millimetres as the project prints them: the shortest decimal with the project's separator.
-pub(crate) fn mm_text(nm: i128, comma: bool) -> String {
-    let sign = if nm < 0 { "-" } else { "" };
-    let a = nm.unsigned_abs();
-    let (int, frac) = (a / 1_000_000, a % 1_000_000);
-    let text = if frac == 0 {
-        format!("{sign}{int}")
-    } else {
-        let digits = format!("{frac:06}");
-        format!("{sign}{int}.{}", digits.trim_end_matches('0'))
-    };
-    if comma { text.replace('.', ",") } else { text }
-}
-
 impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // Getters
@@ -261,7 +247,7 @@ impl ShellModel {
                     &[
                         &row.tag,
                         &strings::render(&rail.sentence),
-                        &mm_text(i128::from(row.pose.0), comma),
+                        &ew_api::output::mm_words(i128::from(row.pose.0), comma),
                         &findings,
                     ],
                 ))
@@ -270,8 +256,8 @@ impl ShellModel {
                 key!("layout-live-plate"),
                 &[
                     &row.tag,
-                    &mm_text(i128::from(row.pose.0), comma),
-                    &mm_text(i128::from(row.pose.1), comma),
+                    &ew_api::output::mm_words(i128::from(row.pose.0), comma),
+                    &ew_api::output::mm_words(i128::from(row.pose.1), comma),
                 ],
             )),
         }
@@ -1234,7 +1220,10 @@ impl ShellModel {
         let comma = self.panel_tables().is_some_and(|p| p.decimal_comma);
         let size = (kind == "duct" && part.as_ref().and_then(|p| p.size).is_none()).then(|| {
             let (w, h) = self.tools.layout_options.duct_size;
-            (mm_text(w, comma), mm_text(h, comma))
+            (
+                ew_api::output::mm_words(w, comma),
+                ew_api::output::mm_words(h, comma),
+            )
         });
         Some(crate::tools::DrawCard {
             kind,

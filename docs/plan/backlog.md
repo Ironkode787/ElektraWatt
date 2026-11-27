@@ -24,7 +24,6 @@ what the owner's test of 0.3.5 finds is added here.
 
 - FT-2255 `ew-commands, ew-viewmodel`: A new accessory or variant row of the part editor that is left empty is refused with the reader's own message ("missing field `qty`") and not in words. A row that lacks a value says which one, as the other forms do.
 - FT-2333 `ew-derive`: A wire's length is a member of the one wire record set, so every edit of a layout builds every wire record again (not measured). The length as a query of its own per wire, which the lists, Properties and the checks read.
-- FT-2352 `ew-viewmodel, ew-api, ew-checks`: Several functions format a length in millimetres beside the one Properties uses, and the 5 mm web between two holes is written out in two places beside the checks' constant. One formatter of a length; the web's value read from its one home.
 
 #### The page's drawing
 

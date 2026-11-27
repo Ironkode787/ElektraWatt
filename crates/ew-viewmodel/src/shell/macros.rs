@@ -230,15 +230,15 @@ fn slots_text(items: &[Value], comma: bool) -> Option<String> {
             parts.push(format!(
                 "{} {}; {} mm",
                 strings::text(key!("macro-slots-at")),
-                super::layout::mm_text(i128::from(x), comma),
-                super::layout::mm_text(i128::from(y), comma)
+                ew_api::output::mm_words(i128::from(x), comma),
+                ew_api::output::mm_words(i128::from(y), comma)
             ));
         }
         if let Some(angle) = item.get("angle") {
             parts.push(format!(
                 "{} {}°",
                 strings::text(key!("macro-slots-turned")),
-                super::layout::mm_text(i128::from(angle.as_i64()?) * 1000, comma)
+                ew_api::output::mm_words(i128::from(angle.as_i64()?) * 1000, comma)
             ));
         }
         match item.get("visible").and_then(Value::as_bool) {

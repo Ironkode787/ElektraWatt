@@ -463,7 +463,7 @@ impl ShellModel {
             let tube = &current["default_tube"];
             let mm = |v: &Value| {
                 v.as_i64()
-                    .map(|nm| crate::shell::layout::mm_text(i128::from(nm), false))
+                    .map(|nm| ew_api::output::mm_words(i128::from(nm), false))
                     .map(Value::String)
             };
             let mut prefill = Map::new();
@@ -557,8 +557,8 @@ impl ShellModel {
         ) {
             (Some(od), Some(id)) => Some(format!(
                 "{} × {} mm",
-                crate::shell::layout::mm_text(i128::from(od), false),
-                crate::shell::layout::mm_text(i128::from(id), false)
+                ew_api::output::mm_words(i128::from(od), false),
+                ew_api::output::mm_words(i128::from(id), false)
             )),
             _ => None,
         };
@@ -854,7 +854,7 @@ impl ShellModel {
         let tube = self.settings_member("fluid")["default_tube"].clone();
         let mm = |v: &Value| {
             v.as_i64()
-                .map(|nm| crate::shell::layout::mm_text(i128::from(nm), false))
+                .map(|nm| ew_api::output::mm_words(i128::from(nm), false))
         };
         Some(format!("{}/{}", mm(&tube["od"])?, mm(&tube["id"])?))
     }

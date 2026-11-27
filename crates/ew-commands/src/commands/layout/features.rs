@@ -357,7 +357,12 @@ impl Command for PlaceGlands {
         let glands = space
             .map(|s| q.get::<ew_derive::layout::CableGlands>(s))
             .unwrap_or_default();
-        let web = q.project().settings.workshop.min_web.unwrap_or(Nm(5_000_000));
+        let web = q
+            .project()
+            .settings
+            .workshop
+            .min_web
+            .unwrap_or(ew_checks::rules::holes::DEFAULT_WEB);
         let mut sections = Vec::with_capacity(self.cables.len());
         for (i, cable) in self.cables.iter().enumerate() {
             let tag = ew_derive::short_tag(&q, *cable);

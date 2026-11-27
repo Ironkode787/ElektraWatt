@@ -33,7 +33,7 @@ impl CabinetCard {
     /// Without a way and the tick Route every wire again. A row of a wire picks it, which shows its way alone.
     pub fn columns(&self) -> CardColumns {
         let r = &self.route;
-        let mm = |n: ew_units::Nm| format!("{} mm", super::layout::mm_text(i128::from(n.0), false));
+        let mm = |n: ew_units::Nm| ew_api::output::mm_with_unit(i128::from(n.0), false);
         let name = |w: &ew_api::cabinet_route::CardWire| {
             if w.number.is_empty() {
                 w.ends.clone()
@@ -310,7 +310,7 @@ impl ShellModel {
     /// The labels of the ways of the wires selected themselves on the panel page of canvas `group` (doc 12 §12.5): the
     /// chip "104.3 · 1175 mm" on the way, and "to -104E1 in the door" where it leaves for a door; page nm and words.
     pub fn selected_way_labels(&self, group: usize) -> Vec<((i64, i64), String)> {
-        let mm = |n: ew_units::Nm| format!("{} mm", super::layout::mm_text(i128::from(n.0), false));
+        let mm = |n: ew_units::Nm| ew_api::output::mm_with_unit(i128::from(n.0), false);
         let mut out = Vec::new();
         for w in self.shown_ways(group) {
             if let Some((at, number, length)) = w.chip {

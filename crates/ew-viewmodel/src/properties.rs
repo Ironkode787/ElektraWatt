@@ -1735,13 +1735,7 @@ pub fn grid_in_words(sheet: &mut PropertySheet) {
         if let RowValue::One { json, text } = &mut row.value
             && let Some(nm) = json.as_i64()
         {
-            let (whole, part) = (nm / 1_000_000, (nm % 1_000_000).abs());
-            let mm = if part == 0 {
-                whole.to_string()
-            } else {
-                let sign = if nm < 0 && whole == 0 { "-" } else { "" };
-                format!("{sign}{whole}.{}", format!("{part:06}").trim_end_matches('0'))
-            };
+            let mm = ew_api::output::mm_words(i128::from(nm), false);
             *text = strings::format(key!("status-grid-mm"), &[&strings::decimal(&mm)]);
         }
     }

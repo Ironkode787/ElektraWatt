@@ -147,24 +147,6 @@ pub(crate) fn reach_at(cx: &ToolCx<'_>, panel: &PanelTables, at: (i64, i64)) -> 
     }
 }
 
-/// Millimetres as the project prints them.
-pub(crate) fn mm_of(panel: &PanelTables, nm: i128) -> String {
-    let sign = if nm < 0 { "-" } else { "" };
-    let a = nm.unsigned_abs();
-    let (int, frac) = (a / 1_000_000, a % 1_000_000);
-    let text = if frac == 0 {
-        format!("{sign}{int}")
-    } else {
-        let digits = format!("{frac:06}");
-        format!("{sign}{int}.{}", digits.trim_end_matches('0'))
-    };
-    if panel.decimal_comma {
-        text.replace('.', ",")
-    } else {
-        text
-    }
-}
-
 /// A point of the surface as a JSON pair, each coordinate saturated to the `i64` range, so that an
 /// `i128` beyond `i64` still makes a JSON number; the tools refuse such a point first ([`drawable`]).
 pub(crate) fn point_json(p: (i128, i128)) -> Value {
@@ -254,7 +236,10 @@ impl RailDrawTool {
             let length = (c.0 - s.0).abs() + (c.1 - s.1).abs();
             items.push(OverlayItem::Label {
                 at: midpoint(a, b),
-                text: strings::format(key!("draw-length"), &[&mm_of(panel, length)]),
+                text: strings::format(
+                    key!("draw-length"),
+                    &[&ew_api::output::mm_words(length, panel.decimal_comma)],
+                ),
                 anchor: Anchor::Beside,
             });
         }
