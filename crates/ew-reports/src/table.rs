@@ -11,12 +11,14 @@
 //! a number with a `.` decimal point and no unit, a date as `yyyy-mm-dd`, so the writers can type them (a numeric cell,
 //! a date serial) and the Excel presets can write a decimal comma.
 //!
-//! [`Table::from_rowset`] prints every cell as the folio does ([`crate::render::render`], neutral language), except a
-//! number, a quantity without a physical unit and a date, which take their neutral form (an order unit, the legend's
-//! `0.47 m`, has a Unit column of its own): a quantity with a physical unit (`1.5 mm²`) stays text, as do a missing or
-//! stale value in a number column.
+//! [`Table::from_rowset`] prints its headings and every cell as the folio does ([`crate::render::render`]) in the
+//! language it is given: the project's for an Excel file, none (English) for a CSV, which programs read. A number, a
+//! quantity without a physical unit and a date take their neutral form whatever the language (an order unit, the
+//! legend's `0.47 m`, has a Unit column of its own): a quantity with a physical unit (`1.5 mm²`) stays text, as do a
+//! missing or stale value in a number column.
 
 use ew_derive::Q;
+use ew_mltext::LangTag;
 
 use crate::render::{RenderOptions, decimal, render};
 use crate::rowset::{Cell, CellType, QtyUnit, RowKind, RowSet};
@@ -80,10 +82,14 @@ impl TableCell {
 }
 
 impl Table {
-    /// The table of a row set: its columns with their neutral labels (every column read-only), and each
-    /// row with its ID (none for a heading) and its cells as the module documentation says.
-    pub fn from_rowset(q: &Q, set: &RowSet, name: &str, key: &str) -> Table {
-        let options = RenderOptions::default();
+    /// The table of a row set in the language `lang` (`None`: English, as a CSV holds it): its columns with their labels
+    /// (every column read-only), and each row with its ID (none for a heading) and its cells as the module documentation
+    /// says.
+    pub fn from_rowset(q: &Q, set: &RowSet, name: &str, key: &str, lang: Option<&LangTag>) -> Table {
+        let options = RenderOptions {
+            lang: lang.cloned(),
+            ..RenderOptions::default()
+        };
         Table {
             name: name.to_owned(),
             key: key.to_owned(),
@@ -92,7 +98,10 @@ impl Table {
                 .iter()
                 .map(|c| TableColumn {
                     key: c.key.clone(),
-                    label: c.english().to_owned(),
+                    label: match lang {
+                        Some(lang) => ew_derive::text_in(&c.label, Some(lang)).to_owned(),
+                        None => c.english().to_owned(),
+                    },
                     cell: c.ty,
                     editable: false,
                 })

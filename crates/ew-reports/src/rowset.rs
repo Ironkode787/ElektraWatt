@@ -141,7 +141,7 @@ pub struct ColumnDef {
     /// The cell type every data cell of the column has (or one of the absent values).
     pub ty: CellType,
     /// The header label in every language of the list texts ([`crate::words::in_languages`]); a list page prints it in
-    /// the project's language (doc 09 §4.7), the CSV and XLSX headers in English ([`ColumnDef::english`]).
+    /// the project's language (doc 09 §4.7) as the XLSX header does, the CSV header in English ([`ColumnDef::english`]).
     pub label: MlText,
     /// The relative printed width of the column in a paged table: the house report form splits its table
     /// width by these weights ([`ColumnDef::new`] gives [`ColumnDef::DEFAULT_WEIGHT`]). Not data: XLSX and CSV

@@ -37,6 +37,7 @@ use std::sync::Arc;
 use ew_derive::{BomMode, DeviceTag, PageOrder, PageRef, Q, short_tag};
 use ew_export::PdfDate;
 use ew_ids::Id;
+use ew_mltext::LangTag;
 use ew_reports::csv::{CsvOptions, Preset, restyle, rows_csv};
 use ew_reports::kinds::PartsSummary;
 use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
@@ -731,12 +732,13 @@ pub fn row_output(
             )
         }
         RowsFormat::Csv(options) => {
-            let table = one_table(q, &chosen);
+            let table = one_table(q, &chosen, None);
             let csv = ew_reports::csv::table_csv(&table, options);
             (RowsOutput::Csv(csv), table.rows.len())
         }
         RowsFormat::Xlsx(meta) => {
-            let tables = sheets(q, &chosen);
+            // An Excel file is read by people: in the project's language, as the list's page (doc 09 §4.7).
+            let tables = sheets(q, &chosen, ew_derive::print_language(q).as_ref());
             let rows = tables.iter().map(|t| t.rows.len()).sum();
             let bytes = ew_reports::xlsx::xlsx(&tables, &with_base_digest(meta, &tables))
                 .map_err(|e| RowsError::Xlsx(e.to_string()))?;
@@ -772,10 +774,10 @@ pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
     digest.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-/// The table of a row set of `kind`, its editable columns marked: `io_list`'s round-trip columns, every other
-/// kind's columns read-only.
-fn kind_table(q: &Q, set: &RowSet, name: &str, key: &str, kind: &str) -> Table {
-    let mut table = Table::from_rowset(q, set, name, key);
+/// The table of a row set of `kind` in the language `lang`, its editable columns marked: `io_list`'s round-trip columns,
+/// every other kind's columns read-only.
+fn kind_table(q: &Q, set: &RowSet, name: &str, key: &str, kind: &str, lang: Option<&LangTag>) -> Table {
+    let mut table = Table::from_rowset(q, set, name, key, lang);
     if Some(kind) == ReportKind::IoList.name() {
         for c in &mut table.columns {
             c.editable = super::table_io::IO_LIST_ROUTES
@@ -786,26 +788,27 @@ fn kind_table(q: &Q, set: &RowSet, name: &str, key: &str, kind: &str) -> Table {
     table
 }
 
-/// The sheets of a choice: one table, or one per strip named by its printed tag.
-fn sheets(q: &Q, chosen: &Chosen) -> Vec<Table> {
+/// The sheets of a choice in the language `lang`: one table, or one per strip named by its printed tag.
+fn sheets(q: &Q, chosen: &Chosen, lang: Option<&LangTag>) -> Vec<Table> {
     match &chosen.body {
-        Body::Whole(set) => vec![kind_table(q, set, &chosen.kind, &chosen.key, &chosen.kind)],
-        Body::Strip(set, tag) => vec![Table::from_rowset(q, set, tag, &chosen.key)],
+        Body::Whole(set) => vec![kind_table(q, set, &chosen.kind, &chosen.key, &chosen.kind, lang)],
+        Body::Strip(set, tag) => vec![Table::from_rowset(q, set, tag, &chosen.key, lang)],
         Body::Strips(template, strips) => strips
             .iter()
-            .map(|(tag, rows)| Table::from_rowset(q, &with_rows(template, rows.clone()), tag, &chosen.key))
+            .map(|(tag, rows)| Table::from_rowset(q, &with_rows(template, rows.clone()), tag, &chosen.key, lang))
             .collect(),
     }
 }
 
 /// The report table of a key as `ew export` writes it (the round trip's current table): `block:<uuid>` a
 /// block's rows, `kind:parts_summary/<mode>` the bill of materials of the default block, `kind:terminal_diagram` every
-/// strip, `kind:<name>` a kind's whole-project rows; one table as a preset CSV holds it.
+/// strip, `kind:<name>` a kind's whole-project rows; one table in the language `lang`, as a preset CSV holds it
+/// (`None`) or an Excel file (the project's language).
 ///
 /// # Errors
 ///
 /// As [`row_output`] for the key's rows; [`RowsError::UnknownBlock`] for a key of another form.
-pub(super) fn report_table(q: &Q, key: &str) -> Result<Table, RowsError> {
+pub(super) fn report_table(q: &Q, key: &str, lang: Option<&LangTag>) -> Result<Table, RowsError> {
     let (what, block) = if let Some(block) = key.strip_prefix("block:") {
         (RowExport::Report, Some(block))
     } else if let Some(mode) = key.strip_prefix("kind:parts_summary/") {
@@ -822,15 +825,16 @@ pub(super) fn report_table(q: &Q, key: &str) -> Result<Table, RowsError> {
     } else {
         return Err(RowsError::UnknownBlock(key.to_owned()));
     };
-    Ok(one_table(q, &choose(q, &what, block)?))
+    Ok(one_table(q, &choose(q, &what, block)?, lang))
 }
 
-/// The one table of a choice's CSV: every strip's rows after a heading row whose first cell is the strip's tag.
-fn one_table(q: &Q, chosen: &Chosen) -> Table {
+/// The one table of a choice in the language `lang` (a CSV's: `None`): every strip's rows after a heading row whose
+/// first cell is the strip's tag.
+fn one_table(q: &Q, chosen: &Chosen, lang: Option<&LangTag>) -> Table {
     match &chosen.body {
-        Body::Whole(_) | Body::Strip(..) => sheets(q, chosen).remove(0),
+        Body::Whole(_) | Body::Strip(..) => sheets(q, chosen, lang).remove(0),
         Body::Strips(template, strips) => {
-            Table::from_rowset(q, &strips_rows(template, strips), &chosen.kind, &chosen.key)
+            Table::from_rowset(q, &strips_rows(template, strips), &chosen.kind, &chosen.key, lang)
         }
     }
 }

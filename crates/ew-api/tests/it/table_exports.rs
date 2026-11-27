@@ -150,7 +150,7 @@ fn the_ew_preset_is_the_row_export_dialect() {
         .expect("the sample's parts list");
     let rows = ew_reports::kinds::PartsSummary.rows_in_mode(&q, ew_api::BomMode::Component);
     let set = ew_reports::arranged(&q, block, rows);
-    let table = Table::from_rowset(&q, &set, "bom", "kind:parts_summary/parts");
+    let table = Table::from_rowset(&q, &set, "bom", "kind:parts_summary/parts", None);
     assert_eq!(
         ew_api::output::table_csv(&table, &CsvOptions::default()),
         ew_reports::csv::rows_csv(&q, &set)

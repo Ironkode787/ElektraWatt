@@ -475,13 +475,15 @@ impl Session {
     ///
     /// [`TableError`] for a key that names no table, `sql`, or report rows that do not derive.
     pub fn table_export(&self, key: &str) -> Result<Table, TableError> {
-        self.current_table(key).map(|c| c.table)
+        self.current_table(key, None).map(|c| c.table)
     }
 
-    fn current_table(&self, key: &str) -> Result<Current, TableError> {
+    /// The table of `key` as [`Session::table_export`] gives it, a report table in the language `lang` (an Excel file's,
+    /// whose headings and words are the project's language; a CSV's: `None`).
+    fn current_table(&self, key: &str, lang: Option<&ew_mltext::LangTag>) -> Result<Current, TableError> {
         let (kind, strip) = match parse_key(key)? {
             TableKey::Report => {
-                let table = super::rows::report_table(&self.query(), key)?;
+                let table = super::rows::report_table(&self.query(), key, lang)?;
                 return Ok(Current {
                     table,
                     nav: None,
@@ -618,7 +620,12 @@ impl Session {
                 (key, sheet, base)
             }
         };
-        let current = self.current_table(&key).map_err(TableImportError::Table)?;
+        // A workbook holds a list in the project's language, a CSV in English: the file is read against the same table.
+        let lang = match format {
+            SourceFormat::Xlsx => ew_derive::print_language(&self.query()),
+            SourceFormat::Csv => None,
+        };
+        let current = self.current_table(&key, lang.as_ref()).map_err(TableImportError::Table)?;
         let preset = match (format, options.preset) {
             (SourceFormat::Xlsx, _) => None,
             (SourceFormat::Csv, Some(p)) => Some(p),
