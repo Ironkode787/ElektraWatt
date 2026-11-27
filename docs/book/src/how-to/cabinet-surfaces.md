@@ -34,7 +34,11 @@ The sample project has its mounting plate on page 902, its door on page 904 and 
    rail or the duct: Properties shows the section **Holes**, one row per hole with its place from the surface's
    corner ("270, 480 mm") and, in its chip, its number and how it is made ("H3 · Ø 22.3").
 6. To move one of these holes, type another place into its row: the chip then says "moved", and **Reset** puts the
-   hole back. Tick **Leave out** below a hole you do not make; it is then drawn and listed nowhere.
+   hole back. Tick **Leave out** below a hole you do not make; it is then drawn and listed nowhere. Your shop's way
+   of fixing is set once in Project properties ▸ Workshop (Fixing holes, Rail fixing, Duct fixing, Web between holes,
+   Measured from). When a new Rail fixing or Duct fixing puts a rail's or a duct's holes elsewhere, a hole you moved
+   or left out there is reset, and the card of the change says how many and on which rails and ducts before you apply
+   it.
 7. To add a hole of your own, right-click the surface where it goes and choose **Add hole here…**. The form "Add a
    hole to -UC1 door" asks for the **Kind** (Hole, Fixing, Cut-out, Gland or Rectangle), the **Size**, **X (mm)** and
    **Y (mm)** from the corner the surface is measured from (the point you clicked) and what it is **For**, such as

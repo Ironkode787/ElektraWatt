@@ -5155,14 +5155,25 @@ msgstr ""
 msgid ""
 "To move one of these holes, type another place into its row: the chip then "
 "says \"moved\", and **Reset** puts the hole back. Tick **Leave out** below a "
-"hole you do not make; it is then drawn and listed nowhere."
+"hole you do not make; it is then drawn and listed nowhere. Your shop's way "
+"of fixing is set once in Project properties ▸ Workshop (Fixing holes, Rail "
+"fixing, Duct fixing, Web between holes, Measured from). When a new Rail "
+"fixing or Duct fixing puts a rail's or a duct's holes elsewhere, a hole you "
+"moved or left out there is reset, and the card of the change says how many "
+"and on which rails and ducts before you apply it."
 msgstr ""
 "Om een van deze gaten te verplaatsen, typt u een andere plaats in zijn rij: "
 "de chip zegt dan \"verplaatst\", en **Herstellen** zet het gat terug. Vink "
 "**Weglaten** aan onder een gat dat u niet maakt; het wordt dan nergens "
-"getekend of vermeld."
+"getekend of vermeld. Hoe uw werkplaats bevestigt, stelt u eenmaal in bij "
+"Projecteigenschappen ▸ Werkplaats (Bevestigingsgaten, Railbevestiging, "
+"Kabelgootbevestiging, Ruimte tussen gaten, Gemeten vanaf). Zet een nieuwe "
+"Railbevestiging of Kabelgootbevestiging de gaten van een rail of een "
+"kabelgoot elders, dan wordt een gat dat u daar verplaatste of wegliet "
+"teruggezet, en de kaart van de wijziging zegt hoeveel en op welke rails en "
+"kabelgoten voordat u de wijziging toepast."
 
-#: src/how-to/cabinet-surfaces.md:38
+#: src/how-to/cabinet-surfaces.md:42
 msgid ""
 "To add a hole of your own, right-click the surface where it goes and choose "
 "**Add hole here…**. The form \"Add a hole to -UC1 door\" asks for the "
@@ -5184,7 +5195,7 @@ msgstr ""
 "voor een uitsparing, M12 tot M63 voor een wartel, breedte × hoogte voor een "
 "rechthoek.\""
 
-#: src/how-to/cabinet-surfaces.md:43
+#: src/how-to/cabinet-surfaces.md:47
 msgid ""
 "A hole of your own is dragged with Select, its rows are Kind, Size, X, Y and "
 "For in Properties, and `Delete` removes it."
@@ -5192,7 +5203,7 @@ msgstr ""
 "Een eigen gat sleept u met Selecteren, zijn rijen in Eigenschappen zijn "
 "Soort, Grootte, X, Y en Voor, en `Delete` verwijdert het."
 
-#: src/how-to/cabinet-surfaces.md:45
+#: src/how-to/cabinet-surfaces.md:49
 msgid ""
 "Choose **Check ▸ Check project**. **Holes too close** (EW-LAY-012) names "
 "both holes and how far apart they are, such as \"… is 3 mm from … on …: keep "
@@ -5213,11 +5224,11 @@ msgstr ""
 "**Artikel bewerken…** opent het in Artikelen, waar u het zijn gaten geeft "
 "onder **In de kast** ([Eigen artikelen maken](own-parts.md))."
 
-#: src/how-to/cabinet-surfaces.md:51
+#: src/how-to/cabinet-surfaces.md:55
 msgid "Cable glands"
 msgstr "Kabelwartels"
 
-#: src/how-to/cabinet-surfaces.md:53
+#: src/how-to/cabinet-surfaces.md:57
 msgid ""
 "A cable that leaves the cabinet, such as the supply cable or a motor cable, "
 "brings its cable gland, chosen from the workshop stock by the cable's outer "
@@ -5230,7 +5241,7 @@ msgstr ""
 "plaat \"2 wartels te plaatsen\" met de knop **Onderkant**, die naar de "
 "pagina van de onderkant gaat."
 
-#: src/how-to/cabinet-surfaces.md:56
+#: src/how-to/cabinet-surfaces.md:60
 msgid ""
 "On the bottom's page the HUD offers **Place cable glands**, which places "
 "every gland that waits in a row. Or drag them from Unplaced devices, where "
@@ -5248,7 +5259,7 @@ msgstr ""
 "volgt de aanwijzer tot u loslaat. Een wartel gaat in een zijwand, de "
 "bovenkant of de onderkant; de deur en de plaat weigeren hem."
 
-#: src/how-to/cabinet-surfaces.md:61
+#: src/how-to/cabinet-surfaces.md:65
 msgid ""
 "Select the cable: in Properties, under its part, **Gland** names the gland "
 "part with the chip \"proposed for 12.5 mm\", and **Gland hole** names its "
@@ -5262,7 +5273,7 @@ msgstr ""
 "Typ een ander wartelartikel van het project in Wartel om het te kiezen; een "
 "lege Wartel neemt het voorstel terug."
 
-#: src/how-to/cabinet-surfaces.md:64
+#: src/how-to/cabinet-surfaces.md:68
 msgid ""
 "Check project names a gland that waits (**Cable gland**, EW-LAY-018, an "
 "error when you release) with **Place on the bottom**. A cable whose gland "
@@ -5279,11 +5290,11 @@ msgstr ""
 "te houden, klikt u met de rechtermuisknop op het gat en kiest u **Als gat "
 "houden**."
 
-#: src/how-to/cabinet-surfaces.md:69
+#: src/how-to/cabinet-surfaces.md:73
 msgid "The hole table"
 msgstr "De gatentabel"
 
-#: src/how-to/cabinet-surfaces.md:71
+#: src/how-to/cabinet-surfaces.md:75
 msgid ""
 "Choose **Output ▸ Workshop ▸ Hole tables**. The hole table page lists every "
 "hole and cut-out of each surface, surface by surface, numbered in the order "
@@ -5300,7 +5311,7 @@ msgstr ""
 "(\"Ø 4.2, tap M5\", \"Ø 22.3\") en waarvoor het is. Een project zonder "
 "gatentabel opent **Rapportblok…** op de gatentabel."
 
-#: src/how-to/cabinet-surfaces.md:76
+#: src/how-to/cabinet-surfaces.md:80
 msgid ""
 "The drawings for drilling, the template to print at full size and the DXF, "
 "are in [Export the labels, the drilling drawings and the "
@@ -12382,6 +12393,16 @@ msgid ""
 "model, so it cannot go stale. **In the window:** **Page ▸ Go ▸ Follow "
 "cross-reference**."
 msgstr ""
+
+#~ msgid ""
+#~ "To move one of these holes, type another place into its row: the chip then "
+#~ "says \"moved\", and **Reset** puts the hole back. Tick **Leave out** below a "
+#~ "hole you do not make; it is then drawn and listed nowhere."
+#~ msgstr ""
+#~ "Om een van deze gaten te verplaatsen, typt u een andere plaats in zijn rij: "
+#~ "de chip zegt dan \"verplaatst\", en **Herstellen** zet het gat terug. Vink "
+#~ "**Weglaten** aan onder een gat dat u niet maakt; het wordt dan nergens "
+#~ "getekend of vermeld."
 
 #~ msgid ""
 #~ "Choose **Draw ▸ Place ▸ Symbol editor…**. The editor takes the place of the "

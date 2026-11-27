@@ -1360,3 +1360,49 @@ fn no_row_of_properties_answers_that_no_command_edits_it() {
     assert!(problems.is_empty(), "{problems:#?}");
     shell.shutdown();
 }
+
+/// A new Rail fixing that puts a moved hole of Rail 1 elsewhere opens the card of `project.settings.set`, which lists
+/// the reset choice before Apply (doc 12-3d §10.3); Apply resets it in the same step.
+#[test]
+fn a_changed_fixing_lists_the_reset_holes_on_its_card_before_apply() {
+    let tmp = Tmp::new("props-fixing");
+    let mut shell = writable(&tmp, "902");
+    let rail = shell
+        .panel_tables()
+        .expect("902's panel tables")
+        .carriers
+        .iter()
+        .find(|c| c.label == "Rail 1")
+        .expect("Rail 1")
+        .id;
+    // Rail 1's second fixing hole (235 mm along its 470 mm) moved by 5 mm.
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "layout.hole_choice", "params": {"carrier": rail.to_string(), "index": 1,
+            "offset": [5_000_000, 0]}}),
+    );
+    let steps_before = steps(&shell);
+    done(&mut shell, "props.project", json!({}));
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": "project/settings.workshop.rail_fixing.pitch", "value": "200"}),
+    );
+    assert_eq!(
+        shell.properties().card().expect("the card").reason,
+        key!("reason-bulk-command")
+    );
+    let notices = shell.preview_pane().notice_words();
+    assert!(
+        notices
+            .iter()
+            .any(|n| n.starts_with("1 hole moved or left out on rail 1 is reset")),
+        "{notices:?}"
+    );
+    assert_eq!(steps(&shell), steps_before, "nothing applied yet");
+    done(&mut shell, "preview.apply", json!({}));
+    assert_eq!(steps(&shell), steps_before + 1, "one step");
+    assert_eq!(text(&shell, "project/settings.workshop.rail_fixing.pitch"), "200 mm");
+    shell.shutdown();
+}
