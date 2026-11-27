@@ -112,7 +112,7 @@ pub(crate) fn pv2_renumber_script_is_byte_identical_twice_and_replays_case(twice
         assert!(d.contains("preview none"), "{d}");
         let all = String::from_utf8_lossy(&out.stdout);
         assert!(
-            !all.contains(&*tmp.dir().to_string_lossy()),
+            !crate::support::names_folder(&all, tmp.dir()),
             "a path in the transcript"
         );
         // The record replayed onto a fresh copy: the records of the saved project.

@@ -34,9 +34,12 @@ mod preview_scripts;
 /// The part dialog's and the part editor's flows headless (PS1, PS4, PS5 and PS7).
 mod parts_scripts;
 
+/// The binary run with `args` in `tmp`, its working folder, as a script run is: a path under it is written `.` in the
+/// transcript.
 fn elektrawatt(tmp: &Tmp, args: &[&std::ffi::OsStr]) -> Output {
     support::elektrawatt(&bin_exe())
         .args(args)
+        .current_dir(tmp.dir())
         .env("EW_CONFIG_DIR", tmp.path("config"))
         .env_remove("SOURCE_DATE_EPOCH")
         .stdin(Stdio::null())
@@ -221,10 +224,10 @@ fn the_smoke_script_runs_on_the_sample() {
     assert!(describe.contains("menu File"));
     // The state at the left; the tool's hint is the HUD's, the page field left the bar.
     assert!(describe.contains("status bar: Ready | "), "{describe}");
-    // Transcripts carry no path.
+    // Transcripts carry no path: the export's toast names its folder, the working folder, as `.`.
     let all = String::from_utf8_lossy(&out.stdout).into_owned();
     assert!(
-        !all.contains(&*tmp.dir().to_string_lossy()),
+        !support::names_folder(&all, tmp.dir()),
         "an absolute path in the transcript"
     );
 

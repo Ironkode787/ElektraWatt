@@ -48,6 +48,14 @@ pub fn runs(twice: bool) -> &'static [&'static str] {
     if twice { &["a", "b"] } else { &["a"] }
 }
 
+/// Whether the transcript `text` names the folder `dir`, as it is or as a JSON line spells it (each backslash of a
+/// Windows path doubled), so that the check of a path sees one on every platform.
+pub fn names_folder(text: &str, dir: &Path) -> bool {
+    let plain = dir.to_string_lossy();
+    let quoted = serde_json::to_string(&*plain).unwrap();
+    text.contains(&*plain) || text.contains(&quoted[1..quoted.len() - 1])
+}
+
 /// Asserts that no line of `transcript` holds a UUID, naming the step and the UUID when one does.
 #[track_caller]
 pub fn assert_no_uuid(transcript: &str) {

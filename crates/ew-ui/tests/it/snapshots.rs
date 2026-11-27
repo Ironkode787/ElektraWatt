@@ -16,7 +16,8 @@
 //! only `--all-features` set, so a plain `cargo nextest run` passed without them): one software rasteriser per platform keeps the pixels stable, and no adapter
 //! is a failure. On Linux an image is compared with its override `tests/expected/snapshots/linux/<name>` when that
 //! file exists, else with the shared one; a bless on Linux writes an override only for an image that differs from the
-//! shared one beyond the tolerance, and removes an override that no longer differs.
+//! shared one beyond the tolerance, and removes an override that no longer differs. A picture of a dialog's footer is
+//! compared on Windows only ([`compares_footer_pictures`]): its buttons stand in the platform's order.
 //!
 //! One image per screen: each cropped screen is gated in light Comfortable, plus dark
 //! Compact for the Messages pane and the Terminal strips grid. The theme tokens are gated by `theme.rs` (`dl2_the_dump_equals_the_blessed_file`,
@@ -55,6 +56,17 @@ fn out_dir() -> PathBuf {
         },
         PathBuf::from,
     )
+}
+
+/// Whether this platform compares the pictures of a dialog's footer: Windows, where the gate blesses them. A footer's
+/// buttons stand in the platform's order (Windows puts the Primary first, Linux last: `dialog::footer_order`, doc
+/// 16a), so Linux draws them in another order; there a test of such pictures says so and is skipped.
+fn compares_footer_pictures() -> bool {
+    if cfg!(windows) {
+        return true;
+    }
+    println!("skipped: pictures are compared on Windows (a dialog's buttons stand in the platform's order)");
+    false
 }
 
 fn device() -> ew_render2d::gpu::HeadlessDevice {
@@ -836,6 +848,9 @@ fn around(rects: impl IntoIterator<Item = egui::Rect>, margin: f32) -> egui::Rec
 /// purge question), gated by [`the_fixture_dialogs_in_light`]. Two shards that run
 /// side by side, each in a window of its own.
 fn cp6_every_dialog(k: usize, of: usize) {
+    if !compares_footer_pictures() {
+        return;
+    }
     let dev = device();
     let mut failures = Vec::new();
     {
@@ -978,6 +993,9 @@ fn pin_journal_times(dir: &std::path::Path, t: u64) {
 #[test]
 fn the_fixture_dialogs_in_light() {
     use ew_viewmodel::shell::Dialog;
+    if !compares_footer_pictures() {
+        return;
+    }
     let dev = device();
     let mut failures = Vec::new();
     {
@@ -1111,6 +1129,9 @@ fn buttons(h: &Harness<'_, App>, labels: &[&str]) -> Vec<egui::Rect> {
 /// card), light Comfortable, gated.
 #[test]
 fn the_quick_fix_card_and_the_table_card_in_light() {
+    if !compares_footer_pictures() {
+        return;
+    }
     let dev = device();
     let mut failures = Vec::new();
     {

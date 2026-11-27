@@ -325,7 +325,8 @@ window surface, `tests/it/census.rs`, which opens each menu path, dialog, pane a
 the sample and applies the rules R1 to R6 of `assert_accessible`) and `elektrawatt` (the headless smoke script through the
 built binary, with the snapshot of folio 103 against `ew render`'s PNG of the sample and the PDF against `ew export pdf`'s bytes). They
 need no display or GPU. The pixel gate (§3.17) runs on Windows (WARP); the Linux images (Mesa lavapipe pinned) are the
-target. The suite asserts no time and runs no UI-thread watchdog. A kittest assertion on tiles follows the rule of
+target. A picture of a dialog's or a card's buttons is compared on Windows only, since the buttons stand in the
+platform's order (doc 16a); on Linux its test prints that it is skipped. The suite asserts no time and runs no UI-thread watchdog. A kittest assertion on tiles follows the rule of
 §3.14.
 
 ### 3.12 Parser fuzzing and hostile input
