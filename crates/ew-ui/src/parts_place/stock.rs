@@ -81,12 +81,11 @@ pub(super) fn list(ui: &mut Ui, place: &PartsPlace, events: &mut Vec<Event>) {
                         kind: kind.to_owned(),
                     });
                     // Where a dragged row of the same kind would go: a line over this one.
-                    if r.dnd_hover_payload::<StockDrag>().is_some_and(|d| d.kind == kind && d.part != param) {
-                        ui.painter().hline(
-                            r.rect.x_range(),
-                            r.rect.top(),
-                            theme::stroke(2.0, t.accent),
-                        );
+                    if r.dnd_hover_payload::<StockDrag>()
+                        .is_some_and(|d| d.kind == kind && d.part != param)
+                    {
+                        ui.painter()
+                            .hline(r.rect.x_range(), r.rect.top(), theme::stroke(2.0, t.accent));
                     }
                     if let Some(d) = r.dnd_release_payload::<StockDrag>()
                         && d.kind == kind
@@ -125,12 +124,14 @@ pub(super) fn strip(ui: &mut Ui, shell: &ShellModel, read_only: bool, events: &m
             };
             // The buttons at the right, the line in the room they leave, wrapped.
             ui.horizontal(|ui| {
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let mut button = |ui: &mut Ui, words: &str, off: Option<&str>, params: serde_json::Value| {
-                        if components::button(ui, components::Kind::Secondary, words, off, 0.0).clicked() {
-                            events.push(Event::Action("parts.stock", params));
-                        }
-                    };
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    let mut button =
+                        |ui: &mut Ui, words: &str, off: Option<&str>, params: serde_json::Value| {
+                            if components::button(ui, components::Kind::Secondary, words, off, 0.0).clicked()
+                            {
+                                events.push(Event::Action("parts.stock", params));
+                            }
+                        };
                     match at {
                         StockPlace::In { place, of } => {
                             // Right to left: Take out at the right edge.
@@ -160,10 +161,10 @@ pub(super) fn strip(ui: &mut Ui, shell: &ShellModel, read_only: bool, events: &m
                             json!({ "op": "add" }),
                         ),
                     }
-                ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                    ui.add(egui::Label::new(line).wrap());
+                    ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                        ui.add(egui::Label::new(line).wrap());
+                    });
                 });
-            });
             });
         });
 }
@@ -180,16 +181,27 @@ pub(super) fn card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         .inner_margin(egui::Margin::same(t.space_3 as i8))
         .show(ui, |ui| {
             ui.set_width(ui.available_width());
-            ui.label(RichText::new(strings::text(key!("parts-stock-title"))).font(theme::font(&t.type_label)));
+            ui.label(
+                RichText::new(strings::text(key!("parts-stock-title"))).font(theme::font(&t.type_label)),
+            );
             ui.add_space(t.space_1);
-            ui.add(egui::Label::new(components::body_secondary(&t, strings::text(key!("parts-stock-text")))).wrap());
+            ui.add(
+                egui::Label::new(components::body_secondary(
+                    &t,
+                    strings::text(key!("parts-stock-text")),
+                ))
+                .wrap(),
+            );
             ui.add_space(t.space_2);
-            let mut row = |ui: &mut Ui, icon: Option<IconId>, words: &str, off: Option<&str>, event: Event| {
-                if components::button_with_icon(ui, components::Kind::Secondary, icon, words, off, 0.0).clicked() {
-                    events.push(event);
-                }
-                ui.add_space(t.space_1);
-            };
+            let mut row =
+                |ui: &mut Ui, icon: Option<IconId>, words: &str, off: Option<&str>, event: Event| {
+                    if components::button_with_icon(ui, components::Kind::Secondary, icon, words, off, 0.0)
+                        .clicked()
+                    {
+                        events.push(event);
+                    }
+                    ui.add_space(t.space_1);
+                };
             row(
                 ui,
                 Some(IconId::plus),
@@ -212,6 +224,12 @@ pub(super) fn card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 Event::Action("parts.stock", json!({ "op": "default" })),
             );
             ui.add_space(t.space_1);
-            ui.add(egui::Label::new(components::small_secondary(&t, strings::text(key!("parts-stock-cut")))).wrap());
+            ui.add(
+                egui::Label::new(components::small_secondary(
+                    &t,
+                    strings::text(key!("parts-stock-cut")),
+                ))
+                .wrap(),
+            );
         });
 }

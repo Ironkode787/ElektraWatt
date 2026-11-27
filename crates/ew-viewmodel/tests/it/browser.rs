@@ -257,4 +257,3 @@ fn the_browser_chooses_a_variant_and_says_what_no_symbol_draws() {
     assert!(words.starts_with("No symbol draws a "), "{words}");
     s.shutdown();
 }
-

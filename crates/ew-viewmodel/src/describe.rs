@@ -2271,7 +2271,9 @@ pub fn describe(model: &ShellModel) -> String {
         parts_lines(place, &mut lines);
         // Where the open part stands in the project's workshop stock.
         match model.open_stock_place() {
-            Some(crate::shell::stock::StockPlace::In { place, of }) => lines.push(format!("  stock {place} of {of}")),
+            Some(crate::shell::stock::StockPlace::In { place, of }) => {
+                lines.push(format!("  stock {place} of {of}"))
+            }
             Some(crate::shell::stock::StockPlace::Out) => lines.push("  stock out".to_owned()),
             None => {}
         }

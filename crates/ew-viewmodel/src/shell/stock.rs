@@ -126,7 +126,11 @@ impl ShellModel {
         let change = match change.as_str() {
             "add" => StockChange::Add { copy, source },
             "remove" => StockChange::Remove(copy),
-            _ => match p.get("to").and_then(Value::as_u64).and_then(|t| usize::try_from(t).ok()) {
+            _ => match p
+                .get("to")
+                .and_then(Value::as_u64)
+                .and_then(|t| usize::try_from(t).ok())
+            {
                 Some(to) if to >= 1 => StockChange::Move { copy, to },
                 _ => return failed(key!("error-missing-param"), &["to"]),
             },

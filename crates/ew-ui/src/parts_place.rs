@@ -759,9 +759,9 @@ fn list_column(
                         continue;
                     }
                     // The Workshop stock is In this project narrowed to the stock.
-                    let on = place.scope == scope || (scope == PartScope::Project && place.scope == PartScope::Stock);
-                    if ui.selectable_label(on, strings::text(key)).clicked()
-                    {
+                    let on = place.scope == scope
+                        || (scope == PartScope::Project && place.scope == PartScope::Stock);
+                    if ui.selectable_label(on, strings::text(key)).clicked() {
                         events.push(Event::Action("parts.find", json!({ "scope": scope.word() })));
                     }
                 }
@@ -1130,46 +1130,46 @@ fn pictures_column(ui: &mut Ui, shell: &ShellModel, place: &PartsPlace, events: 
                 ui.add_space(t.space_4);
             }
             if !stock_view {
-            picture_card(ui, key!("part-group-schematic"), |ui| {
-                match shell.part_schematic(&open.sheet) {
-                    Some((list, size)) => {
-                        rendered(
-                            ui,
-                            "parts-schematic",
-                            key!("parts-schematic-picture"),
-                            &list,
-                            size,
-                            0.0,
-                        );
-                    }
-                    None => {
-                        ui.label(components::small_secondary(
-                            &t,
-                            strings::text(key!("parts-no-schematic")),
-                        ));
-                    }
-                }
-            });
-            ui.add_space(t.space_3);
-            picture_card(ui, key!("part-group-cabinet"), |ui| {
-                match open.sheet.front_preview() {
-                    Some((list, size)) => {
-                        let margin = t.size_row * 2.0;
-                        if let Some(shown) =
-                            rendered(ui, "parts-front", key!("part-front-preview"), &list, size, margin)
-                        {
-                            size_marks(ui, shown, &open.sheet);
+                picture_card(ui, key!("part-group-schematic"), |ui| {
+                    match shell.part_schematic(&open.sheet) {
+                        Some((list, size)) => {
+                            rendered(
+                                ui,
+                                "parts-schematic",
+                                key!("parts-schematic-picture"),
+                                &list,
+                                size,
+                                0.0,
+                            );
+                        }
+                        None => {
+                            ui.label(components::small_secondary(
+                                &t,
+                                strings::text(key!("parts-no-schematic")),
+                            ));
                         }
                     }
-                    None => {
-                        ui.label(components::small_secondary(
-                            &t,
-                            strings::text(key!("parts-no-front")),
-                        ));
+                });
+                ui.add_space(t.space_3);
+                picture_card(ui, key!("part-group-cabinet"), |ui| {
+                    match open.sheet.front_preview() {
+                        Some((list, size)) => {
+                            let margin = t.size_row * 2.0;
+                            if let Some(shown) =
+                                rendered(ui, "parts-front", key!("part-front-preview"), &list, size, margin)
+                            {
+                                size_marks(ui, shown, &open.sheet);
+                            }
+                        }
+                        None => {
+                            ui.label(components::small_secondary(
+                                &t,
+                                strings::text(key!("parts-no-front")),
+                            ));
+                        }
                     }
-                }
-            });
-            ui.add_space(t.space_4);
+                });
+                ui.add_space(t.space_4);
             }
             ready_for(ui, strings::text(key!("parts-ready-for")), &open.ready);
         });

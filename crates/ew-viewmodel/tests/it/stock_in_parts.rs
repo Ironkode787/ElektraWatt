@@ -55,11 +55,12 @@ fn the_stock_is_changed_on_a_parts_sheet_one_step_each() {
         Outcome::Refused { reason } => ew_viewmodel::strings::render(&reason),
         other => panic!("{other:?}"),
     };
-    assert!(words.starts_with("EW-GEN-MCB-1 is no wire, ferrule, marker or cable gland"), "{words}");
+    assert!(
+        words.starts_with("EW-GEN-MCB-1 is no wire, ferrule, marker or cable gland"),
+        "{words}"
+    );
     // Cut to: a row of the project's Workshop settings.
-    let cut = |value: serde_json::Value| {
-        json!({"cmd": "project.settings.set", "params": {"member": "workshop.cut_increment", "value": value}})
-    };
+    let cut = |value: serde_json::Value| json!({"cmd": "project.settings.set", "params": {"member": "workshop.cut_increment", "value": value}});
     done(&mut s, "command.run", cut(json!(10_000_000)));
     assert_ne!(s.dispatch("command.run", &cut(json!(0))), Outcome::Done);
     s.shutdown();

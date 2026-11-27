@@ -272,38 +272,39 @@ pub(crate) fn columns(ui: &mut egui::Ui, map: &PartsMap, rows: f32, events: &mut
                             .as_deref()
                             .map_or_else(|| none.to_owned(), |m| map.member_words(m, &c.header));
                         let at = Vec2::new(combo, t.size_control);
-                        let combo = ui.allocate_ui_with_layout(at, Layout::left_to_right(Align::Center), |ui| {
-                        crate::components::choice(
-                            ui,
-                            egui::ComboBox::from_id_salt(("parts-map-member", i))
-                                .selected_text(shown)
-                                .width(combo)
-                                .truncate(),
-                            |ui| {
-                                if ui.selectable_label(c.member.is_none(), none).clicked() {
-                                    events.push(Event::Action(
-                                        "parts.map",
-                                        json!({"column": c.header, "member": ""}),
-                                    ));
-                                }
-                                for m in &choices {
-                                    if ui
-                                        .selectable_label(
-                                            c.member.as_deref() == Some(m.as_str()),
-                                            map.member_words(m, &c.header),
-                                        )
-                                        .clicked()
-                                    {
-                                        events.push(Event::Action(
-                                            "parts.map",
-                                            json!({"column": c.header, "member": m}),
-                                        ));
-                                    }
-                                }
-                            },
-                        )
-                        })
-                        .inner;
+                        let combo = ui
+                            .allocate_ui_with_layout(at, Layout::left_to_right(Align::Center), |ui| {
+                                crate::components::choice(
+                                    ui,
+                                    egui::ComboBox::from_id_salt(("parts-map-member", i))
+                                        .selected_text(shown)
+                                        .width(combo)
+                                        .truncate(),
+                                    |ui| {
+                                        if ui.selectable_label(c.member.is_none(), none).clicked() {
+                                            events.push(Event::Action(
+                                                "parts.map",
+                                                json!({"column": c.header, "member": ""}),
+                                            ));
+                                        }
+                                        for m in &choices {
+                                            if ui
+                                                .selectable_label(
+                                                    c.member.as_deref() == Some(m.as_str()),
+                                                    map.member_words(m, &c.header),
+                                                )
+                                                .clicked()
+                                            {
+                                                events.push(Event::Action(
+                                                    "parts.map",
+                                                    json!({"column": c.header, "member": m}),
+                                                ));
+                                            }
+                                        }
+                                    },
+                                )
+                            })
+                            .inner;
                         // Named "Imports as <header>" (every focusable node has a name, ADR-0014 amendment 2).
                         let name = format!("{} {}", strings::text(key!("parts-map-member")), c.header);
                         ui.ctx()

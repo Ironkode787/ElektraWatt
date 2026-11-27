@@ -15,7 +15,12 @@ use crate::part_offers::lib_ref;
 
 /// The kinds a stock holds, in the order the Workshop stock view lists them: wires, ferrules and lugs, markers, cable
 /// glands.
-pub const STOCK_KINDS: [PartKind; 4] = [PartKind::Wire, PartKind::Ferrule, PartKind::Marker, PartKind::Gland];
+pub const STOCK_KINDS: [PartKind; 4] = [
+    PartKind::Wire,
+    PartKind::Ferrule,
+    PartKind::Marker,
+    PartKind::Gland,
+];
 
 /// Whether a part of `kind` may stand in the stock.
 pub fn holds(kind: &PartKind) -> bool {
@@ -165,9 +170,9 @@ impl Session {
         let refs: Vec<_> = items
             .iter()
             .map(|(l, i)| lib_ref(*l, *i))
-            .filter(|r| {
-                matches!(self.libraries().resolve(r), Ok(LibDocument::Part(c)) if holds(&c.item.kind))
-            })
+            .filter(
+                |r| matches!(self.libraries().resolve(r), Ok(LibDocument::Part(c)) if holds(&c.item.kind)),
+            )
             .collect();
         if refs.is_empty() {
             return None;
