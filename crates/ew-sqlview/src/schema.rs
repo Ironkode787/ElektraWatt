@@ -362,11 +362,11 @@ pub const WIRE: View = View {
         t("wire_part", "the part number of the wire part; NULL without one"),
         i(
             "length_nm",
-            "the wire length; NULL until lengths are derived (1.0)",
+            "the wire's length as the wire list prints it (a stale one after its ≈); NULL for a core and a wire without one",
         ),
         t(
             "length_source",
-            "where the length comes from; NULL until lengths are derived (1.0)",
+            "where the length comes from: typed, cable, routed, stale, missing, or site for a field wire without a length of a cabinet Route has laid",
         ),
         t("cable_id", "the cable of a core wire; NULL otherwise"),
         t("cable_tag", "the list form of that cable's tag"),

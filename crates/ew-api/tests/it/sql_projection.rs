@@ -340,3 +340,34 @@ fn a_modules_valve_positions_are_rows_of_the_derivation_and_of_the_view() {
         .collect();
     assert_eq!(got, want);
 }
+
+/// A wire's length and where it comes from read in `api_v1_wire` as the wire list prints them (doc 13 §3.1, doc 08
+/// §10), from the wire record: the sample's 101.1 typed, 101.2 routed, a core of -101W1 with its cable, 104.4 made on
+/// site. Both columns were NULL for every wire.
+#[test]
+fn a_wires_length_and_its_source_are_the_wire_lists() {
+    let session = crate::common::sample();
+    let q = session.query();
+    let records = q.get::<ew_derive::WireRecordSet>(());
+    let length = |number: &str| {
+        let r = records
+            .iter()
+            .find(|r| r.number.as_deref() == Some(number))
+            .unwrap_or_else(|| panic!("{number}"));
+        r.length.value().map(|n| n.0.to_string()).expect("a length")
+    };
+    let p = projection();
+    let reader = p.reader(Profile::EW_SQL).unwrap();
+    let row = |filter: &str| {
+        let set = reader
+            .query(&format!(
+                "SELECT length_nm, length_source FROM api_v1_wire WHERE {filter} LIMIT 1"
+            ))
+            .unwrap();
+        (set.rows[0][0].text(), set.rows[0][1].text())
+    };
+    assert_eq!(row("number = '101.1'"), ("400000000".to_owned(), "typed".to_owned()));
+    assert_eq!(row("number = '101.2'"), (length("101.2"), "routed".to_owned()));
+    assert_eq!(row("cable_tag = '-101W1'").1, "cable");
+    assert_eq!(row("number = '104.4'").1, "site");
+}

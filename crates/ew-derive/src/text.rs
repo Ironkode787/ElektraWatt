@@ -311,12 +311,77 @@ pub fn line_kind(kind: &LineKind) -> Text {
 
 /// Where a wire's length comes from (doc 13 §3.3, doc 12 §9): "typed", "cable", "routed", "stale", "missing".
 pub fn wire_length_source(length: &WireLength) -> Text {
-    match length {
-        WireLength::Typed(_) => text!("length-source-typed"),
-        WireLength::WithCable(_) => text!("length-source-cable"),
-        WireLength::Routed { .. } => text!("length-source-routed"),
-        WireLength::Stale { .. } => text!("length-source-stale"),
-        WireLength::Missing => text!("length-source-missing"),
+    LengthFrom::of_length(length).text()
+}
+
+/// Where a wire's length comes from as the wire list's Length from and the SQL view's `length_source` name it (doc 13
+/// §3.1, doc 12 §9): the length's source, and site for a field wire without a length of a cabinet Route has laid.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum LengthFrom {
+    /// Typed by hand.
+    Typed,
+    /// A cable's core: its cable's.
+    Cable,
+    /// Along a stored way that holds.
+    Routed,
+    /// Along a stored way that no longer holds.
+    Stale,
+    /// None.
+    Missing,
+    /// Made on site: a field wire without a length of a cabinet Route has laid.
+    Site,
+}
+
+impl LengthFrom {
+    /// The source of a length alone, without asking where the wire runs.
+    pub fn of_length(length: &WireLength) -> LengthFrom {
+        match length {
+            WireLength::Typed(_) => LengthFrom::Typed,
+            WireLength::WithCable(_) => LengthFrom::Cable,
+            WireLength::Routed { .. } => LengthFrom::Routed,
+            WireLength::Stale { .. } => LengthFrom::Stale,
+            WireLength::Missing => LengthFrom::Missing,
+        }
+    }
+
+    /// Where the length of the wire of `r` comes from: its source, and site for a field wire without a length that a
+    /// cabinet Route has laid makes on site (a cabinet without a stored way says missing as before; a wire between two
+    /// cabinets is made on site for both).
+    pub fn of(q: &crate::Q, r: &crate::WireRecord) -> LengthFrom {
+        use crate::layout::{CabinetWire, LaidSpaces, cabinet_wire};
+        let site_of_laid = || {
+            q.get::<LaidSpaces>(())
+                .iter()
+                .any(|space| cabinet_wire(q, *space, &r.wire) == Some(CabinetWire::Site))
+        };
+        match (r.length, r.flags.field) {
+            (WireLength::Missing, true) if site_of_laid() => LengthFrom::Site,
+            _ => LengthFrom::of_length(&r.length),
+        }
+    }
+
+    /// Its stored spelling, which no language changes: the SQL view's `length_source`.
+    pub fn word(self) -> &'static str {
+        match self {
+            LengthFrom::Typed => "typed",
+            LengthFrom::Cable => "cable",
+            LengthFrom::Routed => "routed",
+            LengthFrom::Stale => "stale",
+            LengthFrom::Missing => "missing",
+            LengthFrom::Site => "site",
+        }
+    }
+
+    /// Its word for a person.
+    pub fn text(self) -> Text {
+        match self {
+            LengthFrom::Typed => text!("length-source-typed"),
+            LengthFrom::Cable => text!("length-source-cable"),
+            LengthFrom::Routed => text!("length-source-routed"),
+            LengthFrom::Stale => text!("length-source-stale"),
+            LengthFrom::Missing => text!("length-source-missing"),
+            LengthFrom::Site => text!("length-source-site"),
+        }
     }
 }
 
@@ -1420,14 +1485,5 @@ pub fn way_words(q: &crate::Q, way: &[ew_schema::WayStep]) -> String {
 /// site (a cabinet without a stored way prints "missing" as before; a wire between two cabinets is made on site for
 /// both).
 pub fn wire_length_from(q: &crate::Q, r: &crate::WireRecord) -> Text {
-    use crate::layout::{CabinetWire, LaidSpaces, cabinet_wire};
-    let site_of_laid = || {
-        q.get::<LaidSpaces>(())
-            .iter()
-            .any(|space| cabinet_wire(q, *space, &r.wire) == Some(CabinetWire::Site))
-    };
-    match (r.length, r.flags.field) {
-        (WireLength::Missing, true) if site_of_laid() => text!("length-source-site"),
-        _ => wire_length_source(&r.length),
-    }
+    LengthFrom::of(q, r).text()
 }

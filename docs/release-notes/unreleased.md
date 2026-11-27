@@ -873,3 +873,5 @@ change here.
 - api-add: `lists.export {path?, replace?}`
 - behaviour-change: a duct's fill reads in whole percent rounded up, in its chip, Route's card, its Properties and
   EW-LAY-008, so a fill just over the limit reads "61 % · over 60 %", never "60 % · over 60 %"
+- behaviour-change: the SQL view's `api_v1_wire.length_nm` and `length_source` hold each wire's length and where it
+  comes from as the wire list prints them (typed, cable, routed, stale, missing, site); both were NULL for every wire

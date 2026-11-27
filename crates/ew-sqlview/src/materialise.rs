@@ -549,6 +549,9 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord, seq: usize) -> Row {
             .set("conductor_id", uuid(core.id));
     }
     r.set("bond_id", w.bond.map(uuid));
+    // The length and where it comes from, as the wire list prints them (doc 13 §3.1), from the wire record.
+    r.set("length_nm", rec.length.value().map(|n| n.0))
+        .set("length_source", ew_derive::text::LengthFrom::of(q, rec).word());
     // The interruption points the wire passes, by name (the two points of a pair share one), not the
     // external point it ends at.
     let mut ips: Vec<String> = Vec::new();
