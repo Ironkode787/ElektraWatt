@@ -299,8 +299,8 @@ impl ShellModel {
             // What it routed, then the ways it removed: also when it routed wires beside them.
             let routed = (routed > 0 || gone == 0)
                 .then(|| strings::format_counted(count_key!("toast-cabinet-routed"), routed, &[&cabinet]));
-            let removed =
-                (gone > 0).then(|| strings::format_counted(count_key!("toast-cabinet-gone"), gone, &[&cabinet]));
+            let removed = (gone > 0)
+                .then(|| strings::format_counted(count_key!("toast-cabinet-gone"), gone, &[&cabinet]));
             let undo = self.undo_offer();
             let sentences = routed.into_iter().chain(removed).collect();
             self.notes

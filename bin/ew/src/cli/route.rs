@@ -237,7 +237,9 @@ fn route_cabinet(mut session: ew_api::Session, folio: &str, a: &RouteArgs, io: &
     // The ways of wires the cabinet no longer lays go with this run, whatever else it does.
     if let Some(words) = card.gone_words() {
         // In English, as the command line prints, by the text's own catalogue.
-        let words = words.home().map_or_else(|| words.to_string(), |c| c.text_for(&words, None));
+        let words = words
+            .home()
+            .map_or_else(|| words.to_string(), |c| c.text_for(&words, None));
         text.push_str(&format!("{words}.\n"));
     }
     let mut saved = false;
