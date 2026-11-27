@@ -74,7 +74,12 @@ fn door_span(section: &EnclosureSection, i: usize) -> Option<(Nm, Nm)> {
         return None;
     }
     let total = section.width?;
-    let given: i64 = section.doors.iter().filter_map(|d| d.width).map(|w| w.0).sum();
+    // Saturating: a part may give any width.
+    let given: i64 = section
+        .doors
+        .iter()
+        .filter_map(|d| d.width)
+        .fold(0, |a, w| a.saturating_add(w.0));
     let open = if section.doors.is_empty() {
         1
     } else {
@@ -82,7 +87,7 @@ fn door_span(section: &EnclosureSection, i: usize) -> Option<(Nm, Nm)> {
     };
     let share = Nm(total.0.saturating_sub(given) / i64::try_from(open.max(1)).unwrap_or(1));
     let width = |k: usize| section.doors.get(k).and_then(|d| d.width).unwrap_or(share);
-    let left = Nm((0..i).map(|k| width(k).0).sum());
+    let left = Nm((0..i).fold(0, |a, k| a.saturating_add(width(k).0)));
     Some((left, width(i)))
 }
 
@@ -317,4 +322,29 @@ pub fn behind_door(q: &Q, placement: Id<ew_schema::Placement>) -> Option<Nm> {
         .chain(on_parent)
         .filter_map(|m| m.depth)
         .max()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ew_schema::DoorSpec;
+
+    /// A part may give any door widths: two doors of the greatest width the format holds place the second door at the
+    /// end of the range instead of overflowing the sum of the widths before it.
+    #[test]
+    fn doors_of_the_greatest_width_place_without_overflow() {
+        let door = |width: Option<Nm>| DoorSpec {
+            hinge: Hinge::Left,
+            width,
+            extra: Default::default(),
+        };
+        let section = EnclosureSection {
+            width: Some(Nm(i64::MAX)),
+            doors: vec![door(Some(Nm(i64::MAX))), door(Some(Nm(i64::MAX))), door(None)],
+            ..Default::default()
+        };
+        assert_eq!(door_left(&section, 1), Nm(i64::MAX));
+        assert_eq!(door_left(&section, 2), Nm(i64::MAX));
+        assert_eq!(door_span(&section, 2), Some((Nm(i64::MAX), Nm(0))));
+    }
 }
