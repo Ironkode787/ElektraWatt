@@ -369,6 +369,15 @@ pub fn row_sentence(row: &ew_api::parts_set::SetRow) -> Option<String> {
     }
 }
 
+/// Why a row of the set makes no part, in words, without the row's number (the list's second line); `None` for a row
+/// that makes one.
+pub fn row_reason(row: &ew_api::parts_set::SetRow) -> Option<String> {
+    match &row.status {
+        SetStatus::Refused(why) => Some(refusal_words(why)),
+        _ => None,
+    }
+}
+
 /// The chip of a row of the set: new, changed, the same, refused.
 pub fn row_chip(status: &SetStatus) -> &'static str {
     strings::text(match status {

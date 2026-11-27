@@ -497,7 +497,14 @@ impl Session {
                     None => f.path.to_owned(),
                 };
                 let text = sheet.text(&field).trim().to_owned();
-                (!text.is_empty()).then_some((f.path, text))
+                // A part is sold by the piece unless it says otherwise; a length reads with its unit.
+                if text.is_empty() || (f.path == "unit" && text == "piece") {
+                    return None;
+                }
+                let length = sheet
+                    .row(f.path)
+                    .is_some_and(|r| matches!(r.ty.inner(), crate::output::FieldType::Nm));
+                Some((f.path, if length { format!("{text} mm") } else { text }))
             })
             .collect()
     }

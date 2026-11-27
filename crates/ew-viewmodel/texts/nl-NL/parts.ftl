@@ -426,6 +426,7 @@ parts-set-columns = Kolommen
 parts-set-read = Wat er gelezen is
 parts-set-columns-head = Welke kolom wat is
 parts-set-columns-line = Eén keer toegewezen; wijzig een rij en de lijst links volgt
+parts-set-saved-as-label = Opgeslagen als
 parts-set-saved-as = De volgende tabel van deze bron wordt net zo gelezen.
 parts-set-sizes = Breedte, Hoogte en Diepte gaan naar het veld met die naam dat de soort van de rij heeft: de buitenmaat van een kast, de maat van een montageplaat, de maat van een apparaat in de kast.
 parts-set-all-read = Elke rij maakt een artikel.

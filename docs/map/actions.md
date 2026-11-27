@@ -18,14 +18,14 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `file.import_qet_apply` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_import_qet_apply` `crates/ew-viewmodel/src/shell/projects.rs` | `action-file-import-qet-apply` |
 | `file.reimport_qet` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_reimport_qet` `crates/ew-viewmodel/src/shell/projects.rs` | `action-file-reimport-qet` |
 | `file.reimport_qet_apply` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_reimport_qet_apply` `crates/ew-viewmodel/src/shell/projects.rs` | `action-file-reimport-qet-apply` |
-| `parts.import` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_parts_import` `crates/ew-viewmodel/src/shell/parts.rs` | `action-parts-import`, `command-parts-import`, `error-parts-import`, `reason-parts-import`, `refusal-parts-import-kind`, `refusal-parts-import-no-key`, `refusal-parts-import-not-local` |
+| `parts.import` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_parts_import` `crates/ew-viewmodel/src/shell/parts.rs` | `action-parts-import`, `command-parts-import`, `error-parts-import`, `parts-import`, `refusal-parts-import-kind`, `refusal-parts-import-no-key`, `refusal-parts-import-not-local` |
 | `workshop.add_generic` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_workshop_add_generic` `crates/ew-viewmodel/src/shell/parts.rs` | `action-workshop-add-generic` |
 | `workshop.edit_stock` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_workshop_edit_stock` `crates/ew-viewmodel/src/shell/stock.rs` | `action-workshop-edit-stock` |
 | `workshop.stock_row` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_workshop_stock_row` `crates/ew-viewmodel/src/shell/stock.rs` | `action-workshop-stock-row` |
 | `workshop.stock_add` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_workshop_stock_add` `crates/ew-viewmodel/src/shell/stock.rs` | `action-workshop-stock-add` |
 | `workshop.stock_cut` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_workshop_stock_cut` `crates/ew-viewmodel/src/shell/stock.rs` | `action-workshop-stock-cut` |
 | `workshop.stock_apply` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_workshop_stock_apply` `crates/ew-viewmodel/src/shell/stock.rs` | `action-workshop-stock-apply` |
-| `parts.map` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_parts_map` `crates/ew-viewmodel/src/shell/parts.rs` | `action-parts-map`, `parts-map-cancel`, `parts-map-column`, `parts-map-intro`, `parts-map-member`, `parts-map-missing`, `parts-map-mixed`, `parts-map-none`, `parts-map-sample`, `parts-map-saved`, `parts-map-source`, `parts-map-title`, `parts-map-twice`, `parts-map-twice-text`, `reason-no-parts-map` |
+| `parts.map` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_parts_map` `crates/ew-viewmodel/src/shell/parts.rs` | `action-parts-map`, `parts-map-cancel`, `parts-map-column`, `parts-map-member`, `parts-map-missing`, `parts-map-mixed`, `parts-map-none`, `parts-map-sample`, `parts-map-saved`, `parts-map-source`, `parts-map-title`, `parts-map-twice`, `parts-map-twice-text`, `reason-no-parts-map` |
 | `parts.map_import` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_parts_map_import` `crates/ew-viewmodel/src/shell/parts.rs` | `action-parts-map-import`, `parts-map-import` |
 | `file.save` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_save` `crates/ew-viewmodel/src/shell/projects.rs` | `action-file-save` |
 | `file.save_project` | `crates/ew-viewmodel/src/actions/table/file.rs` | `act_save_project` `crates/ew-viewmodel/src/shell/projects.rs` | `action-file-save-project` |
@@ -484,7 +484,7 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `part.favourite` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_part_favourite` `crates/ew-viewmodel/src/shell/part_dialog.rs` | `action-part-favourite`, `reason-part-favourite-local` |
 | `parts.open` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_open` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-open` |
 | `parts.find` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_find` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-find` |
-| `parts.new` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_new` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-new`, `parts-new`, `parts-new-part-with-it`, `parts-new-plate`, `parts-new-title`, `preview-parts-new` |
+| `parts.new` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_new` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-new`, `parts-new`, `parts-new-part-with-it`, `parts-new-plate`, `parts-new-title` |
 | `parts.field` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_field` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-field` |
 | `parts.row` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_row` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-row` |
 | `parts.outline` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_outline` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-outline` |
@@ -507,8 +507,6 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `parts.new_symbol` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_new_symbol` `crates/ew-viewmodel/src/shell/symbol_editor/place.rs` | `action-parts-new-symbol`, `parts-new-symbol` |
 | `parts.draw` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_draw` `crates/ew-viewmodel/src/shell/symbol_editor/place.rs` | `action-parts-draw` |
 | `parts.use_for_all` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_use_for_all` `crates/ew-viewmodel/src/shell/symbol_editor/place.rs` | `action-parts-use-for-all`, `parts-use-for-all`, `parts-use-for-all-card`, `parts-use-for-all-held`, `parts-use-for-all-none` |
-| `symbol.open` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_symbol` `crates/ew-viewmodel/src/shell/symbol_editor.rs` | `action-symbol-open` |
-| `symbol.candidate` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_symbol` `crates/ew-viewmodel/src/shell/symbol_editor.rs` | `action-symbol-candidate`, `symbol-candidate-invalid` |
 | `symbol.link` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_symbol` `crates/ew-viewmodel/src/shell/symbol_editor.rs` | `action-symbol-link`, `symbol-link`, `symbol-link-duplicate`, `symbol-link-line`, `symbol-link-named` |
 | `symbol.path` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_symbol` `crates/ew-viewmodel/src/shell/symbol_editor.rs` | `action-symbol-path` |
 | `symbol.undo` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_symbol` `crates/ew-viewmodel/src/shell/symbol_editor.rs` | `action-symbol-undo` |

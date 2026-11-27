@@ -184,7 +184,16 @@ fn column_widths(ui: &egui::Ui, map: &PartsMap) -> (f32, f32, f32) {
     let samples = widest(crate::theme::font(&t.type_small), &|i| {
         map.columns[i].sample.clone()
     });
-    (names, samples, t.size_dialog_label * 1.4)
+    // A drop-down shows its chosen member whole ("Technical data ▸ Rated current"), its arrow beside it.
+    let none = strings::text(key!("parts-map-none")).to_owned();
+    let chosen = widest(crate::theme::font(&t.type_body), &|i| {
+        let c = &map.columns[i];
+        c.member
+            .as_deref()
+            .map_or_else(|| none.clone(), |m| map.member_words(m, &c.header))
+    });
+    let combo = (chosen + 2.0 * t.space_3 + t.icon_sm).max(t.size_dialog_label * 1.4);
+    (names, samples, combo)
 }
 
 /// The column table: header, sample and the member drop-down per column, scrolling past `rows` rows.

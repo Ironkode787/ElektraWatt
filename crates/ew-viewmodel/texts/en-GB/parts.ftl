@@ -431,6 +431,7 @@ parts-set-columns = Columns
 parts-set-read = What was read
 parts-set-columns-head = Which column is what
 parts-set-columns-line = Mapped once; change a row and the list on the left follows
+parts-set-saved-as-label = Saved as
 parts-set-saved-as = The next table of this source is read the same way.
 parts-set-sizes = Width, Height and Depth go to the field of that name the row's kind has: a cabinet's outer size, a plate's size, a device's size in the cabinet.
 parts-set-all-read = Every row makes a part.

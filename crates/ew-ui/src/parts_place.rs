@@ -717,7 +717,7 @@ fn list_column(
                 events.push(Event::Action("parts.find", json!({ "text": query })));
             }
             ui.add_space(t.space_2);
-            ui.horizontal(|ui| {
+            ui.horizontal_wrapped(|ui| {
                 for (scope, key) in [
                     (PartScope::All, key!("parts-scope-all")),
                     (PartScope::Project, key!("parts-scope-project")),

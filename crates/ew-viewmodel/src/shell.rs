@@ -180,7 +180,7 @@ pub use drawing::TextPopup;
 pub use forms::{FormDialog, FormField, FormRow, FormTable, TICK, TICKED};
 pub use navigation::{Focus, ListPages, RECENT_PAGES, SessionCalls};
 pub use navigators::{Chip, DragSource, FindingLook, MAX_CHIPS, ShownRow};
-pub use parts::{MapColumn, MapKind, PartsMap, row_chip, row_sentence};
+pub use parts::{MapColumn, MapKind, PartsMap, row_chip, row_reason, row_sentence};
 pub use row_ops::NavRename;
 pub use supply_potential::{SupplyPanel, SupplyRow};
 pub use tools::SnapIndicator;

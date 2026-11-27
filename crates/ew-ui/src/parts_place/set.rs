@@ -8,7 +8,7 @@
 use egui::{RichText, ScrollArea, Sense, Ui, UiBuilder, pos2, vec2};
 use ew_viewmodel::ew_api::parts_set::{SetRow, SetStatus};
 use ew_viewmodel::shell::parts_place::{ImportSet, PartsPlace};
-use ew_viewmodel::shell::{row_chip, row_sentence};
+use ew_viewmodel::shell::{row_chip, row_reason, row_sentence};
 use ew_viewmodel::{count_key, key, strings};
 use serde_json::json;
 
@@ -119,7 +119,7 @@ fn list_row(ui: &mut Ui, row: &SetRow, open: bool) -> egui::Response {
         );
     }
     let second = match &row.status {
-        SetStatus::Refused(_) => row_sentence(row).unwrap_or_default(),
+        SetStatus::Refused(_) => row_reason(row).unwrap_or_default(),
         _ => row.description.clone(),
     };
     let small = theme::font(&t.type_small);
@@ -253,7 +253,7 @@ fn columns(ui: &mut Ui, map: &ew_viewmodel::shell::PartsMap, events: &mut Vec<Ev
         None,
     );
     ui.horizontal(|ui| {
-        let label = ui.label(components::body_secondary(&t, strings::text(key!("parts-map-source"))));
+        let label = ui.label(components::body_secondary(&t, strings::text(key!("parts-set-saved-as-label"))));
         let id = egui::Id::unique("parts-set-source");
         let focused = ui.memory(|m| m.has_focus(id.with("edit")));
         let mut text = if focused {
@@ -277,9 +277,8 @@ fn columns(ui: &mut Ui, map: &ew_viewmodel::shell::PartsMap, events: &mut Vec<Ev
     });
     ui.label(components::small_secondary(&t, strings::text(key!("parts-set-saved-as"))));
     ui.add_space(t.space_2);
-    #[allow(clippy::cast_precision_loss)]
-    let rows = map.columns.len() as f32 + 1.0;
-    crate::parts_map::columns(ui, map, rows, events);
+    // The sheet scrolls; the table is shown whole.
+    crate::parts_map::columns(ui, map, f32::INFINITY, events);
     ui.add_space(t.space_2);
     ui.add(egui::Label::new(components::small_secondary(&t, strings::text(key!("parts-set-sizes")))).wrap());
     if let Some(e) = map.error_text() {
