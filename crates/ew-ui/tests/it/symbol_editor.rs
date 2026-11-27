@@ -438,6 +438,21 @@ fn box_now(d: &mut Driver) -> ((i64, i64), Vec<PinPlace>) {
     ((steps.w, steps.h), pins)
 }
 
+/// The pins table reads a pin's place along its edge as a length ("4 mm"), as Properties and the box's size read
+/// lengths; a length typed there moves the pin as before.
+#[test]
+fn the_pins_table_reads_a_pin_s_place_as_a_length() {
+    let tmp = Tmp::new();
+    let mut d = box_with_three_pins(&tmp);
+    d.settle();
+    let (_, pins) = box_now(&mut d);
+    let (name, _, at) = pins[0].clone();
+    assert_eq!(
+        d.value(&format!("From the corner {name}")),
+        Some(format!("{} mm", at * 4))
+    );
+}
+
 /// The box through the window: Arrange… in Parts opens it on the part being made; Add pin puts
 /// a pin on the box; a pin dragged to the right edge stands there.
 #[test]

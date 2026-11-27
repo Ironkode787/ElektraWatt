@@ -927,6 +927,23 @@ impl Driver {
         None
     }
 
+    /// The value of the first widget whose accessible name is `label` (a text field's text), depth first in the tree's
+    /// order; `None` without one or without [`Driver::enable_accesskit`] (tests).
+    pub fn value(&self, label: &str) -> Option<String> {
+        let access = self.access.as_ref()?;
+        let mut stack: Vec<_> = access.root.into_iter().collect();
+        while let Some(id) = stack.pop() {
+            let Some(node) = access.nodes.get(&id) else {
+                continue;
+            };
+            if node.label() == Some(label) {
+                return node.value().map(str::to_owned);
+            }
+            stack.extend(node.children().iter().rev().copied());
+        }
+        None
+    }
+
     /// Every labelled widget of the window with its centre in frame pixels, in the tree's order (tests).
     pub fn labels(&self) -> Vec<(String, (i64, i64))> {
         let mut out = Vec::new();

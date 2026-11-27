@@ -184,7 +184,11 @@ impl EditorView {
                         if placed && side != side_word(&line.side) {
                             action(events, "part.pin", json!({ "pin": line.idx, "side": side }));
                         }
-                        let at = format!("{}", line.at * 4);
+                        // Its place along the edge as a length, as Properties and the box's size read it ("4 mm").
+                        let at = strings::format(
+                            key!("parts-size-mm"),
+                            &[&ew_viewmodel::shell::symbol_editor::trim_mm((line.at * 4) as f64)],
+                        );
                         let at_cell = format!("{} {}", label(key!("box-pin-from-corner")), line.name);
                         if placed
                             && let Some(typed) =
