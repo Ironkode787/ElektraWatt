@@ -288,7 +288,9 @@ amendment 4). It no longer holds (it is **stale**) when:
   another part ("-X1031 moved");
 - the wire now lands on another pin at an end ("its end moved from -102Q1:2 to -102Q1:4");
 - an end's device is no longer placed;
-- a duct on its way moved, changed its size or is gone ("duct 1 changed").
+- a duct on its way moved, changed its height, no longer reaches a stretch of the way, or is gone ("duct 1
+  changed"). A duct only made wider keeps its ways: the way runs along its centreline, so its run is the same, and
+  the fill follows the new width at once.
 
 Nothing else stales a way: not another wire, not a new duct (Route again uses it), not a renumbering, not the wire's
 size or colour (the fill follows them at once), and not the settings of §9 (the length follows them at once). A stale
@@ -761,7 +763,8 @@ presses Route, applies and prints: the lengths come with the list.
 **The day after.** He turns -X1031 so that its inner side faces the duct. The toast of the turn says "Turned -X1031.
 The ways of 5 wires no longer hold." with Route; the HUD says it until he routes; the Connections table prints their
 lengths "≈ 475" with Length from "stale"; Messages hold EW-LAY-011. Route then plans those five only, and the card
-lists "103.5 · 475 → 445 mm". A duct he widened, moved or deleted says the same of its wires.
+lists "103.5 · 475 → 445 mm". A duct he moved, made higher or lower, shortened past a way or deleted says the same of its wires; one he only
+widened keeps their ways and lengths, and its fill chip falls.
 
 **A duct.** Selected, it shows its fill chip and its fullest piece hatched in `canvas.stale`'s pattern (§8.6). Its
 Properties show Size, Inner area ("2,040 mm² · 0.85 × 40 × 60: the part gives no inner size"), Fill ("8 % where
