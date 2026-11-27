@@ -1024,3 +1024,35 @@ fn the_version_row_reads_the_library_s_version() {
     assert_eq!(row(&s, "version"), Some(RowValue::Text(Some("1.0.1".into()))), "its library's version");
     assert_eq!(row(&s, "licence"), Some(RowValue::Text(Some("CC0-1.0".into()))));
 }
+
+/// Back without it on a drawing opened from a page returns to that page as it was (its tool, its selection), and a
+/// part open in Parts with its typing waits aside, kept: never dropped, never shown in place of the page.
+#[test]
+fn back_without_it_returns_to_the_page_and_keeps_the_part_aside() {
+    let tmp = Tmp::new("drawing-back-to-page");
+    let mut s = project(&tmp);
+    done(&mut s, "parts.new", json!({"start": "device"}));
+    done(&mut s, "parts.field", json!({"field": "part_number", "value": "HALF-TYPED"}));
+    done(&mut s, "parts.new_symbol", json!({}));
+    done(&mut s, "parts.field", json!({"field": "symbol.name", "value": "Tested"}));
+    draw_contact(&mut s);
+    done(&mut s, "symbol.scratch", json!({}));
+    let page = |s: &ShellModel| {
+        (
+            s.current_folio().map(str::to_owned),
+            format!("{:?}", s.selection()),
+            s.tool().name().to_owned(),
+        )
+    };
+    let before = page(&s);
+    done(&mut s, "parts.new_symbol", json!({"discard": true}));
+    assert!(s.symbol_editor().is_some(), "the page's drawing");
+    done(&mut s, "parts.back", json!({}));
+    assert!(s.symbol_editor().is_none());
+    assert!(s.parts_place().is_some_and(|p| p.aside), "Parts waits aside, the page shows");
+    assert_eq!(page(&s), before, "the page as it was");
+    done(&mut s, "parts.open", json!({}));
+    let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the part is kept");
+    assert!(open.changed, "with its typing");
+    assert_eq!(open.title(), "HALF-TYPED");
+}

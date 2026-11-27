@@ -840,17 +840,7 @@ impl ShellModel {
     /// is armed with the symbol (on the page's grid, as the picker places one of another grid); drawn like a placed
     /// symbol, that symbol is exchanged for it instead, its wires kept.
     fn place_saved(&mut self, address: &str, page: &PageDrawing) -> Outcome {
-        let leaves = self.drawing_leaves_parts();
-        if let Some(editor) = &mut self.symbol_editor {
-            editor.shown = false;
-        }
-        if leaves {
-            self.parts = None;
-            self.parts_alone = None;
-        } else {
-            // A part open in Parts waits aside, its typing kept, as after a test placement.
-            self.step_aside();
-        }
+        self.leave_drawing();
         self.show_page_by_id(&page.page.to_string());
         self.sync_views();
         self.sync_tool_context();
@@ -1004,24 +994,29 @@ impl ShellModel {
         {
             return self.close_box();
         }
-        let leaves = self.drawing_leaves_parts();
-        let Some(editor) = &mut self.symbol_editor else {
+        if self.symbol_editor.is_none() {
             return Outcome::refused(key!("reason-no-drawing-in-hand"));
-        };
-        editor.shown = false;
-        if leaves {
-            self.parts = None;
-            self.parts_alone = None;
         }
+        self.leave_drawing();
         Outcome::Done
     }
 
-    /// Whether leaving the drawing (Back, Save and place) leaves Parts too: it is a page's drawing, Parts was opened
-    /// for it from the project, and no part is open in Parts; else Parts stays, a part open in it with its typing.
-    fn drawing_leaves_parts(&self) -> bool {
-        self.symbol_editor
-            .as_ref()
-            .is_some_and(|e| matches!(e.purpose, Drawing::Page(_)))
-            && (self.parts.as_deref()).is_some_and(|p| p.origin == Origin::Project && p.sheet.is_none())
+    /// Leaves the drawing (Back without it, Save and place; doc 07 §5): a page's drawing returns to its page as it was,
+    /// Parts gone where it was opened for the drawing and holds no part, else aside with the part and its typing (never
+    /// dropped, never shown in place of the page); another drawing returns to Parts' sheet.
+    fn leave_drawing(&mut self) {
+        let Some(editor) = &mut self.symbol_editor else {
+            return;
+        };
+        editor.shown = false;
+        if !matches!(editor.purpose, Drawing::Page(_)) {
+            return;
+        }
+        if (self.parts.as_deref()).is_some_and(|p| p.origin == Origin::Project && p.sheet.is_none()) {
+            self.parts = None;
+            self.parts_alone = None;
+        } else {
+            self.step_aside();
+        }
     }
 }
