@@ -92,7 +92,7 @@ In the project's language, in a folder per kind; the sample's names (drawing num
 | Consumables (`consumables`) | `Lists/SAMPLE-E Consumables.xlsx` | wire, ferrules and markers to order | the list's Excel export |
 | Hole table (`hole_table`) | `Lists/SAMPLE-E Hole table.xlsx` | every hole of every surface | the list's Excel export |
 | Label files (`labels`) | `Labels/SAMPLE-E Wire markers EW-GEN-MRK-1.xlsx`, … | every label, one file per label set and marker part, in the label file's profile | Labels… ([13](13-manufacturing-outputs.md) §5.4) |
-| Drawings for drilling (`drilling`) | `Drilling/+CAB Door template.pdf`, `Drilling/+CAB Door.dxf`, … | per surface with holes, its template to print at full size on the print settings' paper (A4 when none is set) and its DXF | Drilling… ([13-drilling](13-drilling.md) §9.1) |
+| Drawings for drilling (`drilling`) | `Drilling/+CAB Door template.pdf`, `Drilling/+CAB Door.dxf`, … | per surface with holes, its template to print at full size on A4 (the project stores no paper) and its DXF | Drilling… ([13-drilling](13-drilling.md) §9.1) |
 | Manifest | `manifest.json` | §8.3 | — |
 
 - **The lists** are those whose kind is a workshop list: `ReportKindDef::workshop`, declared with the kind, which the
