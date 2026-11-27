@@ -37,11 +37,20 @@ fn config(tmp: &Tmp) -> ShellConfig {
     tmp.config()
 }
 
-/// `shell` with the copy `dir` open for editing.
-fn opened(mut shell: ShellModel, dir: &Path) -> ShellModel {
+/// The shell `make` makes, with the copy `dir` open for editing, on the heap: a test holds a pointer to it, never the
+/// shell itself (about 38 KB, more with each member it gains), so that a test of several shells keeps its own frame
+/// small; the shell is made in this function's frame, which is gone when it returns.
+fn opened(make: impl FnOnce() -> ShellModel, dir: &Path) -> Box<ShellModel> {
+    let mut shell = Box::new(make());
     done(&mut shell, "file.open", json!({ "dir": dir.to_string_lossy() }));
     shell
 }
+
+/// How a test makes a shell of one kind ([`opened`] makes it on the heap).
+type Make = fn(ShellConfig) -> ShellModel;
+
+/// The two shells no person drives: the headless one and a window a script drives.
+const SCRIPTED: [Make; 2] = [|c| ShellModel::new(Mode::Headless, c), ShellModel::new_scripted];
 
 /// The open form's action, its fields as `(name, value)` and its error.
 fn form(shell: &ShellModel) -> (&'static str, Vec<(String, String)>, Option<String>) {
@@ -84,7 +93,7 @@ fn archive_of(dir: &Path) -> PathBuf {
 fn the_revision_dialogs_open_fill_validate_and_cancel_headless() {
     let tmp = Tmp::new("revision-headless");
     let dir = fixture_copy(&tmp);
-    let mut s = opened(ShellModel::new(Mode::Headless, config(&tmp)), &dir);
+    let mut s = opened(|| ShellModel::new(Mode::Headless, config(&tmp)), &dir);
 
     // Approve: the gate passes but for EW-REL-001; the checker's role and the typed label.
     done(&mut s, "revision.approve", json!({}));
@@ -165,12 +174,9 @@ fn the_revision_dialogs_open_fill_validate_and_cancel_headless() {
 fn a_scripted_confirm_is_refused_with_the_whole_text() {
     let tmp = Tmp::new("revision-scripted");
     let dir = fixture_copy(&tmp);
-    for scripted in [
-        ShellModel::new(Mode::Headless, config(&tmp)),
-        ShellModel::new_scripted(config(&tmp)),
-    ] {
-        assert!(!scripted.is_person());
-        let mut s = opened(scripted, &dir);
+    for make in SCRIPTED {
+        let mut s = opened(|| make(config(&tmp)), &dir);
+        assert!(!s.is_person());
         let rev = s.revision();
         let approve = json!({ "role": "checker", "typed": "V1.0", "date": DATE, "confirm": true });
         assert_eq!(failed(&mut s, "revision.approve", approve), PERSON);
@@ -195,18 +201,15 @@ fn a_scripted_confirm_is_refused_with_the_whole_text() {
     }
     // The sign-off is in place (a person approved it): the scripted release confirm is refused all the same, and no
     // archive is written.
-    let mut person = opened(ShellModel::new(Mode::Gui, config(&tmp)), &dir);
+    let mut person = opened(|| ShellModel::new(Mode::Gui, config(&tmp)), &dir);
     done(
         &mut person,
         "revision.approve",
         json!({ "role": "checker", "typed": "V1.0", "date": DATE, "confirm": true }),
     );
     person.shutdown();
-    for scripted in [
-        ShellModel::new(Mode::Headless, config(&tmp)),
-        ShellModel::new_scripted(config(&tmp)),
-    ] {
-        let mut s = opened(scripted, &dir);
+    for make in SCRIPTED {
+        let mut s = opened(|| make(config(&tmp)), &dir);
         done(&mut s, "revision.release", json!({}));
         assert_eq!(form(&s).1, vec![("typed".to_owned(), String::new())]);
         let release = json!({ "typed": "V1.0", "date": DATE, "confirm": true });
@@ -225,7 +228,7 @@ fn a_scripted_confirm_is_refused_with_the_whole_text() {
 fn a_person_at_the_window_approves_releases_and_withdraws() {
     let tmp = Tmp::new("revision-person");
     let dir = fixture_copy(&tmp);
-    let mut s = opened(ShellModel::new(Mode::Gui, config(&tmp)), &dir);
+    let mut s = opened(|| ShellModel::new(Mode::Gui, config(&tmp)), &dir);
     assert!(s.is_person());
 
     // The confirm the window sends is the dialog's own button: Approve is the Primary.
@@ -344,7 +347,7 @@ fn whole_spec(shell: &ShellModel) -> (String, Vec<String>, Buttons, Buttons, But
 /// (`<other>/release-min`, outside `dir`'s folder), copied into `dir`'s archive root, as a release that stopped before
 /// its stamp leaves it. No run record of `dir` proves it `dir`'s own.
 fn incomplete_beside(tmp: &Tmp, dir: &Path, other: &Path) {
-    let mut s = opened(ShellModel::new(Mode::Gui, config(tmp)), dir);
+    let mut s = opened(|| ShellModel::new(Mode::Gui, config(tmp)), dir);
     done(
         &mut s,
         "revision.approve",
@@ -352,7 +355,7 @@ fn incomplete_beside(tmp: &Tmp, dir: &Path, other: &Path) {
     );
     s.shutdown();
     copy_dir(dir, other);
-    let mut s = opened(ShellModel::new(Mode::Gui, config(tmp)), other);
+    let mut s = opened(|| ShellModel::new(Mode::Gui, config(tmp)), other);
     done(
         &mut s,
         "revision.release",
@@ -378,7 +381,7 @@ fn the_incomplete_release_is_offered_at_open_and_completed_by_a_person() {
     let other = tmp.0.join("other").join("release-min");
     incomplete_beside(&tmp, &dir, &other);
 
-    let mut h = opened(ShellModel::new_scripted(config(&tmp)), &dir);
+    let mut h = opened(|| ShellModel::new_scripted(config(&tmp)), &dir);
     assert_eq!(form(&h).0, "revision.incomplete", "offered at open");
     assert!(h.has_incomplete_release());
     assert_eq!(
@@ -439,7 +442,7 @@ fn the_incomplete_release_is_offered_at_open_and_completed_by_a_person() {
     assert_eq!(h.open_revision_label().as_deref(), Some("V1.0"));
     h.shutdown();
 
-    let mut s = opened(ShellModel::new(Mode::Gui, config(&tmp)), &dir);
+    let mut s = opened(|| ShellModel::new(Mode::Gui, config(&tmp)), &dir);
     assert_eq!(form(&s).0, "revision.incomplete");
     done(&mut s, "revision.incomplete", json!({ "how": "complete" }));
     assert_eq!(whole_spec(&s), confirmation);
@@ -499,7 +502,7 @@ fn ruling2_completing_in_a_git_repository_passes_the_toggle_as_consent() {
     incomplete_beside(&tmp, &dir, &other);
     let head = git_in(&repo, &["rev-parse", "HEAD"]);
 
-    let mut s = opened(ShellModel::new(Mode::Gui, config(&tmp)), &dir);
+    let mut s = opened(|| ShellModel::new(Mode::Gui, config(&tmp)), &dir);
     done(&mut s, "revision.incomplete", json!({ "how": "complete" }));
     let (title, body, ..) = whole_spec(&s);
     assert_eq!(title, "Complete the release of V1.0?");
@@ -598,7 +601,7 @@ fn ruling2_a_discard_cancelled_at_its_confirmation_keeps_the_archive() {
     record_as_own(&tmp, &dir);
     let bytes = std::fs::read(archive_of(&dir)).unwrap();
 
-    let mut s = opened(ShellModel::new(Mode::Gui, config(&tmp)), &dir);
+    let mut s = opened(|| ShellModel::new(Mode::Gui, config(&tmp)), &dir);
     let (title, _, primary, secondary, danger) = whole_spec(&s);
     assert_eq!(title, "Settle the incomplete release of V1.0?");
     assert_eq!(primary, vec![("Not now".to_owned(), DialogAnswer::Dismiss)]);
@@ -661,7 +664,7 @@ fn the_release_warnings_show_once_in_messages() {
     let tmp = Tmp::new("revision-ft842");
     let dir = fixture_copy(&tmp);
     // No trouble: nothing in Messages, no toast.
-    let mut s = opened(ShellModel::new(Mode::Gui, config(&tmp)), &dir);
+    let mut s = opened(|| ShellModel::new(Mode::Gui, config(&tmp)), &dir);
     done(&mut s, "messages.show", json!({ "on": true }));
     let t = s.nav(NavKind::Messages).and_then(|n| n.table()).unwrap();
     assert!(t.nodes.iter().all(|n| !n.key.contains("rule:release")));
@@ -677,7 +680,7 @@ fn the_release_warnings_show_once_in_messages() {
     let _ = std::fs::remove_dir_all(&releases);
     std::fs::create_dir_all(releases.parent().unwrap()).unwrap();
     std::fs::write(&releases, b"not a folder").unwrap();
-    let mut s = opened(ShellModel::new(Mode::Gui, config(&tmp)), &dir);
+    let mut s = opened(|| ShellModel::new(Mode::Gui, config(&tmp)), &dir);
     done(&mut s, "messages.show", json!({ "on": true }));
     let t = s.nav(NavKind::Messages).and_then(|n| n.table()).unwrap();
     let rows: Vec<_> = t
@@ -745,7 +748,7 @@ fn the_release_warnings_show_once_in_messages() {
 fn ruling1_the_revision_refusals_read_in_words() {
     let tmp = Tmp::new("revision-words");
     let dir = fixture_copy(&tmp);
-    let mut s = opened(ShellModel::new(Mode::Gui, config(&tmp)), &dir);
+    let mut s = opened(|| ShellModel::new(Mode::Gui, config(&tmp)), &dir);
     done(
         &mut s,
         "revision.set_author",
@@ -804,7 +807,7 @@ fn ruling4_a_scripted_purge_is_refused() {
     let dir = tmp.0.join("small.ew");
     let logo = |bytes: &[u8]| json!({"cmd": "project.company.set", "params": {"logo": ew_api::base64_encode(bytes)}});
     {
-        let mut s = ShellModel::new(Mode::Gui, config(&tmp));
+        let mut s = Box::new(ShellModel::new(Mode::Gui, config(&tmp)));
         crate::common::make_project(&mut s, &dir, &[]);
         done(
             &mut s,
@@ -822,7 +825,7 @@ fn ruling4_a_scripted_purge_is_refused() {
     }
     let files = || -> usize { std::fs::read_dir(dir.join("assets")).unwrap().count() };
     let before = files();
-    let mut s = opened(ShellModel::new_scripted(config(&tmp)), &dir);
+    let mut s = opened(|| ShellModel::new_scripted(config(&tmp)), &dir);
     done(&mut s, "project.purge_assets", json!({}));
     assert!(matches!(s.dialog(), Some(Dialog::ConfirmPurge { .. })));
     assert_eq!(
@@ -831,7 +834,7 @@ fn ruling4_a_scripted_purge_is_refused() {
     );
     assert_eq!(files(), before, "nothing was purged");
     s.shutdown();
-    let mut h = opened(ShellModel::new(Mode::Headless, config(&tmp)), &dir);
+    let mut h = opened(|| ShellModel::new(Mode::Headless, config(&tmp)), &dir);
     assert_eq!(
         refused(&mut h, "project.purge_assets", json!({ "confirm": true })),
         "reason-human-only"
@@ -856,10 +859,10 @@ fn listed_count(list: &[String]) -> usize {
 /// A copy of the sample whose release gate has errors (the sample's has none), its open revision V1.0 given its author
 /// as the window gives it (a person's Set author), saved: the supply cables -101W1 and -103W1 lack their length
 /// (EW-CORE-033 twice). Open in a headless shell.
-fn with_gate_errors(tmp: &Tmp) -> ShellModel {
+fn with_gate_errors(tmp: &Tmp) -> Box<ShellModel> {
     let dir = tmp.sample_copy();
     copy_dir(Path::new(common::SAMPLE), &dir);
-    let mut s = opened(ShellModel::new(Mode::Gui, config(tmp)), &dir);
+    let mut s = opened(|| ShellModel::new(Mode::Gui, config(tmp)), &dir);
     done(
         &mut s,
         "revision.set_author",
@@ -875,7 +878,7 @@ fn with_gate_errors(tmp: &Tmp) -> ShellModel {
     }
     done(&mut s, "file.save", json!({}));
     s.shutdown();
-    opened(ShellModel::new(Mode::Headless, config(tmp)), &dir)
+    opened(|| ShellModel::new(Mode::Headless, config(tmp)), &dir)
 }
 
 /// On a copy of the sample with errors (V1.0 open, its author set) the blocked Approve names the four-eyes rule by its
@@ -950,7 +953,7 @@ fn the_revision_dialogs_list_the_findings_in_dutch() {
 fn the_rework_list_compares_with_the_release() {
     let tmp = Tmp::new("revision-rework");
     let dir = fixture_copy(&tmp);
-    let mut s = opened(ShellModel::new(Mode::Gui, config(&tmp)), &dir);
+    let mut s = opened(|| ShellModel::new(Mode::Gui, config(&tmp)), &dir);
     done(&mut s, "rework.show", json!({}));
     assert_eq!(
         dialog_text(&mut s),
