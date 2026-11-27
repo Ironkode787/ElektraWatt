@@ -665,10 +665,16 @@ change here.
 - text-change: every phrase of a Properties chip and the line under a wire's Length and Way rows read in the window's
   language; the older phrases ("its PLC station", "with …", "stored ways", "hole table", "routed", "protected by …",
   a hole's "tap M5", "moved", "left out" and others) stayed English in the Dutch window. The English the window showed
-  stays; `ew query wire_props` and the describe text now print the window's words where they differed ("from cable
-  -101W1, core BN", "built-in default: the project has no profile that sets it", "no default tube, medium tube or tube
-  part", "medium defined at …"), and `ew query device_tag --explain` of an earth symbol "an earth symbol: a connection
-  to earth, no device, so no tag"
+  stays. Where the session's own English differed from the window's, it now reads the window's words:
+  `ew query wire_props_of` and the describe text "from cable -101W1, core BN" (was "cable -101W1, core BN") and
+  "built-in default: the project has no profile that sets it" (was "built-in default (…)" with the profile's name);
+  `ew query device_tag --explain` and the describe text of an earth symbol "an earth symbol: a connection to earth, no
+  device, so no tag" (was "an earth connection, no tag"); the describe text alone "the project's marking" (was
+  "workshop marking"), "no PLC output yet" (was "no PLC output"), "medium defined at …" (was "medium definition at
+  …"), "no medium defined" (was "no medium definition"), "no medium yet: choose one here" (was "no medium yet"), "no
+  medium: choose one in the Medium row of its source, the air supply" (was "no medium at its source"), "the project's
+  default tube" (was "project default tube") and "no default tube, medium tube or tube part" (was "no tube
+  specification"). `ew query tube_props` has words of its own and is unchanged
 - api-break: `ew_api::output::Provenance`'s `Inherited::from`, `Derived::via`, `Overridden::note` and `Frozen::note`
   are texts by key (`ew_api::Text`), `Provenance::Told` goes into `Derived`, and `PropRow::note` is a text
 - behaviour-change: a wire selected with its every stretch (its row of the Connections table) reads as one wire in
