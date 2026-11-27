@@ -878,7 +878,8 @@ fn a_pin_s_function_pin_is_chosen_in_its_properties() {
             .symbol
             .cps
             .iter()
-            .nth(i)
+            .as_slice()
+            .get(i)
             .unwrap()
             .fn_cp
     };
