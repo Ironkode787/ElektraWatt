@@ -1412,15 +1412,18 @@ pub fn way_words(q: &crate::Q, way: &[ew_schema::WayStep]) -> String {
 }
 
 /// Where a wire's length comes from as the wire list's Length from prints it (doc 13 §3.1, doc 12 §9): the source's
-/// word ([`wire_length_source`]), and "site" for a field wire without a length of a cabinet Route has laid (a cabinet
-/// without a stored way prints "missing" as before).
+/// word ([`wire_length_source`]), and "site" for a field wire without a length that a cabinet Route has laid makes on
+/// site (a cabinet without a stored way prints "missing" as before; a wire between two cabinets is made on site for
+/// both).
 pub fn wire_length_from(q: &crate::Q, r: &crate::WireRecord) -> Text {
-    use crate::layout::{CabinetWire, LaidSpaces, space_of_wire};
-    let routed = |space| q.get::<LaidSpaces>(()).contains(&space);
-    match (r.length, r.flags.field, space_of_wire(q, r)) {
-        (WireLength::Missing, true, Some((space, CabinetWire::Site))) if routed(space) => {
-            text!("length-source-site")
-        }
+    use crate::layout::{CabinetWire, LaidSpaces, cabinet_wire};
+    let site_of_laid = || {
+        q.get::<LaidSpaces>(())
+            .iter()
+            .any(|space| cabinet_wire(q, *space, &r.wire) == Some(CabinetWire::Site))
+    };
+    match (r.length, r.flags.field) {
+        (WireLength::Missing, true) if site_of_laid() => text!("length-source-site"),
         _ => wire_length_source(&r.length),
     }
 }

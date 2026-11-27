@@ -34,8 +34,9 @@
 //! - `malformed_colour_profile_is_noted`: a malformed `colour_profile` is noted and the built-in colour applies.
 //! - `nested_junction_chain_fr_con_041`: a chain junction entering a chain junction: src -> d1 -> d2 -> d3.
 //! - `a_wire_record_has_its_typed_length_its_cable_or_none`: `wire_record_set`'s length (doc 13 §3.3).
-//! - `a_site_end_lies_outside_every_layout_space`: an external end, and an end in another location than a layout
-//!   space's while the project has one, are site ends; the wire is a field wire (doc 13 §2.1).
+//! - `a_site_end_lies_outside_the_cabinet_of_the_wires_other_end`: an external end, and an end outside the cabinet of
+//!   the other end (also a second cabinet), are site ends, as Route reads them; an open end and an end of no location
+//!   are neither (doc 13 §2.1).
 //! - `a_wire_whose_carrier_changed_is_matched_by_its_ends`: `wire_changes` matches by ID, then by the two end CPs, so
 //!   a junction edit is no work; a wire between other CPs is one to pull and one to add (doc 13 §3.5).
 
@@ -1401,13 +1402,22 @@ fn a_wire_record_has_its_typed_length_its_cable_or_none() {
     assert_eq!(record(&q, 0x2003).length, WireLength::WithCable(id(0x30_000)));
 }
 
+/// The wire record's site ends and what a wire is to Route in each cabinet are one answer (`end_place`), for: a wire
+/// from +CAB to +FLD (0x2001), an external supply (0x2002), an open end (0x2003), an end on a device without a location
+/// (0x2004) and a cable's core from +CAB to +FLD (0x2005); a cable whose other core end is open gets no gland.
 #[test]
-fn a_site_end_lies_outside_every_layout_space() {
+fn a_site_end_lies_outside_the_cabinet_of_the_wires_other_end() {
+    use ew_derive::layout::{CabinetWire, CableGlands, cabinet_wire};
+    const CAB: u128 = 0x920;
+    const FLD: u128 = 0x921;
     let mut fx = pair_fixture();
     fx.node(0x900, "location", "CAB", None);
     fx.node(0x901, "location", "FLD", None);
-    fx.record(0x21001)["structure"] = json!({"location": uid(0x900)});
-    fx.record(0x21002)["structure"] = json!({"location": uid(0x901)});
+    let at = |fx: &mut Fx, n: u128, loc: u128| {
+        fx.record(n + 0x20_000)["structure"] = json!({"location": uid(loc)})
+    };
+    at(&mut fx, 0x1001, 0x900);
+    at(&mut fx, 0x1002, 0x901);
     // An external supply into -K1003.
     fx.push(json!({
         "$k": "external_ref", "id": uid(0x910), "location": uid(0x901), "device": "N1", "connection": "L",
@@ -1418,24 +1428,83 @@ fn a_site_end_lies_outside_every_layout_space() {
         P1,
         json!({"name": "SUPPLY", "direction": "source", "external": uid(0x910)}),
     );
-    func(&mut fx, 0x1003, P1);
-    fx.record(0x21003)["structure"] = json!({"location": uid(0x900)});
+    for (f, loc) in [
+        (0x1003, Some(0x900)),
+        (0x1004, Some(0x900)),
+        (0x1005, None),
+        (0x1006, Some(0x900)),
+    ] {
+        func(&mut fx, f, P1);
+        if let Some(loc) = loc {
+            at(&mut fx, f, loc);
+        }
+    }
     conn(&mut fx, 0x2002, Some(P1), cp(0x1101), cp(0x1003), Value::Null);
-    let sites = |m: &Model, n: u128| {
-        let r = record(&Q::new(m), n);
+    // An interruption point without a partner, and -K1005 of no location.
+    ip(&mut fx, 0x1102, P1, "OPEN", "source");
+    conn(&mut fx, 0x2003, Some(P1), cp(0x1004), cp(0x1102), Value::Null);
+    conn(&mut fx, 0x2004, Some(P1), cp(0x1006), cp(0x1005), Value::Null);
+    // -W1's core from +CAB to +FLD; -W2's from +CAB to an open end.
+    for (f, loc) in [(0x1007, 0x900), (0x1008, 0x901), (0x1009, 0x900)] {
+        func(&mut fx, f, P1);
+        at(&mut fx, f, loc);
+    }
+    ip(&mut fx, 0x1103, P1, "LOOSE", "source");
+    for (cable, core, wire, a, b) in [
+        (0x30_000, 0x30_001, 0x2005, 0x1007, 0x1008),
+        (0x31_000, 0x31_001, 0x2006, 0x1009, 0x1103),
+    ] {
+        fx.device(cable, "W", Some(cable as u32 >> 12))
+            .with("cable", json!({}));
+        fx.push(json!({"$k": "conductor", "id": uid(core), "cable": uid(cable), "core": "BN"}));
+        conn(&mut fx, wire, Some(P1), cp(a), cp(b), json!({"core": uid(core)}));
+    }
+    // Each wire as the record and Route read it: its ends' site flags (sorted), whether it is a field wire, and what it
+    // is to the cabinet +CAB and to +FLD.
+    type Read = (Vec<bool>, bool, Option<CabinetWire>, Option<CabinetWire>);
+    let read = |m: &Model, n: u128| -> Read {
+        let q = Q::new(m);
+        let r = record(&q, n);
         let mut ends: Vec<bool> = r.ends.iter().map(|e| e.site).collect();
         ends.sort_unstable();
-        (ends, r.flags.field)
+        let to = |space| cabinet_wire(&q, id(space), &r.wire);
+        (ends, r.flags.field, to(CAB), to(FLD))
     };
+    let glands = |m: &Model, space: u128| -> Vec<u128> {
+        let q = Q::new(m);
+        let g = q.get::<CableGlands>(id(space));
+        g.iter().map(|g| g.cable.as_uuid().as_u128()).collect()
+    };
+    let (no, yes) = (vec![false, false], vec![false, true]);
     // Without a layout space no device end is a site end: nothing says which location is the cabinet.
     let m = fx.build();
-    assert_eq!(sites(&m, 0x2001), (vec![false, false], false));
-    assert_eq!(sites(&m, 0x2002), (vec![false, true], true));
-    // With one for +CAB the end in +FLD is made on site.
-    fx.push(json!({"$k": "layout_space", "id": uid(0x920), "location": uid(0x900)}));
+    assert_eq!(read(&m, 0x2001), (no.clone(), false, None, None));
+    assert_eq!(read(&m, 0x2002), (yes.clone(), true, None, None));
+    // With one for +CAB the end in +FLD is made on site; an open end and an end of no location are unfinished, neither
+    // the cabinet's nor made on site.
+    fx.push(json!({"$k": "layout_space", "id": uid(CAB), "location": uid(0x900)}));
     let m = fx.build();
-    assert_eq!(sites(&m, 0x2001), (vec![false, true], true));
-    assert_eq!(sites(&m, 0x2002), (vec![false, true], true));
+    let site = Some(CabinetWire::Site);
+    assert_eq!(read(&m, 0x2001), (yes.clone(), true, site, None));
+    assert_eq!(read(&m, 0x2002), (yes.clone(), true, site, None));
+    assert_eq!(read(&m, 0x2003), (no.clone(), false, None, None), "open");
+    assert_eq!(read(&m, 0x2004), (no.clone(), false, None, None), "no location");
+    assert_eq!(
+        read(&m, 0x2005),
+        (yes.clone(), true, Some(CabinetWire::Core), None)
+    );
+    assert_eq!(glands(&m, CAB), [0x30_000], "-W2 leaves for no known place");
+    // With one for +FLD too, the wire between the two cabinets is made on site for both, at both its ends.
+    fx.push(json!({"$k": "layout_space", "id": uid(FLD), "location": uid(0x901)}));
+    let m = fx.build();
+    let both = vec![true, true];
+    assert_eq!(read(&m, 0x2001), (both.clone(), true, site, site));
+    assert_eq!(read(&m, 0x2002), (yes, true, site, None));
+    assert_eq!(read(&m, 0x2003), (no.clone(), false, None, None), "open");
+    assert_eq!(read(&m, 0x2004), (no, false, None, None), "no location");
+    let core = Some(CabinetWire::Core);
+    assert_eq!(read(&m, 0x2005), (both, true, core, core));
+    assert_eq!(glands(&m, FLD), [0x30_000]);
 }
 
 #[test]

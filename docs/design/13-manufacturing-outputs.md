@@ -112,7 +112,7 @@ program's exports already write; the check before it is the release check of `ew
 | Bridge | A plug-in, saddle, wire or inter-level bridge between terminals of a strip: mounted with the strip, never a wire |
 | End | Where a wire lands: a pin of a device, a clamp of a terminal, or an external point outside the project |
 | From end, To end | A wire's two ends in the orientation of [08](08-connections-terminals-cables.md) §3.8; every list, label and rework row reads a wire the same way round |
-| Site end, field wire | An end that is external, or on a device of another location than the cabinet's (the location of a layout space), is made on site, not in the shop; a wire with a site end is a field wire |
+| Site end, field wire | An end that is external, or on a device of another location than the cabinet's (the location of a layout space), is made on site, not in the shop; a wire with a site end is a field wire. The cabinet is the one the wire's other end is in, as Route reads it ([12-3d](12-3d-routing-thermal.md) §8.2): an end in a location that has a layout space of its own is still a site end, so a wire between two cabinets is made on site for both, at both ends. An open end (an interruption point without a partner) and an end on a device without a location are no site ends: the wire is unfinished, none of a cabinet's wires, and a wire without a length until it is finished or its length typed |
 | Clamp | The connection point of a part a conductor goes into; its kind and how many conductors it takes are part data |
 | End treatment | What the fitter puts on an end: a ferrule, a twin ferrule, a ring lug, a connector's contact, or nothing (bare) |
 | Marker | The printed sleeve or clip on a wire end that names the wire or its far end |

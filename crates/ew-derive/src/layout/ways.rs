@@ -16,7 +16,6 @@ use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
 use std::sync::Arc;
 
 use ew_ids::{Id, v5};
-use ew_rds::Aspect;
 use ew_schema::{
     Carrier, CarrierKind, CarrierParams, CommittedRoute, Connection, Device, DuctStretch, Enclosure, Extra,
     Function, Hinge, LayoutSpace, MountingSurface, Placement, RouteEnd, SurfaceKind, WayStep,
@@ -28,9 +27,8 @@ use super::fill::{inner_area, wire_area};
 use super::pins::{PinSpot, PinSpots, placement_of_function};
 use super::queries::{CarrierGeometry, RailOccupancy};
 use crate::query::{Policy, Query};
-use crate::structure::StructureOf;
 use crate::wire_record::{WireRecord, WireRecordSet};
-use crate::wires::{EndKind, PhysicalWire};
+use crate::wires::{EndKind, PhysicalWire, WireEnd};
 use crate::{Q, cut_to};
 
 // ---------------------------------------------------------------------------------------------------------
@@ -627,8 +625,7 @@ pub enum RouteStatus {
 /// so no check names it.
 pub fn stored_way(q: &Q, wire: &PhysicalWire) -> Option<Arc<CommittedRoute>> {
     let r = q.table::<CommittedRoute>().get(v5::route_id(wire.id))?;
-    let loc = location_of_space(q, r.space)?;
-    (r.wire == wire.id && classify(q, wire, loc) == Some(CabinetWire::Routed)).then(|| r.clone())
+    (r.wire == wire.id && cabinet_wire(q, r.space, wire) == Some(CabinetWire::Routed)).then(|| r.clone())
 }
 
 /// Whether another pin of the device of `cp` that a stored way ends at still stands on the edge it stood on (the line
@@ -780,21 +777,42 @@ fn location_of_space(q: &Q, space: Id<LayoutSpace>) -> Option<Id<ew_schema::Stru
     q.table::<LayoutSpace>().get(space).map(|s| s.location)
 }
 
-/// Whether an end of a wire is on a device of the location `loc`.
-fn end_in(q: &Q, kind: EndKind, function: Id<Function>, loc: Id<ew_schema::StructureNode>) -> bool {
-    kind == EndKind::Device
-        && q.functions()
-            .get(function)
+/// Where an end of a wire lies for the cabinet of a location (doc 13 §2.1, doc 12-3d §8.2): the one answer that the wire
+/// record's site ends, Route's plan and card, EW-MFG-001, EW-LAY-011 and the glands read.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum EndPlace {
+    /// On a device of the cabinet's location.
+    Inside,
+    /// Outside the cabinet, made on site: an external point (`None`), or a device of another location (`Some`), also
+    /// one whose location has a layout space of its own.
+    Outside(Option<Id<ew_schema::StructureNode>>),
+    /// Not known yet: an open end (an interruption point without a partner), or an end on a device without a location.
+    /// Its wire is unfinished: none of the cabinet's, and not made on site.
+    Unknown,
+}
+
+/// Where `end` lies for the cabinet of the location `loc` ([`EndPlace`]).
+pub fn end_place(q: &Q, end: &WireEnd, loc: Id<ew_schema::StructureNode>) -> EndPlace {
+    match end.kind {
+        EndKind::External => EndPlace::Outside(None),
+        EndKind::Open => EndPlace::Unknown,
+        EndKind::Device => match q
+            .functions()
+            .get(end.cp.function)
             .and_then(|f| f.device)
-            .and_then(|d| q.try_get::<StructureOf>(d).ok())
-            .and_then(|s| s.node(Aspect::Location))
-            == Some(loc)
+            .and_then(|d| super::queries::location_of(q, d))
+        {
+            Some(node) if node == loc => EndPlace::Inside,
+            Some(node) => EndPlace::Outside(Some(node)),
+            None => EndPlace::Unknown,
+        },
+    }
 }
 
 /// `cabinet_wires(space)`: the wires of the cabinet a layout space lays out, in the order of the wire list, each with
 /// what it is to Route (doc 12 §8.2): a wire with both ends on devices of the space's location is routed, one with an
-/// end outside is made on site, a cable's core is cut with its cable. The plan, EW-MFG-001 and the card's counts read
-/// it.
+/// end outside is made on site, a cable's core is cut with its cable; an unfinished wire (an end [`EndPlace::Unknown`])
+/// is none of them. The plan, EW-MFG-001 and the card's counts read it.
 pub fn cabinet_wires(q: &Q, space: Id<LayoutSpace>) -> Vec<(WireRecord, CabinetWire)> {
     let Some(loc) = location_of_space(q, space) else {
         return Vec::new();
@@ -805,13 +823,22 @@ pub fn cabinet_wires(q: &Q, space: Id<LayoutSpace>) -> Vec<(WireRecord, CabinetW
         .collect()
 }
 
-/// What a wire is to the cabinet of the location `loc`; `None` for a wire with no end in it.
+/// What a wire is to the cabinet of `space` ([`cabinet_wires`]); `None` for a wire none of the cabinet's.
+pub fn cabinet_wire(q: &Q, space: Id<LayoutSpace>, wire: &PhysicalWire) -> Option<CabinetWire> {
+    classify(q, wire, location_of_space(q, space)?)
+}
+
+/// What a wire is to the cabinet of the location `loc`, by where its ends lie ([`end_place`]); `None` for a wire with
+/// no end in it and for an unfinished one that is no cable's core.
 fn classify(q: &Q, wire: &PhysicalWire, loc: Id<ew_schema::StructureNode>) -> Option<CabinetWire> {
-    let inside = wire.ends.map(|e| end_in(q, e.kind, e.cp.function, loc));
-    Some(match inside {
-        [false, false] => return None,
+    let at = wire.ends.map(|e| end_place(q, &e, loc));
+    if !at.contains(&EndPlace::Inside) {
+        return None;
+    }
+    Some(match at {
         _ if wire.core.is_some() => CabinetWire::Core,
-        [true, true] => CabinetWire::Routed,
+        [EndPlace::Inside, EndPlace::Inside] => CabinetWire::Routed,
+        _ if at.contains(&EndPlace::Unknown) => return None,
         _ => CabinetWire::Site,
     })
 }

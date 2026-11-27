@@ -418,25 +418,20 @@ fn page_points(
     out
 }
 
-/// Why a wire of a cabinet is made on site (doc 12 §8.1): its first end outside the cabinet's location, and where that
-/// end is ("its end -104B1:13 is in +FLD"; "… is outside the cabinet" for an end of no location).
+/// Why a wire of a cabinet is made on site (doc 12 §8.1): its first end outside the cabinet
+/// ([`ew_derive::layout::end_place`]), and where that end is ("its end -104B1:13 is in +FLD"; "… is outside the
+/// cabinet" for an external point).
 fn site_end(q: &Q, space: Id<LayoutSpace>, r: &ew_derive::WireRecord) -> Option<Text> {
+    use ew_derive::layout::{EndPlace, end_place, location_text};
     let cabinet = q.table::<LayoutSpace>().get(space)?.location;
-    r.wire.ends.iter().find_map(|e| {
-        let node = q
-            .functions()
-            .get(e.cp.function)
-            .and_then(|f| f.device)
-            .and_then(|d| q.try_get::<ew_derive::StructureOf>(d).ok())
-            .and_then(|s| s.node(ew_rds::Aspect::Location));
-        if node == Some(cabinet) {
-            return None;
-        }
-        let pin = cp_label(q, e.cp);
-        Some(match node {
-            Some(n) => ew_derive::text!("way-site-end-in", pin, ew_derive::layout::location_text(q, n)),
-            None => ew_derive::text!("way-site-end", pin),
-        })
+    r.wire.ends.iter().find_map(|e| match end_place(q, e, cabinet) {
+        EndPlace::Outside(Some(n)) => Some(ew_derive::text!(
+            "way-site-end-in",
+            cp_label(q, e.cp),
+            location_text(q, n)
+        )),
+        EndPlace::Outside(None) => Some(ew_derive::text!("way-site-end", cp_label(q, e.cp))),
+        EndPlace::Inside | EndPlace::Unknown => None,
     })
 }
 

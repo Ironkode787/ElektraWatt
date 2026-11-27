@@ -11,8 +11,7 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_schema::{
-    Device, GlandSection, LayoutSpace, LibCopy, Part, PartKind, PartRef, StructureNode, SurfaceFeature,
-    TechVal, Unit,
+    Device, GlandSection, LayoutSpace, LibCopy, Part, PartKind, PartRef, SurfaceFeature, TechVal, Unit,
 };
 use ew_units::Nm;
 
@@ -93,8 +92,8 @@ pub fn gland_section(q: &Q, part: &PartRef) -> Option<GlandSection> {
         .and_then(|c| c.item.sections.gland.clone())
 }
 
-/// `cable_glands(space)` (memo): every cable with an end in the space's location and an end elsewhere (another
-/// location, or a device without one), in natural order of its tag, with its gland in this cabinet (doc 12 §3.9): a
+/// `cable_glands(space)` (memo): every cable with an end in the space's location and an end outside it (an external
+/// point or another location, [`super::end_place`]), in natural order of its tag, with its gland in this cabinet (doc 12 §3.9): a
 /// cable between two cabinets has one in each, and `placed` is the hole made for it on a surface of this space. A cable
 /// that runs inside the cabinet only, and a field wire in no cable, get none.
 #[derive(Debug)]
@@ -136,24 +135,16 @@ fn cable_glands(q: &Q, space: Id<LayoutSpace>) -> Vec<CableGland> {
     };
     for (_, cable) in cables {
         let cores: BTreeSet<_> = q.idx().conductors_of_cable(cable).collect();
-        let ends: BTreeSet<Option<Id<StructureNode>>> = records
+        // Where its cores' ends lie, as for every wire of the cabinet: it leaves the cabinet where one is inside and
+        // another outside; an unfinished end (open, or on a device without a location) is neither.
+        let places: Vec<super::EndPlace> = records
             .iter()
             .filter(|r| r.wire.core.is_some_and(|c| cores.contains(&c)))
-            .flat_map(|r| r.wire.ends.iter().map(|e| e.cp.function))
-            // An end at an external point (a function of no device) lies outside every cabinet.
-            .map(|f| q.functions().get(f).and_then(|f| f.device))
-            // A terminal's end is its strip's, as the cable overview names it.
-            .map(|d| {
-                d.map(|d| {
-                    q.devices()
-                        .get(d)
-                        .and_then(|x| x.aspects.terminal.as_ref().map(|t| t.strip))
-                        .unwrap_or(d)
-                })
-            })
-            .map(|d| d.and_then(|d| super::queries::location_of(q, d)))
+            .flat_map(|r| r.wire.ends.iter().map(|e| super::end_place(q, e, location)))
             .collect();
-        if !ends.contains(&Some(location)) || ends.iter().all(|e| *e == Some(location)) {
+        if !places.contains(&super::EndPlace::Inside)
+            || !places.iter().any(|p| matches!(p, super::EndPlace::Outside(_)))
+        {
             continue;
         }
         let Some(device) = q.devices().get(cable) else {

@@ -619,6 +619,12 @@ change here.
 - behaviour-change: a stored way of a wire its cabinet no longer routes (an end re-wired to the field or an external
   point, a wire become a core) is read nowhere, so the wire prints no length or "site" and its duct no longer counts
   it; Route's next run removes it
+- behaviour-change: a wire is made on site by one rule in every place that tells it (doc 13 §2.1): with a second
+  cabinet (a layout space for +FLD), a wire between the two cabinets stays made on site in the wire list (Length from
+  "site"), the package's Contents, the cut list and the consumables, as Route's card says, where they said "no length
+  yet: type them"; both its ends are the site's. A wire with an open end or an end on a device without a location is
+  unfinished, no longer "made on site" on Route's card: the lists count it as a wire without a length, and its cable
+  takes no gland for that end
 - text-change: a wire without a way says its own reason (the ducts at two pins do not meet, two devices in two doors,
   a device on a second plate or on a named face, a door without a size), and a way that no longer holds its own cause
   (a pin its part or drawing put elsewhere, the duct or the door changed); EW-LAY-011 has these forms; `ew route

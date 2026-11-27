@@ -197,8 +197,21 @@ through its gland (§3.9).
 
 Every physical wire ([08](08-connections-terminals-cables.md) §3.8) that is no core and no bridge and whose two ends
 are on devices of the cabinet's location (the location of the layout space) is the cabinet's. Its way is keyed by the
-physical wire's ID, its carrier connection, never by a layout carrier (§15 item 5). Of the cabinet's wires, a wire
-gets no way, and is told why in words with what to do:
+physical wire's ID, its carrier connection, never by a layout carrier (§15 item 5).
+
+**Where an end lies** for a cabinet is one rule (`end_place` of `ew-derive`), and the wire record's site ends
+([13](13-manufacturing-outputs.md) §2.1), the wire list, the cut list, the package's count, Route's plan and card,
+EW-MFG-001, EW-LAY-011 and the cable glands ([12-placement-pages](12-placement-pages.md) §3.9) all read it:
+
+- **inside:** on a device of the cabinet's location;
+- **outside**, made on site: an external point, or a device of another location, also one whose location has a layout
+  space of its own, so a wire between two cabinets is made on site for both;
+- **not known yet:** an open end (an interruption point without a partner), or a device without a location. Such a
+  wire is unfinished: it is none of the cabinet's wires, gets no way and is not made on site, and the lists count it as
+  a wire without a length (Length from "missing"; "1 wire has no length yet: type it"). A cable's core with such an end
+  is still its cable's, and its cable takes no gland for it.
+
+Of the cabinet's wires, a wire gets no way, and is told why in words with what to do:
 
 | Why | The words |
 |---|---|

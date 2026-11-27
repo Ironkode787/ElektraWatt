@@ -641,6 +641,49 @@ fn ew_lay_006_reports_what_the_closed_door_meets() {
     );
 }
 
+/// The field wire 104.4 runs from +CAB to +FLD; a layout space for +FLD (a second cabinet) leaves it made on site in
+/// every place that tells it (doc 13 §2.1): the wire list's Length from, the package's count, Route's card on 902 and
+/// EW-MFG-001, which does not count it.
+#[test]
+fn a_wire_between_two_cabinets_is_made_on_site_in_every_place() {
+    use ew_api::output::{RowExport, row_export};
+    let mut s = common::sample();
+    let says = |s: &mut Session| {
+        let q = s.query();
+        let list = row_export(&q, &RowExport::Kind("wire_list".to_owned()), None)
+            .expect("the wire list")
+            .csv;
+        drop(q);
+        let row = list
+            .lines()
+            .find(|l| l.starts_with("data,104.4,"))
+            .expect("104.4's row")
+            .to_owned();
+        let site = s
+            .package_plan(&ew_api::PackageAsk::default())
+            .without_length
+            .into_iter()
+            .find(|n| n.why == ew_api::NoLengthWhy::Site)
+            .is_some_and(|n| n.numbers.iter().any(|x| x == "104.4"));
+        let (card, _) = s.cabinet_route("902", false).unwrap().expect("a plan");
+        let on_card = card.site.iter().any(|w| w.number == "104.4");
+        let counted = findings(s, "EW-MFG-001")
+            .iter()
+            .any(|f| f.targets.iter().any(|t| t.id.as_uuid() == wire(s, "104.4")));
+        (row.contains(",site,"), site, on_card, counted)
+    };
+    assert_eq!(says(&mut s), (true, true, true, false), "one cabinet");
+    let field = s
+        .query()
+        .structure_nodes()
+        .iter()
+        .find(|(_, n)| n.code.as_str() == "FLD")
+        .map(|(id, _)| id.as_uuid())
+        .expect("+FLD");
+    run(&mut s, "layout.space.create", json!({"location": field})).expect("a cabinet in +FLD");
+    assert_eq!(says(&mut s), (true, true, true, false), "two cabinets");
+}
+
 /// A routed wire its cabinet no longer routes has no way read anywhere (doc 12-3d §8.5): re-wired to a field device, to
 /// an external point, or become a core, 101.8 has no length (made on site, or its cable's), its duct no longer counts
 /// it, and Route's next run removes its record in its one undo step, its card counting it.

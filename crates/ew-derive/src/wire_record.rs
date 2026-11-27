@@ -15,17 +15,15 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_ids::Id;
-use ew_rds::Aspect;
 use ew_schema::{ColourSpec, Connection, Csa, Device, LayoutSpace, Part, PartRef, StructureNode};
 use ew_units::Nm;
 
-use crate::layout::{RouteStatus, StaleWhy, route_status, routed_length};
+use crate::layout::{EndPlace, RouteStatus, StaleWhy, end_place, route_status, routed_length};
 use crate::marking::{MarkedBy, MarkerText, NotMarked, mark};
 use crate::numbering::{WireNumbers, orient_wire};
 use crate::potentials::PotentialPartition;
 use crate::q::Q;
 use crate::query::{Policy, Query};
-use crate::structure::StructureOf;
 use crate::treatment::{EndTreatment, TreatedBy, treat};
 use crate::wire_props::{Prov, WirePropsOf, wire_part_of};
 use crate::wires::{EndKind, PhysicalWire, PhysicalWiresOf, WireEnd};
@@ -131,8 +129,8 @@ pub struct EndRecord {
     pub treatment: EndTreatment,
     /// The ferrule's or the ring lug's part from the workshop stock (doc 13 §4.4); `None` where the stock holds none.
     pub part: Option<Id<Part>>,
-    /// A site end, made on site, not in the shop (doc 13 §2.1): an external end, or an end on a device whose location is
-    /// the location of no layout space while the project has a layout space.
+    /// A site end, made on site, not in the shop (doc 13 §2.1): an external end, or an end outside the cabinet of the
+    /// wire's other end ([`crate::layout::EndPlace::Outside`]).
     pub site: bool,
     /// Who decided the treatment.
     pub treated_by: TreatedBy,
@@ -175,22 +173,15 @@ pub fn wire_length(q: &Q, w: &PhysicalWire) -> WireLength {
     }
 }
 
-/// Whether `end` is a site end (doc 13 §2.1), given the locations of the project's layout spaces (`spaces`, empty in a
-/// project without one): an external end; an end on a device whose own location is none of them.
-fn site_end(q: &Q, end: &WireEnd, spaces: &BTreeSet<Id<StructureNode>>) -> bool {
-    match end.kind {
-        EndKind::External => true,
-        EndKind::Open => false,
-        EndKind::Device => {
-            !spaces.is_empty()
-                && q.functions()
-                    .get(end.cp.function)
-                    .and_then(|f| f.device)
-                    .and_then(|d| q.try_get::<StructureOf>(d).ok())
-                    .and_then(|s| s.node(Aspect::Location))
-                    .is_some_and(|node| !spaces.contains(&node))
-        }
-    }
+/// Whether end `i` of `ends` is a site end (doc 13 §2.1), given the locations of the project's layout spaces (`spaces`,
+/// empty in a project without one): an external end; an end outside a cabinet the other end is inside, as Route reads
+/// it ([`end_place`]), so that both ends of a wire between two cabinets are site ends.
+fn site_end(q: &Q, ends: &[WireEnd; 2], i: usize, spaces: &BTreeSet<Id<StructureNode>>) -> bool {
+    ends[i].kind == EndKind::External
+        || spaces.iter().any(|&loc| {
+            end_place(q, &ends[1 - i], loc) == EndPlace::Inside
+                && matches!(end_place(q, &ends[i], loc), EndPlace::Outside(_))
+        })
 }
 
 /// `wire_record_set()`: see the module documentation. Policy Memo: one value for every reader in a state. The checks read
@@ -221,10 +212,10 @@ impl Query for WireRecordSet {
                     orient_wire(q, &mut wire);
                     let props = props.wires.get(&w.id).cloned().unwrap_or_default();
                     let wire_part = wire_part_of(q, &props);
-                    let ends = wire.ends.map(|e| EndRecord {
+                    let ends = [0, 1].map(|i| EndRecord {
                         treatment: EndTreatment::External,
                         part: None,
-                        site: site_end(q, &e, &spaces),
+                        site: site_end(q, &wire.ends, i, &spaces),
                         treated_by: TreatedBy::Outside,
                         part_by_hand: false,
                         hand_at: None,
