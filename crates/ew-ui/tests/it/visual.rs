@@ -1331,3 +1331,49 @@ fn choosing_source_for_a_page_arrow_makes_its_partner_the_target_in_one_step() {
     assert_eq!(direction(&mut d, "102"), "target", "one undo takes both back");
     d.shell_mut().shutdown();
 }
+
+/// The names of the interruption points on the page on show.
+fn ip_names(d: &Driver) -> Vec<String> {
+    let app = d.app().expect("the window");
+    let canvas = app.shell().canvas().expect("a page");
+    canvas
+        .page()
+        .tables
+        .reps
+        .iter()
+        .filter_map(|r| r.ip.as_ref().map(|ip| ip.name.clone()))
+        .collect()
+}
+
+/// A click's pointer arrives in a frame of its own before the button goes down, as a person's pointer travels: a
+/// name typed in the Interruption point tool's name field and left by a click on the sheet, without Enter, names the
+/// point that click places, as it does in the window (`ip_name_field`), not the point after it.
+#[test]
+fn a_name_typed_in_a_tool_field_and_left_by_a_click_names_the_point_it_places() {
+    let tmp = Tmp::new();
+    let mut d = crate::support::driver_on_sample(&tmp, "103");
+    d.input(&key("p"));
+    assert_eq!(d.app().unwrap().shell().tool().name(), "ip");
+    d.input(&click(
+        d.find("Interruption point name").expect("the IP name field"),
+    ));
+    d.input(&Input::Type {
+        text: "X1".to_owned(),
+    });
+    let (_, _, pane) = d.app().unwrap().command_surface_rects();
+    let pane = pane.expect("the page pane");
+    let at = (
+        pane.center().x as i64,
+        pane.center().y as i64 + i64::from(d.geometry().strip_px()),
+    );
+    let before = ip_names(&d);
+    d.input(&click(at));
+    let mut placed = ip_names(&d);
+    for name in &before {
+        if let Some(i) = placed.iter().position(|n| n == name) {
+            placed.remove(i);
+        }
+    }
+    assert_eq!(placed, vec!["X1".to_owned()]);
+    d.shell_mut().shutdown();
+}

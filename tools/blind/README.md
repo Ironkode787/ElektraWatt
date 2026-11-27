@@ -20,7 +20,9 @@ live here. The method is doc 18 §3.17.
 | `tasks/brief-ut-<t>-<name>/` | A usability task of doc 16 §19.4 as a brief: `task.toml` adds `task_id`, `rounds` and `start` (`sample`: the run starts on a copy of the sample project, `fixtures/sample/sample.ew`, which the prelude may change first, as T1 and T2 take away the 24 V breaker of folio 102), `acceptance.toml` may decide an item by `actions` done in order, and `hints.toml` holds one to three hints that `{blind} hint` gives one at a time |
 
 **A visual run's clock.** The visual driver runs the window on a frame clock: an input moves it a frame per event,
-a `wait` by its milliseconds, the pause before a double click by that pause. A turn stands for a person looking at its
+a `wait` by its milliseconds, the pause before a double click by that pause. A click's or a drag's pointer arrives
+in a frame of its own and the window settles before the button goes down, as a person's pointer travels first: a name
+typed in a tool's field and left by a click on the sheet names what that click places. A turn stands for a person looking at its
 picture and acting, so each turn's settled frame line moves the clock on by four seconds more (`ew_ui::visual::LOOK_S`;
 a look or a zoom adds none): a toast leaves after about two turns, as it does for a person, into the bell's list.
 Without it a turn moved the clock a few frames, and the personas read toasts as stuck. A recording's frame lines move

@@ -471,7 +471,8 @@ fn a_connection_point_chosen_in_properties_is_marked_on_the_drawing() {
         d.shell_mut().dispatch("select.set", &json!({"ids": [id]})),
         Outcome::Done
     );
-    d.settle();
+    // A frame draws the selection's rows, so that the filter is found where the window shows it.
+    d.input(&Input::Wait { ms: 100 });
     assert_eq!(d.shell_mut().properties_cp_point(), None, "no row chosen yet");
     press(&mut d, "Filter properties");
     d.input(&Input::Type {

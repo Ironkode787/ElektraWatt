@@ -26,7 +26,8 @@
 //! after it the clock moves on by [`LOOK_S`], the time a person takes to read the picture and act on it, so that what
 //! goes after its time (a toast's 8 s, a hint's fade) goes for a play-tester as it goes for a person. An input adds
 //! the time it asks for itself (a `wait`'s milliseconds, the pause before a double click, a frame for each event); a
-//! look or a zoom (`"settle":false`) adds none. A replay's frame lines (`"paint":false`) move the clock as the run's did.
+//! click's or a drag's pointer arrives in a frame of its own and the window settles before the button goes down, as a
+//! person's pointer travels and rests. A look or a zoom (`"settle":false`) adds none. A replay's frame lines (`"paint":false`) move the clock as the run's did.
 //!
 //! **Geometry.** By default the window is 1920 × 1080 points at 1 pixel per point, the main resolution (doc 16a §2);
 //! above it a title strip of 28 points (28 pixels) shows the window title in the theme's chrome colours, so a frame is
@@ -1076,22 +1077,38 @@ impl Driver {
         }
     }
 
-    fn click_frames(&mut self, at: (i64, i64), button: PointerButton, mods: Modifiers) {
+    /// The pointer arrives at `at` with `mods` held, in a frame of its own, and the window settles before the button
+    /// goes down, as a person's pointer travels and rests: what the window does when the pointer arrives is done
+    /// before the press (a tool's name field gives up the focus when the pointer reaches the sheet, and hands the
+    /// typed name to the tool in the frame after). Returns where the pointer is, `None` in the title strip (where it
+    /// presses nothing, so no modifier is held).
+    fn arrive(&mut self, at: (i64, i64), mods: Modifiers) -> Option<Pos2> {
         let moved = self.pointer_event(at);
-        let Some(pos) = self.pointer else {
-            self.frame(vec![moved]);
+        match self.pointer {
+            Some(_) => self.frame(vec![Self::mods_event(mods), moved]),
+            None => self.frame(vec![moved]),
+        }
+        self.settle();
+        self.pointer
+    }
+
+    /// `times` clicks at `at` (a double click is two): the pointer arrives once, then each press and release.
+    fn click_frames(&mut self, at: (i64, i64), button: PointerButton, mods: Modifiers, times: usize) {
+        let Some(pos) = self.arrive(at, mods) else {
             return;
         };
-        let press = Event::PointerButton {
-            pos,
-            button,
-            pressed: true,
-            modifiers: mods,
-        };
-        self.frame(vec![Self::mods_event(mods), moved, press]);
-        let release = self.clock_s();
-        self.release_frames(pos, button, mods);
-        self.last_click_s = Some(release);
+        for _ in 0..times {
+            let press = Event::PointerButton {
+                pos,
+                button,
+                pressed: true,
+                modifiers: mods,
+            };
+            self.frame(vec![Self::mods_event(mods), press]);
+            let release = self.clock_s();
+            self.release_frames(pos, button, mods);
+            self.last_click_s = Some(release);
+        }
     }
 
     /// The button let go at `pos`, of a click or a drag. Held modifiers are let go in a frame after the release, as
@@ -1145,11 +1162,10 @@ impl Driver {
             self.settle();
         }
         match input {
-            Input::Click { at, button, mods } => self.click_frames(*at, *button, *mods),
+            Input::Click { at, button, mods } => self.click_frames(*at, *button, *mods, 1),
             Input::DoubleClick { at, mods } => {
                 self.pause_after_click();
-                self.click_frames(*at, PointerButton::Primary, *mods);
-                self.click_frames(*at, PointerButton::Primary, *mods);
+                self.click_frames(*at, PointerButton::Primary, *mods, 2);
             }
             Input::Drag {
                 from,
@@ -1157,36 +1173,28 @@ impl Driver {
                 button,
                 mods,
             } => {
-                let moved = self.pointer_event(*from);
-                match self.pointer {
-                    None => self.frame(vec![moved]),
-                    Some(start) => {
-                        self.frame(vec![
-                            Self::mods_event(*mods),
-                            moved,
-                            Event::PointerButton {
-                                pos: start,
-                                button: *button,
-                                pressed: true,
-                                modifiers: *mods,
-                            },
-                        ]);
-                        let (fx, fy) = (from.0 as f64, from.1 as f64);
-                        let (tx, ty) = (to.0 as f64, to.1 as f64);
-                        for k in 1..=DRAG_STEPS {
-                            let t = f64::from(k) / f64::from(DRAG_STEPS);
-                            let at = (
-                                (fx + (tx - fx) * t).round() as i64,
-                                (fy + (ty - fy) * t).round() as i64,
-                            );
-                            // The pointer stays in the window while the button is down (the strip clamps to its edge).
-                            let at = (at.0, at.1.max(i64::from(self.geometry.strip_px())));
-                            let ev = self.pointer_event(at);
-                            self.frame(vec![ev]);
-                        }
-                        let end = self.pointer.unwrap_or(start);
-                        self.release_frames(end, *button, *mods);
+                if let Some(start) = self.arrive(*from, *mods) {
+                    self.frame(vec![Event::PointerButton {
+                        pos: start,
+                        button: *button,
+                        pressed: true,
+                        modifiers: *mods,
+                    }]);
+                    let (fx, fy) = (from.0 as f64, from.1 as f64);
+                    let (tx, ty) = (to.0 as f64, to.1 as f64);
+                    for k in 1..=DRAG_STEPS {
+                        let t = f64::from(k) / f64::from(DRAG_STEPS);
+                        let at = (
+                            (fx + (tx - fx) * t).round() as i64,
+                            (fy + (ty - fy) * t).round() as i64,
+                        );
+                        // The pointer stays in the window while the button is down (the strip clamps to its edge).
+                        let at = (at.0, at.1.max(i64::from(self.geometry.strip_px())));
+                        let ev = self.pointer_event(at);
+                        self.frame(vec![ev]);
                     }
+                    let end = self.pointer.unwrap_or(start);
+                    self.release_frames(end, *button, *mods);
                 }
             }
             Input::Scroll { at, dx, dy, mods } => {
