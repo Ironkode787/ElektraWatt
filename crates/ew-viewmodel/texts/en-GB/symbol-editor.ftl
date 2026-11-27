@@ -16,8 +16,8 @@ symbol-policy-title = Symbol policy
 
 # Symbol editor
 symbol-operation-failed = { $p0 }
-symbol-key-taken = The library already holds a different symbol with the key { $p0 }. Choose another key.
-symbol-function-key-taken = The library already holds a different function definition with the key { $p0 }. Choose another symbol key.
+symbol-key-taken = The library already holds another symbol under the key { $p0 }, so this one is not saved there. Open that symbol from the Symbols shelf to change it.
+symbol-function-key-taken = The library already holds another symbol's function under the key { $p0 }, so this symbol is not saved there. Open that symbol from the Symbols shelf to change it.
 symbol-file-unreadable = This file cannot be read as a symbol. It may be damaged, or not a symbol file.
 symbol-export-failed = The draft could not be written to that file. Check that the folder exists and that you may write to it.
 symbol-saved-new = Saved { $p0 } as a new symbol; the symbol with the earlier key stays in the library.

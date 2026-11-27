@@ -364,28 +364,35 @@ impl ShellModel {
             .filter(|e| e.in_hand())
             .map(|e| name_words(&e.draft.symbol.name));
         let selected = self.selected_symbol().map(|(_, _, tag)| tag);
-        let with = |key, what: &Option<String>| match what {
-            Some(w) => strings::format(key, &[w]),
-            None => strings::format(key, &[""])
-                .trim_end_matches([' ', '·'])
-                .to_owned(),
+        // Each start by its words, with the symbol or the tag it names where there is one.
+        let with = |named, alone, what: &Option<String>| match what {
+            Some(w) => strings::format(named, &[w]),
+            None => words(alone),
         };
         vec![
             (
                 "last",
-                with(key!("new-symbol-like-last"), &last),
+                with(
+                    key!("new-symbol-like-last"),
+                    key!("new-symbol-like-last-none"),
+                    &last,
+                ),
                 last.is_none().then(|| words(key!("reason-no-symbol-saved"))),
             ),
             (
                 "selected",
-                with(key!("new-symbol-like-selected"), &selected),
+                with(
+                    key!("new-symbol-like-selected"),
+                    key!("new-symbol-like-selected-none"),
+                    &selected,
+                ),
                 selected
                     .is_none()
                     .then(|| words(key!("reason-no-symbol-selected"))),
             ),
             (
                 "hand",
-                with(key!("new-symbol-in-hand"), &hand),
+                with(key!("new-symbol-in-hand"), key!("new-symbol-in-hand-none"), &hand),
                 hand.is_none().then(|| words(key!("reason-no-drawing-in-hand"))),
             ),
         ]

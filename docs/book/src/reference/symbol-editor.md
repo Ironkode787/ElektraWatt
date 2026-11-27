@@ -113,8 +113,8 @@ drawing shows, `Ctrl+S` saves the symbol and the File menu's **Save project** sa
 portable JSON to a new file, including incomplete work; an existing file is never overwritten.
 
 **Test on a page** places a test copy on the page in front, or on a new page of the symbol's connection grid when the
-page in front has another one; the page then shows with the copy selected, and the message's **Back to the editor**
-returns to the drawing. Project undo removes the placement; a second undo removes the new page. Test placements are
+page in front has another one; the page then shows with the copy selected, and the message's **Back to the drawing**
+returns to it. Project undo removes the placement; a second undo removes the new page. Test placements are
 independent copies; to place the symbol itself, save it and use **Draw ▸ Place ▸ Symbol…**, where it is listed with
 its library's name.
 

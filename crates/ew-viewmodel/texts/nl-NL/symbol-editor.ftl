@@ -17,8 +17,8 @@ symbol-policy-title = Symboolbeleid
 
 # Symbol editor
 symbol-operation-failed = { $p0 }
-symbol-key-taken = De bibliotheek bevat al een ander symbool met de sleutel { $p0 }. Kies een andere sleutel.
-symbol-function-key-taken = De bibliotheek bevat al een andere functiedefinitie met de sleutel { $p0 }. Kies een andere symboolsleutel.
+symbol-key-taken = De bibliotheek bevat al een ander symbool met de sleutel { $p0 }, dus dit symbool wordt daar niet opgeslagen. Open dat symbool via de plank Symbolen om het te wijzigen.
+symbol-function-key-taken = De bibliotheek bevat al de functie van een ander symbool met de sleutel { $p0 }, dus dit symbool wordt daar niet opgeslagen. Open dat symbool via de plank Symbolen om het te wijzigen.
 symbol-file-unreadable = Dit bestand kan niet als symbool worden gelezen. Het is mogelijk beschadigd, of geen symboolbestand.
 symbol-export-failed = Het concept kon niet naar dat bestand worden geschreven. Controleer of de map bestaat en of u erin mag schrijven.
 symbol-saved-new = { $p0 } opgeslagen als nieuw symbool; het symbool met de eerdere sleutel blijft in de bibliotheek.

@@ -724,6 +724,9 @@ change here.
 - format-variant: a part's function template entry may name its symbol (`function_template[].symbol`, a library
   reference); a project or library without it reads as before
 - text-change: Dutch: the drawing's pin tool reads Aansluiting, as a part's pins are aansluitingen
+- text-change: a test placement's toast offers Back to the drawing (it said Back to the editor); a symbol whose key the
+  library holds for another one is refused with where that one is (Open that symbol from the Symbols shelf), no longer
+  asking for a key
 - behaviour-change: the pieces table names what a piece is as the starter's symbol of its function names it ("Check
   valve", "Solenoid of a valve, internal coil"), never the function's category entries ("Standard check", "A1A2
   coil"); the sheet's group of pins and clamps reads Connection points (Aansluitpunten), no longer the wires' word

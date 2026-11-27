@@ -375,6 +375,41 @@ fn a_new_symbol_takes_its_key_from_its_name() {
     shell.shutdown();
 }
 
+/// A file imported a second time keeps the key its file gives, which his parts hold for the first import: Save refuses
+/// it in words that say where that symbol is, never asking for a key, which a person no longer chooses.
+#[test]
+fn a_symbol_whose_key_his_parts_hold_says_where_that_one_is() {
+    let tmp = Tmp::new("symbol-key-held");
+    let mut shell = tmp.empty_shell(Mode::Headless);
+    done(&mut shell, "parts.open", json!({}));
+    let file = tmp.0.join("contact no.elmt");
+    std::fs::write(
+        &file,
+        include_bytes!("../../../ew-import-qet/tests/fixtures/contact_no.elmt"),
+    )
+    .unwrap();
+    let import = |shell: &mut ShellModel| {
+        done(shell, "symbol.open", json!({"file": file, "discard": true}));
+        for (field, value) in [
+            ("symbol.licence", "CC0-1.0"),
+            ("symbol.source", "A test fixture"),
+            ("symbol.reviewed", "true"),
+        ] {
+            done(shell, "parts.field", json!({"field": field, "value": value}));
+        }
+    };
+    import(&mut shell);
+    done(&mut shell, "parts.save", json!({}));
+    import(&mut shell);
+    let refusal = failed(&mut shell, "parts.save", json!({}));
+    assert_eq!(
+        refusal,
+        "The library already holds another symbol under the key contact_no, so this one is not saved there. Open that \
+         symbol from the Symbols shelf to change it."
+    );
+    shell.shutdown();
+}
+
 /// Without configured libraries a symbol is saved into My parts of the settings folder, its index there and not
 /// beside the library; a library of the user tier is not remembered as a company library.
 #[test]
@@ -532,6 +567,7 @@ fn a_test_placement_shows_the_page_and_its_toast_returns_to_the_drawing() {
     let page = shell.page_labels()[shell.page_index()].clone();
     assert_eq!(toast.text, format!("Test copy placed on page {page}."));
     assert_eq!(toast.action(), Some("edit"));
+    assert_eq!(toast.label("edit"), "Back to the drawing");
     done(
         &mut shell,
         "notifications.run",
