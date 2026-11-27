@@ -30,6 +30,13 @@ use crate::{Session, library};
 /// (a cabinet's outer size, a plate's size, a device's size in the cabinet).
 pub const SHARED_SIZES: [&str; 3] = ["width", "height", "depth"];
 
+/// The columns of a cable's cores (Cable ▸ Cores and the cores' cross-section): the sheet's Cores form as "Cores: n,
+/// Named: Numbers", without a protective conductor or a shield ([`crate::part_cable`]); a column of each.
+pub const CABLE_CORES: [&str; 2] = ["cable.cores", "cable.csa"];
+
+/// The cable's outer diameter, whose one home on the sheet is its Cores form.
+const OUTER_DIAMETER: &str = "sections.cable.outer_diameter";
+
 /// The fields a column of a table goes to (doc 07 §3.6), in the declaration's order: every field of a part that is one
 /// value typed or chosen (the maker included), the sizes several kinds share once as [`SHARED_SIZES`], and the named
 /// technical values as `tech_data.<key>`. A reference to another part (a cabinet's plate) is chosen in the place, not
@@ -52,6 +59,10 @@ pub fn field_columns() -> Vec<&'static str> {
         };
         if !out.contains(&path) {
             out.push(path);
+        }
+        // A cable's cores beside its outer diameter.
+        if f.path == OUTER_DIAMETER {
+            out.extend(CABLE_CORES);
         }
     }
     out
@@ -384,9 +395,32 @@ impl Session {
         if let Ok(k) = serde_json::from_value(Value::String(sheet.text("kind").to_owned())) {
             shape.kind = k;
         }
+        // A cable's cores: a count gives that many numbered cores of the cross-section's column, as the sheet's Cores
+        // form makes them ("Cores: n, Named: Numbers"); an empty count leaves the cores as they are.
+        let cable = shape.kind == ew_schema::PartKind::Cable;
+        let cell = |m: &str| texts.get(&Member::field(m)).map(|t| t.trim()).filter(|t| !t.is_empty());
+        let (count, csa) = (cell(CABLE_CORES[0]), cell(CABLE_CORES[1]));
+        if cable && let Some(n) = count {
+            let cores = Member::field(CABLE_CORES[0]);
+            for (f, v) in [
+                ("cable.marking", "numbers"),
+                ("cable.pe", "false"),
+                ("cable.shield", "false"),
+                ("cable.cores", n),
+            ] {
+                self.set_draft_field(&mut sheet, f, v).map_err(|e| refused(&cores, e))?;
+            }
+        }
+        if cable && let Some(c) = csa {
+            self.set_draft_field(&mut sheet, "cable.csa", c)
+                .map_err(|e| refused(&Member::field(CABLE_CORES[1]), e))?;
+        }
         for (m, text) in texts {
             let field = match m {
                 Member::Field(f) if f == "kind" => continue,
+                Member::Field(f) if CABLE_CORES.contains(&f.as_str()) => continue,
+                // A cable's outer diameter is typed into its Cores form.
+                Member::Field(f) if cable && f == OUTER_DIAMETER => "cable.diameter".to_owned(),
                 // A held part keeps its maker and its number: they are what found it.
                 Member::Field(f) if held.is_some() && (f == "manufacturer" || f == "part_number") => continue,
                 Member::Field(f) if SHARED_SIZES.contains(&f.as_str()) => match shared_size(f, &shape) {
@@ -418,6 +452,12 @@ impl Session {
             refused(&m, e)
         })?;
         let mut json = serde_json::to_value(&part).unwrap_or(Value::Null);
+        // A new cable a row gives no cores has none: the form's three cores are the window's start, not the row's.
+        if cable && count.is_none() && held.is_none() && !texts.contains_key(&Member::Like) {
+            if let Some(sections) = json.get_mut("sections").and_then(Value::as_object_mut) {
+                sections.remove("cable_cores");
+            }
+        }
         // A description per language, where it reads otherwise than the part's neutral one.
         let langs: Vec<(&String, &String)> = texts
             .iter()

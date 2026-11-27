@@ -306,3 +306,41 @@ fn the_picker_lists_the_project_s_parts_by_manufacturer_in_part_number_order() {
     );
     shell.shutdown();
 }
+
+/// A family of cables from a table: the column Cores (mapped by its name) gives each cable that many numbered cores,
+/// and once saved the Cable tool offers it.
+#[test]
+fn a_cores_column_gives_a_cable_its_cores_and_the_cable_tool_offers_it() {
+    let tmp = Tmp::new("parts-set-cores-vm");
+    let file = tmp.0.join("cables.csv");
+    std::fs::write(
+        &file,
+        "Maker;Article;Kind;Description;Cores
+Example;CY-7x1.5;cable;Control cable, 7 cores 1.5 mm2;7
+",
+    )
+    .unwrap();
+    let mut shell = with_my_parts(&tmp, Mode::Gui);
+    common::make_project(&mut shell, &tmp.0.join("proj.ew"), &[]);
+    done(&mut shell, "parts.import", json!({"path": file.to_string_lossy()}));
+    let columns = lines_with(&shell, "column ");
+    assert!(
+        columns.contains(&"column \"Cores\" \"7\" cable.cores".to_owned()),
+        "{columns:?}"
+    );
+    done(&mut shell, "parts.map", json!({"column": "Article", "member": "part_number"}));
+    assert_eq!(
+        lines_with(&shell, "set \""),
+        ["set \"cables.csv\" new 1 changed 0 same 0 refused 0"]
+    );
+    done(&mut shell, "parts.save", json!({}));
+    done(&mut shell, "parts.back", json!({}));
+    done(&mut shell, "cable.new", json!({}));
+    let offered = common::form(&shell).fields.iter().any(|f| {
+        f.options
+            .iter()
+            .any(|(v, w)| v.contains("CY-7x1.5") || w.contains("CY-7x1.5"))
+    });
+    assert!(offered, "{:?}", common::form(&shell).fields);
+    shell.shutdown();
+}

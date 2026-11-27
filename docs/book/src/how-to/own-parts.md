@@ -115,9 +115,11 @@ copy. **Back** returns to where you came from.
   is mapped already; a column no field keeps stays **Not imported**. **Width**, **Height** and **Depth** go to the
   field of that name the row's kind has: a cabinet's outer size, a plate's size, a device's size in the cabinet. A
   column mapped to **Like** names a part by its number: a new row starts as that part (its pins, what it is drawn as,
-  its clamps, what it comes with) and takes its own columns over it, so that a family is one part made on its sheet and
-  a table of the others. The map is saved under the name in **Saved as**, and the next table of that source is read
-  the same way.
+  its clamps, what it comes with) and takes its own columns over it, so that a family is one part made on its sheet
+  and a table of the others. A column mapped to **Cable ▸ Number of cores** (a column named Cores is mapped already)
+  gives a cable that many numbered cores, of the cross-section a column mapped to **Cable ▸ Cross-section** gives; an
+  empty cell leaves its cores as they are. The map is saved under the name in **Saved as**, and the next table of that
+  source is read the same way.
 - **An EPLAN parts file** (an EDZ, or a parts XML): before the first EDZ of a session a notice says that the EPLAN Data
   Portal's terms restrict its data to EPLAN products. Where the open project holds copies of the file's parts, a line
   says how many and how many would change, and **Update them…** shows the changed fields before anything changes.

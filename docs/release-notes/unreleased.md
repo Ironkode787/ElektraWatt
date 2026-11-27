@@ -799,3 +799,8 @@ change here.
   `project.settings.set` takes the member `workshop.cut_increment`
 - text-change: a wire, ferrule or marker named as an accessory is refused with the way to the stock on its sheet in
   Parts, not Project properties
+- behaviour-change: a parts table's column mapped to Cable ▸ Number of cores (a column named Cores is mapped already)
+  gives a cable that many numbered cores, of the cross-section a column mapped to Cable ▸ Cross-section gives, as the
+  Cores form makes them; an empty cell leaves a cable's cores as they are, and a new cable without a count has none.
+  Export as a table writes the count and the cross-section of a cable with plain numbered cores and leaves both empty
+  for other cores, so a table read back is the same

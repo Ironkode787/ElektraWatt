@@ -218,6 +218,26 @@ pub fn table_columns(sheets: &[PartSheet]) -> Vec<(String, Vec<String>)> {
             )
         })
         .collect();
+    // A cable's cores where they are plain numbered cores of one cross-section ("Cores: n, Named: Numbers"), else empty:
+    // Import… gives such a count those cores again.
+    if sheets.iter().any(|s| s.text("kind") == "cable") {
+        let plain = |s: &PartSheet| {
+            s.text("kind") == "cable"
+                && s.cable.marking == "numbers"
+                && !s.cable.pe
+                && !s.cable.shield
+                && s.cable.bus.trim().is_empty()
+        };
+        let cells = |f: fn(&PartSheet) -> &str| -> Vec<String> {
+            sheets
+                .iter()
+                .map(|s| if plain(s) { f(s).trim().to_owned() } else { String::new() })
+                .collect()
+        };
+        let [count, csa] = crate::parts_set::CABLE_CORES;
+        out.push((count.to_owned(), cells(|s| &s.cable.cores)));
+        out.push((csa.to_owned(), cells(|s| &s.cable.csa)));
+    }
     let mut seen: Vec<String> = Vec::new();
     for s in sheets {
         for f in sheet_fields(s) {

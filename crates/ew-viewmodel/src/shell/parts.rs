@@ -224,6 +224,10 @@ impl PartsMap {
                 )
             }
             Ok(catalog::Member::FreeProp(_)) => strings::format(key!("parts-member-free-prop"), &[header]),
+            // A cable's cores, as its Cores form names them.
+            Ok(catalog::Member::Field(_)) if Self::cable_word(member).is_some() => {
+                in_group(ew_api::part_fields::Group::Cable, Self::cable_word(member).unwrap_or_default())
+            }
             Ok(catalog::Member::TechData(_)) | Ok(catalog::Member::Field(_)) => {
                 match ew_api::part_fields::field(member) {
                     Some(f) => in_group(f.group, &strings::render(&ew_api::part_fields::word(f.word))),
@@ -314,6 +318,8 @@ impl PartsMap {
         };
         Self::choices(header).into_iter().filter(named).find(|m| {
             m.to_lowercase() == h
+                // A cable's cores by their own name ("Cores").
+                || (Self::cable_word(m).is_some() && m.rsplit('.').next() == Some(h.as_str()))
                 || Self::member_text(m, header).to_lowercase() == h
                 || Self::plain_word(m).is_some_and(|w| w.to_lowercase() == h)
         })
@@ -321,7 +327,16 @@ impl PartsMap {
 
     /// A field's word without its group ("Maker", "Part number"), as a header names it.
     fn plain_word(member: &str) -> Option<String> {
-        ew_api::part_fields::field(member).map(|f| strings::render(&ew_api::part_fields::word(f.word)))
+        ew_api::part_fields::field(member)
+            .map(|f| strings::render(&ew_api::part_fields::word(f.word)))
+            .or_else(|| Self::cable_word(member).map(str::to_owned))
+    }
+
+    /// The word of a cable's cores column ([`ew_api::parts_set::CABLE_CORES`]) as the sheet's Cores form says it.
+    fn cable_word(member: &str) -> Option<&'static str> {
+        ew_api::parts_set::CABLE_CORES
+            .contains(&member)
+            .then(|| super::part_dialog::cable_label(member.trim_start_matches("cable.")))
     }
 }
 

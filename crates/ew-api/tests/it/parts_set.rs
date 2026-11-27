@@ -25,21 +25,21 @@ fn project(root: &std::path::Path) -> Session {
 
 /// A maker's table as picture v9 has it: fourteen rows of his own parts, one of them without a part number and one
 /// that My parts holds as it is.
-const TABLE: &str = "Maker;Article;Kind;Text EN;Text NL;W;H;D;Mount;In;Price
-Example;ENC-8-10-3;enclosure;Wall enclosure 800 x 1000 x 300 mm;Wandkast 800 x 1000 x 300 mm;800;1000;300;;;412.00
-Example;MP-8-10;mounting plate;Mounting plate 760 x 960 mm;Montageplaat 760 x 960 mm;760;960;;;;88.00
-Example;ENC-12-10-3-2D;enclosure;Wall enclosure 1200 x 1000 x 300 mm, two doors;Wandkast 1200 x 1000 x 300 mm, twee deuren;1200;1000;300;;;690.00
-Example;CON-18-24;device;Contactor 18 A, coil 24 V DC;;;;;;;31.00
-Example;CON-09-24;device;Contactor 9 A, coil 24 V DC;Magneetschakelaar 9 A, spoel 24 V DC;45;85;80;ts35x7_5;9 A;24.00
-Example;FT-4;terminal;Feed-through terminal 4 mm2, screw;Doorgangsklem 4 mm2, schroef;6.2;60;45;ts35x7_5;;1.10
-Example;DL-2.5;terminal;Two-level terminal 2.5 mm2, push-in;Etageklem 2,5 mm2, push-in;5.2;65;50;ts35x7_5;;2.40
-Example;EP-DL;accessory;End plate for DL 2.5;Eindplaat voor DL 2,5;;;;;;0.30
-Example;;rail;Rail 35 x 15 mm, 2 m;Rail 35 x 15 mm, 2 m;;;;;;9.00
-Example;WD-60x80;duct;Wiring duct 60 x 80 mm;Bedradingsgoot 60 x 80 mm;60;80;;;;7.00
-Example;CY-7x1.5;cable;Control cable, 7 cores 1.5 mm2, numbered;Stuurkabel, 7 aders 1,5 mm2, genummerd;;;;;;3.20
-Example;H07-1.5-BU;wire;Wire 1.5 mm2, blue;Draad 1,5 mm2, blauw;;;;;;0.40
-Example;FER-1.5-BK;ferrule;Ferrule 1.5 mm2, insulated, black;Adereindhuls 1,5 mm2, geisoleerd, zwart;;;;;;0.02
-Example;CG-M25;gland;Cable gland M25;Kabelwartel M25;;;;;;1.80
+const TABLE: &str = "Maker;Article;Kind;Text EN;Text NL;W;H;D;Mount;In;Cores;Price
+Example;ENC-8-10-3;enclosure;Wall enclosure 800 x 1000 x 300 mm;Wandkast 800 x 1000 x 300 mm;800;1000;300;;;;412.00
+Example;MP-8-10;mounting plate;Mounting plate 760 x 960 mm;Montageplaat 760 x 960 mm;760;960;;;;;88.00
+Example;ENC-12-10-3-2D;enclosure;Wall enclosure 1200 x 1000 x 300 mm, two doors;Wandkast 1200 x 1000 x 300 mm, twee deuren;1200;1000;300;;;;690.00
+Example;CON-18-24;device;Contactor 18 A, coil 24 V DC;;;;;;;;31.00
+Example;CON-09-24;device;Contactor 9 A, coil 24 V DC;Magneetschakelaar 9 A, spoel 24 V DC;45;85;80;ts35x7_5;9 A;;24.00
+Example;FT-4;terminal;Feed-through terminal 4 mm2, screw;Doorgangsklem 4 mm2, schroef;6.2;60;45;ts35x7_5;;;1.10
+Example;DL-2.5;terminal;Two-level terminal 2.5 mm2, push-in;Etageklem 2,5 mm2, push-in;5.2;65;50;ts35x7_5;;;2.40
+Example;EP-DL;accessory;End plate for DL 2.5;Eindplaat voor DL 2,5;;;;;;;0.30
+Example;;rail;Rail 35 x 15 mm, 2 m;Rail 35 x 15 mm, 2 m;;;;;;;9.00
+Example;WD-60x80;duct;Wiring duct 60 x 80 mm;Bedradingsgoot 60 x 80 mm;60;80;;;;;7.00
+Example;CY-7x1.5;cable;Control cable, 7 cores 1.5 mm2, numbered;Stuurkabel, 7 aders 1,5 mm2, genummerd;;;;;;7;3.20
+Example;H07-1.5-BU;wire;Wire 1.5 mm2, blue;Draad 1,5 mm2, blauw;;;;;;;0.40
+Example;FER-1.5-BK;ferrule;Ferrule 1.5 mm2, insulated, black;Adereindhuls 1,5 mm2, geisoleerd, zwart;;;;;;;0.02
+Example;CG-M25;gland;Cable gland M25;Kabelwartel M25;;;;;;;1.80
 ";
 
 /// The map of picture v9: every column but the price to its field, the sizes by the word their kinds share.
@@ -57,6 +57,7 @@ fn map() -> ColumnMap {
             ("depth", "D"),
             ("mech.mount_kind", "Mount"),
             ("tech_data.rated_current", "In"),
+            ("cable.cores", "Cores"),
         ],
     )
     .expect("the map")
@@ -128,6 +129,10 @@ fn a_maker_s_table_brings_new_parts_one_the_same_and_one_refused_with_its_reason
         serde_json::to_value(&contactor.description).unwrap()["nl"],
         "Magneetschakelaar 9 A, spoel 24 V DC"
     );
+    // The cable's row has seven numbered cores, as its Cores form makes them.
+    let cable = row("CY-7x1.5").part.clone().expect("a part");
+    let cores: Vec<&str> = cable.sections.cable_cores.iter().map(|c| c.core.as_str()).collect();
+    assert_eq!(cores, ["1", "2", "3", "4", "5", "6", "7"]);
     // Saved: the twelve new parts are in My parts, the one the same is not written again.
     assert_eq!(s.save_set(&set).expect("saved"), (12, 0));
     let again = s.table_set(&input, &map()).expect("the set read again");
@@ -198,4 +203,33 @@ fn a_new_row_like_a_part_of_my_parts_takes_what_its_columns_do_not_give() {
     let mm = |n: i64| Some(ew_units::Nm(n));
     assert_eq!((mech.width, mech.height), (mm(6_200_000), mm(60_000_000)));
     assert_eq!(part.part_number.as_str(), "FT-4");
+}
+
+/// A new cable whose row gives no cores has none; a count with a cross-section gives that many cores of it.
+#[test]
+fn a_cable_row_without_cores_has_none_and_a_count_gives_its_cores() {
+    let tmp = ew_testdir::Tmp::new("parts-set-cores");
+    let s = project(&tmp.0);
+    let table = "Maker;Article;Kind;Cores;Size
+Example;CY-5;cable;;
+Example;CY-12;cable;12;0.75
+";
+    let input = ImportInput::new("cables.csv", table.as_bytes().to_vec()).expect("an input");
+    let map = ColumnMap::new(
+        None,
+        [
+            ("manufacturer", "Maker"),
+            ("part_number", "Article"),
+            ("kind", "Kind"),
+            ("cable.cores", "Cores"),
+            ("cable.csa", "Size"),
+        ],
+    )
+    .expect("the map");
+    let set = s.table_set(&input, &map).expect("the set");
+    let part = |i: usize| set.rows[i].part.clone().expect("a part");
+    assert!(part(0).sections.cable_cores.is_empty(), "{:?}", part(0).sections.cable_cores);
+    let twelve = part(1).sections.cable_cores;
+    assert_eq!(twelve.len(), 12);
+    assert!(twelve.iter().all(|c| c.csa == Some(ew_schema::Csa::Mm2("0.75".parse().unwrap()))));
 }

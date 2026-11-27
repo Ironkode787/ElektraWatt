@@ -164,3 +164,44 @@ fn an_exported_table_imported_unchanged_is_the_same_for_every_row() {
     }
     s.shutdown();
 }
+
+/// A cable of his own whose cores he set by hand (his colours, a protective conductor) is exported with its Cores cells
+/// empty, and the table read back says it is the same: its cores stay as he made them.
+#[test]
+fn a_cable_with_its_own_cores_is_exported_and_read_back_the_same() {
+    let tmp = Tmp::new("parts-many-cable");
+    let mut s = shell(&tmp);
+    done(&mut s, "parts.open", json!({}));
+    done(&mut s, "parts.new", json!({"start": "cable"}));
+    for (f, v) in [
+        ("manufacturer", "Example"),
+        ("part_number", "CY-4-OWN"),
+        ("cable.cores", "4"),
+        ("cable.pe", "true"),
+        ("cable.marking", "own"),
+        ("cable.colour.0", "BU"),
+    ] {
+        done(&mut s, "parts.field", json!({"field": f, "value": v}));
+    }
+    done(&mut s, "parts.save", json!({}));
+    let part = row(&mut s, "CY-4-OWN");
+    done(&mut s, "parts.open", json!({"part": part}));
+    let cores = |s: &ShellModel| s.parts_place().unwrap().sheet.as_ref().unwrap().sheet.cable.table.clone();
+    let made = cores(&s);
+    assert_eq!(made.len(), 4);
+    let path = tmp.0.join("cables.csv");
+    done(&mut s, "parts.export", json!({"path": path.to_string_lossy()}));
+    let written = std::fs::read_to_string(&path).unwrap();
+    assert!(written.lines().nth(1).is_some_and(|l| l.contains("CY-4-OWN")), "{written}");
+    done(&mut s, "parts.import", json!({"path": path.to_string_lossy()}));
+    assert_eq!(
+        lines_with(&s, "set \""),
+        ["set \"cables.csv\" new 0 changed 0 same 1 refused 0"],
+        "{}",
+        s.describe()
+    );
+    done(&mut s, "parts.discard", json!({}));
+    done(&mut s, "parts.open", json!({"part": part}));
+    assert_eq!(cores(&s), made);
+    s.shutdown();
+}
