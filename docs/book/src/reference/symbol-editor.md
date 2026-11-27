@@ -96,8 +96,8 @@ for the full authoring profile.
 
 **Save** writes the symbol and its own function to the library named by **Library folder** (a `.ewlib` folder; a name
 without a folder is a library in your user library folder, and **Choose folder…** picks one). **Make a part for this
-symbol…**, in the **Draft** menu, then opens the part editor on a new part drawn with it: its identity, bus
-interfaces and PLC data are typed there ([Make your own PLC or bus part](../how-to/own-parts.md)), and a device placed
+symbol…**, in the **Draft** menu, then opens Parts on a new part drawn with it: its identity, network ports
+and PLC data are typed there ([Make your own parts](../how-to/own-parts.md)), and a device placed
 from the part is drawn with the symbol.
 The window remembers that folder. Its symbols appear under **Draw ▸ Place ▸ Symbol…** (`I`), with the library name;
 the page must use the symbol's connection grid. Already embedded copies stay at their existing version until
@@ -127,14 +127,14 @@ after saving.
 A device that is a box with pins (a circuit protector, a power supply, a drive, a gateway) needs no drawing: its part
 says which pins it has and where they stand on its box. The editor edits that box on the same screen. Its ways in are
 **Device box for a part…** on the start card (every part drawn as a box, of the project and of the libraries,
-placed or not, or a new part), **Pins and box…** in the part editor and under such a part in the device browser, and
+placed or not, or a new part), **Pins and box…** in Parts and under such a part in the device browser, and
 **Edit this device's box…** in the menu of a box placed on a page. A part you cannot change (a starter or sample part)
 opens as a copy of your own, and a line over the box says what Save makes: the project's own copy, which its devices
 take, or, for a part not yet in the project, a new part in your own library. The original stays as it is.
 
 - **The pin table**, on the left, lists the pins in the order they stand on the box, each with its name, the potential
   it carries and its edge. **Add pin** adds one; a row dragged onto another takes its place there. **Add bus
-  interface…** opens the part editor on **Bus interfaces** with a new interface (a PROFIBUS or PROFINET port, say);
+  interface…** opens Parts on **Network ports** with a new interface (a PROFIBUS or PROFINET port, say);
   the box then takes its ports from its interfaces as every bus device's does. A library's part keeps the interfaces
   its library gives it.
 - **The drawing** shows the box as a device of the part is drawn. Drag a pin along its edge or onto another edge;
@@ -144,7 +144,7 @@ take, or, for a part not yet in the project, a new part in your own library. The
   `Ctrl+C` and `Ctrl+V` copy them and paste pins of the same names, each last on its edge.
 - <a id="a-pin-of-the-box"></a>**Properties** shows the selected pin's **Name**, **Potential**, **Edge** and its place **Along the edge**; with no
   pin selected the part's number, manufacturer and description (typed here for a new part; **Part data…** opens the
-  part editor for the rest) and the box's width and height.
+  part in Parts for the rest) and the box's width and height.
 
 **Save** saves the part: a new part into your parts library and the project, a part of your own in place, and a
 library's part as the project's own copy, which the devices that used it follow. From then on

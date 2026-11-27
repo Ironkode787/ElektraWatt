@@ -51,7 +51,7 @@ fn wire_ends(s: &ShellModel) -> Vec<Vec<String>> {
 fn a_wire_keeps_its_pin_when_the_card_s_pins_are_numbered_again() {
     let tmp = Tmp::new("corrected-card-wires");
     let mut s = new_project(&tmp);
-    done(&mut s, "parts.new", json!({"plc": "module"}));
+    done(&mut s, "parts.new", json!({"start": "module"}));
     for (field, value) in [
         ("manufacturer", "Example"),
         ("part_number", "DI-4S"),

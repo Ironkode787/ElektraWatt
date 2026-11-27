@@ -585,7 +585,7 @@ rule-ew-lay-012 = { $form ->
     .title = Gaten te dicht bij elkaar
     .hint = Verschuif een gat, of houd de ruimte tussen gaten aan die de werkplaats nodig heeft.
 rule-ew-lay-017 = { $form ->
-        [part] Het artikel { $part } van { $devices } gaat in een uitsparing of wordt vastgeschroefd, maar heeft geen gaten, dus de gatentabel en de tekeningen van { $surface } missen ze: geef het artikel zijn gaten in de artikeleditor (Vooraanzicht en gaten)
+        [part] Het artikel { $part } van { $devices } gaat in een uitsparing of wordt vastgeschroefd, maar heeft geen gaten, dus de gatentabel en de tekeningen van { $surface } missen ze: geef het artikel zijn gaten in Artikelen (In de kast)
         [lost] { $device }: { $n ->
             [one] een verplaatst of weggelaten gat zit
            *[other] { $n } verplaatste of weggelaten gaten zitten
@@ -593,7 +593,7 @@ rule-ew-lay-017 = { $form ->
        *[device] { $device } heeft geen artikel, dus zijn gaten op { $surface } zijn niet bekend: kies zijn artikel
     }
     .title = Gaten niet bekend
-    .hint = Geef het artikel zijn gaten in de artikeleditor (Vooraanzicht en gaten), of kies het artikel van het apparaat.
+    .hint = Geef het artikel zijn gaten in Artikelen (In de kast), of kies het artikel van het apparaat.
 rule-ew-lay-018 = { $form ->
         [no_diameter] de wartel van { $cable } is niet bekend: zijn kabelartikel geeft geen buitendiameter; geef er een, of kies de wartel in de eigenschappen van de kabel
         [none_seals] geen wartel van de werkplaatsvoorraad dicht { $cable } af, { DECIMAL($od) } mm dik: voeg er een toe aan de voorraad, of kies de wartel in de eigenschappen van de kabel

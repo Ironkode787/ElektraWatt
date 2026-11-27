@@ -130,6 +130,9 @@ pub struct PartSheet {
     /// The library and the item the part was opened from (the project's ID for a part only in this project); `None`
     /// for a new part.
     pub source: Option<(Uuid, Uuid)>,
+    /// The start a new part began as (doc 07 §5.5), which decides the groups of a device it asks for; `None` for a part
+    /// opened.
+    pub start: Option<&'static crate::parts::Start>,
     pub(crate) original: Part,
     pub(crate) manufacturer: (LibRef, Vec<Value>),
 }
@@ -754,6 +757,7 @@ impl Session {
         let (rows, tables) = self.part_rows(q, p);
         PartSheet {
             source: Some((lib, c.item_id.as_uuid())),
+            start: None,
             copy,
             fields,
             tech,

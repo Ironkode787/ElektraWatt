@@ -2035,6 +2035,24 @@ fn parts_lines(place: &crate::shell::parts_place::PartsPlace, lines: &mut Vec<St
         ));
     }
     let Some(open) = &place.sheet else {
+        // New part…'s question: each card by its start's name and title, or the part to start from.
+        match place.asking {
+            Some(crate::shell::parts_place::Asking::WhatIsIt) => {
+                for s in ew_api::parts::STARTS {
+                    if let Some(card) = s.card {
+                        lines.push(format!(
+                            "  start {} \"{}\"",
+                            s.name,
+                            strings::text(strings::Key::run_time(card.word))
+                        ));
+                    }
+                }
+            }
+            Some(crate::shell::parts_place::Asking::LikeWhich) => {
+                lines.push(format!("  asks \"{}\"", strings::text(key!("parts-like-which"))));
+            }
+            None => {}
+        }
         return;
     };
     lines.push(format!(

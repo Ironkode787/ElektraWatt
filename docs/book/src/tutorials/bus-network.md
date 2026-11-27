@@ -2,7 +2,7 @@
 
 In this tutorial you draw a small PROFINET network on a bus-topology page: a CPU, a remote I/O station with an input
 module and an unmanaged switch, all from the generic starter parts, then a frequency converter of your own that you
-type into the part editor. You give the nodes their names and IP addresses, set the cable and its plugs on one bus
+type into Parts. You give the nodes their names and IP addresses, set the cable and its plugs on one bus
 line, and check the network. It takes about fifteen minutes.
 
 A bus-topology page shows the network the way TIA Portal's network view does: each device as a box per bus interface
@@ -55,12 +55,12 @@ the same devices stay on the schematic pages.
     The **Tag** field proposes `-2W1`, the page's next cable tag. The toast says "Cable -2W1 carries the bus line."
     The line carries the cable's mark: its tag with its type under it, which you can move as any tag; the cable and its
     two plugs go into the parts list. The lists of cables and plugs end in **New bus cable…** and **New plug…**: a
-    short form makes a part of your own for the bus (a cable's cores come as the bus has them) and chooses it at once.
-11. Choose **Edit ▸ New part…**. Type the **Manufacturer** `Example`, the **Part number** `FC-PN-2` and the
-    **Description** `Frequency converter with PROFINET, 2 ports`. Under **Bus interfaces** choose **Add interface**:
-    it proposes the interface `X1` on **PROFINET** with the role **Device**; type **Ports** `2`. Choose **Save**.
-    The toast says "Part FC-PN-2 is in the project." With **Also add to my parts library** ticked, your next project
-    has it too.
+    new part of your own for the bus opens in Parts (a cable's cores come as the bus has them) and chooses it at once.
+11. Choose **Edit ▸ New part…** and, under **What is it?**, **Device drawn as a box**. Type the **Maker** `Example`,
+    the **Part number** `FC-PN-2` and the **Description** `Frequency converter with PROFINET, 2 ports`. Under
+    **Network ports** choose **Add interface**: it proposes the interface `X1` on **PROFINET** with the role
+    **Device**; type **Ports** `2`. Choose **Save**. The toast says "Part FC-PN-2 is in the project and in My
+    parts.": your next project has it too. Choose **Back**.
 12. Choose **Draw ▸ Place ▸ Device from part…**, type `FC-PN-2` and click two corners to the right of the remote I/O
     station. Press `Esc`, then choose **Draw ▸ Select**.
     The converter -2K2 stands as its X1 box with its sockets P1 and P2.
@@ -82,8 +82,8 @@ the same devices stay on the schematic pages.
   draws the bus lines between their sockets. A CPU or a remote I/O head is a station, with its rack.
 - The Bus panel's table takes each node's address; the box prints it.
 - **Cable** on a bus line sets its cable, length and plugs in one form.
-- A device of your own with its ports is typed from its data sheet in the part editor;
-  [Make your own PLC or bus part](../how-to/own-parts.md) has the whole of it.
+- A device of your own with its ports is typed from its data sheet in Parts;
+  [Make your own parts](../how-to/own-parts.md) has the whole of it.
 
 To look up these jobs later, see [Bus ports and nets](../how-to/plc-workspace.md#bus-ports-and-nets) in the PLC guide.
 The tutorial before this one, [A PLC with its modules](plc-station.md), fills a station's rack and wires its channels.

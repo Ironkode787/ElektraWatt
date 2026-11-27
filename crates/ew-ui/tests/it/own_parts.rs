@@ -104,6 +104,7 @@ fn a_new_part_with_a_bus_interface_is_made_in_the_window_and_kept_in_my_parts() 
     d.input(&key("Shift+I"));
     d.settle();
     press(&mut d, "New part…");
+    press(&mut d, "Device drawn as a box");
     assert!(draft(&mut d).new, "New part… opens the editor on a new part");
     fill(&mut d, "Maker", "Acme");
     fill(&mut d, "Part number", "SW-5");
@@ -337,6 +338,7 @@ pub(crate) fn make_port_device(d: &mut Driver, number: &str, description: &str, 
     d.input(&key("Shift+I"));
     d.settle();
     press(d, "New part…");
+    press(d, "Device drawn as a box");
     fill(d, "Maker", "Acme");
     fill(d, "Part number", number);
     fill(d, "Description", description);
@@ -442,6 +444,7 @@ pub(crate) fn make_card(d: &mut Driver, number: &str, slots: &str) {
     d.input(&key("Shift+I"));
     d.settle();
     press(d, "New part…");
+    press(d, "PLC card or station");
     fill(d, "Maker", "Acme");
     fill(d, "Part number", number);
     fill(d, "Description", "Digital input card, 8 × 24 V DC");
@@ -573,6 +576,7 @@ pub(crate) fn make_head_station(d: &mut Driver, number: &str) {
     d.input(&key("Shift+I"));
     d.settle();
     press(d, "New part…");
+    press(d, "PLC card or station");
     fill(d, "Maker", "Acme");
     fill(d, "Part number", number);
     fill(d, "Description", "Head station, PROFIBUS DP");
@@ -804,7 +808,10 @@ fn a_part_made_in_one_project_is_offered_in_the_next() {
     let mut first = new_project(&tmp);
     make_card(&mut first, "DI8-OWN", "");
     let s = first.shell_mut();
-    assert_eq!(s.dispatch("parts.new", &json!({})), Outcome::Done);
+    assert_eq!(
+        s.dispatch("parts.new", &json!({"start": "device"})),
+        Outcome::Done
+    );
     for (field, value) in [
         ("kind", "cable"),
         ("manufacturer", "Acme"),

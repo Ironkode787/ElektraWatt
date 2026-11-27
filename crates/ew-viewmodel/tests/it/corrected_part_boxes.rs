@@ -51,7 +51,7 @@ fn switch_drawn(tmp: &Tmp) -> ShellModel {
         "page.new",
         json!({"folio": "102", "type": "bus_topology", "title": "Network"}),
     );
-    done(&mut s, "parts.new", json!({}));
+    done(&mut s, "parts.new", json!({"start": "box"}));
     for (field, value) in [("manufacturer", "Example"), ("part_number", "SW-6")] {
         done(&mut s, "parts.field", json!({"field": field, "value": value}));
     }

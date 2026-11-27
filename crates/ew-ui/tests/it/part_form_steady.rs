@@ -28,6 +28,7 @@ fn open_new_part(d: &mut Driver) {
     d.input(&key("Shift+I"));
     d.settle();
     press(d, "New part…");
+    press(d, "PLC card or station");
 }
 
 #[test]

@@ -333,7 +333,7 @@ fn what_is_wrong_is_said_at_the_place_with_its_fix() {
     let tmp = Tmp::new();
     let (mut h, id) = rack_with(&tmp, &[]);
     // A module part of one's own that goes into slots 1 and 2 only.
-    dispatch(&mut h, "parts.new", json!({"plc": "module"}));
+    dispatch(&mut h, "parts.new", json!({"start": "module"}));
     for (field, value) in [
         ("manufacturer", "Acme"),
         ("part_number", "DI-12"),

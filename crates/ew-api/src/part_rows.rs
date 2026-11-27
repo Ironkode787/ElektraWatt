@@ -218,20 +218,59 @@ fn set_at(v: &mut Value, path: &str, value: Value) {
 }
 
 impl PartSheet {
+    /// The pins' table of Connections follows the pins (doc 07 §5.4): one row per pin in the pins' order, named by it; a
+    /// pin's row keeps its texts, a new pin's row is empty but for its name, and a pin removed takes its row with it.
+    pub(crate) fn pins_to_table(&mut self) {
+        let held: Vec<u16> = self.original.cp_pattern.iter().map(|c| c.idx).collect();
+        let pins = &self.pins;
+        let Some(t) = self.tables.iter_mut().find(|t| t.key.is_some()) else {
+            return;
+        };
+        let current: Vec<Option<u16>> = (0..t.rows.len())
+            .map(|i| match t.origin.get(i).copied().flatten() {
+                Some(o) => held.get(o).copied(),
+                None => pins
+                    .iter()
+                    .find(|p| t.keys.get(i) == Some(&p.name))
+                    .map(|p| p.idx),
+            })
+            .collect();
+        let (mut rows, mut origin) = (Vec::new(), Vec::new());
+        for pin in pins {
+            match current.iter().position(|c| *c == Some(pin.idx)) {
+                Some(i) => {
+                    rows.push(t.rows[i].clone());
+                    origin.push(t.origin.get(i).copied().flatten());
+                }
+                None => {
+                    rows.push(vec![String::new(); t.columns.len()]);
+                    origin.push(None);
+                }
+            }
+        }
+        t.keys = pins.iter().map(|p| p.name.clone()).collect();
+        t.rows = rows;
+        t.origin = origin;
+    }
+
     /// The groups the editor lists for the draft, in the sheet's order: Identity and Technical data always; a group of
     /// declared rows or tables where a field of it holds for a part of the draft's kind; the pins where the kind has
     /// them; the cable's form for a cable; the network ports and the PLC section where the declaration gives the kind
-    /// them, of a part that is not one's own only where it has them.
+    /// them, of a part that is not one's own only where it has them; of a new part, those its start asks for (doc 07
+    /// §5.5) and the ports it has.
     pub fn sections(&self) -> Vec<Group> {
         let part = self.of_kind();
-        let mine = self.new || self.own;
+        let asks = |g: Group| match self.start {
+            Some(start) => start.asks.contains(&g),
+            None => self.new || self.own,
+        };
         let mut out: Vec<Group> = ew_derive::part_fields::fields_of(&part)
             .into_iter()
             .filter(|f| match f.group {
                 Group::Identity | Group::Technical | Group::About => false,
                 Group::Schematic | Group::Cable => true,
-                Group::Ports => mine || !self.bus.is_empty(),
-                Group::Plc => mine,
+                Group::Ports => asks(Group::Ports) || !self.bus.is_empty(),
+                Group::Plc => asks(Group::Plc),
                 _ => {
                     declared_rows().any(|r| r.path == f.path)
                         || declared_tables()
@@ -267,13 +306,13 @@ impl PartSheet {
             .any(|f| f.has.holds(&part))
     }
 
-    /// Whether the rows of group `group` may be changed: a wire's, a ferrule's and a marker's own data only on a
-    /// project-local part; the pins' clamps and what goes with the part on any part the editor saves; the others on
-    /// a part of one's own or a new one.
+    /// Whether the rows of group `group` may be changed: a wire's, a ferrule's and a marker's own data on a new part or
+    /// one of one's own that is not a library copy being forked; the pins' clamps and what goes with the part on any part
+    /// the editor saves; the others on a part of one's own or a new one.
     pub fn section_editable(&self, group: Group) -> bool {
         match group {
             Group::Connections | Group::GoesWith => true,
-            Group::Wire | Group::Ferrule | Group::Marker => self.own && !self.fork,
+            Group::Wire | Group::Ferrule | Group::Marker => (self.new || self.own) && !self.fork,
             _ => self.own || self.new,
         }
     }
@@ -851,6 +890,14 @@ impl Session {
                 let mut item = origin
                     .and_then(|o| held.get(o).cloned())
                     .unwrap_or_else(|| Value::Object(Map::new()));
+                // A new pin's row is that pin: its index and its name, which the pins give.
+                if origin.is_none()
+                    && let Some(key) = d.key
+                    && let Some(pin) = draft.pins.iter().find(|p| d.keys.get(i) == Some(&p.name))
+                {
+                    set_at(&mut item, "idx", Value::from(pin.idx));
+                    set_at(&mut item, key, Value::String(pin.name.clone()));
+                }
                 let opened = origin.and_then(|o| d.opened.get(o));
                 // A hole's row, new or changed, gives every cell; its kind and size are written together.
                 if d.hole && opened != Some(texts) {

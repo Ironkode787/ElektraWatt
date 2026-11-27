@@ -47,7 +47,7 @@ fn a_part_of_my_parts_changes_its_front_view_and_holes() {
     let mine = LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), Vec::new(), Vec::new());
     let mut s = ShellModel::new(Mode::Gui, tmp.config().with_libraries(Some(mine)));
     crate::common::make_project(&mut s, &tmp.0.join("p.ew"), &[]);
-    done(&mut s, "parts.new", json!({}));
+    done(&mut s, "parts.new", json!({"start": "door"}));
     fields(
         &mut s,
         &[

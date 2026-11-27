@@ -922,10 +922,11 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_parts_find(p),
         )),
     ),
-    // New part… in Edit and in the place's bar; New part… of the part dialog and the device browser, New cable type… and
-    // a bus line's New bus cable… and New plug…, and New station…'s split on the PLC tab.
+    // New part… in Edit and in the place's bar (What is it? first); New part… of the part dialog and the device browser,
+    // a card of What is it?, Like this, New cable type… and a bus line's New bus cable… and New plug…, and New
+    // station…'s split on the PLC tab (each names its start).
     with_params(
-        "kind?:text, from?:text, symbol?:text, plc?:text, cable?:bool, bus?:text, plug?:bool, field?:text",
+        "start?:text, like?:bool, symbol?:text, bus?:text, field?:text",
         act(
             "parts.new",
             View,

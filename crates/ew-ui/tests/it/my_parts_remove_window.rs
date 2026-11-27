@@ -32,7 +32,7 @@ fn removing_a_part_from_my_parts_asks_and_cancel_keeps_it() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     for (action, params) in [
-        ("parts.new", json!({})),
+        ("parts.new", json!({"start": "device"})),
         (
             "parts.field",
             json!({"field": "manufacturer", "value": "Example"}),

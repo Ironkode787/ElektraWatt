@@ -62,10 +62,6 @@ with Project ▸ Purge unused images….
 The part selection: search the library, filter the results and choose the part for the selected devices. Open it with
 Edit ▸ Choose part…. See [Choose parts](../../how-to/choose-parts.md).
 
-## Edit part
-
-The part editor: change the members of the project's copy of a part and save them. Open it with Edit ▸ Edit part….
-
 ## Print
 
 The print options beside a preview of the print set; Print… hands the set to the printer, Open in PDF viewer opens it

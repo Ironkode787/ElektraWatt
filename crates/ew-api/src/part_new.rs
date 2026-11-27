@@ -109,6 +109,7 @@ impl Session {
         let (rows, tables) = self.part_rows(&self.query(), &original);
         Ok(PartSheet {
             source: None,
+            start: None,
             copy: item,
             fields,
             tech: Vec::new(),
@@ -581,22 +582,9 @@ impl Session {
         Ok(RemovedPart { number, devices })
     }
 
-    /// A new part's draft with the identity, the technical data and the sections of the held copy `copy` (Copy as a
-    /// part of your own: a starter part or another library's part, which the person cannot change): Save makes it a
-    /// part of his own under a part number of its own.
-    ///
-    /// # Errors
-    ///
-    /// As [`Session::part_draft`] and [`Session::new_part_draft`].
-    pub fn new_part_draft_from(&self, copy: Uuid) -> Result<PartSheet, PartDraftError> {
-        let held = self
-            .part_draft(copy)
-            .map_err(|_| PartDraftError::Refused(key!("reason-part-edit-target")))?;
-        self.new_part_draft_copying(&held)
-    }
-
-    /// [`Session::new_part_draft_from`] over the draft `held` of a part (a held copy's, or a library part's that the
-    /// project does not hold, [`Session::library_part_draft`]).
+    /// A new part's draft with the identity, the technical data and the sections of the draft `held` of a part (a held
+    /// copy's, or a library part's that the project does not hold, [`Session::library_part_draft`]): Make my own and
+    /// New part like this; Save makes it a part of his own.
     ///
     /// # Errors
     ///
@@ -612,6 +600,11 @@ impl Session {
         draft.box_ = held.box_.clone();
         draft.outputs = held.outputs.clone();
         draft.box_part = held.box_part;
+        // The rows and tables as the other part's sheet holds them, each over the item it was opened from.
+        draft.rows = held.rows.clone();
+        draft.tables = held.tables.clone();
+        draft.outline = held.outline.clone();
+        draft.start = held.start;
         // The held item keeps what the forms do not show (pins, template, other sections); a new item ID and key.
         let mut original = held.original.clone();
         original.meta = Default::default();

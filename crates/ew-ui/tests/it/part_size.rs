@@ -22,6 +22,7 @@ fn a_new_part_takes_its_size_and_a_saved_one_changes_it_through_the_card() {
     d.input(&key("Shift+I"));
     d.settle();
     press(&mut d, "New part…");
+    press(&mut d, "Device with symbols");
     fill(&mut d, "Maker", "Acme");
     fill(&mut d, "Part number", "RL-22");
     fill(&mut d, "Description", "Interface relay, 1 changeover");
@@ -88,6 +89,7 @@ fn a_message_of_a_new_part_moves_no_field() {
     d.input(&key("Shift+I"));
     d.settle();
     press(&mut d, "New part…");
+    press(&mut d, "Device with symbols");
     let at = |d: &ew_ui::visual::Driver, name: &str| {
         d.labels()
             .into_iter()

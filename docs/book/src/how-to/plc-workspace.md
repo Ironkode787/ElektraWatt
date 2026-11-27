@@ -60,7 +60,7 @@ The exchange of the hardware and the tags with the PLC software is at the end of
 2. Choose what it is: **PLC (CPU)**, **Remote I/O**, **Valve terminal** or **Compact device** (a hover says each in
    full), and the PLC it belongs to (a remote station: the PLC it serves), or **New PLC**.
 3. Double-click its head in the **Catalogue** at the right: the CPU, the interface module of a remote station, the
-   valve terminal. **New part…** under the catalogue opens the part editor set for that kind; the part you save is
+   valve terminal. **New part…** under the catalogue opens Parts on a new part of that kind; the part you save is
    in the catalogue when you come back, and it is the head when you clicked the empty **Head** first.
 4. Double-click each module in the catalogue: it goes into the next free slot. A click on a card selects it:
    **Remove**, **Move left** and **Move right** above the rack change it before it is made.
@@ -110,7 +110,7 @@ double-click the station in the PLC panel. Its rack opens in a tab beside the pa
   the PLC overview prints it) and what is wired to it, which is a link to its place on its page.
 - **The catalogue** at the right lists the parts that fit the station, by kind, under a filter. Parts that do not fit
   the selected slot are greyed and say why, as is a library part that nothing can draw yet because it has no pins,
-  with what to do in the part editor.
+  with what to do in Parts.
 
 With **Side by side**, a station's view in the other group shows the same rack, To do, table and channels; where the
 room is short it leaves out the catalogue until you click in it.
@@ -209,8 +209,8 @@ on the schematic pages.
    the plugs go into the parts list.
 
 The starter parts hold a CPU with PROFINET and PROFIBUS DP, a remote I/O head, an unmanaged and a managed switch, a
-PROFINET device, PROFIBUS and Ethernet cables and their plugs. Your own devices with their ports are made in the part
-editor: see [Make your own PLC or bus part](own-parts.md).
+PROFINET device, PROFIBUS and Ethernet cables and their plugs. Your own devices with their ports are made in
+Parts: see [Make your own parts](own-parts.md).
 
 ## Exchange with the PLC software
 

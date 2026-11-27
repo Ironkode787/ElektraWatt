@@ -254,6 +254,7 @@ fn the_new_part_dialog_holds_still_while_one_types_and_adds_rows() {
     d.input(&key("Shift+I"));
     d.settle();
     press(&mut d, "New part…");
+    press(&mut d, "Device drawn as a box");
     let at = |d: &mut Driver, name: &str| {
         d.labels()
             .into_iter()
@@ -292,6 +293,7 @@ fn the_small_words_say_what_slots_and_a_bus_page_are_and_the_search_finds_the_ne
     d.input(&key("Shift+I"));
     d.settle();
     press(&mut d, "New part…");
+    press(&mut d, "PLC card or station");
     press(&mut d, "PLC section");
     press(&mut d, "PLC role");
     press(&mut d, "Module");

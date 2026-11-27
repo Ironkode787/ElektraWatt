@@ -482,7 +482,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             let mut shell = ShellModel::new(Mode::Gui, tmp.config().with_libraries(Some(tiers)));
             for (action, params) in [
                 ("file.open", json!({ "dir": dir.to_string_lossy() })),
-                ("parts.new", json!({})),
+                ("parts.new", json!({"start": "device"})),
                 (
                     "parts.field",
                     json!({"field": "manufacturer", "value": "Example"}),

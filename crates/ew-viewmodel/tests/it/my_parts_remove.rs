@@ -50,7 +50,7 @@ fn a_part_removed_from_my_parts_stays_in_the_project_that_uses_it() {
     let tmp = Tmp::new("my-parts-remove");
     let mine = LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), Vec::new(), Vec::new());
     let mut s = project(&tmp, mine.clone(), "p.ew");
-    done(&mut s, "parts.new", json!({"plc": "module"}));
+    done(&mut s, "parts.new", json!({"start": "module"}));
     for (field, value) in [
         ("manufacturer", "Example"),
         ("part_number", "DI-4"),

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A part of one's own made through the part editor's actions (`part.new`, `part.field`, `part.save`) on new projects:
+//! A part of one's own made through the actions of Parts (`parts.new`, `parts.field`, `parts.save`) on new projects:
 //! a module part that nothing draws is listed greyed in the next project's station catalogue. Not here: making parts
 //! in the window by clicks and keys, placing them and their buses (`ew-ui`'s `own_parts.rs`).
 
@@ -27,7 +27,7 @@ fn a_module_part_nothing_draws_is_listed_greyed_with_what_to_do() {
     let tmp = Tmp::new("own-parts-unfit");
     let mine = LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), Vec::new(), Vec::new());
     let mut s = new_project(&tmp, mine, "p.ew");
-    done(&mut s, "parts.new", json!({"plc": "module"}));
+    done(&mut s, "parts.new", json!({"start": "module"}));
     for (field, value) in [
         ("manufacturer", "Acme"),
         ("part_number", "DI-NP"),
@@ -54,7 +54,7 @@ fn a_module_part_nothing_draws_is_listed_greyed_with_what_to_do() {
     assert!(!held, "the next project holds no copy of it");
     done(&mut s, "plc.new_station", json!({}));
     done(&mut s, "plc.rack_add", json!({"part": "EW-GEN-CPU-1"}));
-    let why = "Not offered: nothing draws this part, as it has no pins. In the part editor, give it a Pin pattern or \
+    let why = "Not offered: nothing draws this part, as it has no pins. In Parts, give it a Pin pattern or \
                its supply pins under PLC, then save it";
     let listed = s
         .station_catalogue()

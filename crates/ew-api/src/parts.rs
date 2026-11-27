@@ -6,7 +6,7 @@
 //! ([`Session::keep_in_my_parts`]). The open part is a [`PartSheet`]: the part as a value with the texts as typed and
 //! their messages, read, checked and saved by the session's part editing.
 
-use ew_derive::part_fields::Lack;
+use ew_derive::part_fields::{Group as G, Lack};
 use ew_ids::{Id, Uuid, v5};
 use ew_library::Tier;
 use ew_schema::{Device, Kind, LibCopy, LibDocument, Part, Sha256};
@@ -142,7 +142,8 @@ impl Session {
     ) -> Vec<PartFound> {
         let offers = self.part_offers(&PartOfferQuery {
             text: text.to_owned(),
-            kinds: kind.map(|k| vec![k.to_owned()]).unwrap_or_default(),
+            // Every kind, a cable gland too, which a device's choosers leave out.
+            kinds: kind.map_or_else(crate::part_kinds, |k| vec![k.to_owned()]),
             view: if scope == PartScope::Project {
                 OfferView::Project
             } else {
@@ -288,5 +289,390 @@ impl Session {
             }
         };
         Ok(command)
+    }
+}
+
+/// The groups of the first question's cards, in its order (doc 07 §5.5).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum StartGroup {
+    /// Devices.
+    Devices,
+    /// Terminals, cables and wiring.
+    Wiring,
+    /// Cabinet.
+    Cabinet,
+    /// Pneumatics.
+    Fluid,
+}
+
+impl StartGroup {
+    /// Every group, in the question's order.
+    pub const ALL: [StartGroup; 4] = [
+        StartGroup::Devices,
+        StartGroup::Wiring,
+        StartGroup::Cabinet,
+        StartGroup::Fluid,
+    ];
+
+    /// The group's heading.
+    pub fn word(self) -> &'static str {
+        match self {
+            StartGroup::Devices => key!("part-starts-devices"),
+            StartGroup::Wiring => key!("part-starts-wiring"),
+            StartGroup::Cabinet => key!("part-starts-cabinet"),
+            StartGroup::Fluid => key!("part-starts-fluid"),
+        }
+    }
+}
+
+/// A start's card of the first question: its group, its title, the line of what it will be asked for, its icon.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct StartCard {
+    /// The group it stands in.
+    pub group: StartGroup,
+    /// Its title's key.
+    pub word: &'static str,
+    /// The key of its line.
+    pub line: &'static str,
+    /// The window's icon name.
+    pub icon: &'static str,
+}
+
+/// What a new part starts as (doc 07 §5.5): a card of the first question, or a start a form names (a station's head,
+/// a bus line's plug). The answer decides what the sheet asks for: its kind and its presets, and the groups of a
+/// device it asks for beyond those every device has.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Start {
+    /// The start's name in a command (`parts.new {start}`).
+    pub name: &'static str,
+    /// Its card; `None` for a start only a form names.
+    pub card: Option<StartCard>,
+    /// The fields it presets, as the sheet's fields and their texts (`kind` first).
+    pub presets: &'static [(&'static str, &'static str)],
+    /// The groups of a device it asks for that a device without data in them does not show: what it is in the PLC,
+    /// its network ports.
+    pub asks: &'static [G],
+    /// Whether the part has a pneumatic section (its ports, a valve's coil).
+    pub fluid: bool,
+    /// The role of the one network port it starts with (`X1`, PROFINET), if any.
+    pub port: Option<&'static str>,
+}
+
+const fn card(
+    group: StartGroup,
+    word: &'static str,
+    line: &'static str,
+    icon: &'static str,
+) -> Option<StartCard> {
+    Some(StartCard {
+        group,
+        word,
+        line,
+        icon,
+    })
+}
+
+const fn start(
+    name: &'static str,
+    card: Option<StartCard>,
+    presets: &'static [(&'static str, &'static str)],
+) -> Start {
+    Start {
+        name,
+        card,
+        presets,
+        asks: &[],
+        fluid: false,
+        port: None,
+    }
+}
+
+/// A PLC part's groups.
+const PLC_ASKS: &[G] = &[G::Plc, G::Ports];
+
+/// Every start of the place, the cards in the question's order (doc 07 §5.5).
+pub static STARTS: &[Start] = &[
+    start(
+        "device",
+        card(
+            StartGroup::Devices,
+            key!("part-start-device"),
+            key!("part-start-device-line"),
+            "circuit-switch-open",
+        ),
+        &[("kind", "device")],
+    ),
+    Start {
+        asks: &[G::Ports],
+        ..start(
+            "box",
+            card(
+                StartGroup::Devices,
+                key!("part-start-box"),
+                key!("part-start-box-line"),
+                "ew-black-box",
+            ),
+            &[("kind", "device")],
+        )
+    },
+    Start {
+        asks: PLC_ASKS,
+        ..start(
+            "module",
+            card(
+                StartGroup::Devices,
+                key!("part-start-module"),
+                key!("part-start-module-line"),
+                "cpu",
+            ),
+            &[("kind", "device"), ("plc.role", "module")],
+        )
+    },
+    start(
+        "door",
+        card(
+            StartGroup::Devices,
+            key!("part-start-door"),
+            key!("part-start-door-line"),
+            "circle-dot",
+        ),
+        &[("kind", "device"), ("mech.mount_kind", "door_cutout")],
+    ),
+    start(
+        "terminal",
+        card(
+            StartGroup::Wiring,
+            key!("part-start-terminal"),
+            key!("part-start-terminal-line"),
+            "ew-terminal-strip",
+        ),
+        &[("kind", "terminal")],
+    ),
+    start(
+        "cable",
+        card(
+            StartGroup::Wiring,
+            key!("part-start-cable"),
+            key!("part-start-cable-line"),
+            "ew-cable",
+        ),
+        &[("kind", "cable"), ("unit", "m")],
+    ),
+    start(
+        "wire",
+        card(
+            StartGroup::Wiring,
+            key!("part-start-wire"),
+            key!("part-start-wire-line"),
+            "wave-sine",
+        ),
+        &[("kind", "wire"), ("unit", "m")],
+    ),
+    start(
+        "ferrule",
+        card(
+            StartGroup::Wiring,
+            key!("part-start-ferrule"),
+            key!("part-start-ferrule-line"),
+            "pin",
+        ),
+        &[("kind", "ferrule")],
+    ),
+    start(
+        "marker",
+        card(
+            StartGroup::Wiring,
+            key!("part-start-marker"),
+            key!("part-start-marker-line"),
+            "tag",
+        ),
+        &[("kind", "marker")],
+    ),
+    start(
+        "gland",
+        card(
+            StartGroup::Wiring,
+            key!("part-start-gland"),
+            key!("part-start-gland-line"),
+            "plug",
+        ),
+        &[("kind", "gland")],
+    ),
+    start(
+        "enclosure",
+        card(
+            StartGroup::Cabinet,
+            key!("part-start-enclosure"),
+            key!("part-start-enclosure-line"),
+            "door",
+        ),
+        &[("kind", "enclosure")],
+    ),
+    start(
+        "plate",
+        card(
+            StartGroup::Cabinet,
+            key!("part-start-plate"),
+            key!("part-start-plate-line"),
+            "ew-mounting-plate",
+        ),
+        &[("kind", "mounting_plate")],
+    ),
+    start(
+        "rail",
+        card(
+            StartGroup::Cabinet,
+            key!("part-start-rail"),
+            key!("part-start-rail-line"),
+            "ew-din-rail",
+        ),
+        &[("kind", "rail"), ("unit", "m")],
+    ),
+    start(
+        "duct",
+        card(
+            StartGroup::Cabinet,
+            key!("part-start-duct"),
+            key!("part-start-duct-line"),
+            "ew-duct",
+        ),
+        &[("kind", "duct"), ("unit", "m")],
+    ),
+    start(
+        "accessory",
+        card(
+            StartGroup::Cabinet,
+            key!("part-start-accessory"),
+            key!("part-start-accessory-line"),
+            "assembly",
+        ),
+        &[("kind", "accessory")],
+    ),
+    Start {
+        fluid: true,
+        ..start(
+            "valve",
+            card(
+                StartGroup::Fluid,
+                key!("part-start-valve"),
+                key!("part-start-valve-line"),
+                "droplet",
+            ),
+            &[("kind", "device")],
+        )
+    },
+    start(
+        "tube",
+        card(
+            StartGroup::Fluid,
+            key!("part-start-tube"),
+            key!("part-start-tube-line"),
+            "pipeline",
+        ),
+        &[("kind", "tube"), ("unit", "m")],
+    ),
+    Start {
+        fluid: true,
+        ..start(
+            "fluid",
+            card(
+                StartGroup::Fluid,
+                key!("part-start-fluid"),
+                key!("part-start-fluid-line"),
+                "wind",
+            ),
+            &[("kind", "device")],
+        )
+    },
+    // The heads of a station the rack's view asks for: a CPU leads its bus as a PROFINET controller, the others answer
+    // as devices; a valve terminal's eight channels are outputs for its valves, a compact device's inputs.
+    Start {
+        asks: PLC_ASKS,
+        port: Some("controller"),
+        ..start("cpu", None, &[("kind", "device"), ("plc.role", "station")])
+    },
+    Start {
+        asks: PLC_ASKS,
+        port: Some("device"),
+        ..start("remote", None, &[("kind", "device"), ("plc.role", "station")])
+    },
+    Start {
+        asks: PLC_ASKS,
+        port: Some("device"),
+        ..start(
+            "valve_terminal",
+            None,
+            &[
+                ("kind", "device"),
+                ("plc.role", "station"),
+                ("plc.kind", "do"),
+                ("plc.count", "8"),
+            ],
+        )
+    },
+    Start {
+        asks: PLC_ASKS,
+        port: Some("device"),
+        ..start(
+            "compact",
+            None,
+            &[
+                ("kind", "device"),
+                ("plc.role", "station"),
+                ("plc.kind", "di"),
+                ("plc.count", "8"),
+            ],
+        )
+    },
+    // A bus line's New plug…: an accessory with a passive interface of the line's bus.
+    Start {
+        asks: &[G::Ports],
+        port: Some("passive"),
+        ..start("plug", None, &[("kind", "accessory")])
+    },
+];
+
+/// The start named `name`.
+pub fn start_named(name: &str) -> Option<&'static Start> {
+    STARTS.iter().find(|s| s.name == name)
+}
+
+impl Session {
+    /// A new part's sheet as `start` begins it: its kind and presets typed in, a pneumatic section where it has one,
+    /// its network port; the sheet asks for what the start decides ([`PartSheet::sections`]).
+    ///
+    /// # Errors
+    ///
+    /// As [`Session::new_part_draft`].
+    pub fn start_sheet(&self, start: &'static Start) -> Result<PartSheet, PartDraftError> {
+        let mut sheet = self.new_part_draft()?;
+        if start.fluid {
+            sheet.original.sections.fluid = Some(Default::default());
+            (sheet.rows, sheet.tables) = self.part_rows(&self.query(), &sheet.original);
+        }
+        sheet.start = Some(start);
+        for (field, text) in start.presets {
+            self.set_draft_field(&mut sheet, field, text)?;
+        }
+        if let Some(role) = start.port {
+            sheet.add_bus_row();
+            self.set_draft_field(&mut sheet, "bus.0.role", role)?;
+        }
+        Ok(sheet)
+    }
+}
+
+impl PartSheet {
+    /// Whether the network ports are the one port the start gave, as it gave it (`X1`, PROFINET, the start's role).
+    pub fn port_as_started(&self) -> bool {
+        let Some(role) = self.start.and_then(|s| s.port) else {
+            return false;
+        };
+        matches!(self.bus.as_slice(), [r] if *r == crate::part_editor::BusRow {
+            interface: "X1".to_owned(),
+            bus: "profinet".to_owned(),
+            role: role.to_owned(),
+            ..Default::default()
+        })
     }
 }

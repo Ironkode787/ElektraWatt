@@ -62,11 +62,10 @@ cable in the Cables navigator. At the end you have a saved project whose checks 
   (`3G1.5`, `4X0.75`, or a cable part's number) gives the cores, and each wire's core can be changed before Apply.
   The same command on a cable's wire opens that cable, to add a wire or take one out. A cable without a drawn cable
   line takes its page number from its first core.
-- **New cable type…**, the last entry of the form's **Cable type** list, makes a cable part of your own in a small
-  form: the maker, the type, the part number, the cores and their cross-section, with or without green-yellow, the
+- **New cable type…**, the last entry of the form's **Cable type** list, makes a cable part of your own in Parts: the maker, the type, the part number, the cores and their cross-section, with or without green-yellow, the
   cores' colours (HD 308), numbers or your own, a shield and the outer diameter. It reads the cable as it will show
   (`3G1.5 · BN BU GNYE`); **Save and add another size** keeps all but the part number and the size, and Save comes
-  back to the Cable form with the new type chosen. A part of kind Cable shows the same section in the part editor.
+  back to the Cable form with the new type chosen. A cable part opened in Parts shows the same group.
 - A cable's mark is drawn as panel builders draw it: one line across the cable's wires, a stroke on each core with its
   number or colour beside it, and the cable's tag with its type and size (`3G1.5`: three cores with green-yellow,
   `4X0.75`: four without). A cable whose wires run over several pages gets a mark on each.

@@ -283,16 +283,16 @@ fn refusal_text(reason: &ew_api::Text) -> String {
 impl ShellModel {
     /// Sets the text of field `name` of the open creation dialog (a keystroke or a choice) and clears the last refusal.
     pub fn set_form_field(&mut self, name: &str, value: &str) {
-        // New cable type…, the last entry of a Cable form's list of types, opens its small form; Save comes
+        // New cable type…, the last entry of a Cable form's list of types, opens Parts on a new cable; Save comes
         // back with the new type chosen.
         if name == "part"
             && value == super::cables::NEW_CABLE_TYPE
             && matches!(&self.dialog, Some(Dialog::Form(f)) if super::cables::chooses_cable_type(f))
         {
-            let _ = self.act_parts_new(&Map::from_iter([("cable".to_owned(), Value::Bool(true))]));
+            let _ = self.act_parts_new(&Map::from_iter([("start".to_owned(), Value::from("cable"))]));
             return;
         }
-        // A bus line's Cable form: New bus cable… and New plug… open the small form of a new bus part for the
+        // A bus line's Cable form: New bus cable… and New plug… open Parts on a new cable or plug for the
         // line's bus; another cable chosen shows its tag.
         if let Some(Dialog::Form(f)) = &self.dialog
             && f.action == super::cables::BUS_CABLE
@@ -304,9 +304,10 @@ impl ShellModel {
                     .as_ref()
                     .map(|p| p.session.bus_cable_form(&lines).system)
                     .unwrap_or_default();
+                let start = if name == "part" { "cable" } else { "plug" };
                 let params = Map::from_iter([
+                    ("start".to_owned(), Value::from(start)),
                     ("bus".to_owned(), Value::String(bus)),
-                    ("plug".to_owned(), Value::Bool(name != "part")),
                     ("field".to_owned(), Value::String(name.to_owned())),
                 ]);
                 let _ = self.act_parts_new(&params);

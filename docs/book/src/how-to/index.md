@@ -28,8 +28,8 @@ pages, start with a tutorial.
 - [Work in the PLC workspace](plc-workspace.md): what a station, a rack, a slot, a channel and a symbol are, the
   jobs of TIA Portal and where they are here, making and changing a station, addresses, the PLC grid, bus pages and
   their nets, and the exchange with PLC software.
-- [Make your own PLC or bus part](own-parts.md): a card, a head station such as an IM 152, a switch such as a
-  SCALANCE or a device on PROFINET, typed from its data sheet in the part editor and kept in My parts.
+- [Make your own parts](own-parts.md): a terminal, a cable, a cabinet, a card, a head station such as an IM 152, a
+  switch such as a SCALANCE or a device on PROFINET, typed from its data sheet in Parts and kept in My parts.
 - [Work in the Fluid workspace](fluid-workspace.md): a circuit on a fluid page, its medium, a valve's solenoid on an
   electrical page, the two kinds of valve terminal, and the tubes and the tube list.
 - [Upgrade a project](upgrade-a-project.md): what a release reads and writes, opening a project of an older format,

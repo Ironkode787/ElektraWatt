@@ -13,7 +13,7 @@ use serde_json::json;
 
 /// A new module part with the PLC fields `fields`, its identity Example `number`.
 fn card(s: &mut ShellModel, number: &str, fields: &[(&str, &str)]) {
-    done(s, "parts.new", json!({"plc": "module"}));
+    done(s, "parts.new", json!({"start": "module"}));
     for (field, value) in [("manufacturer", "Example"), ("part_number", number)]
         .iter()
         .chain(fields)

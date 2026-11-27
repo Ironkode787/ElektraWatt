@@ -34,6 +34,13 @@ change here.
   `parts.outline`, `parts.save`, `parts.discard`, `parts.own`, `parts.keep`, `parts.remove` and `parts.back`;
   `part.edit`, `part.new`, `part.field`, `part.save`, `part.section`, `part.table_row`, `part.bus_row`,
   `part.outline_import`, `part.outline_remove`, `part.delete` and `part.remove_own` go
+- behaviour-change: New part… asks first what the part is (doc 07 §5.5): eighteen cards in four groups, from Device
+  with symbols to Other pneumatic device, each presetting its kind and asking only what that kind needs; A part like
+  it… and Like this start a part with everything another has but its number. A new terminal's pins get their clamp
+  rows at once, a new wire, ferrule or marker takes its own data, Parts finds cable glands, and a part that exists is
+  refused with its maker and number ("Example CON-18-24 is in My parts or in this project already")
+- api-break: `parts.new` takes `start` (a card's or a form's start: `device`, `terminal`, `cpu`, `plug`, …) and
+  `like`; its `kind`, `from`, `plc`, `cable` and `plug` go
 - behaviour-change: a wire that ends open, or outside the project, at an interruption point across its pair, with a
   chain or a star behind the pair, shows and takes its ends set by hand at its clamps and keeps them through a change
   of the wiring; they read as the rule's and went at the next change (doc 13 §2.3)

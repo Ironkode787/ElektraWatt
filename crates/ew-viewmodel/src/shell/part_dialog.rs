@@ -639,51 +639,6 @@ impl ShellModel {
     }
 }
 
-/// Whether `rows` is the one bus row [`plc_preset`] gives a station, as it made it: `X1`, PROFINET, a controller or a
-/// device, nothing else filled in.
-pub(super) fn preset_bus(rows: &[ew_api::BusRow]) -> bool {
-    matches!(rows, [r] if ["controller", "device"].contains(&r.role.as_str())
-    && *r == ew_api::BusRow {
-        interface: "X1".to_owned(),
-        bus: "profinet".to_owned(),
-        role: r.role.clone(),
-        ..ew_api::BusRow::default()
-    })
-}
-
-/// The words of `part.new`'s `plc`: the rack dialog's station kinds and `module`.
-pub(super) const PLC_PRESETS: [&str; 5] = ["cpu", "remote", "valve_terminal", "compact", "module"];
-
-/// What a new part starts as when the rack dialog asks for it: `module` a module part; a station kind a station
-/// part with one bus interface (a CPU's leads the bus as a PROFINET controller, the others answer as devices) and, for
-/// a valve terminal and a compact device, eight channels of their own (outputs for the valves, inputs for the compact
-/// device). The person changes any of it in the editor; a preset the draft does not take is left out.
-pub(super) fn plc_preset(session: &ew_api::Session, draft: &mut ew_api::PartSheet, word: &str) {
-    let mut set = |field: &str, value: &str| {
-        let _ = session.set_draft_field(draft, field, value);
-    };
-    if word == "module" {
-        set("plc.role", "module");
-        return;
-    }
-    set("plc.role", "station");
-    match word {
-        "valve_terminal" => {
-            set("plc.kind", "do");
-            set("plc.count", "8");
-        }
-        "compact" => {
-            set("plc.kind", "di");
-            set("plc.count", "8");
-        }
-        _ => {}
-    }
-    draft.add_bus_row();
-    if word == "cpu" {
-        let _ = session.set_draft_field(draft, "bus.0.role", "controller");
-    }
-}
-
 impl ShellModel {
     /// The detail line of offer `i` (0-based) of the open part dialog: its source and tier, version, status and
     /// successor (FR-PRT-034), and the template's functions; `None` without the dialog or the row.

@@ -526,7 +526,7 @@ fn close_box_returns_to_the_ways_in_it_was_opened_from() {
 fn a_plc_card_s_pins_are_not_edited_on_the_box() {
     let tmp = Tmp::new("device-box-plc");
     let mut s = new_project(&tmp);
-    done(&mut s, "parts.new", json!({"plc": "module"}));
+    done(&mut s, "parts.new", json!({"start": "module"}));
     done(
         &mut s,
         "parts.field",

@@ -39,8 +39,8 @@ const NEW: &str = "cable.new";
 /// The action of Connect cores….
 const CONNECT: &str = "cable.connect_cores";
 
-/// The value of New cable type…, the last entry of a Cable form's list of cable types: it opens the small form of
-/// a new cable part, never names a part (a part number has no angle brackets).
+/// The value of New cable type…, the last entry of a Cable form's list of cable types: it opens Parts on a new cable
+/// part (the start `cable`), never names a part (a part number has no angle brackets).
 pub const NEW_CABLE_TYPE: &str = "<new cable type>";
 
 /// Whether `form` is a Cable form whose list of cable types ends in New cable type… (Cable… from wires, New cable…).
@@ -763,7 +763,7 @@ fn offer_cores(command: &ew_api::AnyCommand) -> usize {
 pub(super) const BUS_CABLE: &str = "bus.cable";
 
 /// The value of New bus cable… and New plug…, the last entry of a bus line's Cable form's lists of cables and plugs:
-/// it opens the small form of a new bus part, never names a part.
+/// it opens Parts on a new cable or plug for the bus, never names a part.
 pub const NEW_BUS_PART: &str = "<new bus part>";
 
 /// The value of A new cable, the first entry of a bus line's Cable form's choice of cable.

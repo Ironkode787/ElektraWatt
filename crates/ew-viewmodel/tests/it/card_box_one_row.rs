@@ -120,7 +120,7 @@ fn a_card_placed_any_way_is_laid_out_in_one_row_as_draw_on_a_page_lays_it() {
 fn a_new_card_s_device_box_starts_in_one_row() {
     let tmp = Tmp::new("card-box-one-row-editor");
     let mut s = new_project(&tmp);
-    done(&mut s, "parts.new", json!({"plc": "module"}));
+    done(&mut s, "parts.new", json!({"start": "module"}));
     for (field, value) in [
         ("manufacturer", "Example"),
         ("part_number", "DIO-8"),

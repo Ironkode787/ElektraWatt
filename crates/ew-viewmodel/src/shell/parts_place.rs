@@ -3,8 +3,8 @@
 
 //! Parts, the one place for parts (doc 07 §5): a screen of its own ([`Screen::Parts`](super::Screen::Parts)) with the
 //! list, the open part's sheet and its pictures. `parts.open {part?, section?}` opens it on a part (or on the list),
-//! from wherever a part is met; `parts.find` changes the list; `parts.new` makes a part (with a kind, from a form that
-//! needs one, like another part, for a symbol); `parts.field` and `parts.row` change the open sheet; `parts.save`
+//! from wherever a part is met; `parts.find` changes the list; `parts.new` makes a part (it asks What is it? first,
+//! or a form names its start; like another part; for a symbol); `parts.field` and `parts.row` change the open sheet; `parts.save`
 //! saves it where it lives (a new part into My parts, a part of My parts as its next version with the card of what
 //! changes for the project, a part only in this project in place); `parts.discard` drops the changes; `parts.own`
 //! makes a part of one's own from a part that is not; `parts.keep` puts a part only in this project into My parts;
@@ -13,14 +13,11 @@
 
 use ew_api::output::{NavKind, NavRole, Uuid};
 use ew_api::part_fields::{Group, Lack};
-use ew_api::parts::{Lives, PartFound, PartScope};
+use ew_api::parts::{Lives, PartFound, PartScope, start_named};
 use ew_api::{OfferView, PartDraftError, PartOfferQuery, PartPick, PartSheet};
 use serde_json::{Map, Value};
 
-use super::part_dialog::{
-    BusPart, PLC_PRESETS, PartChooser, card_fields, draft_refusal, matches_text, plc_preset,
-    plug_description, preset_bus,
-};
+use super::part_dialog::{BusPart, PartChooser, card_fields, draft_refusal, matches_text, plug_description};
 use crate::key;
 use crate::properties::{CardOrigin, PartCard};
 use crate::shell::{Dialog, FormDialog, Outcome, Prompt, ShellModel, failed, flag, string_param};
@@ -112,6 +109,15 @@ impl OpenSheet {
     }
 }
 
+/// What New part… asks before a sheet opens (doc 07 §5.5).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Asking {
+    /// What is it?: the cards of the starts.
+    WhatIsIt,
+    /// A part like it…: the part to start from, opened from the list.
+    LikeWhich,
+}
+
 /// The place's state.
 #[derive(Clone, PartialEq, Debug)]
 pub struct PartsPlace {
@@ -129,6 +135,8 @@ pub struct PartsPlace {
     pub found: Vec<PartFound>,
     /// The open part.
     pub sheet: Option<OpenSheet>,
+    /// What New part… asks while no sheet is open.
+    pub asking: Option<Asking>,
 }
 
 impl PartsPlace {
@@ -194,6 +202,8 @@ impl ShellModel {
             }
             let held = project.session.part_offers(&PartOfferQuery {
                 view: OfferView::Project,
+                // Every kind, a cable gland too.
+                kinds: ew_api::part_kinds(),
                 include_inactive: true,
                 lang: Some(strings::rule_language().to_owned()),
                 ..PartOfferQuery::default()
@@ -284,6 +294,7 @@ impl ShellModel {
             lacking: false,
             found: Vec::new(),
             sheet: None,
+            asking: None,
         }));
         self.parts_refresh();
     }
@@ -320,6 +331,7 @@ impl ShellModel {
         self.parts_opened = self.parts_opened.wrapping_add(1);
         let opened = self.parts_opened;
         if let Some(place) = self.parts.as_deref_mut() {
+            place.asking = None;
             place.sheet = Some(OpenSheet {
                 opened,
                 sheet,
@@ -364,7 +376,19 @@ impl ShellModel {
             _ => None,
         };
         self.enter_place();
+        let like = self.parts.as_deref().and_then(|p| p.asking) == Some(Asking::LikeWhich);
         if let Some(sheet) = sheet {
+            if like && let Some(project) = &self.project {
+                return match project.session.new_part_draft_copying(&sheet) {
+                    Ok(mut new) => {
+                        let _ = project.session.set_draft_field(&mut new, "part_number", "");
+                        new.messages.clear();
+                        self.open_sheet(new, None);
+                        Outcome::Done
+                    }
+                    Err(e) => draft_refusal(e),
+                };
+            }
             self.open_sheet(sheet, None);
             if let Some(open) = self.parts.as_deref_mut().and_then(|p| p.sheet.as_mut()) {
                 open.group = group;
@@ -404,29 +428,44 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `parts.new {kind?, from?, symbol?, plc?, cable?, bus?, plug?, field?}` (New part…, Like this, New cable type…,
-    /// New bus cable…, New plug…, a station's New part…): a new part's sheet in the place. `kind` presets its kind;
-    /// `from` starts it as a copy of a held part but for its number; `symbol` draws it with a saved symbol; `plc`
-    /// starts a station or a module ([`plc_preset`]); `cable` a cable sold by the metre; `bus` a cable made for the bus
-    /// (with `plug` a plug with a passive interface of it), and Save returns to the bus line's form's field `field`.
+    /// `parts.new {start?, like?, symbol?, bus?, field?}` (New part…, a card of What is it?, Like this, A part like
+    /// it…, New cable type…, New bus cable…, New plug…, a station's New part…): a new part's sheet in the place.
+    /// Without a start it asks What is it? first; `start` begins the sheet as that start of [`ew_api::parts::STARTS`]
+    /// presets it; `like` starts it as the open part but for its number, with no part open it asks for the part to
+    /// start from; `symbol` draws it with a saved symbol; `bus` makes the cable or the plug (start `plug`) for that bus,
+    /// and Save returns to the bus line's form's field `field`.
     pub(crate) fn act_parts_new(&mut self, p: &Map<String, Value>) -> Outcome {
         let symbol = or_return!(string_param(p, "symbol")).map(str::to_owned);
-        let plc = match or_return!(string_param(p, "plc")) {
-            Some(w) if PLC_PRESETS.contains(&w) => Some(w.to_owned()),
-            Some(_) => return failed(key!("error-bad-param"), &["plc"]),
+        let start = match or_return!(string_param(p, "start")) {
             None => None,
+            Some(name) => match start_named(name) {
+                Some(s) => Some(s),
+                None => return failed(key!("error-bad-param"), &["start"]),
+            },
         };
-        let from = match or_return!(string_param(p, "from")).map(str::parse::<Uuid>) {
-            None => None,
-            Some(Ok(c)) => Some(c),
-            Some(Err(_)) => return failed(key!("error-bad-param"), &["from"]),
-        };
-        let kind = or_return!(string_param(p, "kind")).map(str::to_owned);
+        let like = flag(p, "like");
         let project = or_return!(crate::shell::gated(&self.project));
-        let made = match (&symbol, from) {
-            (Some(address), _) => project.session.new_part_draft_for_symbol(address),
-            (None, Some(copy)) => project.session.new_part_draft_from(copy),
-            (None, None) => project.session.new_part_draft(),
+        let open = self.parts.as_deref().and_then(|p| p.sheet.as_ref());
+        let made = match (&symbol, start, like) {
+            (Some(address), _, _) => project.session.new_part_draft_for_symbol(address),
+            (None, Some(start), _) => project.session.start_sheet(start),
+            (None, None, true) if open.is_some() => {
+                let held = &open.expect("checked").sheet;
+                project.session.new_part_draft_copying(held).map(|mut d| {
+                    let _ = project.session.set_draft_field(&mut d, "part_number", "");
+                    d.messages.clear();
+                    d
+                })
+            }
+            (None, None, _) => {
+                // What is it?, or the part to start from: the place asks before a sheet opens.
+                self.enter_place();
+                if let Some(place) = self.parts.as_deref_mut() {
+                    place.sheet = None;
+                    place.asking = Some(if like { Asking::LikeWhich } else { Asking::WhatIsIt });
+                }
+                return Outcome::Done;
+            }
         };
         let mut sheet = match made {
             Ok(d) => d,
@@ -435,24 +474,10 @@ impl ShellModel {
         let set = |sheet: &mut PartSheet, f: &str, v: &str| {
             let _ = project.session.set_draft_field(sheet, f, v);
         };
-        if let Some(k) = &kind {
-            if !ew_api::part_kinds().iter().any(|w| w == k) {
-                return failed(key!("error-bad-param"), &["kind"]);
-            }
-            set(&mut sheet, "kind", k);
-        }
-        if let Some(word) = &plc {
-            plc_preset(&project.session, &mut sheet, word);
-        }
-        if flag(p, "cable") {
-            for (field, value) in [("kind", "cable"), ("unit", "m")] {
-                set(&mut sheet, field, value);
-            }
-        }
         let bus_part = match or_return!(string_param(p, "bus")) {
             None => None,
             Some(bus) => {
-                let plug = flag(p, "plug");
+                let plug = start.is_some_and(|s| s.name == "plug");
                 let field = match or_return!(string_param(p, "field")) {
                     Some("plug_a") => "plug_a",
                     Some("plug_b") => "plug_b",
@@ -460,19 +485,11 @@ impl ShellModel {
                     _ => "part",
                 };
                 if plug {
-                    set(&mut sheet, "kind", "accessory");
-                    sheet.add_bus_row();
-                    for (f, v) in [
-                        ("bus.0.bus", bus),
-                        ("bus.0.role", "passive"),
-                        ("bus.0.termination", ""),
-                    ] {
+                    for (f, v) in [("bus.0.bus", bus), ("bus.0.termination", "")] {
                         set(&mut sheet, f, v);
                     }
                 } else {
-                    for (f, v) in [("kind", "cable"), ("unit", "m"), ("cable.bus", bus)] {
-                        set(&mut sheet, f, v);
-                    }
+                    set(&mut sheet, "cable.bus", bus);
                 }
                 let made = BusPart {
                     plug,
@@ -557,9 +574,9 @@ impl ShellModel {
             self.sheet_changed();
             return Outcome::Done;
         }
-        // A module starts without a bus interface: the row a station's preset put in goes when the role is made
-        // Module, while it is as the preset made it.
-        if field == "plc.role" && value == "module" && open.sheet.new && preset_bus(&open.sheet.bus) {
+        // A module starts without a bus interface: the port a station's start put in goes when the role is made
+        // Module, while it is as the start made it.
+        if field == "plc.role" && value == "module" && open.sheet.new && open.sheet.port_as_started() {
             open.sheet.remove_bus_row(0);
         }
         // The front's imported outline is removed by an empty text.

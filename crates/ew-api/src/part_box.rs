@@ -414,6 +414,7 @@ impl PartSheet {
         if self.box_.is_some() {
             self.relayout(|_| {});
         }
+        self.pins_to_table();
         idx
     }
 
@@ -424,6 +425,7 @@ impl PartSheet {
         if let Some(b) = &mut self.box_ {
             b.pins.retain(|p| p.idx != idx);
         }
+        self.pins_to_table();
         self.pins.len() != before
     }
 
@@ -444,12 +446,13 @@ impl PartSheet {
         let Some(pin) = self.pins.iter_mut().find(|p| p.idx == idx) else {
             return Err(refuse(key!("error-part-pin-unknown"), &idx.to_string()));
         };
+        let mut renamed = None;
         if let Some(name) = name {
             let name = name.trim();
             if name.is_empty() || Ident::from_input(name).is_err() {
                 return Err(refuse(key!("error-part-pin-name"), name));
             }
-            name.clone_into(&mut pin.name);
+            renamed = Some(std::mem::replace(&mut pin.name, name.to_owned()));
         }
         if let Some(role) = role {
             if !role.is_empty() && !pin_roles().iter().any(|r| r == role) {
@@ -457,6 +460,16 @@ impl PartSheet {
             }
             role.clone_into(&mut pin.role);
         }
+        // The pin's row of Connections goes with its new name.
+        if let Some(old) = renamed
+            && let Some(name) = name
+            && let Some(t) = self.tables.iter_mut().find(|t| t.key.is_some())
+        {
+            for k in t.keys.iter_mut().filter(|k| **k == old) {
+                name.trim().clone_into(k);
+            }
+        }
+        self.pins_to_table();
         Ok(())
     }
 

@@ -13,7 +13,7 @@ use ew_viewmodel::ew_api::output::Uuid;
 use ew_viewmodel::ew_api::part_fields::Group;
 use ew_viewmodel::ew_api::parts::{Lives, PartFound, PartScope};
 use ew_viewmodel::shell::ShellModel;
-use ew_viewmodel::shell::parts_place::{OpenSheet, PartsPlace, lives_word};
+use ew_viewmodel::shell::parts_place::{Asking, OpenSheet, PartsPlace, lives_word};
 use ew_viewmodel::{count_key, key, strings};
 use serde_json::json;
 
@@ -115,8 +115,7 @@ pub(crate) fn toolbar(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) 
         {
             push(events, "parts.new");
         }
-        let like = open.filter(|o| !o.sheet.new).map(|o| o.sheet.copy);
-        let like_reason = like
+        let like_reason = open
             .is_none()
             .then(|| strings::text(key!("reason-no-part-open")).to_owned());
         if place_command(
@@ -128,9 +127,8 @@ pub(crate) fn toolbar(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) 
             like_reason,
         )
         .clicked()
-            && let Some(copy) = like
         {
-            events.push(Event::Action("parts.new", json!({ "from": copy.to_string() })));
+            events.push(Event::Action("parts.new", json!({ "like": true })));
         }
         bar_divider(ui);
         for (id, key, icon) in [
@@ -245,6 +243,10 @@ impl PlaceView {
             ui.add_space(t.space_3);
         }
         let Some(open) = &place.sheet else {
+            if let Some(asking) = place.asking {
+                question(ui, asking, events);
+                return;
+            }
             ui.add_space(t.space_6);
             ui.vertical_centered(|ui| {
                 ui.label(
@@ -890,8 +892,8 @@ fn labelled_field(
     enter
 }
 
-/// The identity fields, and the technical data when `with_tech` (the small forms; the sectioned editor shows them
-/// in Technical data).
+/// The identity fields of the sheet, the drawing symbol of a part made for one, and the Maker offered from the makers
+/// known; `true` when Enter was pressed in a field.
 fn identity_rows(ui: &mut Ui, e: &OpenSheet, just_opened: bool, events: &mut Vec<Event>) -> bool {
     let d = &e.sheet;
     let t = theme::current(ui.ctx());
@@ -2086,4 +2088,144 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartSheet, just_opened: bo
 fn field_message(d: &ew_viewmodel::ew_api::PartSheet, field: &str) -> Option<String> {
     d.message(field)
         .map(|m| ew_viewmodel::shell::part_dialog::message_text(strings::Key::run_time(m.key), &m.args))
+}
+
+/// The card width of What is it? and the gap between cards.
+const CARD_WIDTH: f32 = 300.0;
+
+/// New part…'s first question (doc 07 §5.5, picture v10): the starts' cards in their groups, three to a row, and A
+/// part like it…; or, after that card, the line that asks for the part to start from.
+fn question(ui: &mut Ui, asking: Asking, events: &mut Vec<Event>) {
+    use ew_viewmodel::ew_api::parts::{STARTS, StartGroup};
+    let t = theme::current(ui.ctx());
+    let width = ui
+        .available_width()
+        .min(3.0 * CARD_WIDTH + 2.0 * t.space_3 + 2.0 * t.space_5);
+    let rect = egui::Rect::from_min_size(
+        pos2(ui.max_rect().center().x - width / 2.0, ui.cursor().top()),
+        vec2(width, ui.available_height()),
+    );
+    ui.painter()
+        .rect_filled(rect, theme::radius(t.radius_lg), t.surface_panel.color32());
+    ui.scope_builder(UiBuilder::new().max_rect(rect.shrink(t.space_5)), |ui| {
+        ScrollArea::vertical()
+            .id_salt("parts-question")
+            .auto_shrink([false, false])
+            .show(ui, |ui| {
+                ui.label(
+                    RichText::new(strings::text(key!("parts-new-title"))).font(theme::font(&t.type_title)),
+                );
+                ui.add_space(t.space_1);
+                if asking == Asking::LikeWhich {
+                    ui.label(
+                        RichText::new(strings::text(key!("parts-like-which")))
+                            .color(t.text_secondary.color32()),
+                    );
+                    return;
+                }
+                ui.label(
+                    RichText::new(strings::text(key!("parts-what-is-it"))).color(t.text_secondary.color32()),
+                );
+                let cols = ((ui.available_width() + t.space_3) / (CARD_WIDTH + t.space_3))
+                    .floor()
+                    .max(1.0);
+                let card_w = (ui.available_width() - (cols - 1.0) * t.space_3) / cols;
+                let mut cards = |ui: &mut Ui,
+                                 list: Vec<(
+                    &'static str,
+                    strings::Key<'static>,
+                    strings::Key<'static>,
+                    serde_json::Value,
+                )>| {
+                    for row in list.chunks(cols as usize) {
+                        ui.horizontal_top(|ui| {
+                            ui.spacing_mut().item_spacing.x = t.space_3;
+                            for (icon, word, line, params) in row {
+                                if start_card(ui, card_w, icon, *word, *line) {
+                                    events.push(Event::Action("parts.new", params.clone()));
+                                }
+                            }
+                        });
+                        ui.add_space(t.space_3);
+                    }
+                };
+                for group in StartGroup::ALL {
+                    ui.add_space(t.space_4);
+                    let heading = strings::text(strings::Key::run_time(group.word())).to_uppercase();
+                    ui.label(RichText::new(heading).font(theme::font(&t.type_label)));
+                    ui.add_space(t.space_2);
+                    let list = STARTS
+                        .iter()
+                        .filter_map(|s| s.card.filter(|c| c.group == group).map(|c| (s, c)))
+                        .map(|(s, c)| {
+                            (
+                                c.icon,
+                                strings::Key::run_time(c.word),
+                                strings::Key::run_time(c.line),
+                                json!({ "start": s.name }),
+                            )
+                        })
+                        .collect();
+                    cards(ui, list);
+                }
+                ui.add_space(t.space_4);
+                let heading = strings::text(key!("parts-start-from")).to_uppercase();
+                ui.label(RichText::new(heading).font(theme::font(&t.type_label)));
+                ui.add_space(t.space_2);
+                cards(
+                    ui,
+                    vec![(
+                        "copy",
+                        key!("parts-like-card"),
+                        key!("parts-like-card-line"),
+                        json!({ "like": true }),
+                    )],
+                );
+            });
+    });
+}
+
+/// One card of What is it?: its icon, its title and its line; `true` when clicked. Its accessible name is its title.
+fn start_card(
+    ui: &mut Ui,
+    width: f32,
+    icon: &str,
+    word: strings::Key<'static>,
+    line: strings::Key<'static>,
+) -> bool {
+    let t = theme::current(ui.ctx());
+    let title = strings::text(word);
+    let inner = egui::Frame::NONE
+        .fill(t.surface_panel.color32())
+        .stroke(theme::stroke(t.border_width, t.border_subtle))
+        .corner_radius(theme::radius(t.radius_md))
+        .inner_margin(egui::Margin::same(t.space_3 as i8))
+        .show(ui, |ui| {
+            ui.set_width(width - 2.0 * t.space_3);
+            ui.horizontal_top(|ui| {
+                if let Some(id) = IconId::from_key(icon) {
+                    mark(ui, id, t.text_secondary.color32());
+                }
+                ui.add_space(t.space_2);
+                ui.vertical(|ui| {
+                    ui.label(RichText::new(title).font(theme::font(&t.type_body_strong)));
+                    ui.add(egui::Label::new(components::small_secondary(&t, strings::text(line))).wrap());
+                });
+            });
+        });
+    let r = ui.interact(
+        inner.response.rect,
+        inner.response.id.with("start-card"),
+        Sense::click(),
+    );
+    if r.hovered() {
+        ui.painter().rect_stroke(
+            inner.response.rect,
+            theme::radius(t.radius_md),
+            theme::stroke(t.border_width, t.accent),
+            egui::StrokeKind::Inside,
+        );
+    }
+    r.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, title));
+    r.clicked()
 }

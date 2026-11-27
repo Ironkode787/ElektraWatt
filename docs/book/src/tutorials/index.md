@@ -31,7 +31,7 @@ Each tutorial runs as a test of EW's own build, so its steps, menu paths and key
    the PLC overview page and the export to PLC software. You need EW installed and an empty folder.
 7. [A bus network](bus-network.md): a bus-topology page with a CPU, a remote I/O station and a switch from the
    generic parts, the bus lines, the node addresses, a bus cable with its plugs, a frequency converter of your own
-   made in the part editor, and the check. You need EW installed and an empty folder.
+   made in Parts, and the check. You need EW installed and an empty folder.
 8. [A pneumatic circuit](pneumatic-circuit.md): a fluid page with an air supply and its medium, a service unit, a 5/2
    solenoid valve and a double-acting cylinder with flow controls, the tubes, the valve's solenoid wired to a PLC
    output, a valve terminal with its positions filled, and the tube list. You need EW installed and an empty folder.

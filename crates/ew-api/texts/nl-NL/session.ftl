@@ -282,7 +282,7 @@ error-part-manufacturer = Geen fabrikant heet “{ $p0 }”; kies er een uit de 
 error-part-kind = “{ $p0 }” is geen artikelsoort
 error-part-category = Een categorie heeft drie niveaus: categorie/groep/definitie
 error-part-value = { $p0 }
-error-part-field = De artikeleditor heeft geen veld { $p0 }
+error-part-field = Het blad van een artikel heeft geen veld { $p0 }
 # een nieuw artikel en zijn businterfaces, gemaakt in de artikeleditor (Bewerken ▸ Nieuw artikel…).
 error-part-bus-interface = Een interface heeft een naam nodig, zoals X1 of DP
 error-part-bus-system = “{ $p0 }” is geen bussysteem; kies er een uit de lijst
@@ -291,7 +291,7 @@ error-part-bus-ports = “{ $p0 }” is geen aantal poorten: typ een geheel geta
 error-part-bus-termination = “{ $p0 }” is geen stand van een afsluitschakelaar: kies aan, uit of geen
 error-part-bus-twice = Interface { $p0 } staat er twee keer; geef elke rij een eigen interface of poortlabel
 error-part-new-id = Er kon geen nieuw artikel worden gemaakt: het systeem gaf geen willekeurig getal; probeer het opnieuw
-error-part-exists = Het project of uw artikelbibliotheek heeft artikel { $p0 } van { $p1 } al; geef het nieuwe artikel een eigen artikelnummer
+error-part-exists = { $p1 } { $p0 } staat al in Mijn artikelen of in dit project: open het in de lijst, of geef het nieuwe artikel een eigen artikelnummer
 error-part-library = { $p0 } kon niet worden geschreven: { $p1 }
 reason-part-symbol-unsaved = Sla het symbool eerst op in een bibliotheek; het artikel noemt het dan
 reason-part-not-own = Dit artikel staat niet in uw artikelbibliotheek: alleen een eigen artikel wordt eruit verwijderd
@@ -654,3 +654,46 @@ via-gland-hole-not-placed = niet geplaatst
 
 ## Bewaren in Mijn artikelen (doc 07 §5.8)
 reason-part-keep = Alleen een artikel dat alleen in dit project staat, wordt in Mijn artikelen bewaard.
+
+## De eerste vraag van Nieuw artikel…, Wat is het? (doc 07 §5.5): de groepen, en per begin de kaart met de regel van
+## wat erna gevraagd wordt
+part-starts-devices = Apparaten
+part-starts-wiring = Klemmen, kabels en bedrading
+part-starts-cabinet = Kastopbouw
+part-starts-fluid = Pneumatiek
+part-start-device = Apparaat met symbolen
+part-start-device-line = Een magneetschakelaar, een automaat, een relais, een schakelaar, een lamp: getekend als zijn delen.
+part-start-box = Apparaat getekend als blok
+part-start-box-line = Een voeding, een aandrijving, een busapparaat: een blok met zijn aansluitingen en poorten.
+part-start-module = PLC-kaart of station
+part-start-module-line = Kanalen met adressen, op een rek of een bus.
+part-start-door = Drukknop of lamp in een deur
+part-start-door-line = Getekend met een symbool, gemonteerd in een uitsparing.
+part-start-terminal = Klem
+part-start-terminal-line = Zijn niveaus en klemmen, zijn breedte.
+part-start-cable = Kabel
+part-start-cable-line = Zijn aders en zijn buitendiameter.
+part-start-wire = Draad
+part-start-wire-line = Een doorsnede en een kleur, voor de voorraad.
+part-start-ferrule = Adereindhuls of kabelschoen
+part-start-ferrule-line = De doorsneden die het neemt.
+part-start-marker = Merker
+part-start-marker-line = Wat het merkt en hoeveel tekst erop past.
+part-start-gland = Kabelwartel
+part-start-gland-line = Zijn draad en de kabels die het klemt.
+part-start-enclosure = Kast
+part-start-enclosure-line = Zijn maten, zijn montageplaat, zijn deuren.
+part-start-plate = Montageplaat
+part-start-plate-line = Zijn maten.
+part-start-rail = Rail
+part-start-rail-line = Zijn profiel.
+part-start-duct = Kabelgoot
+part-start-duct-line = Zijn buiten- en binnenmaat.
+part-start-accessory = Eindsteun of toebehoren
+part-start-accessory-line = Een eindplaat, een deksel, een brug: geteld met waar het bij hoort.
+part-start-valve = Ventiel
+part-start-valve-line = Zijn poorten en zijn spoel.
+part-start-tube = Slang
+part-start-tube-line = Zijn diameters en zijn druk.
+part-start-fluid = Ander pneumatisch apparaat
+part-start-fluid-line = Een cilinder, een luchtbehandelingseenheid: getekend met een symbool.

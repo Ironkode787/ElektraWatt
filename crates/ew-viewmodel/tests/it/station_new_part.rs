@@ -31,7 +31,7 @@ fn a_card_made_from_a_new_station_s_catalogue_starts_without_a_bus_interface() {
     let tmp = Tmp::new("station-new-part-card");
     let mut s = new_project(&tmp);
     done(&mut s, "plc.new_station", json!({}));
-    done(&mut s, "parts.new", json!({"plc": "cpu"}));
+    done(&mut s, "parts.new", json!({"start": "cpu"}));
     assert_eq!(bus_rows(&s).len(), 1, "the head's form starts with its bus row");
     done(
         &mut s,
@@ -64,7 +64,7 @@ fn a_part_saved_from_a_new_station_s_catalogue_is_offered_not_made_its_head() {
     let tmp = Tmp::new("station-new-part-head");
     let mut s = new_project(&tmp);
     done(&mut s, "plc.new_station", json!({}));
-    done(&mut s, "parts.new", json!({"plc": "cpu"}));
+    done(&mut s, "parts.new", json!({"start": "cpu"}));
     save_part(&mut s, "CPU-OWN-1");
     assert_eq!(
         s.station_draft().and_then(|d| d.head),
@@ -77,7 +77,7 @@ fn a_part_saved_from_a_new_station_s_catalogue_is_offered_not_made_its_head() {
     );
     // With the empty head chosen first, the part made is its head.
     done(&mut s, "plc.rack_select", json!({"head": true}));
-    done(&mut s, "parts.new", json!({"plc": "cpu"}));
+    done(&mut s, "parts.new", json!({"start": "cpu"}));
     save_part(&mut s, "CPU-OWN-2");
     let head = s.station_draft().and_then(|d| d.head).expect("a head");
     let number = s

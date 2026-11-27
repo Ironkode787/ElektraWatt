@@ -585,7 +585,7 @@ rule-ew-lay-012 = { $form ->
     .title = Holes too close
     .hint = Move a hole, or keep the web between holes the workshop needs.
 rule-ew-lay-017 = { $form ->
-        [part] The part { $part } of { $devices } goes in a cut-out or is screwed on, but has no holes, so the hole table and the drawings of { $surface } lack them: give the part its holes in the part editor (Front view and holes)
+        [part] The part { $part } of { $devices } goes in a cut-out or is screwed on, but has no holes, so the hole table and the drawings of { $surface } lack them: give the part its holes in Parts (In the cabinet)
         [lost] { $device }: { $n ->
             [one] a hole moved or left out is
            *[other] { $n } holes moved or left out are
@@ -593,7 +593,7 @@ rule-ew-lay-017 = { $form ->
        *[device] { $device } has no part, so its holes on { $surface } are not known: choose its part
     }
     .title = Holes not known
-    .hint = Give the part its holes in the part editor (Front view and holes), or choose the device's part.
+    .hint = Give the part its holes in Parts (In the cabinet), or choose the device's part.
 rule-ew-lay-018 = { $form ->
         [no_diameter] the gland of { $cable } is not known: its cable part gives no outer diameter; give it one, or choose the gland in the cable's Properties
         [none_seals] no gland of the workshop stock seals { $cable }, { DECIMAL($od) } mm across: add one to the stock, or choose the gland in the cable's Properties

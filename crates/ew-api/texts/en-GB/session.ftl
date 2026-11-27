@@ -293,7 +293,7 @@ error-part-manufacturer = No manufacturer is called “{ $p0 }”; choose one fr
 error-part-kind = “{ $p0 }” is not a part kind
 error-part-category = A category has three levels: category/group/definition
 error-part-value = { $p0 }
-error-part-field = The part editor has no field { $p0 }
+error-part-field = A part's sheet has no field { $p0 }
 # A new part and its bus interfaces, made in the part editor (Edit ▸ New part…).
 error-part-bus-interface = An interface needs a name, such as X1 or DP
 error-part-bus-system = “{ $p0 }” is no bus system; choose one from the list
@@ -302,7 +302,7 @@ error-part-bus-ports = “{ $p0 }” is no number of ports: type a whole number 
 error-part-bus-termination = “{ $p0 }” is no state of a termination switch: choose on, off or none
 error-part-bus-twice = Interface { $p0 } is listed twice; give each row its own interface or port label
 error-part-new-id = No new part could be made: the system gave no random number; try again
-error-part-exists = The project or your parts library has part { $p0 } of { $p1 } already; give the new part its own part number
+error-part-exists = { $p1 } { $p0 } is in My parts or in this project already: open it from the list, or give the new part a part number of its own
 error-part-library = { $p0 } could not be written: { $p1 }
 reason-part-symbol-unsaved = Save the symbol to a library first; the part then names it
 reason-part-not-own = This part is not in your parts library: only a part of your own is taken out of it
@@ -669,3 +669,46 @@ via-gland-hole-not-placed = not placed
 
 ## Keep in my parts (doc 07 §5.8)
 reason-part-keep = Only a part that is only in this project is kept in My parts.
+
+## New part…'s first question, What is it? (doc 07 §5.5): its groups, and each start's card with the line of what it
+## will be asked for
+part-starts-devices = Devices
+part-starts-wiring = Terminals, cables and wiring
+part-starts-cabinet = Cabinet
+part-starts-fluid = Pneumatics
+part-start-device = Device with symbols
+part-start-device-line = A contactor, a breaker, a relay, a switch, a lamp: drawn as its pieces.
+part-start-box = Device drawn as a box
+part-start-box-line = A power supply, a drive, a bus device: a box with its pins and ports.
+part-start-module = PLC card or station
+part-start-module-line = Channels with addresses, on a rack or a bus.
+part-start-door = Pushbutton or lamp in a door
+part-start-door-line = Drawn with a symbol, mounted in a cut-out.
+part-start-terminal = Terminal
+part-start-terminal-line = Its levels and clamps, its width.
+part-start-cable = Cable
+part-start-cable-line = Its cores and its outer diameter.
+part-start-wire = Wire
+part-start-wire-line = A cross-section and a colour, for the stock.
+part-start-ferrule = Ferrule or lug
+part-start-ferrule-line = The cross-sections it takes.
+part-start-marker = Marker
+part-start-marker-line = What it marks and how much text it holds.
+part-start-gland = Cable gland
+part-start-gland-line = Its thread and the cables it clamps.
+part-start-enclosure = Enclosure
+part-start-enclosure-line = Its size, its mounting plate, its doors.
+part-start-plate = Mounting plate
+part-start-plate-line = Its size.
+part-start-rail = Rail
+part-start-rail-line = Its profile.
+part-start-duct = Wiring duct
+part-start-duct-line = Its outer and inner size.
+part-start-accessory = End bracket or accessory
+part-start-accessory-line = An end plate, a cover, a bridge: counted with what it comes with.
+part-start-valve = Valve
+part-start-valve-line = Its ports and its coil.
+part-start-tube = Tube
+part-start-tube-line = Its diameters and its pressure.
+part-start-fluid = Other pneumatic device
+part-start-fluid-line = A cylinder, an air service unit: drawn with a symbol.

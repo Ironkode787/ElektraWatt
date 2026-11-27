@@ -26,7 +26,7 @@
   - [Choose parts](how-to/choose-parts.md)
   - [Draw a panel layout](how-to/panel-layout.md)
   - [Work in the PLC workspace](how-to/plc-workspace.md)
-  - [Make your own PLC or bus part](how-to/own-parts.md)
+  - [Make your own parts](how-to/own-parts.md)
   - [Work in the Fluid workspace](how-to/fluid-workspace.md)
   - [Upgrade a project](how-to/upgrade-a-project.md)
 

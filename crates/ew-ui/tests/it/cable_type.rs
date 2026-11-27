@@ -140,7 +140,8 @@ fn a_new_part_of_kind_cable_has_the_cable_section() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     assert_eq!(
-        d.shell_mut().dispatch("parts.new", &serde_json::json!({})),
+        d.shell_mut()
+            .dispatch("parts.new", &serde_json::json!({"start": "device"})),
         Outcome::Done
     );
     shown(&mut d);
