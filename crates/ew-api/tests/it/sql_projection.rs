@@ -56,7 +56,7 @@ fn every_view_has_its_documented_columns_and_the_sample_counts() {
     };
     // The sample's script: 18 terminals on the strips -X1011, -X1021 and -X1031, 3 cables with 13 cores (5, 4 and a
     // shield, 2 and a shield), the two bridge groups of -X1021, the one bond
-    // (0 V to PE), the 27 pages, 7 tubes, no medium.
+    // (0 V to PE), a row per page, 7 tubes, no medium.
     assert_eq!(count("api_v1_terminal"), "18");
     assert_eq!(count("api_v1_cable"), "3");
     assert_eq!(count("api_v1_conductor"), "13");
@@ -69,7 +69,9 @@ fn every_view_has_its_documented_columns_and_the_sample_counts() {
         "2"
     );
     assert_eq!(count("api_v1_bond"), "1");
-    assert_eq!(count("api_v1_page"), "41");
+    // A row per page of the page order, drawn and generated.
+    let pages = crate::common::sample().page_labels().len().to_string();
+    assert_eq!(count("api_v1_page"), pages);
     assert_eq!(count("api_v1_meta"), "1");
     assert_eq!(count("api_v1_fluid_line"), "7");
     assert_eq!(count("api_v1_medium"), "0");

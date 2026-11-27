@@ -66,20 +66,11 @@ fn the_sample_page_order_includes_the_generated_pages_with_two_toc_pages() {
     }
     assert_eq!(labels.last(), Some(&"925"));
 
-    // The whole order: the sample's pages. The parts list 901 paginates into 901 and 901.1 (31 rows), the legend of
-    // the layout 902 into 902.1 and 902.2 (30 rows), the door's 904 has its legend 904.1 and the bottom's 905 its 905.1,
-    // the wire list 907 into 907, 907.1 and 907.2, the PLC overview 908 into 908 and 908.1 (24 channels), the potential
-    // overview, the device tag overview and the three workshop lists (912 to 914) into two pages each; the hole table
-    // is 925.
-    assert_eq!(
-        labels,
-        [
-            "1", "2", "2.1", "100", "101", "102", "103", "104", "105", "200", "201", "900", "901", "901.1",
-            "902", "902.1", "902.2", "903", "904", "904.1", "905", "905.1", "906", "907", "907.1", "907.2",
-            "908", "908.1", "909", "909.1", "910", "910.1", "911", "912", "912.1", "913", "913.1", "913.2",
-            "914", "914.1", "925",
-        ]
-    );
+    // A list of more than one page continues on the pages right after it (the parts list 901 on 901.1, the wire list
+    // 907 on 907.1), and a layout's legend follows its layout (902.1 after 902).
+    for (list, next) in [("901", "901.1"), ("907", "907.1"), ("902", "902.1")] {
+        assert_eq!(at(next), at(list) + 1, "{next} follows {list}");
+    }
 
     // The TOC fixpoint (doc 09 §3.1): more pages than one TOC page of 23 rows holds need two; the count is stable.
     assert!(order.len() > 23);

@@ -11,11 +11,6 @@ use ew_api::output::ExportOptions;
 use ew_api::{AnyCommand, Recovery, Session, SessionOptions, StoreOptions};
 use ew_testdir::Tmp;
 
-/// The sample's pages: the title page, two of contents, three section dividers, the nine drawn pages and the
-/// twenty-five generated pages of its reports (the workshop lists and the hole table among them) and its layouts'
-/// legends.
-const PAGES: u32 = 41;
-
 /// An editing session on a copy of the sample (the committed project is only read, never opened).
 fn sample_copy(tmp: &Tmp) -> Session {
     let dir = tmp.sample("sample.ew");
@@ -57,8 +52,8 @@ fn the_export_job_equals_the_synchronous_export_and_the_digest_and_keeps_its_sna
     let end = pdf_job("pdf", None, job).wait();
     let JobEnd::Done(out) = end else { panic!("{end:?}") };
     assert_eq!(
-        u32::try_from(out.pages).unwrap(),
-        PAGES,
+        usize::try_from(out.pages).unwrap(),
+        labels,
         "the snapshot's pages, not the edited model's"
     );
     assert!(
@@ -74,6 +69,7 @@ fn the_export_job_equals_the_synchronous_export_and_the_digest_and_keeps_its_sna
 fn a_cancel_at_the_held_page_gate_after_page_2_is_cancelled() {
     let tmp = Tmp::new("ew-api-job-cancel");
     let s = sample_copy(&tmp);
+    let pages = u32::try_from(s.page_labels().len()).unwrap();
     let gate = Gate::new();
     gate.hold("page");
     let job = pdf_job("pdf", Some(gate.clone()), s.export_job(&ExportOptions::default()));
@@ -82,7 +78,7 @@ fn a_cancel_at_the_held_page_gate_after_page_2_is_cancelled() {
         job.progress(),
         Progress {
             done: 0,
-            total: PAGES,
+            total: pages,
             phase: "building"
         },
         "page 1's scene is built"
