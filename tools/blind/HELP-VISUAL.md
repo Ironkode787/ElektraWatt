@@ -1,6 +1,6 @@
 ---
 prompt: blind-help-visual
-version: 3
+version: 4
 ---
 # The harness: how to work with it (a visual run)
 
@@ -51,6 +51,11 @@ read its detail with `look --zoom`, whose regions are at most 768 × 497 pixels.
 The pointer stays where your last input left it, so the next picture shows what it hovers over. A batch is sent in full:
 an input that does nothing does not stop the ones after it, so keep a batch short when you are not sure what a click
 will do, and look at the picture before you go on.
+
+**Pins close together.** A click on a page takes the connection point nearest the pointer, so where pins stand a few
+pixels apart (a card's or a strip's row) a click a little off takes the neighbour. Before such a click, `hover` there,
+`wait` about 600 and look with `--zoom`: the point the click will take wears a blue ring, and its tooltip names it
+(`-201K1-Q1:1 · …`). Click at the same place when it is the one you mean.
 
 **What the system does for you.** You have no file dialog of your own: when the program asks the system for a folder or
 a file name, the answer is given for you, always inside your work folder. A new, opened or saved project is the folder
