@@ -81,8 +81,8 @@ fn place_command(
     )
 }
 
-/// The shell's reason why action `id` cannot run now.
-fn refusal(shell: &ShellModel, id: &str) -> Option<String> {
+/// The shell's reason why action `id` cannot run now, in words (Parts' bars, its Part tab's and its drawing's).
+pub(crate) fn refusal(shell: &ShellModel, id: &str) -> Option<String> {
     ew_viewmodel::actions::find(id)
         .and_then(|m| m.enabled_now(shell).err())
         .map(|t| strings::render(&t))

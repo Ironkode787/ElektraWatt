@@ -16,6 +16,7 @@ use crate::{
     app::Event,
     components::{self, Kind, Tip as _},
     icons::IconId,
+    parts_place::refusal,
     theme,
 };
 use egui::{Align, Layout, Pos2, Rect, Sense, Ui, UiBuilder, Vec2};
@@ -392,13 +393,6 @@ impl EditorView {
             });
         });
     }
-}
-
-/// The shell's reason why action `id` cannot run now, in words.
-fn refusal(shell: &ShellModel, id: &str) -> Option<String> {
-    ew_viewmodel::actions::find(id)
-        .and_then(|m| m.enabled_now(shell).err())
-        .map(|r| strings::render(&r))
 }
 
 /// The Drawing tab's way back, at its left end: Back without it from a page, To the part from a piece or a box.
