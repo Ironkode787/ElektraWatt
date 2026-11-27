@@ -224,7 +224,7 @@ Where no way has room, the wire takes the shortest way all the same, and its duc
 §8.6). The ways not planned hold their room.
 
 No second pass moves wires out of a full duct to make room for others. Route already avoids a full duct where a way
-with room exists, and the sample needs none: the fullest piece of its one duct holds 20 wires, 9 % of its area. A
+with room exists, and the sample needs none: the fullest piece of its one duct holds 18 wires, 8 % of its area. A
 cabinet whose duct goes over its limit is told so, and gets a wider duct or a second one.
 
 ### 8.5 Route, the stored ways and when a way no longer holds
@@ -256,7 +256,7 @@ The record of the sample's 101.8, from -101Q1:2 on its bottom edge down into duc
 -103F1's front to its pin 1 (IDs shortened):
 
 ```json
-{"$k":"committed_route","id":"…","space":"…","wire":"…","ends":[{"cp":["…",1],"surface":"…","at":[82200000,537500000],"h":42500000},{"cp":["…",0],"surface":"…","at":[419000000,622500000],"h":42500000}],"way":[{"duct":{"carrier":"…","from":57200000,"to":394000000}}],"run":641800000}
+{"$k":"committed_route","id":"…","space":"…","wire":"…","ends":[{"cp":["…",1],"surface":"…","at":[86700000,537500000],"h":42500000},{"cp":["…",0],"surface":"…","at":[359000000,622500000],"h":42500000}],"way":[{"duct":{"carrier":"…","from":61700000,"to":334000000}}],"run":577300000}
 ```
 
 The way is stored so that a length does not change behind the person's back: the length is made from `run` (§9), and
@@ -305,8 +305,8 @@ The table is data of `ew-derive` with its source (PM §6.7: H05V-K to 1 mm², H0
 read it says "with default diameters (unverified)". A cable gets no way and is not counted.
 
 A duct over its limit is EW-LAY-008 (warning): "Duct 1 (40×60) is 72 % full where it is fullest; the limit is 60 %:
-widen it or add a duct". On the sample, 23 ways run in duct 1; its fullest piece holds 20 of them, 178.4 mm² of its
-2,040 mm² (0.85 × 40 × 60): 9 %.
+widen it or add a duct". On the sample, 23 ways run in duct 1; its fullest piece holds 18 of them, 154.5 mm² of its
+2,040 mm² (0.85 × 40 × 60): 8 %.
 
 ### 8.7 What Route does not do
 
@@ -354,11 +354,11 @@ wins:
 | `Missing` | none of these | — | missing; `site` for a field wire, whose length the site gives |
 
 A typed length wins and stays as typed. Route still lays a typed wire, so that its duct counts it, and its Properties
-say both: "Typed by hand. Route gives it 225 mm: clear the length to take it." No length is estimated before Route:
+say both: "Typed by hand. Route gives it 180 mm: clear the length to take it." No length is estimated before Route:
 a wire of the cabinet has a length when Route has laid it or when one is typed.
 
-**What a person is told.** Properties of a wire explain its length as one text with its numbers: "Routed: 821 mm of way,
-50 mm reserve at each end and a 300 mm door loop, rounded up to 1,225 mm"; "Stale: -X1031 moved. Route gives it a new
+**What a person is told.** Properties of a wire explain its length as one text with its numbers: "Routed: 772.5 mm of way,
+50 mm reserve at each end and a 300 mm door loop, rounded up to 1,175 mm"; "Stale: -X1031 moved. Route gives it a new
 way"; "No way yet: Route on page 902 gives it one, or type its length here"; "No way: -102S1 is not placed".
 
 **What reads the length.** The record is the one source (ADR-0018):
@@ -378,9 +378,9 @@ EW-LAY-011's (§8.5), not EW-MFG-001's.
 
 | Wire | Way | Run | Length |
 |---|---|---|---|
-| 101.4, -X1011:PE (clamp a) to -101G1:PE | down 117.5 into duct 1, climb 2.5, along 154.8, back across -101G1's front 185, climb 32.5 | 492.3 | 595 (+ 2 × 50, rounded up) |
+| 101.4, -X1011:PE (clamp a) to -101G1:PE | down 117.5 into duct 1, climb 2.5, along 156.1, back across -101G1's front 185, climb 32.5 | 493.6 | 595 (+ 2 × 50, rounded up) |
 | 101.14, -101G1:+#1 to -101G1:+#2 | direct, along the bottom edge | 15.0 | 115 |
-| 104.3, -104A1-A1:M to -104E1:X2 in the door | back across the module's front 220, climb 15, along duct 1 to its hinge end 160.7, free air 25, along the door 380 (300 from the hinge, 80 up), up the lamp 20 | 820.7 | 1,225 (+ 2 × 50 + 300 loop) |
+| 104.3, -104A1-A1:M to -104E1:X2 in the door | back across the module's front 220, climb 15, along duct 1 to its hinge end 112.5, free air 25, along the door 380 (300 from the hinge, 80 up), up the lamp 20 | 772.5 | 1,175 (+ 2 × 50 + 300 loop) |
 
 ---
 
@@ -674,7 +674,7 @@ are the Connections table (§8.8, §12.5): neither is a panel of its own.
 ### 12.4 Accessibility and degraded hosts
 
 - No meaning in colour alone (NFR-A11Y-03): collisions are red plus hatch plus icon; a duct's fill is a number
-  ("9 %"), and one over its limit carries the warning icon and the word "over"; a stale length prints "≈" and its
+  ("8 %"), and one over its limit carries the warning icon and the word "over"; a stale length prints "≈" and its
   Length from says "stale"; a stale way is drawn dashed.
 - Keyboard placement (NFR-A11Y-01): Tab cycles placements in `carrier_order`, arrows move by snap step, Enter opens
   the property grid. The live region announces "-102F1, MCB, rail R1 at 158 mm, no findings" (NFR-A11Y-02; with
@@ -695,17 +695,17 @@ gives each wire its way through the ducts and its length", with Route. (2) Route
 schematic page the same button routes the drawing) shows the preview. The canvas shows the cabinet whole while the
 card is open (and the page as it was when it closes): every planned way as a line from its pins into the ducts and
 along them, in `canvas.ghost`, the ways in a duct side by side across its width; the wires to a door as one arrow
-to the hinge side with their count; and on each duct a chip with its fill where it is fullest ("9 %"; over the limit
+to the hinge side with their count; and on each duct a chip with its fill where it is fullest ("8 %"; over the limit
 the chip takes the warning icon, "72 % · over 60 %"). A row of the card hovered or selected shows its way alone, in
 the accent. In the Preview tab the card:
 
 - the lead: "Route: cabinet +CAB. 41 wires get a way through the ducts; 3 are made on site. Nothing has changed
   yet.";
-- **Ducts:** per duct its label, size and fill where fullest ("Duct 1 · 40×60 · 9 % of 2,040 mm²"), one over the
+- **Ducts:** per duct its label, size and fill where fullest ("Duct 1 · 40×60 · 8 % of 2,040 mm²"), one over the
   limit first;
-- **Lengths:** per wire its number, its ends and its length, a wire whose way changes as "735 → 680 mm";
+- **Lengths:** per wire its number, its ends and its length, a wire whose way changes as "475 → 445 mm";
 - **Typed by hand:** the wires that keep their typed length, with what Route gives ("101.1 keeps 400 mm; Route gives
-  225 mm");
+  180 mm");
 - **Made on site** and **Without a way:** per wire the reason in the words of §8.2;
 - the tick **Route every wire again**, with the count of the wires whose way still holds; ticked, the card plans again;
 - Apply and Cancel.
@@ -714,7 +714,7 @@ the accent. In the Preview tab the card:
 Undo. (4) In the Connections table (table mode) the Length column holds every length, in the secondary colour as a
 derived value, and Length from says "routed". (5) A wire selected there or on a schematic page shows its way on the
 panel page: a 2-px accent line from pin to pin, its pins as connection-point rings, and a chip with its number and
-length ("104.3 · 1,225 mm"); a device selected on the panel page shows the ways of its wires. Properties of the wire
+length ("104.3 · 1,175 mm"); a device selected on the panel page shows the ways of its wires. Properties of the wire
 show Length with its source chip and the explanation of §9, and the row Way ("Duct 1, door", "direct") with Show on
 902.
 
@@ -724,11 +724,11 @@ presses Route, applies and prints: the lengths come with the list.
 
 **The day after.** He turns -X1031 so that its inner side faces the duct. The toast of the turn says "Turned -X1031.
 The ways of 5 wires no longer hold." with Route; the HUD says it until he routes; the Connections table prints their
-lengths "≈ 735" with Length from "stale"; Messages hold EW-LAY-011. Route then plans those five only, and the card
-lists "103.5 · 735 → 680 mm". A duct he widened, moved or deleted says the same of its wires.
+lengths "≈ 475" with Length from "stale"; Messages hold EW-LAY-011. Route then plans those five only, and the card
+lists "103.5 · 475 → 445 mm". A duct he widened, moved or deleted says the same of its wires.
 
 **A duct.** Selected, it shows its fill chip and its fullest piece hatched in `canvas.stale`'s pattern (§8.6). Its
-Properties show Size, Inner area ("2,040 mm² · 0.85 × 40 × 60: the part gives no inner size"), Fill ("9 % where
+Properties show Size, Inner area ("2,040 mm² · 0.85 × 40 × 60: the part gives no inner size"), Fill ("8 % where
 fullest · the limit is 60 %", "with default diameters (unverified)" where it read the table) and Wires ("23 · Select
 them", which selects them for the Connections table).
 

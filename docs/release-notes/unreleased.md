@@ -508,8 +508,8 @@ change here.
   `no_duct`, `off_plate`)
 - api-add: `project.settings.set` sets `workshop.reserve`, `workshop.fill_limit` and `workshop.door_loop`, refusing in
   words a length below nothing and a limit outside 1 … 100
-- behaviour-change: a wire's Properties say how its length is made ("Routed: 412.5 mm of way, 50 mm reserve at each
-  end, rounded up to 515 mm"; "Stale: -X1031 moved. Route gives it a new way"; "No way yet: Route on page 902 gives it
+- behaviour-change: a wire's Properties say how its length is made ("Routed: 577.3 mm of way, 50 mm reserve at each
+  end, rounded up to 680 mm"; "Stale: -X1031 moved. Route gives it a new way"; "No way yet: Route on page 902 gives it
   one, or type its length here") and where it runs (Way: "Duct 1", "direct"); a duct's say its inner area and its fill
   where fullest against the limit; a placement's what it reaches from the plate, and its clearance in front
 - behaviour-change: Route (Draw ▸ Connect) on a panel page that shows a cabinet opens Route's card in the Preview tab:
