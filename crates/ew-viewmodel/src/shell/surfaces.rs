@@ -39,7 +39,8 @@ impl ShellModel {
     }
 
     /// The face `text` names: a value of [`SurfaceOffer::value`] (a record's ID, `<enclosure>/door`), or a face's
-    /// stored word of the cabinet shown (`door`, `door:1`, `bottom`).
+    /// stored word of the cabinet shown (`door`, `door:1`, `bottom`), or of the cabinet named before it, made or not
+    /// (`<enclosure>/bottom`, as EW-LAY-018's Place on the bottom names it).
     fn surface_named(&self, text: &str) -> Option<SurfaceOffer> {
         let offers = self.surface_offers();
         let word = |o: &SurfaceOffer| o.value.rsplit('/').next().map(str::to_owned);
@@ -48,12 +49,17 @@ impl ShellModel {
             .find(|o| o.value == text)
             .or_else(|| offers.iter().find(|o| word(o).as_deref() == Some(text)))
             .or_else(|| {
-                // A made face by its stored word: its record's kind.
+                // A made face by its stored word: its record's kind, of the cabinet named before it.
                 let session = &self.project.as_ref()?.session;
+                let (cabinet, word) = match text.split_once('/') {
+                    Some((e, w)) => (Some(e), w),
+                    None => (None, text),
+                };
                 offers.iter().find(|o| {
-                    o.record
-                        .and_then(|r| session.surface_kind_word(r))
-                        .is_some_and(|w| w == text)
+                    cabinet.is_none_or(|e| o.enclosure.to_string() == e)
+                        && o.record
+                            .and_then(|r| session.surface_kind_word(r))
+                            .is_some_and(|w| w == word)
                 })
             })
             .cloned()

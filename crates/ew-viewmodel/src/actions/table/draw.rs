@@ -794,7 +794,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     // Place cable glands (doc 12 §3.9): the glands that wait, in a row on the panel page's side, top or bottom.
     with_params(
-        "cables?:text, x?:text, y?:text",
+        "cables?:text, x?:text, y?:text, x_mm?:mm, y_mm?:mm, group?:uint",
         with_icon(
             "circles",
             act(

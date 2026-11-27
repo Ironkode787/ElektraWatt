@@ -489,7 +489,7 @@ schematic symbol.
   EW-GEN-GLD-M20, -103W1 (12.5 mm) EW-GEN-GLD-M25. Without one the cable says why: "the part EW-GEN-CBL-17 gives no
   outer diameter" or "no gland of the stock seals 23 mm", each with what to do (Edit part…, Choose gland…).
 - **The glands wait to be placed** as devices that go in a cut-out do: Unplaced devices lists them under Glands, each
-  named by its cable ("-103W1 · gland M25"), and a panel page's HUD says "2 glands to place: Bottom" (on a side's, the top's or the bottom's own page its button is Place cable glands). He drags one, or
+  by its cable's tag with its gland part and "gland M25", and a panel page's HUD says "2 glands to place: Bottom" (on a side's, the top's or the bottom's own page its button is Place cable glands). He drags one, or
   several selected, onto the bottom (or the top or a side; a door and the plate refuse a gland in words: "A gland goes
   through a wall of the cabinet: place it on the bottom, the top or a side"). Several dropped together stand in a row
   from the drop to the right, in the list's order, each **at the pitch the program proposes so that the nuts clear each
@@ -506,9 +506,11 @@ schematic symbol.
   Keep it as a hole (it becomes one by hand). Moving the cable's end does not move its gland.
 - **A gland by hand** (Add hole here…, Kind Gland) stays possible: a spare entry, a breather. It has no cable and no
   part in the parts list.
-- **Where he sees it.** The cable's Properties have a section Gland: the gland part, "proposed: 12.5 mm, in its
-  9 … 16 mm" or "chosen" with Choose gland… and Reset, where it is placed ("Bottom of -UC1, H2, page 905") or "Not
-  placed" with Place on the bottom, and for a cable that does not leave, "None: both its ends are in +CAB". On the page
+- **Where he sees it.** The cable's Properties, under Part, have the row Gland: the gland part with its chip
+  "proposed for 12.5 mm" (or none: chosen), typed over with another gland part of the project to choose it and emptied
+  to take the proposal back; without one the chip says why ("no gland of the stock seals 23 mm"). The row Gland hole
+  names its hole, "H2" with "on page 905", or is empty with "not placed" (EW-LAY-018's Place on the bottom and the
+  bar's Place cable glands place it). A cable that does not leave the cabinet has neither row. On the page
   a placed gland is drawn as its hole with its cable's tag as its label; the hole table's For column names the cable.
 
 ---
@@ -540,7 +542,7 @@ show their revision stamp.
 | EW-LAY-015 | Wire in a duct whose class set excludes its segregation class (manual or pinned paths) | warning / error by policy | online | 1.0 | FR-LAY-048 | re-route |
 | EW-LAY-016 | Assembly or rack members not contiguous or not in physical order on their carrier (FR-LAY-061) | warning | online | MVP | `carrier_order` vs `Device.position` | reorder by position |
 | EW-LAY-017 | Holes not known: a part placed in a cut-out or screwed to a surface has no holes, or the device placed there has no part; one finding per part, naming its devices ([12-3d](12-3d-routing-thermal.md) §10.5) | warning | online, release | — | `surface_features` | Edit part… (Parts at the part's Holes); for a device without a part, Choose part… |
-| EW-LAY-018 | Cable gland: a cable that leaves the cabinet has no gland placed (error at release); its gland is not known (no outer diameter, no stock gland seals it); a placed gland's hole differs from its gland's; a gland hole serves no cable (its cable gone or no longer leaving) | warning; error at release for one not placed | online, release | — | `cable_glands` | Place on the bottom; Take M32; Remove the hole; Keep it as a hole; Edit part…; Choose gland… |
+| EW-LAY-018 | Cable gland: a cable that leaves the cabinet has no gland placed (error at release); its gland is not known (no outer diameter, no stock gland seals it); a placed gland's hole differs from its gland's; a gland hole serves no cable (its cable gone or no longer leaving) | warning; error at release for one not placed | online, release | — | `cable_glands` | one per finding: Place on the bottom (not placed); Edit part… (no outer diameter); Choose gland… (none seals it: the cable's Gland row); Take M32 (differs); Remove the hole (serves no cable; Keep it as a hole is `layout.feature.edit {for_cable: false}`) |
 | EW-LAY-021 … 026 | Placement rules (FR-LAY-033/034): thermal zoning, EMC segregation distance, operator height, door mass, cable-entry zone, handle-axis alignment; EW-LAY-020 (depth containment) is retired, the closed door being EW-LAY-006's ([12-3d](12-3d-routing-thermal.md) §7) | warning | online | 1.0 (Could) | rhai/Rust rules with constants as data, `verified` flag | — |
 
 Rule constants (fill limits, clearances, heights, segregation distances) ship with a `verified` flag; an

@@ -74,6 +74,11 @@ pub struct MacroDrag(pub String);
 #[derive(Clone, Debug)]
 pub struct DeviceDrag(pub String);
 
+/// The cables a drag of an Unplaced devices gland row carries (their ID texts, separated by commas); a panel page's
+/// canvas places their glands at the drop point (`layout.glands_place`).
+#[derive(Clone, Debug)]
+pub struct GlandDrag(pub String);
+
 /// The station or bus device a drag of its row carries (its ID text); a canvas puts it on its bus page at the drop
 /// point (`bus.put_station`), or says why not.
 #[derive(Clone, Debug)]
@@ -1294,6 +1299,7 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
         Some(DragSource::Channel(id)) => response.dnd_set_drag_payload(ChannelDrag(id.clone())),
         Some(DragSource::Macro(key)) => response.dnd_set_drag_payload(MacroDrag(key.clone())),
         Some(DragSource::Device(id)) => response.dnd_set_drag_payload(DeviceDrag(id.clone())),
+        Some(DragSource::Gland(cables)) => response.dnd_set_drag_payload(GlandDrag(cables.clone())),
         Some(DragSource::Station(id)) => response.dnd_set_drag_payload(StationDrag(id.clone())),
         None => {}
     }

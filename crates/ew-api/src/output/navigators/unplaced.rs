@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The Unplaced devices navigator (doc 16 §5.2): each layout space with the devices it holds that the layout does
-//! not place yet.
+//! not place yet, and the glands of the cables that leave it (doc 12 §3.9).
 //!
 //! Not here: the Devices tree (`devices.rs`); the panel's own unplaced list (`output/panel.rs`).
 
@@ -18,7 +18,9 @@ use crate::output::layout_edit::mm_text;
 /// and `unknown size` and the cells Device (the tag again, the key column of table mode), Part (the primary part's
 /// number), W × H (mm) (`18 × 90`, empty when unknown; its decimals as the project prints them, with a point in the
 /// command line's table, [`Builder::point`]) and Mount (the mount kind in words, `mount_label`). A space whose devices
-/// are all placed keeps its location node, so that the empty state can name it.
+/// are all placed keeps its location node, so that the empty state can name it. After the devices a node Glands holds the
+/// cables whose glands wait to be placed and are known (`cable_glands`), each by its cable's tag with its gland's number
+/// and "gland M20" as its Mount.
 pub(super) fn unplaced_table(q: &Q, b: &mut Builder) {
     let point = b.point;
     let mm = |nm: i128| {
@@ -113,6 +115,45 @@ pub(super) fn unplaced_table(q: &Q, b: &mut Builder) {
                 Vec::new(),
                 Some(cells),
                 vec![("kind".to_owned(), "device".to_owned())],
+            );
+        }
+        let waiting: Vec<_> = q
+            .get::<ew_derive::layout::CableGlands>(sid)
+            .iter()
+            .filter(|g| g.placed.is_none())
+            .filter_map(|g| Some((g.cable, g.part.clone().ok()?)))
+            .collect();
+        if waiting.is_empty() {
+            continue;
+        }
+        let gnode = b.push(
+            Some(lnode),
+            NavRole::Section,
+            "glands",
+            text!("nav-unplaced-glands"),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            None,
+            vec![("kind".to_owned(), "glands".to_owned())],
+        );
+        for (cable, part) in waiting {
+            let label = ew_derive::short_tag(q, cable);
+            let thread = ew_derive::layout::gland_section(q, &part)
+                .and_then(|s| s.thread.mm())
+                .map_or_else(String::new, |m| format!("M{m}"));
+            let mut cells = plains(vec![label.clone(), ew_derive::printed_number(q, &part), String::new()]);
+            cells.push(text!("nav-unplaced-gland-mount", thread));
+            b.push(
+                Some(gnode),
+                NavRole::Cable,
+                &format!("gland:{}", cable.as_uuid()),
+                plain(label),
+                Vec::new(),
+                vec![cable.as_uuid()],
+                Vec::new(),
+                Some(cells),
+                vec![("kind".to_owned(), "gland".to_owned())],
             );
         }
     }

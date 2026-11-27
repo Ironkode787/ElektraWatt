@@ -1490,6 +1490,26 @@ impl Session {
                     }
                 })
             }
+            // A cable's gland: a gland part of the project by its number or ID; an empty text takes the proposal back.
+            ("device", "gland") => {
+                let value = if text.is_empty() {
+                    Value::Null
+                } else {
+                    let id = text.trim_start_matches("id:");
+                    let found = q.parts().iter().find(|(pid, c)| {
+                        c.item.sections.gland.is_some()
+                            && (pid.to_string() == id || c.item.part_number.as_str() == text)
+                    });
+                    match found {
+                        Some((pid, _)) => json!({ "copy": pid.to_string() }),
+                        None => return invalid(text!("refusal-gland-part-unknown", text.to_owned())),
+                    }
+                };
+                command(
+                    "fields.set",
+                    json!({"kind": "device", "targets": [edit.target.to_string()], "path": "gland", "value": value}),
+                )
+            }
             ("device", "variant") => {
                 let uses = match super::properties::variant_parts(&q, Id::from_uuid(edit.target), text) {
                     Ok(uses) => uses,
@@ -2231,6 +2251,50 @@ impl Session {
             .filter(|g| g.placed.is_none() && g.part.is_ok())
             .map(|g| g.cable.as_uuid())
             .collect()
+    }
+
+    /// Where the gland of `cable` dropped alone at `at` (the surface frame) goes on `surface` (doc 12 §3.9): at an end
+    /// of a row of glands placed there already, at the pitch of the two nuts and the workshop's web between holes,
+    /// where the drop lies within one pitch of that place (the nearest such end); else at the drop.
+    pub fn gland_snap(&self, surface: Uuid, cable: Uuid, at: (i128, i128)) -> (i128, i128) {
+        let q = self.query();
+        let Some(s) = q.table::<MountingSurface>().get(Id::from_uuid(surface)) else {
+            return at;
+        };
+        let Some(space) = q.table::<Enclosure>().get(s.enclosure).map(|e| e.space) else {
+            return at;
+        };
+        let glands = q.get::<ew_derive::layout::CableGlands>(space);
+        let section = |c: Id<ew_schema::Device>| {
+            let part = glands.iter().find(|g| g.cable == c)?.part.clone().ok()?;
+            ew_derive::layout::gland_section(&q, &part)
+        };
+        let Some(new) = section(Id::from_uuid(cable)) else {
+            return at;
+        };
+        let web = q.project().settings.workshop.min_web.unwrap_or(ew_units::Nm(5_000_000));
+        let placed: Vec<(i128, i128, ew_schema::GlandSection)> = q
+            .table::<ew_schema::SurfaceFeature>()
+            .iter()
+            .filter(|(_, f)| f.surface == s.id && f.cable != Some(Id::from_uuid(cable)))
+            .filter_map(|(_, f)| Some((i128::from(f.at.x.0), i128::from(f.at.y.0), section(f.cable?)?)))
+            .collect();
+        let mut best: Option<(i128, (i128, i128))> = None;
+        for (u, v, sec) in &placed {
+            let pitch = i128::from(ew_derive::layout::gland_pitch(sec, &new, web).0);
+            for side in [-1, 1] {
+                let place = (u + side * pitch, *v);
+                // A row's end only: no gland of the row stands closer to that place than the pitch.
+                if placed.iter().any(|(pu, pv, _)| pv == v && (pu - place.0).abs() < pitch) {
+                    continue;
+                }
+                let d = (place.0 - at.0).abs().max((place.1 - at.1).abs());
+                if d < pitch && best.is_none_or(|(bd, _)| d < bd) {
+                    best = Some((d, place));
+                }
+            }
+        }
+        best.map_or(at, |(_, place)| place)
     }
 
     /// A surface after its cabinet's tag, in words ("-UC1 door"), as the page's Surface row names it.

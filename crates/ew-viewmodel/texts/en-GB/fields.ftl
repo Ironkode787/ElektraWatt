@@ -1253,6 +1253,10 @@ field-help-report-block-layout-page = The panel layout page whose legend this li
 # The PLC and bus work as a person met it.
 field-device-derived-plc = PLC
 field-device-derived-variant = Variant
+field-device-derived-gland = Gland
+field-device-derived-gland-hole = Gland hole
+field-help-device-derived-gland = The gland where the cable enters its cabinet: the one chosen for it, else the first gland of the workshop stock whose clamping range holds its outer diameter. Type another gland part of the project; empty takes the proposal back.
+field-help-device-derived-gland-hole = The hole of the cable's gland in a wall of the cabinet, by its number in the hole table, or not placed yet.
 field-help-device-derived-variant = The variant of the device's part, as its maker sells it under its own number (blue, a rating): the lists print its number and description. The part's own number is the part itself.
 field-help-device-derived-plc = The PLC this bus device belongs to. A device in no PLC is given to one here: choose a PLC, or New PLC….
 choice-connection-kind-core = Cable core

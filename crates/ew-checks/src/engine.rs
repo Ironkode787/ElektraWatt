@@ -331,7 +331,7 @@ fn run_rules(
                 let mut f = f.clone();
                 // A caught panic is EW-CORE-083's finding inside this rule's memo: its own severities apply.
                 let own = rule(f.rule).map_or(meta, |r| r.meta());
-                f.severity = mode.severity(own, f.severity);
+                f.severity = mode.finding_severity(own, &f);
                 findings.push(f);
             }
         }
@@ -422,7 +422,7 @@ fn join(
 ) {
     for mut f in evidence.layout {
         if let Some(meta) = evaluated.iter().find(|m| m.id == f.rule) {
-            f.severity = mode.severity(meta, f.severity);
+            f.severity = mode.finding_severity(meta, &f);
             findings.push(f);
         }
     }

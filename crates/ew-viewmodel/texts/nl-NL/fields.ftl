@@ -1243,6 +1243,10 @@ field-help-report-block-layout-page = De paneellayoutpagina waarvan deze lijst d
 # Het PLC- en buswerk zoals iemand het tegenkwam.
 field-device-derived-plc = PLC
 field-device-derived-variant = Variant
+field-device-derived-gland = Wartel
+field-device-derived-gland-hole = Wartelgat
+field-help-device-derived-gland = De wartel waar de kabel de kast in komt: de voor de kabel gekozen wartel, anders de eerste wartel uit de werkplaatsvoorraad waarvan het klembereik de buitendiameter omvat. Typ een ander wartelartikel van het project; leeg neemt het voorstel terug.
+field-help-device-derived-gland-hole = Het gat van de wartel van de kabel in een wand van de kast, met zijn nummer in de gatentabel, of nog niet geplaatst.
 field-help-device-derived-variant = De variant van het artikel van het apparaat, zoals de fabrikant het onder een eigen nummer verkoopt (blauw, een uitvoering): de lijsten drukken zijn nummer en omschrijving af. Het eigen nummer van het artikel is het artikel zelf.
 field-help-device-derived-plc = De PLC waar dit busapparaat bij hoort. Een apparaat zonder PLC voeg je hier toe aan een PLC: kies een PLC, of Nieuwe PLC….
 choice-connection-kind-core = Kabelader

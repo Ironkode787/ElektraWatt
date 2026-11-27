@@ -280,7 +280,8 @@ pool at most 250 ms after the last commit, its findings carry a "deferred" badge
 ### 3.2 Effective severity
 
 ```text
-sev(rule, mode) = if mode = release: scheme.release_severity ?? rule.release_severity ?? scheme.severity ?? rule.severity
+sev(rule, mode) = if mode = release: scheme.release_severity ?? finding.release_severity ?? rule.release_severity
+                                      ?? scheme.severity ?? rule.severity
                   else:              scheme.severity ?? rule.severity
 cap:   a rule that reads a data table with verified = false reports at most warning (1.0, FR-CHK-046)
 state: waived findings keep their severity but leave the counts; superseded findings are hidden
@@ -288,7 +289,9 @@ state: waived findings keep their severity but leave the counts; superseded find
 
 **`ew check` uses release mode** unless `--mode offline` is given. `ew check --scheme pre-delivery` therefore
 reports what would block a delivery. EW-LAY-001 (unplaced device) is a warning while drawing and an error there, as
-EF-05 expects. EW-PLC-015 (`Tbd` address) goes from info to error.
+EF-05 expects. EW-PLC-015 (`Tbd` address) goes from info to error. A finding may carry a release severity of its own
+where one form of its rule weighs more than the others: EW-LAY-018's gland not placed is an error at a release, its
+other forms stay warnings.
 
 **EW-REL rules run only in the gate** (`ew revision approve`, `ew revision release`, the approve and release
 dialogs, and `ew check --gate`). They test the revision workflow, not the drawing: with them in every

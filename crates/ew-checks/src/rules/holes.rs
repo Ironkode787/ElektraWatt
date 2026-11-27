@@ -7,14 +7,14 @@
 use std::collections::BTreeMap;
 
 use ew_derive::Q;
-use ew_derive::layout::{Feature, Owner, SurfaceFeatures, carrier_labels, sheet_size};
+use ew_derive::layout::{Feature, Owner, SurfaceFeatures, carrier_labels, primary_part, sheet_size};
 use ew_ids::Id;
 use ew_l10n::TextArg;
 use ew_schema::{CarrierRef, Kind, MountKind, MountingSurface, Placement, SurfaceFeature, SurfaceKind};
 use ew_units::Nm;
 
 use super::layout::{device_name, mount_of, part_name, realised_part, shown, surface_words};
-use crate::finding::{Finding, Severity, Target};
+use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 
 /// The web between two holes when the workshop sets none (doc 12-3d §10.5; the program's assumption): 5 mm.
@@ -252,7 +252,12 @@ impl Rule for HolesNotKnown {
                 )
                 .arg("form", "device")
                 .arg("device", device)
-                .arg("surface", surface_words(q, Some(surface)));
+                .arg("surface", surface_words(q, Some(surface)))
+                .with_fix(QuickFix {
+                    label: text!("fix-choose-part"),
+                    command: "part.choose".to_owned(),
+                    params: serde_json::json!({}),
+                });
                 out.push(shown(f, q, Some(surface)));
                 continue;
             };
@@ -286,17 +291,28 @@ impl Rule for HolesNotKnown {
                 "devices",
                 ew_l10n::Text::bare(ew_l10n::List::new(names, between(), between())),
             )
-            .arg("surface", surface_words(q, Some(surface)));
+            .arg("surface", surface_words(q, Some(surface)))
+            .with_fix(edit_part(&part, "front"));
             out.push(shown(f, q, Some(surface)));
         }
         out
     }
 }
 
+/// The quick fix Edit part…: the part editor on `part`, at its section `section` (window action `part.edit`).
+fn edit_part(part: &ew_schema::PartRef, section: &str) -> QuickFix {
+    QuickFix {
+        label: text!("fix-edit-part"),
+        command: "part.edit".to_owned(),
+        params: serde_json::json!({"part": part.copy.as_uuid().to_string(), "section": section}),
+    }
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // EW-LAY-018
 
-/// EW-LAY-018 "Cable gland" (doc 15): completeness, o r, warning, cabinet (as built: project) (doc 12 §3.9).
+/// EW-LAY-018 "Cable gland" (doc 15): completeness, o r, warning (a gland not placed: error at a release), cabinet (as
+/// built: project) (doc 12 §3.9).
 pub const CABLE_GLAND: RuleMeta = RuleMeta {
     id: "EW-LAY-018",
     message: key!("rule-ew-lay-018"),
@@ -343,27 +359,61 @@ impl Rule for CableGland {
                 };
                 let section = match &g.part {
                     Err(ew_derive::layout::NoGland::NoDiameter) => {
-                        out.push(base("no_diameter", "no_diameter".to_owned()));
+                        let mut f = base("no_diameter", "no_diameter".to_owned());
+                        // The cable's part gives its outer diameter in its cable section.
+                        if let Some(part) = q.devices().get(g.cable).and_then(|d| primary_part(q, d)) {
+                            f = f.with_fix(edit_part(&part, "wire"));
+                        }
+                        out.push(f);
                         continue;
                     }
                     Err(ew_derive::layout::NoGland::NoneSeals { od }) => {
                         let od = ew_derive::mm_tenth_short(i128::from(od.0));
-                        out.push(base("none_seals", "none_seals".to_owned()).arg("od", od));
+                        // Choose gland…: the cable's Gland row in Properties, where a gland of the project is typed.
+                        out.push(
+                            base("none_seals", "none_seals".to_owned())
+                                .arg("od", od)
+                                .with_fix(QuickFix {
+                                    label: text!("fix-choose-gland"),
+                                    command: "props.edit".to_owned(),
+                                    params: serde_json::json!({"row": "device/derived.gland"}),
+                                }),
+                        );
                         continue;
                     }
                     Ok(p) => ew_derive::layout::gland_section(q, p),
                 };
                 let Some(f) = g.placed.and_then(|id| features.get(id)) else {
-                    out.push(base("unplaced", "unplaced".to_owned()));
+                    let mut f = base("unplaced", "unplaced".to_owned()).at_release(Severity::Error);
+                    // Place on the bottom: the cabinet's bottom page, made where it is missing; its bar places them.
+                    if let Some(e) = q.table::<ew_schema::Enclosure>().iter().find(|(_, e)| e.space == space) {
+                        f = f.with_fix(QuickFix {
+                            label: text!("fix-place-gland-bottom"),
+                            command: "layout.surface_page".to_owned(),
+                            params: serde_json::json!({"surface": format!("{}/bottom", e.0.as_uuid())}),
+                        });
+                    }
+                    out.push(f);
                     continue;
                 };
-                let wanted = section.map(|s| ew_schema::Hole::Gland(s.thread));
+                let wanted = section.as_ref().map(|s| ew_schema::Hole::Gland(s.thread.clone()));
                 if wanted.as_ref().is_some_and(|w| *w != f.hole) {
                     let w = wanted.expect("a gland");
+                    let thread = section.and_then(|s| s.thread.mm()).map(|m| format!("M{m}"));
+                    let feature = g.placed.expect("a placed gland");
                     let finding = base("differs", "differs".to_owned())
                         .arg("surface", surface_words(q, Some(f.surface)))
                         .arg("hole", hole_text(&f.hole))
-                        .arg("gland", hole_text(&w));
+                        .arg("gland", hole_text(&w))
+                        .with_fix(QuickFix {
+                            label: text!("fix-take-gland", hole_text(&w)),
+                            command: "layout.feature.edit".to_owned(),
+                            params: serde_json::json!({
+                                "feature": feature.as_uuid().to_string(),
+                                "kind": "gland",
+                                "size": thread,
+                            }),
+                        });
                     out.push(shown(finding, q, Some(f.surface)));
                 }
             }
@@ -377,7 +427,12 @@ impl Rule for CableGland {
             )
             .arg("form", "no_cable")
             .arg("hole", hole_text(&f.hole))
-            .arg("surface", surface_words(q, Some(f.surface)));
+            .arg("surface", surface_words(q, Some(f.surface)))
+            .with_fix(QuickFix {
+                label: text!("fix-remove-hole"),
+                command: "edit.delete".to_owned(),
+                params: serde_json::json!({"targets": [{"kind": "surface_feature", "id": id.as_uuid().to_string()}]}),
+            });
             out.push(shown(finding, q, Some(f.surface)));
         }
         out

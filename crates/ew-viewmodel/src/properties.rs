@@ -2383,6 +2383,14 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
     ("wire numbering", None, key!("chip-via-wire-numbering")),
     // A wire's length (doc 13 §3.3).
     ("typed by hand", None, key!("chip-via-typed-by-hand")),
+    // A cable's gland (doc 12 §3.9).
+    ("proposed for ", Some(" mm"), key!("chip-via-gland-proposed")),
+    ("proposed", None, key!("chip-via-proposed")),
+    ("no outer diameter", None, key!("chip-via-gland-no-diameter")),
+    ("no gland seals ", Some(" mm"), key!("chip-via-gland-none-seals")),
+    ("on page ", Some(""), key!("chip-via-on-page")),
+    ("placed", None, key!("chip-via-placed")),
+    ("not placed", None, key!("chip-via-not-placed")),
     // A wire's end (doc 13 §4.2, §4.5).
     ("set by hand", None, key!("chip-via-set-by-hand")),
     (

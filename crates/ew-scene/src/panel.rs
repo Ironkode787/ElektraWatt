@@ -25,7 +25,7 @@
 //! |---|---|
 //! | [`Layer::Surface`](ew_dl::Layer::Surface) | the enclosure outline ([`Pen::P052`]), the plate outline ([`Pen::P026`]), the usable polygon thin dashed ([`Pen::P013`], 4:2) |
 //! | [`Layer::Carriers`](ew_dl::Layer::Carriers) | per carrier by ID: its outline rectangles ([`Pen::P026`]); a rail's axis as a chain line ([`Pen::P013`], dash-dot); a duct's "W×H" label in mm, in the layout-label style, centred on its longest segment and turned to read bottom to top on a vertical one. The outlines and the axis are cut around every placement label's knockout box (see below) |
-//! | [`Layer::Features`](ew_dl::Layer::Features) | per hole of the surface ([`FeatureDraw`]): a round hole as its circle at true size, a rectangle as its outline, each with a centre cross ([`Pen::P013`]); dashed under a footprint ([`Pen::P026`], so that its dashes show at 1:5); a cable's gland with its nut's room thin dashed and its cable's tag under it |
+//! | [`Layer::Features`](ew_dl::Layer::Features) | per hole of the surface ([`FeatureDraw`]): a round hole as its circle at true size, a rectangle as its outline, each with a centre cross ([`Pen::P013`]); dashed under a footprint (thin, in the dashes of [`Pen::P026`], so that they show at 1:5); a cable's gland with its nut's room thin dashed and its cable's tag under it |
 //! | [`Layer::Placements`](ew_dl::Layer::Placements) | per placement by ID: its `front_2d` outline (FR-LAY-011), else its footprint rectangle ([`Pen::P026`]; an unknown footprint 4:2 dashed); then each derived end bracket ([`BracketDraw`]) as a rectangle in the footprints' pen ([`Pen::P026`]), by its strip's placement, then its rectangle |
 //! | [`Layer::Labels`](ew_dl::Layer::Labels) | per placement by ID: its label (see below), after the page items' texts |
 //!
@@ -947,8 +947,12 @@ impl Builder<'_> {
             let (Ok(hw), Ok(hh)) = (i64::try_from(w / 2), i64::try_from(h / 2)) else {
                 continue;
             };
+            // A hidden hole thin, in the dashes of the 0.26 mm pen, which still read at 1:5.
             let stroke = if f.hidden {
-                Stroke::pen(Pen::P026).dashed(DashPattern::Dash42)
+                Stroke {
+                    dash: Some(DashPattern::Dash42.scaled(Pen::P026.width())),
+                    ..Stroke::pen(Pen::P013)
+                }
             } else {
                 Stroke::pen(Pen::P013)
             };

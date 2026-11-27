@@ -92,7 +92,7 @@ impl ShellModel {
         };
         let name = format!("{} ({})", draft.text("part_number"), draft.text("manufacturer"));
         let manufacturers = project.session.part_manufacturers();
-        self.open_dialog(Dialog::PartEdit(Box::new(PartEditor {
+        let out = self.open_dialog(Dialog::PartEdit(Box::new(PartEditor {
             section: "identity",
             draft,
             name,
@@ -102,7 +102,12 @@ impl ShellModel {
             cable_type: false,
             cable_form: None,
             bus_part: None,
-        })))
+        })));
+        // At a section of its own (a quick fix's Edit part… at Front view and holes).
+        match p.get("section") {
+            Some(_) if out == Outcome::Done => self.act_part_section(p),
+            _ => out,
+        }
     }
 
     /// `part.new {symbol?}` (Edit ▸ New part…, and New part… in the part dialog and the device browser): opens the part

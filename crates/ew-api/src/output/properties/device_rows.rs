@@ -23,6 +23,17 @@ use crate::Session;
 use crate::output::fields::{Category, EditRoute, FieldType};
 
 /// The part use of `device` whose part has variants (its first), with its index and the part copy.
+/// The gland of the cable `d` where it leaves a cabinet (the first cabinet by space order); `None` for a device that
+/// is no cable leaving one.
+pub(crate) fn cable_gland(q: &Q, d: Id<Device>) -> Option<ew_derive::layout::CableGland> {
+    q.table::<ew_schema::LayoutSpace>().iter().find_map(|(space, _)| {
+        q.get::<ew_derive::layout::CableGlands>(space)
+            .iter()
+            .find(|g| g.cable == d)
+            .cloned()
+    })
+}
+
 pub(crate) fn variant_use(
     q: &Q,
     device: Id<Device>,
@@ -449,6 +460,76 @@ impl Session {
                     actions: vec![RowAction::Edit],
                 }));
             }
+        }
+        // A cable's gland where it leaves its cabinet (doc 12 §3.9): its part, chosen or proposed from the cable's outer
+        // diameter, typed over to choose another gland of the project and emptied to take the proposal back; and the
+        // hole it is placed in, or not placed.
+        if let [one] = devices.as_slice()
+            && let Some(g) = cable_gland(q, *one)
+        {
+            let mm = |n: ew_units::Nm| crate::output::layout_edit::mm_text(q, i128::from(n.0));
+            let (part, via) = match &g.part {
+                Ok(p) if g.chosen => (ew_derive::printed_number(q, p), None),
+                Ok(p) => (
+                    ew_derive::printed_number(q, p),
+                    Some(g.od.map_or_else(|| "proposed".to_owned(), |od| format!("proposed for {} mm", mm(od)))),
+                ),
+                Err(ew_derive::layout::NoGland::NoDiameter) => (String::new(), Some("no outer diameter".to_owned())),
+                Err(ew_derive::layout::NoGland::NoneSeals { od }) => {
+                    (String::new(), Some(format!("no gland seals {} mm", mm(*od))))
+                }
+            };
+            out.push(derived(DerivedRow {
+                kind: "device",
+                name: "gland",
+                partner: Some((
+                    "derived.gland",
+                    EditRoute::Command {
+                        command: "fields.set".to_owned(),
+                    },
+                    false,
+                )),
+                category: Category::Part,
+                ty: FieldType::Optional(Box::new(FieldType::Text)),
+                value: RowValue::One {
+                    json: Value::String(part.clone()),
+                    text: part,
+                },
+                provenance: via.map_or(Provenance::Authored, |via| Provenance::Derived { via }),
+                actions: vec![RowAction::Edit],
+            }));
+            let hole = g.placed.and_then(|f| {
+                let feature = q.table::<ew_schema::SurfaceFeature>().get(f)?.clone();
+                let no = q
+                    .get::<ew_derive::layout::SurfaceFeatures>(feature.surface)
+                    .iter()
+                    .find(|h| {
+                        h.owners
+                            .iter()
+                            .any(|o| matches!(o, ew_derive::layout::Owner::ByHand { feature: x } if *x == f))
+                    })?
+                    .no;
+                let page = ew_derive::layout::surface_page(q, feature.surface).and_then(|p| folio_of(q, p));
+                Some((format!("H{no}"), page))
+            });
+            let (text, via) = match hole {
+                Some((no, Some(page))) => (no, format!("on page {page}")),
+                Some((no, None)) => (no, "placed".to_owned()),
+                None => (String::new(), "not placed".to_owned()),
+            };
+            out.push(derived(DerivedRow {
+                kind: "device",
+                name: "gland_hole",
+                partner: None,
+                category: Category::Part,
+                ty: FieldType::Text,
+                value: RowValue::One {
+                    json: Value::String(text.clone()),
+                    text,
+                },
+                provenance: Provenance::Derived { via },
+                actions: Vec::new(),
+            }));
         }
         // The PLC a bus device belongs to ("no such field in the switch's properties"): a station names
         // its PLC, read-only; a bus device in no PLC (JSON null) is given to one by choosing it, the PLCs by ID

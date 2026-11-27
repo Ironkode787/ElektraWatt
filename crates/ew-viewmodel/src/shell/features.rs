@@ -108,10 +108,12 @@ impl ShellModel {
         self.layout_form_done(ACTION, out)
     }
 
-    /// `layout.glands_place {cables?, x?, y?}` (doc 12 §3.9): the glands of `cables` (references separated by commas,
-    /// `tag:-101W1`; absent: every gland that waits in the cabinet) as one `layout.glands_place` on the focused panel
-    /// page's surface, a row to the right from `x`, `y` mm measured from the surface's datum (absent: 10 mm in from its
-    /// bottom-left edge margin). Refused in words as the command refuses.
+    /// `layout.glands_place {cables?, x?, y?, x_mm?, y_mm?}` (doc 12 §3.9): the glands of `cables` (references
+    /// separated by commas, `tag:-101W1`; absent: every gland that waits in the cabinet) as one `layout.glands_place` on
+    /// the focused panel page's surface, a row to the right from `x`, `y` mm measured from the surface's datum (absent:
+    /// 40 mm in from it), or from the sheet point `x_mm`, `y_mm` where Unplaced devices drops them; a single gland
+    /// dropped near a row of glands placed already snaps to its end (`Session::gland_snap`). Refused in words as the
+    /// command refuses.
     pub(crate) fn act_layout_glands_place(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(tables) = self.panel_tables() else {
             return Outcome::refused(key!("reason-no-panel-page"));
@@ -145,9 +147,22 @@ impl ShellModel {
         if cables.is_empty() {
             return Outcome::refused(key!("reason-no-glands"));
         }
-        let mm = |name: &str| text(name).and_then(ew_api::output::parse_mm);
-        let measured = (mm("x").unwrap_or(40_000_000), mm("y").unwrap_or(40_000_000));
-        let (u, v) = session.surface_measured(tables.surface, measured);
+        let dropped = match super::canvas_actions::point_mm(p) {
+            Ok(at) => at.and_then(|s| Some(tables.to_surface(self.canvas()?.page().snapper.sheet_to_page(s)))),
+            Err(out) => return out,
+        };
+        let (u, v) = match (dropped, cables.as_slice()) {
+            (Some(at), [one]) => match one.parse() {
+                Ok(cable) => session.gland_snap(tables.surface, cable, at),
+                Err(_) => at,
+            },
+            (Some(at), _) => at,
+            (None, _) => {
+                let mm = |name: &str| text(name).and_then(ew_api::output::parse_mm);
+                let measured = (mm("x").unwrap_or(40_000_000), mm("y").unwrap_or(40_000_000));
+                session.surface_measured(tables.surface, measured)
+            }
+        };
         let (Ok(u), Ok(v)) = (i64::try_from(u), i64::try_from(v)) else {
             return failed(key!("error-bad-param"), &["x"]);
         };

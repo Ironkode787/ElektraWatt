@@ -893,7 +893,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ),
     with_params(
-        "part?:text",
+        "part?:text, section?:text",
         act(
             "part.edit",
             View,

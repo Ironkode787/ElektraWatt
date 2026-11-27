@@ -716,6 +716,20 @@ impl ShellModel {
             return Outcome::refused(key!("reason-no-fix"));
         };
         let project = or_return!(crate::shell::gated(&self.project));
+        // A fix that is a window action (Edit part…, Choose part…, Place on the bottom) runs on the finding's records,
+        // selected and shown in Properties, without a card.
+        if project.session.registry().get(&fix.command).is_none() && crate::actions::find(&fix.command).is_some() {
+            let ids: Vec<Value> = finding
+                .targets
+                .iter()
+                .map(|t| Value::String(t.id.as_uuid().to_string()))
+                .collect();
+            if !ids.is_empty() {
+                let _ = self.act_select_set(&Map::from_iter([("ids".to_owned(), Value::Array(ids))]));
+                let _ = self.act_props_focus();
+            }
+            return self.dispatch(&fix.command, &fix.params);
+        }
         let rule = finding.rule.to_owned();
         let targets = finding.targets.len();
         let params = fix_params(&project.session, &fix);

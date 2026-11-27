@@ -164,6 +164,7 @@ impl Session {
         use crate::checks;
         // With merge evidence, EW-CORE-013's groups.
         let report = self.check_over(q, scheme, mode, Vec::new());
+        let registry = self.registry();
         let folios = folios(q);
         for (severity, label) in SEVERITY_GROUPS {
             let of_severity: Vec<&checks::Finding> = report
@@ -201,7 +202,11 @@ impl Session {
                     })
                     .collect();
                 let mut badges = vec![findings.len().to_string()];
-                if findings.len() > 1 && kinds.len() == 1 && kinds.iter().all(Option::is_some) {
+                // A fix that is a window action (Edit part…) is no command a Fix all could join.
+                let commands = findings
+                    .iter()
+                    .all(|f| f.fix.as_ref().is_some_and(|x| registry.get(&x.command).is_some()));
+                if findings.len() > 1 && kinds.len() == 1 && kinds.iter().all(Option::is_some) && commands {
                     badges.push(FIX_ALL.to_owned());
                 }
                 let rnode = b.push(

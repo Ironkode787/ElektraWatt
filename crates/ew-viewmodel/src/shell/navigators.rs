@@ -110,6 +110,9 @@ pub enum DragSource {
     /// A device row of the Unplaced devices navigator (the device's ID text): dropped on a panel page, the
     /// layout place tool takes it (`tool.place_layout {device}`).
     Device(String),
+    /// A gland row of the Unplaced devices navigator (its cable as `id:<ID>`, the marked glands' cables separated by
+    /// commas when the row is marked): dropped on a panel page, `layout.glands_place` places them at the drop point.
+    Gland(String),
     /// A station's row of the PLC navigator, or a device's row of the Bus or the Devices navigator (the device's ID
     /// text): dropped on a bus-topology page, `bus.put_station` puts it there at the drop point.
     Station(String),
@@ -608,6 +611,22 @@ impl ShellModel {
                                     })
                                 })
                                 .flatten()
+                        })
+                        // A gland's row drops onto a side, the top or the bottom: the glands marked with it.
+                        .or_else(|| {
+                            (k == NavKind::Unplaced && node.role == ew_api::output::NavRole::Cable).then(|| {
+                                let marked = n.marked().contains(&node.key);
+                                let cables: Vec<String> = t
+                                    .nodes
+                                    .iter()
+                                    .filter(|m| {
+                                        m.role == ew_api::output::NavRole::Cable
+                                            && (m.key == node.key || (marked && n.marked().contains(&m.key)))
+                                    })
+                                    .filter_map(|m| m.records.first().map(|r| format!("id:{r}")))
+                                    .collect();
+                                DragSource::Gland(cables.join(","))
+                            })
                         })
                         // A station's or a bus device's row drops onto a bus page (a CPU dragged
                         // from the PLC panel must do something).

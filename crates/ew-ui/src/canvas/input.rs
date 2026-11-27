@@ -60,7 +60,7 @@ impl CanvasHost {
         );
     }
 
-    /// The rows dropped on this canvas at `dropped`: a PLC channel, a macro, a station or a bus device.
+    /// The rows dropped on this canvas at `dropped`: a PLC channel, a macro, a station or a bus device, a gland.
     fn map_drops(
         ui: &Ui,
         rect: Rect,
@@ -88,6 +88,16 @@ impl CanvasHost {
             let mut p = point_with(group, Self::sheet_point(rect, canvas, pos), Modifiers::NONE);
             p["key"] = json!(key.0);
             events.push(Event::Action("macros.place", p));
+        }
+        // A gland's row of Unplaced devices dropped on this canvas places the glands it carries at the drop point.
+        if let Some(pos) = dropped
+            && rect.contains(pos)
+            && egui::DragAndDrop::has_payload_of_type::<crate::navigator::GlandDrag>(ui.ctx())
+            && let Some(cables) = egui::DragAndDrop::take_payload::<crate::navigator::GlandDrag>(ui.ctx())
+        {
+            let mut p = point_with(group, Self::sheet_point(rect, canvas, pos), Modifiers::NONE);
+            p["cables"] = json!(cables.0);
+            events.push(Event::Action("layout.glands_place", p));
         }
         // A station's or a bus device's row dropped on this canvas puts it on the bus page at the drop point.
         if let Some(pos) = dropped

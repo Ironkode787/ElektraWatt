@@ -446,7 +446,7 @@ change here.
 - behaviour-change: the sample's cabinet has its bottom on page 905 with the glands of -101W1 and -103W1
 - api-add: `layout.glands_place {surface, at, cables}` and the action `layout.glands_place {cables?, x?, y?}`
 - behaviour-change: a door's, a side's, the top's and the bottom's page: every tag stands above its front (it crossed the
-  centre mark of a round front's cut-out), the cut-out under a front is dashed so that it shows at 1:5, the plate's
+  centre mark of a round front's cut-out), the cut-out under a front is dashed in longer dashes that show at 1:5, the plate's
   rails, ducts and devices stand faint behind a door on the screen (they were missing), the drawing stands higher so
   that its caption is clear of the title block, a gland draws its nut's room dashed and its cable's tag under it, and
   the top's and the bottom's page name the edge that meets the door ("Door's edge")
@@ -455,3 +455,13 @@ change here.
   plate's first steps ("No device has the location +CAB yet" stood under the bottom with its glands placed)
 - behaviour-change: Delete takes a selected hole by hand or gland off its surface (`edit.delete` takes
   `surface_feature`); a gland taken off waits again
+- behaviour-change: Unplaced devices lists the glands that wait under Glands; dragged onto a side, the top or the
+  bottom (with the glands marked beside it) they are placed at the drop, and a single gland dropped near a row of
+  glands snaps to its end at the pitch of the nuts. A cable's Properties show its Gland, proposed from its diameter or
+  chosen (typed over with a gland part of the project), and its Gland hole (doc 12 §3.9)
+- behaviour-change: quick fixes for EW-LAY-017 (Edit part… at Front view and holes, Choose part…) and EW-LAY-018
+  (Place on the bottom, Edit part…, Choose gland…, Take M32, Remove the hole); a fix that opens a window runs at once,
+  without a card, and joins no Fix all. EW-LAY-018's gland not placed is an error at a release, its other forms stay
+  warnings (doc 15 §3.2)
+- api-add: `fields.set` takes a device's `gland`; `layout.glands_place` takes the sheet point `x_mm`, `y_mm`; `part.edit`
+  takes `section`

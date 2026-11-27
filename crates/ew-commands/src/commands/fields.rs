@@ -108,6 +108,8 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "tech_data",
             // What the device's parts bring with it: an accessory left off, or taken as another part.
             "accessory_choices",
+            // A cable's chosen gland (doc 12 §3.9).
+            "gland",
             "state",
             "structure",
             // The location alone, its other aspects kept (many devices given a cabinet at once).

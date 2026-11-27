@@ -154,6 +154,9 @@ pub struct Finding {
     pub text: Text,
     /// A quick fix, where the rule offers one.
     pub fix: Option<QuickFix>,
+    /// The severity at a release of a finding whose form's differs from its rule's (EW-LAY-018: a gland not placed is
+    /// an error at a release, its other forms stay warnings); `None`: the rule's.
+    pub release_severity: Option<Severity>,
     /// Whether the rule read library data of a confidence other than `verified` (FR-PRT-031, the marker,
     /// [`ew_derive::part_confidence`]): the finding is then marked as resting on unverified data.
     pub unverified_data: bool,
@@ -198,6 +201,7 @@ impl Finding {
                 Vec::new(),
             ),
             fix: None,
+            release_severity: None,
             unverified_data: false,
             origin: None,
             decimal_comma: None,
@@ -241,6 +245,13 @@ impl Finding {
     #[must_use]
     pub fn written(mut self, words: impl Into<String>) -> Finding {
         self.text = text!("words-as-written", words.into());
+        self
+    }
+
+    /// The same finding at `severity` at a release, whatever its rule's release severity.
+    #[must_use]
+    pub fn at_release(mut self, severity: Severity) -> Finding {
+        self.release_severity = Some(severity);
         self
     }
 

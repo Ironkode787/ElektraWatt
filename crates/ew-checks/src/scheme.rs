@@ -55,6 +55,15 @@ impl CheckMode {
             _ => reported,
         }
     }
+
+    /// The effective severity of `f`, a finding of `meta`: [`CheckMode::severity`], where the finding's own release
+    /// severity ([`Finding::release_severity`]) stands for its rule's.
+    pub fn finding_severity(self, meta: &RuleMeta, f: &crate::Finding) -> Severity {
+        match (self, f.release_severity) {
+            (CheckMode::Release, Some(release)) if f.severity == meta.severity => release,
+            _ => self.severity(meta, f.severity),
+        }
+    }
 }
 
 /// A shipped check scheme.
