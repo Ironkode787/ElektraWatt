@@ -62,6 +62,7 @@ pub enum Table {
     Surfaces,
     Carriers,
     Placements,
+    Features,
 }
 
 impl Table {
@@ -96,6 +97,7 @@ impl Table {
             Table::Surfaces => q.table::<ew_schema::MountingSurface>().len(),
             Table::Carriers => q.table::<ew_schema::Carrier>().len(),
             Table::Placements => q.table::<ew_schema::Placement>().len(),
+            Table::Features => q.table::<ew_schema::SurfaceFeature>().len(),
         }
     }
 }

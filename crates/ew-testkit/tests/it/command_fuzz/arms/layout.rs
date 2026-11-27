@@ -208,7 +208,9 @@ pub(super) fn layout_enclosure_delete(live: &Live, rng: &mut SplitMix64) -> Opti
     Some(if l.occupied.contains(&id_text(enclosure)) {
         cmd(json!({"enclosure": enclosure}))
     } else {
-        cmd(json!({"enclosure": enclosure})).counts(&[(Table::Enclosures, -1), (Table::Surfaces, -1)])
+        // Its plate and every other face made of it go with it.
+        let faces = l.surfaces_of.get(&id_text(enclosure)).copied().unwrap_or(1);
+        cmd(json!({"enclosure": enclosure})).counts(&[(Table::Enclosures, -1), (Table::Surfaces, -faces)])
     })
 }
 
@@ -818,7 +820,8 @@ pub(super) fn edit_delete_layout(live: &Live, rng: &mut SplitMix64) -> Option<St
             if l.occupied.contains(&id_text(e)) {
                 del("enclosure", e)
             } else {
-                del("enclosure", e).counts(&[(Table::Enclosures, -1), (Table::Surfaces, -1)])
+                let faces = l.surfaces_of.get(&id_text(e)).copied().unwrap_or(1);
+                del("enclosure", e).counts(&[(Table::Enclosures, -1), (Table::Surfaces, -faces)])
             }
         }
         _ => {
@@ -909,4 +912,132 @@ fn choices_name_fixings(q: &ew_derive::Q) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+/// `layout.surface.add`: a face of an enclosure made, a side's size typed (accepted where the enclosure has no such face
+/// yet: one more surface); refused: an enclosure that does not exist; in words: the plate, a face it has already.
+pub(super) fn layout_surface_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let cmd = |p: Value| Step::cmd("layout.surface.add", p);
+    let kind = *rng.pick(&["left", "right", "top", "bottom", "door", "plate"])?;
+    if rng.chance(6) {
+        return Some(cmd(json!({"enclosure": rng.uuid(), "kind": kind})).refuse());
+    }
+    let mut p = json!({"enclosure": rng.pick(&live.layout.enclosures)?, "kind": kind});
+    if rng.chance(2) && !matches!(kind, "door" | "plate") {
+        p["width"] = json!(300 * LAY_MM);
+        p["height"] = json!(800 * LAY_MM);
+    }
+    Some(cmd(p).counts(&[(Table::Surfaces, 1)]))
+}
+
+/// A hole's kind and a size its kind reads, or one it does not ("M7").
+fn hole_kind_size(rng: &mut SplitMix64) -> Option<(&'static str, &'static str)> {
+    rng.pick(&[
+        ("round", "4.5"),
+        ("fixing", "M6"),
+        ("cutout", "22 mm"),
+        ("gland", "M20"),
+        ("rect", "92 × 92 R 2"),
+        ("fixing", "M7"),
+    ])
+    .copied()
+}
+
+/// A centre on a sheet in its frame, 20 to 120 mm from its corner.
+fn hole_at(rng: &mut SplitMix64) -> Value {
+    json!([LAY_MM * rng.range(20, 120), LAY_MM * rng.range(20, 120)])
+}
+
+/// `layout.feature.add`: a hole by hand on a surface (accepted: one more feature); refused: a surface that does not
+/// exist; in words: a kind or a size that does not read, a centre off the sheet.
+pub(super) fn layout_feature_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let cmd = |p: Value| Step::cmd("layout.feature.add", p);
+    let (kind, size) = hole_kind_size(rng)?;
+    match rng.below(8) {
+        0 => Some(cmd(json!({"surface": rng.uuid(), "at": hole_at(rng), "kind": kind, "size": size})).refuse()),
+        1 => {
+            let surface = rng.pick(&live.layout.surfaces)?;
+            Some(cmd(json!({"surface": surface, "at": [-LAY_MM, 0], "kind": kind, "size": size})))
+        }
+        _ => {
+            let surface = rng.pick(&live.layout.surfaces)?;
+            let p = json!({"surface": surface, "at": hole_at(rng), "kind": kind, "size": size, "purpose": "Spare"});
+            Some(cmd(p).counts(&[(Table::Features, 1)]))
+        }
+    }
+}
+
+/// `layout.feature.edit`: a hole by hand moved, its size or its purpose changed, a gland hole kept as a hole (accepted:
+/// no feature more or less); refused: a feature that does not exist; in words: a size that does not read.
+pub(super) fn layout_feature_edit(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let cmd = |p: Value| Step::cmd("layout.feature.edit", p);
+    if rng.chance(6) {
+        return Some(cmd(json!({"feature": rng.uuid(), "at": hole_at(rng)})).refuse());
+    }
+    let feature = rng.pick(&live.layout.features)?.clone();
+    let p = match rng.below(4) {
+        0 => json!({"feature": feature, "at": hole_at(rng)}),
+        1 => {
+            let (kind, size) = hole_kind_size(rng)?;
+            json!({"feature": feature, "kind": kind, "size": size})
+        }
+        2 => json!({"feature": feature, "purpose": "Breather"}),
+        _ => json!({"feature": feature, "for_cable": false}),
+    };
+    Some(cmd(p).counts(&[(Table::Features, 0)]))
+}
+
+/// `layout.hole_choice`: a carrier's fixing hole or a placement's hole moved or left out, or put back (accepted: no
+/// record more or less); refused: an owner that does not exist; in words: an index its pattern has no hole at, no
+/// owner named. After a commit every carrier's choice names a fixing hole its carrier has.
+pub(super) fn layout_hole_choice(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let cmd = |p: Value| Step::cmd("layout.hole_choice", p);
+    let index = rng.below(4);
+    let mut p = match rng.below(8) {
+        0 => return Some(cmd(json!({"carrier": rng.uuid(), "index": index})).refuse()),
+        1 => json!({"index": index}),
+        2 | 3 => json!({"placement": rng.pick(&live.layout.placements)?.id, "index": index % 2}),
+        _ => json!({"carrier": rng.pick(&live.layout.carriers)?.0, "index": index}),
+    };
+    match rng.below(3) {
+        0 => p["omit"] = json!(true),
+        1 => p["offset"] = json!([LAY_MM * rng.range(-10, 10), LAY_MM * rng.range(-10, 10)]),
+        _ => {}
+    }
+    Some(
+        cmd(p)
+            .counts(&[(Table::Carriers, 0), (Table::Placements, 0)])
+            .check(|_, after| choices_name_fixings(after)),
+    )
+}
+
+/// `layout.glands_place`: the gland of a cable that waits put on a side, the top or the bottom (accepted: one feature
+/// more); refused: a surface that does not exist; in words: a gland placed already, a cable that does not leave the
+/// cabinet, a door or the plate.
+pub(super) fn layout_glands_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let cmd = |p: Value| Step::cmd("layout.glands_place", p);
+    let cable = match rng.pick(&live.layout.waiting_glands) {
+        Some(c) => c.clone(),
+        None => rng.pick(&live.devices)?.clone(),
+    };
+    match rng.below(6) {
+        0 => Some(cmd(json!({"surface": rng.uuid(), "at": hole_at(rng), "cables": [cable]})).refuse()),
+        1 => {
+            let surface = rng.pick(&live.layout.surfaces)?;
+            Some(cmd(json!({"surface": surface, "at": hole_at(rng), "cables": [cable]})))
+        }
+        _ => {
+            let surface = rng.pick(&live.layout.walls)?;
+            Some(cmd(json!({"surface": surface, "at": hole_at(rng), "cables": [cable]})).counts(&[(Table::Features, 1)]))
+        }
+    }
+}
+
+/// A gland hole of the sample deleted, so that its cable's gland waits to be placed again.
+pub(super) fn setup_unplace_gland(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let hole = rng.pick(&live.layout.gland_holes)?;
+    Some(Step::cmd(
+        "edit.delete",
+        json!({"targets": [{"kind": "surface_feature", "id": hole}]}),
+    ))
 }

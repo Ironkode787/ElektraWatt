@@ -531,6 +531,32 @@ pub const ARMS: &[Arm] = &[
         weight: 1,
         build: part_keep,
     },
+    // The commands of a cabinet's surfaces and holes (doc 12 §3.7, §3.9), after it for the same reason.
+    Arm {
+        command: "layout.surface.add",
+        weight: 1,
+        build: layout_surface_add,
+    },
+    Arm {
+        command: "layout.feature.add",
+        weight: 1,
+        build: layout_feature_add,
+    },
+    Arm {
+        command: "layout.feature.edit",
+        weight: 1,
+        build: layout_feature_edit,
+    },
+    Arm {
+        command: "layout.hole_choice",
+        weight: 1,
+        build: layout_hole_choice,
+    },
+    Arm {
+        command: "layout.glands_place",
+        weight: 1,
+        build: layout_glands_place,
+    },
 ];
 
 /// The representation types a page type allows (`allowed_rep_types` of `ew-commands`, in JSON form).
@@ -607,6 +633,7 @@ pub fn setup_chain_of(command: &str) -> Option<&'static [ChainStep]> {
     ];
     const UNPLACED: &[ChainStep] = &[setup_unplace_member];
     const STALE: &[ChainStep] = &[setup_stale_ways];
+    const GLAND: &[ChainStep] = &[setup_unplace_gland];
     match command {
         "layout.space.delete" => Some(SPACE),
         "layout.enclosure.create" => Some(ENCLOSURE_PART),
@@ -617,6 +644,8 @@ pub fn setup_chain_of(command: &str) -> Option<&'static [ChainStep]> {
         "layout.place_assembly" | "layout.auto_fill" => Some(UNPLACED),
         // The sample is routed: a duct made higher stales the ways through it, which Route lays again.
         "layout.route" => Some(STALE),
+        // The sample's glands are placed; one hole goes first, so that its gland waits.
+        "layout.glands_place" => Some(GLAND),
         _ => None,
     }
 }

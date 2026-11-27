@@ -456,6 +456,16 @@ pub struct LayoutLive {
     pub placements: Vec<PlacementInfo>,
     /// The devices with a part use whose copy carries an enclosure section.
     pub enclosure_devices: Vec<Value>,
+    /// Every hole by hand or gland hole (`SurfaceFeature`).
+    pub features: Vec<Value>,
+    /// The gland holes, each a cable's.
+    pub gland_holes: Vec<Value>,
+    /// The number of surfaces of each enclosure, by its ID: a delete of the enclosure takes them all.
+    pub surfaces_of: BTreeMap<String, isize>,
+    /// The surfaces a gland goes through: the sides, the top and the bottom.
+    pub walls: Vec<Value>,
+    /// The cables whose gland waits to be placed in a cabinet, its part known.
+    pub waiting_glands: Vec<Value>,
     /// The spaces, enclosures with any placement below them (a delete is refused).
     pub occupied: BTreeSet<String>,
 }
@@ -558,6 +568,40 @@ impl LayoutLive {
                 .map(|(id, _)| id_json(id))
                 .collect(),
             occupied,
+            features: q.table::<ew_schema::SurfaceFeature>().ids().map(id_json).collect(),
+            gland_holes: q
+                .table::<ew_schema::SurfaceFeature>()
+                .iter()
+                .filter(|(_, f)| f.cable.is_some())
+                .map(|(id, _)| id_json(id))
+                .collect(),
+            surfaces_of: surfaces.iter().fold(BTreeMap::new(), |mut m, (_, s)| {
+                *m.entry(s.enclosure.to_string()).or_insert(0) += 1;
+                m
+            }),
+            walls: surfaces
+                .iter()
+                .filter(|(_, s)| {
+                    matches!(
+                        s.kind,
+                        ew_schema::SurfaceKind::Left
+                            | ew_schema::SurfaceKind::Right
+                            | ew_schema::SurfaceKind::Top
+                            | ew_schema::SurfaceKind::Bottom
+                    )
+                })
+                .map(|(id, _)| id_json(id))
+                .collect(),
+            waiting_glands: spaces
+                .ids()
+                .flat_map(|s| {
+                    q.get::<ew_derive::layout::CableGlands>(s)
+                        .iter()
+                        .filter(|g| g.placed.is_none() && g.part.is_ok())
+                        .map(|g| id_json(g.cable))
+                        .collect::<Vec<_>>()
+                })
+                .collect(),
         }
     }
 }
