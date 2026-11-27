@@ -670,6 +670,7 @@ action-part-favourite = Favoriet
 action-parts-open = Artikelen
 action-parts-new-symbol = Nieuw symbool
 action-parts-draw = Een symbool tekenen of de kast schikken
+action-parts-use-for-all = Het symbool gebruiken voor elk artikel met dit deel
 action-parts-find = Artikelen zoeken
 action-parts-new = Nieuw artikel…
 action-parts-field = Een veld van het artikel wijzigen

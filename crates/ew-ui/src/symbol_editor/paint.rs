@@ -129,8 +129,21 @@ pub(super) fn paint(
     }
 }
 
-/// SM25#11: a slot previews as the words of its kind, not one placeholder for all.
+thread_local! {
+    // The tag the drawing shows as its sample (`ShellModel::drawing_sample_tag`), set as each frame begins.
+    static SAMPLE_TAG: std::cell::RefCell<String> = const { std::cell::RefCell::new(String::new()) };
+}
+
+/// Sets the tag the drawing shows as its sample this frame.
+pub(super) fn set_sample_tag(tag: String) {
+    SAMPLE_TAG.with(|t| *t.borrow_mut() = tag);
+}
+
+/// SM25#11: a slot previews as the words of its kind, not one placeholder for all; the tag as its sample.
 fn slot_placeholder(kind: &symbols::schema::SlotKind) -> String {
+    if matches!(kind, symbols::schema::SlotKind::Tag) {
+        return SAMPLE_TAG.with(|t| t.borrow().clone());
+    }
     label(match kind {
         symbols::schema::SlotKind::FunctionText => ew_viewmodel::key!("symbol-function-text"),
         symbols::schema::SlotKind::TechData => ew_viewmodel::key!("symbol-tech-data"),

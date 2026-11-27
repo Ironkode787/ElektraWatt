@@ -431,16 +431,75 @@ pub(crate) fn drawing_strip(
     let Some(sentence) = editor.strip() else {
         return rect.top();
     };
+    let piece = matches!(editor.purpose, ew_viewmodel::shell::symbol_editor::Drawing::Piece(_))
+        && editor.device_box().is_none();
     ui.scope_builder(UiBuilder::new().max_rect(rect), |ui| {
-        strip(ui, &sentence, editor.back_label(), events);
+        if piece {
+            // A piece's symbol: the way to make it the symbol of that kind of piece for his parts (the way back is
+            // the bar's To the part).
+            let link = strings::text(key!("parts-use-for-all"));
+            strip_with(ui, &sentence, link, ("parts.use_for_all", json!({})), events);
+            if let Some(parts) = &editor.use_for_all {
+                use_for_all_card(ui, parts, events);
+            }
+        } else {
+            strip(ui, &sentence, editor.back_label(), events);
+        }
     })
     .response
     .rect
     .bottom()
 }
 
+/// The card of Use it for every part with this piece… (doc 07 §5.6): the parts it would change, by number, and how
+/// many the project holds, before Apply; Cancel closes it.
+fn use_for_all_card(ui: &mut Ui, parts: &[ew_viewmodel::ew_api::piece_symbols::DrawnPart], events: &mut Vec<Event>) {
+    let t = theme::current(ui.ctx());
+    egui::Frame::NONE
+        .fill(t.surface_raised.color32())
+        .stroke(theme::stroke(t.border_width, t.border_default))
+        .inner_margin(egui::Margin::symmetric(t.space_4 as i8, t.space_2 as i8))
+        .show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            if parts.is_empty() {
+                ui.label(strings::text(key!("parts-use-for-all-none")));
+            } else {
+                let names: Vec<&str> = parts.iter().map(|p| p.number.as_str()).collect();
+                ui.add(egui::Label::new(strings::format(key!("parts-use-for-all-card"), &[&names.join(", ")])).wrap());
+                let held = parts.iter().filter(|p| p.held).count();
+                if held > 0 {
+                    ui.label(strings::format(key!("parts-use-for-all-held"), &[&held.to_string()]));
+                }
+            }
+            ui.horizontal(|ui| {
+                if !parts.is_empty()
+                    && components::button(ui, components::Kind::Primary, strings::text(key!("parts-apply")), None, 0.0)
+                        .clicked()
+                {
+                    events.push(Event::Action("parts.use_for_all", json!({ "apply": true })));
+                }
+                if components::button(ui, components::Kind::Secondary, strings::text(key!("parts-cancel")), None, 0.0)
+                    .clicked()
+                {
+                    events.push(Event::Action("parts.use_for_all", json!({ "cancel": true })));
+                }
+            });
+        });
+}
+
 /// The strip over the sheet (doc 16a §6.27): where the person came from, and the way back.
 fn strip(ui: &mut Ui, sentence: &str, back: &str, events: &mut Vec<Event>) {
+    strip_with(ui, sentence, back, ("parts.back", json!({})), events);
+}
+
+/// A strip with its sentence and one button at its right, which runs `action`.
+fn strip_with(
+    ui: &mut Ui,
+    sentence: &str,
+    button: &str,
+    action: (&'static str, serde_json::Value),
+    events: &mut Vec<Event>,
+) {
     let t = theme::current(ui.ctx());
     egui::Frame::NONE
         .fill(t.accent_subtle.color32())
@@ -450,8 +509,8 @@ fn strip(ui: &mut Ui, sentence: &str, back: &str, events: &mut Vec<Event>) {
             ui.horizontal(|ui| {
                 ui.label(RichText::new(sentence).font(theme::font(&t.type_body)));
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if components::button(ui, components::Kind::Secondary, back, None, 0.0).clicked() {
-                        events.push(Event::Action("parts.back", json!({})));
+                    if components::button(ui, components::Kind::Secondary, button, None, 0.0).clicked() {
+                        events.push(Event::Action(action.0, action.1.clone()));
                     }
                 });
             });
@@ -2734,7 +2793,7 @@ fn table_header(ui: &mut Ui, text: &str) {
 }
 
 /// A cell's text field of a sheet table: no frame, a hairline under it, named `name`; the text typed when it changed.
-fn table_text(ui: &mut Ui, value: &str, name: &str, width: f32) -> Option<String> {
+pub(crate) fn table_text(ui: &mut Ui, value: &str, name: &str, width: f32) -> Option<String> {
     let t = theme::current(ui.ctx());
     let mut text = value.to_owned();
     let edit = ui.add(

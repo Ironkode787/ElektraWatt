@@ -25,8 +25,19 @@ pub enum Drawing {
     Symbol,
     /// A new symbol for a page: Save and place on it, or Save and use for the symbol `exchange` names.
     Page(PageDrawing),
-    /// The symbol of piece `0` (its index) of the open part: Done saves it and gives the piece the symbol.
-    Piece(usize),
+    /// The symbol of a piece of the open part: Done saves it and gives the piece the symbol.
+    Piece(PieceDrawing),
+}
+
+/// The piece of the open part a symbol is drawn for.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PieceDrawing {
+    /// Its row in the part's Drawn as table.
+    pub index: usize,
+    /// The piece in words: what it is and its pins ("Coil, rectangular A1, A2").
+    pub piece: String,
+    /// The part's number.
+    pub part: String,
 }
 
 /// The page a new symbol is drawn for.
@@ -53,14 +64,27 @@ impl SymbolEditor {
         }
         match &self.purpose {
             Drawing::Symbol => None,
-            Drawing::Page(p) => Some(match &p.exchange {
-                Some((_, tag)) => strings::format(key!("parts-strip-symbol-like"), &[tag, &p.words]),
-                None => strings::format(key!("parts-strip-symbol-page"), &[&p.words]),
-            }),
-            Drawing::Piece(i) => Some(strings::format(
-                key!("parts-strip-symbol-piece"),
-                &[&(i + 1).to_string()],
-            )),
+            Drawing::Page(p) => {
+                let errand = match &p.exchange {
+                    Some((_, tag)) => strings::format(key!("parts-strip-symbol-like"), &[tag, &p.words]),
+                    None => strings::format(key!("parts-strip-symbol-page"), &[&p.words]),
+                };
+                // A drawing whose connection grid is no longer the page's says so before it is saved, naming both
+                // grids as the status bar does.
+                let (num, den) = (self.draft.symbol.grid.num(), self.draft.symbol.grid.den());
+                if (num, den) == p.grid {
+                    return Some(errand);
+                }
+                let words = |(n, d): (u64, u64)| {
+                    crate::status::grid_words(i64::try_from(n).unwrap_or(0), i64::try_from(d).unwrap_or(1))
+                };
+                let other = strings::format(
+                    key!("parts-strip-other-grid"),
+                    &[&words((num, den)), &p.folio, &words(p.grid)],
+                );
+                Some(format!("{errand} {other}"))
+            }
+            Drawing::Piece(p) => Some(strings::format(key!("parts-strip-symbol-piece"), &[&p.piece, &p.part])),
         }
     }
 
@@ -105,6 +129,22 @@ impl SymbolEditor {
     }
 }
 
+/// The reference to the library symbol at `address` (`library:<library>:<item>`), any version.
+fn address_ref(address: &str) -> Option<schema::LibRef> {
+    let (library, item) = address.strip_prefix("library:")?.split_once(':')?;
+    let (library, item) = (library.parse::<Uuid>().ok()?, item.parse::<Uuid>().ok()?);
+    serde_json::from_value(json!({"library": library, "item": item, "version_req": "*"})).ok()
+}
+
+/// A piece in words: what it is, as the pieces table names it, and its pins ("Coil, rectangular A1, A2").
+fn piece_words(row: &ew_api::part_pieces::PieceRow) -> String {
+    let what = ew_api::part_pieces::piece_kinds()
+        .into_iter()
+        .find(|k| k.key == row.what)
+        .map_or_else(|| row.what.clone(), |k| strings::render(&k.words));
+    format!("{what} {}", row.pins.trim()).trim_end().to_owned()
+}
+
 /// What it is, by its [`WHAT`] word, for a drawing of `discipline`: the word given where the discipline offers it, else
 /// a normally open contact (the guess for a first symbol, doc 07 §5.6), else the first it offers.
 fn what_for(word: Option<&str>, discipline: &str) -> &'static str {
@@ -121,8 +161,7 @@ fn what_for(word: Option<&str>, discipline: &str) -> &'static str {
 /// needs already where the standard puts them (doc 07a): the device tag at the upper left, and under it the
 /// cross-reference of a coil or a contact. Its points take the discipline of its page as they are drawn.
 fn new_draft(grid: (u64, u64), what: &str) -> Result<SymbolDraft, String> {
-    let name = strings::text(key!("symbol-untitled"));
-    let draft = SymbolDraft::new("", name).map_err(symbol_error)?;
+    let draft = SymbolDraft::new("", strings::text(key!("symbol-untitled"))).map_err(symbol_error)?;
     let mut d = serde_json::to_value(&draft).map_err(|e| e.to_string())?;
     d["symbol"]["grid"] = json!({"num": grid.0, "den": grid.1});
     let (_, _, kind, category) = WHAT.iter().find(|(w, ..)| *w == what).copied().unwrap_or(WHAT[0]);
@@ -144,6 +183,23 @@ fn new_draft(grid: (u64, u64), what: &str) -> Result<SymbolDraft, String> {
 }
 
 impl ShellModel {
+    /// The tag a page would show for a device of what the drawing is, as its sample (doc 07 §5.6): the letter a new
+    /// device of its function's category takes, unnumbered (`-S?`); for a piece of a part the part's first device
+    /// (`-K1`).
+    pub fn drawing_sample_tag(&self) -> String {
+        let Some(editor) = self.symbol_editor() else {
+            return String::new();
+        };
+        let letter = self
+            .parts_session()
+            .and_then(|s| s.device_letter(&editor.draft.function.category))
+            .unwrap_or_default();
+        match editor.purpose {
+            Drawing::Piece(_) => format!("-{letter}1"),
+            _ => format!("-{letter}?"),
+        }
+    }
+
     /// The page shown, as a new symbol is drawn for it: a drawn page with its grid and its words.
     fn page_drawing(&self) -> Option<PageDrawing> {
         let id = self.current_page()?;
@@ -268,9 +324,13 @@ impl ShellModel {
             Drawing::Page(p) => self.page_discipline(p.page),
             _ => "electrical",
         };
+        let kept_what = like.is_none() && self.settings.symbol_last_kind.is_some();
         self.open_drawing(draft, purpose, None, None);
         if let Some(editor) = &mut self.symbol_editor {
             editor.chosen_discipline = Some(discipline);
+            editor.kept_what = kept_what;
+            // A new drawing has no name of his yet; a copy has its source's, ready to type over.
+            editor.unnamed = like.is_none();
         }
         Outcome::Done
     }
@@ -396,6 +456,11 @@ impl ShellModel {
         let Some(row) = open.sheet.pieces.get(i).cloned() else {
             return failed(key!("error-bad-param"), &["piece"]);
         };
+        let of = PieceDrawing {
+            index: i,
+            piece: piece_words(&row),
+            part: open.title(),
+        };
         if let Some(out) = self.in_hand_asks("parts.draw", p) {
             return out;
         }
@@ -418,15 +483,20 @@ impl ShellModel {
                     d
                 })
             }
-            Ok(Some("new") | None) => session
-                .piece_drawing(&row, strings::text(key!("symbol-untitled")))
-                .map_err(symbol_error),
+            Ok(Some("new") | None) => session.piece_drawing(&row, &of.piece).map_err(symbol_error),
             Ok(Some(_)) => return failed(key!("error-bad-param"), &["from"]),
             Err(e) => return e,
         };
         match made {
-            Ok(draft) => {
-                self.open_drawing(draft, Drawing::Piece(i), None, None);
+            Ok(mut draft) => {
+                // Its name follows from the piece and the part ("Coil, rectangular A1, A2 of MY-CON-9"), its key from
+                // the name: neither is asked.
+                let name = strings::format(key!("parts-piece-symbol-name"), &[&of.piece, &of.part]);
+                if let Ok(named) = SymbolDraft::new("", &name) {
+                    draft.symbol.name = named.symbol.name;
+                }
+                draft.key = super::key_of_name(&name);
+                self.open_drawing(draft, Drawing::Piece(of), None, None);
                 Outcome::Done
             }
             Err(message) => Outcome::Failed { message },
@@ -526,7 +596,92 @@ impl ShellModel {
         self.open_drawing(draft, Drawing::Symbol, home, locked);
         if let Some(editor) = &mut self.symbol_editor {
             editor.stored = home.is_some();
+            editor.opened_from = Some(address.to_owned());
         }
+        Outcome::Done
+    }
+
+    /// The parts a page draws with the drawing's symbol (its sheet's Parts drawn with it, doc 07 §5.6): a symbol a
+    /// library holds, saved or opened from there; none for a drawing no library holds yet.
+    pub fn drawing_parts(&self) -> Vec<ew_api::piece_symbols::DrawnPart> {
+        let Some(editor) = self.symbol_editor() else {
+            return Vec::new();
+        };
+        let address = editor.published().map(str::to_owned).or_else(|| editor.opened_from.clone());
+        let Some(session) = self.parts_session() else {
+            return Vec::new();
+        };
+        // The symbol by its library address where it has one (a starter's key names none: its function finds them).
+        let symbol = address.as_deref().and_then(address_ref);
+        let fndef = match symbol.as_ref().map(|s| session.libraries().resolve(s)) {
+            Some(Ok(schema::LibDocument::Symbol(s))) => s.item.fndef,
+            _ => editor.draft.symbol.fndef.clone(),
+        };
+        session.parts_drawn_with(symbol.as_ref(), &fndef)
+    }
+
+    /// `parts.use_for_all {apply?, cancel?}` (Use it for every part with this piece…, on the strip of a piece's
+    /// drawing): the symbol saved, its card names his own parts with a piece of that function and that many pins
+    /// ([`ew_api::Session::parts_with_piece`]); `apply` writes them with the symbol and brings the project's copies to
+    /// them in one undo step; `cancel` closes the card.
+    pub(crate) fn act_parts_use_for_all(&mut self, p: &Map<String, Value>) -> Outcome {
+        let Some(Drawing::Piece(of)) = self.symbol_editor().map(|e| e.purpose.clone()) else {
+            return Outcome::refused(key!("reason-no-piece-drawing"));
+        };
+        if crate::shell::flag(p, "cancel") {
+            if let Some(editor) = &mut self.symbol_editor {
+                editor.use_for_all = None;
+            }
+            return Outcome::Done;
+        }
+        let Some(open) = self.parts.as_deref().and_then(|p| p.sheet.as_ref()) else {
+            return Outcome::refused(key!("reason-no-part-open"));
+        };
+        let Some(row) = open.sheet.pieces.get(of.index).cloned() else {
+            return Outcome::refused(key!("reason-no-part-open"));
+        };
+        let except = open.sheet.source.map(|(_, item)| item);
+        // The symbol is his and saved first: the parts name it by its address.
+        let address = match self.symbol_editor().and_then(|e| e.published().map(str::to_owned)) {
+            Some(a) => a,
+            None => match self.symbol_save() {
+                Ok(a) => a,
+                Err(message) => return Outcome::Failed { message },
+            },
+        };
+        let (Some(symbol), Some(fndef)) = (address_ref(&address), ew_api::symbols::piece_function(&row.what)) else {
+            return failed(key!("error-bad-param"), &["piece"]);
+        };
+        let pins = row.pins.split(',').filter(|s| !s.trim().is_empty()).count();
+        if !crate::shell::flag(p, "apply") {
+            let Some(session) = self.parts_session() else {
+                return Outcome::refused(key!("reason-no-parts-place"));
+            };
+            let parts = session.parts_with_piece(&fndef, pins, &symbol, except);
+            if let Some(editor) = &mut self.symbol_editor {
+                editor.use_for_all = Some(parts);
+            }
+            return Outcome::Done;
+        }
+        let Some(session) = self.parts_session_mut().0 else {
+            return Outcome::refused(key!("reason-no-parts-place"));
+        };
+        let count = session.parts_with_piece(&fndef, pins, &symbol, except).len();
+        let plan = match session.use_symbol_for_pieces(&fndef, pins, &symbol, except) {
+            Ok(plan) => plan,
+            Err(message) => return Outcome::Failed { message },
+        };
+        if let Some(editor) = &mut self.symbol_editor {
+            editor.use_for_all = None;
+        }
+        self.libraries_changed();
+        if let Some(plan) = plan {
+            let out = self.run_commit(&plan.command);
+            if out != Outcome::Done {
+                return out;
+            }
+        }
+        self.notify(strings::format(key!("toast-symbol-used-for"), &[&count.to_string()]), false);
         Outcome::Done
     }
 
@@ -614,13 +769,13 @@ impl ShellModel {
         }
         match purpose {
             Drawing::Symbol => Outcome::Done,
-            Drawing::Piece(i) => {
+            Drawing::Piece(p) => {
                 if let Some(editor) = &mut self.symbol_editor {
                     editor.shown = false;
                 }
                 self.dispatch(
                     "parts.field",
-                    &json!({"field": format!("pieces[{i}].symbol"), "value": address}),
+                    &json!({"field": format!("pieces[{}].symbol", p.index), "value": address}),
                 )
             }
             Drawing::Page(page) => self.place_saved(&address, &page),
@@ -651,18 +806,10 @@ impl ShellModel {
         let Some(project) = &self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        let Some((library, item)) = address
-            .strip_prefix("library:")
-            .and_then(|r| r.split_once(':'))
-            .and_then(|(l, i)| Some((l.parse::<Uuid>().ok()?, i.parse::<Uuid>().ok()?)))
-        else {
+        let Some(reference) = address_ref(address) else {
             return failed(key!("error-bad-param"), &["symbol"]);
         };
-        let Ok(reference) = serde_json::from_value::<schema::LibRef>(
-            json!({"library": library, "item": item, "version_req": "*"}),
-        ) else {
-            return failed(key!("error-bad-param"), &["symbol"]);
-        };
+        let (library, item) = (reference.library.as_uuid(), reference.item.as_uuid());
         let docs = match project.session.libraries().closure(&reference) {
             Ok(d) => d,
             Err(e) => {

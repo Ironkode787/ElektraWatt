@@ -264,7 +264,7 @@ parts-done = Klaar
 parts-save-place = Opslaan en plaatsen op { $p0 }
 parts-strip-symbol-page = Een nieuw symbool voor pagina { $p0 }. Opgeslagen wordt het daar geplaatst.
 parts-strip-symbol-like = Een symbool zoals dat van { $p0 }, voor pagina { $p1 }. Opgeslagen neemt het de plaats in van dat van { $p0 }.
-parts-strip-symbol-piece = Het symbool van deel { $p0 } van dit artikel. Het symbool waar het van komt blijft zoals het is; het uwe wordt bij uw artikelen bewaard en tekent alleen dit deel.
+parts-strip-symbol-piece = U wijzigt het symbool van het deel { $p0 } van { $p1 }. Het symbool waar het van komt blijft zoals het is; het uwe wordt bij uw artikelen bewaard en tekent alleen dit deel.
 parts-strip-box = De kast van { $p0 } schikken. Sleep een aansluiting langs zijn rand of naar een andere rand; sleep een rand om de kast groter of kleiner te maken.
 parts-symbol-lock-starter = Een startsymbool. Het komt met het programma en is op elke pc hetzelfde, dus het kan hier niet gewijzigd worden.
 parts-symbol-lock-library = Een symbool van { $p0 }, die u niet kunt schrijven, dus het kan hier niet gewijzigd worden.
@@ -304,6 +304,26 @@ parts-new-symbol = Nieuw symbool
 parts-piece-change = Wijzig het voor dit artikel…
 parts-piece-draw-new = Teken een nieuw symbool…
 parts-arrange = Schikken…
+parts-drawn-as-head = Getekend als
+parts-piece-mine-not-saved = van mij, niet opgeslagen
+parts-use-for-all = Gebruik het voor elk artikel met dit deel…
+parts-use-for-all-none = Geen ander artikel van u heeft dit deel.
+parts-use-for-all-card = Het tekent dit deel van: { $p0 }.
+parts-use-for-all-held = { $p0 ->
+    [one] Dit project bevat er { $p0 }: de kopie volgt, in één stap om terug te draaien.
+   *[other] Dit project bevat er { $p0 }: de kopieën volgen, in één stap om terug te draaien.
+    }
+parts-apply = Toepassen
+parts-cancel = Annuleren
+parts-drawn-with = Artikelen die ermee getekend worden
+parts-drawn-with-none = Nog geen.
+reason-no-piece-drawing = Teken eerst het symbool van een deel: Teken een nieuw symbool… of Wijzig het voor dit artikel… in de cel Symbool.
+toast-symbol-used-for = Het symbool tekent nu dit deel van { $p0 } { $p0 ->
+    [one] ander artikel
+   *[other] andere artikelen
+    }.
+parts-strip-other-grid = Dit symbool staat op { $p0 }; pagina { $p1 } staat op { $p2 }: het wordt geplaatst als een kopie getekend op het raster van de pagina.
+parts-piece-symbol-name = { $p0 } van { $p1 }
 parts-add-group = + { $p0 }
 parts-new-part-with-it = Nieuw artikel dat ermee getekend wordt…
 parts-filter-kind = Soort

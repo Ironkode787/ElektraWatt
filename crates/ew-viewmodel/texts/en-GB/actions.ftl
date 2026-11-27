@@ -685,6 +685,7 @@ action-part-favourite = Favourite
 action-parts-open = Parts
 action-parts-new-symbol = New symbol
 action-parts-draw = Draw a symbol or arrange the box
+action-parts-use-for-all = Use the symbol for every part with this piece
 action-parts-find = Find parts
 action-parts-new = New part…
 action-parts-field = Change a field of the part

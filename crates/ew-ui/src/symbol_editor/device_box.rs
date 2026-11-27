@@ -15,7 +15,7 @@ use ew_viewmodel::command_bar::CommandSize;
 use ew_viewmodel::ew_api::part_box::{Dir4, EDIT_STEP};
 use ew_viewmodel::key;
 use ew_viewmodel::shell::ShellModel;
-use ew_viewmodel::shell::symbol_editor::{DeviceBox, SymbolEditor, side_word, side_words};
+use ew_viewmodel::shell::symbol_editor::{DeviceBox, SIDES, SymbolEditor, side_word, side_words};
 use ew_viewmodel::strings;
 use serde_json::json;
 
@@ -35,10 +35,6 @@ pub(super) enum BoxGesture {
         bottom: bool,
     },
 }
-
-/// A pin row of the table being dragged to another place.
-#[derive(Clone)]
-struct PinDrag(u16);
 
 /// One grid step of the box in millimetres.
 const STEP_MM: f32 = EDIT_STEP as f32 / 1e6;
@@ -99,118 +95,158 @@ impl EditorView {
         });
     }
 
-    /// The left panel: the part, its pin table and what is left to do.
-    pub(super) fn box_outline(&mut self, ui: &mut Ui, b: &DeviceBox, events: &mut Vec<Event>) {
+    /// The left panel (doc 07 §5.6, picture v5): the part's head, its Pins table (Name, Carries, Edge, From the
+    /// corner: one list of pins, the sheet's; a pin dragged changes its row, a row typed moves the pin), Add a pin,
+    /// where a bus device's network ports are drawn, The box with its size, and what is left to do.
+    pub(super) fn box_outline(
+        &mut self,
+        ui: &mut Ui,
+        b: &DeviceBox,
+        events: &mut Vec<Event>,
+    ) {
         let t = theme::current(ui.ctx());
         let outline = b.outline();
         let table = b.pin_table();
-        // Where the pins come from when they are not added here: Add pin is greyed with it.
+        // Where the pins come from when they are not added here: Add a pin is greyed with it.
         let from = b.pins_from();
-        // A card's or a bus device's pins take another place on the box.
         let placed = b.places_pins();
-        panels::panel_header(ui, label(key!("box-outline")));
+        let mods = ui.input(|i| i.modifiers);
+        let mode = if mods.shift {
+            "add"
+        } else if mods.command || mods.ctrl {
+            "toggle"
+        } else {
+            "replace"
+        };
         panels::body(ui, "box-outline", |ui| {
-            panels::title_lines(ui, &outline.title, &outline.what);
-            let mods = ui.input(|i| i.modifiers);
-            let mode = if mods.shift {
-                "add"
-            } else if mods.command || mods.ctrl {
-                "toggle"
-            } else {
-                "replace"
-            };
-            let id = ui.make_persistent_id("box-outline-pins");
-            if components::section_header(ui, id, label(key!("box-pins")), Some(table.len()), true) {
+            ui.add_space(t.space_3);
+            ui.label(egui::RichText::new(b.title()).font(theme::font(&t.type_title)));
+            let about: Vec<&str> = [b.draft.text("description"), b.draft.text("manufacturer")]
+                .into_iter()
+                .filter(|s| !s.trim().is_empty())
+                .collect();
+            ui.label(crate::components::small_secondary(&t, about.join(" \u{b7} ")));
+            ui.add_space(t.space_3);
+            ui.label(egui::RichText::new(label(key!("box-pins"))).strong());
+            let width = ui.available_width();
+            let sides: Vec<(&str, String)> = SIDES
+                .iter()
+                .map(|(w, d, _)| (*w, side_words(d)))
+                .collect();
+            egui::Grid::new("box-pin-table").num_columns(4).striped(true).show(ui, |ui| {
+                for head in [
+                    key!("box-pin-name"),
+                    key!("box-pin-carries"),
+                    key!("box-pin-side"),
+                    key!("box-pin-from-corner"),
+                ] {
+                    ui.label(crate::components::small_secondary(&t, label(head)));
+                }
+                ui.end_row();
                 for line in &table {
-                    let side = side_words(&line.side);
-                    let detail = if line.role.is_empty() {
-                        side.to_owned()
-                    } else {
-                        format!("{} \u{b7} {side}", line.role)
-                    };
                     let selected = b.selection.contains(&line.idx);
-                    let row =
-                        panels::list_row_sensing(ui, &line.name, &detail, selected, Sense::click_and_drag());
-                    if row.clicked() {
+                    // The name: typed here where the part's pins are his; a card's or a bus device's are the part's.
+                    let name_cell = format!("{} {}", label(key!("box-pin-name")), line.name);
+                    if from.is_none() {
+                        if let Some(name) =
+                            crate::parts_place::table_text(ui, &line.name, &name_cell, width * 0.22)
+                        {
+                            action(events, "part.pin", json!({ "pin": line.idx, "name": name }));
+                        }
+                    } else {
+                        ui.label(&line.name);
+                    }
+                    let carries = if line.role.is_empty() { "\u{2014}" } else { line.role.as_str() };
+                    // What it carries: a click selects the pin, whose Properties choose it.
+                    let carries = ui.add(egui::Button::new(carries).frame(false));
+                    if carries.clicked() {
+                        action(events, "part.box_select", json!({ "pins": [line.idx], "mode": mode }));
+                    }
+                    let mut side = side_word(&line.side);
+                    let shown = side_words(&line.side);
+                    let edge_cell = format!("{} {}", label(key!("box-pin-side")), line.name);
+                    components::choice(
+                        ui,
+                        egui::ComboBox::from_id_salt(("box-pin-edge", line.idx))
+                            .selected_text(shown)
+                            .width(width * 0.2),
+                        |ui| {
+                            for (w, words) in &sides {
+                                ui.selectable_value(&mut side, w, words);
+                            }
+                        },
+                    )
+                    .response
+                        .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, &edge_cell));
+                    if placed && side != side_word(&line.side) {
+                        action(events, "part.pin", json!({ "pin": line.idx, "side": side }));
+                    }
+                    let at = format!("{}", line.at * 4);
+                    let at_cell = format!("{} {}", label(key!("box-pin-from-corner")), line.name);
+                    if placed
+                        && let Some(typed) = crate::parts_place::table_text(ui, &at, &at_cell, width * 0.15)
+                        && let Ok(mm) = typed.trim().trim_end_matches("mm").trim().replace(',', ".").parse::<f64>()
+                    {
                         action(
                             events,
-                            "part.box_select",
-                            json!({ "pins": [line.idx], "mode": mode }),
+                            "part.pin",
+                            json!({ "pin": line.idx, "side": side_word(&line.side), "at": mm }),
                         );
                     }
-                    // A row dragged onto another takes its place there: on that pin's edge, before it.
-                    if placed {
-                        row.dnd_set_drag_payload(PinDrag(line.idx));
-                        if row
-                            .dnd_hover_payload::<PinDrag>()
-                            .is_some_and(|d| d.0 != line.idx)
-                        {
-                            ui.painter().line_segment(
-                                [row.rect.left_top(), row.rect.right_top()],
-                                Stroke::new(t.focus_width, t.focus.color32()),
-                            );
-                        }
-                        if let Some(drag) = row.dnd_release_payload::<PinDrag>()
-                            && drag.0 != line.idx
-                        {
-                            action(
-                                events,
-                                "part.pin",
-                                json!({ "pin": drag.0, "side": side_word(&line.side), "before": line.idx }),
-                            );
-                        }
+                    if selected {
+                        ui.label(egui::RichText::new("\u{25cf}").color(t.accent.color32()));
                     }
+                    ui.end_row();
                 }
-                if table.is_empty() {
-                    ui.horizontal(|ui| {
-                        ui.add_space(t.size_tree_indent + t.space_2);
-                        ui.add(
-                            egui::Label::new(crate::components::small_tertiary(
-                                &t,
-                                label(key!("box-pins-empty")),
-                            ))
-                            .wrap(),
-                        );
-                    });
-                }
-                ui.add_space(t.space_2);
-                ui.horizontal(|ui| {
-                    ui.add_space(t.size_tree_indent);
-                    if components::button(
-                        ui,
-                        Kind::Secondary,
-                        label(key!("box-add-pin")),
-                        from.as_deref(),
-                        0.0,
-                    )
-                    .clicked()
-                    {
-                        action(events, "part.pin", json!({ "add": true }));
-                    }
-                });
+            });
+            if table.is_empty() {
+                ui.label(crate::components::small_tertiary(&t, label(key!("box-pins-empty"))));
             }
+            if let Some(from) = from.as_deref()
+                && b.ports_line().is_none()
+            {
+                ui.add(egui::Label::new(crate::components::small_secondary(&t, from)).wrap());
+            }
+            ui.add_space(t.space_1);
+            if components::button(ui, Kind::Subtle, label(key!("box-add-pin")), from.as_deref(), 0.0).clicked() {
+                action(events, "part.pin", json!({ "add": true }));
+            }
+            // A bus device's network ports are drawn on a bus page, from its interfaces: one line says so, with the
+            // way to that group of the sheet.
+            if let Some(line) = b.ports_line() {
+                ui.add_space(t.space_2);
+                ui.add(egui::Label::new(crate::components::small_secondary(&t, line)).wrap());
+                if ui.link(label(key!("box-ports-way"))).clicked() {
+                    action(events, "parts.draw", json!({ "done": true }));
+                }
+            }
+            ui.add_space(t.space_3);
+            ui.label(egui::RichText::new(label(key!("box-the-box"))).strong());
+            let ((w_mm, h_mm), (w, h)) = b.size();
+            let size = strings::format(
+                key!("box-size-value"),
+                &[&ew_viewmodel::shell::symbol_editor::trim_mm(w_mm), &ew_viewmodel::shell::symbol_editor::trim_mm(h_mm)],
+            );
+            ui.horizontal(|ui| {
+                ui.label(crate::components::small_secondary(&t, label(key!("box-size"))));
+                ui.label(size);
+            });
+            ui.label(crate::components::small_tertiary(
+                &t,
+                strings::format(key!("box-on-page"), &[&w.to_string(), &h.to_string()]),
+            ));
             ui.add_space(t.space_3);
             if outline.todo.is_empty() {
                 panels::ready_line(ui, label(key!("box-ready")));
             } else {
-                let id = ui.make_persistent_id("box-outline-todo");
-                if components::section_header(
-                    ui,
-                    id,
-                    label(key!("symbol-todo")),
-                    Some(outline.todo.len()),
-                    true,
-                ) {
-                    for todo in &outline.todo {
-                        if panels::todo_row(ui, &todo.text).clicked() {
-                            action(events, "part.box_select", json!({ "pins": [] }));
-                        }
+                for todo in &outline.todo {
+                    if panels::todo_row(ui, &todo.text).clicked() {
+                        action(events, "part.box_select", json!({ "pins": [] }));
                     }
                 }
             }
         });
     }
-
     /// The right panel: the rows of the selected pins, or of the part and its box.
     pub(super) fn box_properties(&mut self, ui: &mut Ui, b: &DeviceBox, events: &mut Vec<Event>) {
         let t = theme::current(ui.ctx());
@@ -240,8 +276,8 @@ impl EditorView {
     ) {
         let t = theme::current(ui.ctx());
         let mut top = crate::parts_place::drawing_strip(ui, rect, editor, events);
-        // Why the last action did nothing, and where the pins come from when they are not edited here.
-        for (text, error) in [(b.error.clone(), true), (b.pins_from(), false)] {
+        // Why the last action did nothing (where the pins come from stands with the pin table).
+        for (text, error) in [(b.error.clone(), true)] {
             let Some(text) = text else { continue };
             let banner = ui.scope_builder(
                 UiBuilder::new().max_rect(Rect::from_min_max(Pos2::new(rect.left(), top), rect.max)),

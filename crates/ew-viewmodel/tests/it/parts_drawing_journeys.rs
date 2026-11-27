@@ -346,3 +346,167 @@ fn journey_h_a_box_of_his_own_is_arranged_and_placed_that_way() {
     assert_eq!(on(Dir::Up), sorted(&supply), "the supply on top");
     assert!(on(Dir::Down).is_empty(), "nothing below");
 }
+
+/// A contactor of his own made in the test, `number`, with a coil A1, A2 and a normally open contact 13, 14, saved.
+fn own_contactor(s: &mut ShellModel, number: &str) {
+    done(s, "parts.new", json!({"start": "device"}));
+    for (field, value) in [("manufacturer", "Example"), ("part_number", number)] {
+        done(s, "parts.field", json!({"field": field, "value": value}));
+    }
+    for (i, what, pins) in [(0, "ew.fn.coil", "A1, A2"), (1, "ew.fn.contact-no", "13, 14")] {
+        done(s, "parts.row", json!({"table": "pieces"}));
+        done(
+            s,
+            "parts.field",
+            json!({"field": format!("pieces[{i}].what"), "value": what}),
+        );
+        done(
+            s,
+            "parts.field",
+            json!({"field": format!("pieces[{i}].pins"), "value": pins}),
+        );
+    }
+    done(s, "parts.save", json!({}));
+}
+
+/// A new symbol from a page opens without a name, To do asking for one first (no two symbols called "New symbol"),
+/// and Save says so; What it is taken from the symbol drawn last says so; the sample tag is what a page would show
+/// for a device of it, unnumbered; the tool is the one used last; a drawing whose connection grid is no longer the
+/// page's says so on its strip, naming both grids.
+#[test]
+fn a_new_symbol_from_a_page_asks_a_name_keeps_the_last_and_warns_of_another_grid() {
+    let tmp = Tmp::new("journey-4-sheet");
+    let mut s = project(&tmp);
+    done(&mut s, "parts.new_symbol", json!({}));
+    let editor = s.symbol_editor().expect("the drawing");
+    assert!(editor.unnamed, "no name of his yet");
+    let name = editor.symbol_rows().into_iter().find(|r| r.key == "name").expect("Name");
+    assert_eq!(
+        name.value,
+        ew_viewmodel::shell::symbol_editor::RowValue::Text(Some(String::new())),
+        "Name shows empty"
+    );
+    let todo = editor.outline().todo;
+    assert_eq!(todo[0].text, "Give it a name");
+    assert!(!editor.kept_what, "nothing drawn before");
+    assert_eq!(s.drawing_sample_tag(), "-K?", "a contact's device, unnumbered");
+    assert_eq!(
+        crate::common::failed(&mut s, "parts.save", json!({})),
+        "Give it a name"
+    );
+    done(
+        &mut s,
+        "parts.field",
+        json!({"field": "symbol.name", "value": "Level switch"}),
+    );
+    done(&mut s, "symbol.tool", json!({"tool": "line"}));
+    draw_contact(&mut s);
+    done(&mut s, "parts.save", json!({}));
+    done(&mut s, "ui.dismiss", json!({}));
+    // The next: What it is and the tool as left.
+    done(&mut s, "parts.new_symbol", json!({}));
+    let editor = s.symbol_editor().unwrap();
+    assert!(editor.kept_what, "What it is as for the symbol drawn last");
+    assert_eq!(editor.tool, "line");
+    // Its connection grid made another (an import on the QET grid): the strip names both.
+    let mut doc = serde_json::to_value(&editor.draft).unwrap();
+    doc["symbol"]["grid"] = json!({"num": 7_937_500, "den": 3});
+    let file = tmp.0.join("qet.symbol.json");
+    std::fs::write(&file, serde_json::to_vec(&doc).unwrap()).unwrap();
+    done(&mut s, "symbol.open", json!({"file": file, "discard": true}));
+    let strip = s.symbol_editor().unwrap().strip().unwrap_or_default();
+    assert!(
+        strip.contains("This symbol is on QET 10 px; page 101 is on 4 mm"),
+        "{strip}"
+    );
+}
+
+/// A piece's symbol is named after the piece and the part, its key after the name, and its strip names both; its
+/// sample tag is the part's first device's. Use it for every part with this piece… names his other contactor with a
+/// coil of two pins before it applies, and Apply gives that part's coil the symbol.
+#[test]
+fn a_piece_s_symbol_is_named_by_its_part_and_is_used_for_every_part_with_the_piece() {
+    let tmp = Tmp::new("journey-piece-for-all");
+    let mut s = project(&tmp);
+    own_contactor(&mut s, "MY-CON-8");
+    own_contactor(&mut s, "MY-CON-9");
+    done(&mut s, "parts.draw", json!({"piece": 0, "from": "new"}));
+    let editor = s.symbol_editor().expect("the drawing");
+    let name = ew_viewmodel::shell::symbol_editor::display_name(&editor.draft);
+    assert!(name.ends_with(" A1, A2 of MY-CON-9"), "{name}");
+    assert!(editor.draft.key.ends_with("-a1-a2-of-my-con-9"), "{}", editor.draft.key);
+    let strip = editor.strip().unwrap_or_default();
+    assert!(
+        strip.starts_with("You are changing the symbol of the piece ") && strip.contains(" A1, A2 of MY-CON-9."),
+        "{strip}"
+    );
+    assert_eq!(s.drawing_sample_tag(), "-K1");
+    done(
+        &mut s,
+        "symbol.draw",
+        json!({"tool": "rectangle", "x": -4, "y": 4, "x2": 12, "y2": 12}),
+    );
+    done(&mut s, "parts.use_for_all", json!({}));
+    let card: Vec<String> = s
+        .symbol_editor()
+        .and_then(|e| e.use_for_all.clone())
+        .expect("the card")
+        .into_iter()
+        .map(|p| p.number)
+        .collect();
+    assert_eq!(card, ["MY-CON-8"], "his other part with the piece, not this one");
+    done(&mut s, "parts.use_for_all", json!({"apply": true}));
+    assert!(s.symbol_editor().unwrap().use_for_all.is_none(), "the card is spent");
+    let address = s.settings().symbols_recent.first().cloned().expect("the saved symbol");
+    done(&mut s, "parts.draw", json!({"done": true}));
+    done(&mut s, "parts.open", json!({"part": "MY-CON-8", "discard": true}));
+    let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the other part");
+    assert_eq!(open.sheet.pieces[0].symbol, address, "its coil names the symbol");
+    assert!(open.sheet.pieces[1].symbol.is_empty(), "its contact keeps its own");
+}
+
+/// A symbol a library holds lists the parts a page draws with it (its sheet's Parts drawn with it): the starter coil
+/// lists his contactor, whose coil names no symbol of its own.
+#[test]
+fn a_symbol_lists_the_parts_drawn_with_it() {
+    let tmp = Tmp::new("journey-drawn-with");
+    let mut s = project(&tmp);
+    own_contactor(&mut s, "MY-CON-7");
+    let coil = ew_viewmodel::ew_api::output::starter_piece_symbol("ew.fn.coil").expect("the starter coil");
+    done(&mut s, "parts.open", json!({"symbol": coil}));
+    let parts: Vec<String> = s.drawing_parts().into_iter().map(|p| p.number).collect();
+    assert!(parts.iter().any(|n| n == "MY-CON-7"), "{parts:?}");
+}
+
+/// A box arranged says on the status line whose box it is and how many pins it has, and a bus device's line says
+/// where its network ports are drawn.
+#[test]
+fn a_box_speaks_of_its_part_and_its_ports() {
+    let tmp = Tmp::new("journey-h-status");
+    let mut s = project(&tmp);
+    done(&mut s, "parts.new", json!({"start": "box"}));
+    for (field, value) in [("manufacturer", "Example"), ("part_number", "PN-SW2")] {
+        done(&mut s, "parts.field", json!({"field": field, "value": value}));
+    }
+    for name in ["L+", "M"] {
+        done(&mut s, "part.pin", json!({"add": true, "name": name}));
+    }
+    done(&mut s, "parts.row", json!({"table": "bus"}));
+    for (field, value) in [("bus.0.interface", "X1"), ("bus.0.ports", "2")] {
+        done(&mut s, "parts.field", json!({"field": field, "value": value}));
+    }
+    done(&mut s, "parts.draw", json!({"what": "box"}));
+    let status: Vec<String> = ew_viewmodel::status::bar(&s, false).into_iter().map(|f| f.text).collect();
+    assert!(
+        status.iter().any(|f| f == "PN-SW2 · changed, not saved · the box: 2 pins"),
+        "{status:?}"
+    );
+    let line = s
+        .symbol_editor()
+        .and_then(|e| e.device_box())
+        .and_then(|b| b.ports_line());
+    assert_eq!(
+        line.as_deref(),
+        Some("Network ports X1 P1 and X1 P2 are drawn on a bus page.")
+    );
+}

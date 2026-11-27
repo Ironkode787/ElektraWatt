@@ -16,7 +16,7 @@ mod place;
 mod selection;
 mod sheet;
 pub use device_box::{DeviceBox, PinLine, SIDES, side_word, side_words};
-pub use place::{Drawing, PageDrawing};
+pub use place::{Drawing, PageDrawing, PieceDrawing};
 pub use selection::{Clipboard, Item, bounds, grips, role_words};
 pub use sheet::{Outline, OutlineGroup, OutlineRow, RowValue, Sheet, SheetRow, Todo, WHAT, trim_mm};
 
@@ -140,6 +140,16 @@ pub struct SymbolEditor {
     /// Why the drawing is not his to change (a symbol of the starter or of a library he cannot write): it reads as it
     /// is, with Make my own from it; `None` for his own.
     pub locked: Option<String>,
+    /// Whether What it is is still the one taken from the symbol he saved last (a new drawing's start): the short
+    /// sheet says so under it.
+    pub kept_what: bool,
+    /// Whether a new drawing has no name of his yet: Name shows empty and To do asks for one first (its key is made
+    /// from its name, so no two symbols are called "New symbol" by default).
+    pub unnamed: bool,
+    /// The library address the drawing was opened from (`library:<library>:<item>`), whose parts its sheet lists.
+    pub opened_from: Option<String>,
+    /// The card of Use it for every part with this piece…: the parts it would change, before Apply.
+    pub use_for_all: Option<Vec<ew_api::piece_symbols::DrawnPart>>,
     undo: Vec<SymbolDraft>,
     redo: Vec<SymbolDraft>,
     /// Current orientation of the live preview (A–H).
@@ -209,6 +219,10 @@ impl SymbolEditor {
             purpose: Drawing::Symbol,
             home: None,
             locked: None,
+            kept_what: false,
+            unnamed: false,
+            opened_from: None,
+            use_for_all: None,
             undo: Vec::new(),
             redo: Vec::new(),
             variant: 0,
@@ -852,7 +866,10 @@ impl ShellModel {
             .first()
             .cloned()
             .ok_or_else(|| strings::text(key!("eplan-no-symbols")).to_owned())?;
-        self.open_drawing(draft, Drawing::Symbol, None, None);
+        // An import opened on a drawing for a page or a piece is drawn for the same errand.
+        let purpose = (self.symbol_editor.as_ref().filter(|e| e.shown && e.device_box.is_none()))
+            .map_or(Drawing::Symbol, |e| e.purpose.clone());
+        self.open_drawing(draft, purpose, None, None);
         if let Some(editor) = &mut self.symbol_editor {
             editor.candidates = candidates;
         }

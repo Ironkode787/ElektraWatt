@@ -1190,6 +1190,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_parts_draw(p),
         )),
     ),
+    // Use it for every part with this piece…, on the strip of a piece's drawing: its card, then Apply or Cancel.
+    with_params(
+        "apply?:bool, cancel?:bool",
+        hidden(act(
+            "parts.use_for_all",
+            View,
+            Menu::Edit,
+            &[],
+            parts_shown,
+            None,
+            |s, p| s.act_parts_use_for_all(p),
+        )),
+    ),
     with_params(
         "file?:path, key?:text, discard?:bool",
         hidden(act("symbol.open", View, Menu::Edit, &[], always, None, |s, p| {

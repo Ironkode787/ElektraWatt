@@ -497,6 +497,16 @@ impl SymbolEditor {
                 }),
             })
             .collect();
+        // A symbol's key is made from its name: a new drawing has none until he gives one.
+        if self.unnamed {
+            todo.insert(
+                0,
+                Todo {
+                    text: label("symbol-todo-name"),
+                    item: None,
+                },
+            );
+        }
         if !self.draft.import_notes.is_empty() && !self.draft.import_reviewed {
             todo.push(Todo {
                 text: label("symbol-import-review"),
@@ -823,7 +833,11 @@ impl SymbolEditor {
         );
         let text = |s: &str| RowValue::Text(Some(s.to_owned()));
         vec![
-            row("name", "symbol-name", text(&name_words(&d.symbol.name))),
+            row(
+                "name",
+                "symbol-name",
+                text(&if self.unnamed { String::new() } else { name_words(&d.symbol.name) }),
+            ),
             SheetRow {
                 locked,
                 ..row("what", "symbol-what", choice(current, what))
@@ -1115,6 +1129,12 @@ impl ShellModel {
         let mut doc = serde_json::to_value(&editor.draft).map_err(|e| e.to_string())?;
         if !editor.set_symbol(&mut doc, key, &value) {
             return Err(words(key!("symbol-prop-invalid")));
+        }
+        if key == "what" {
+            editor.kept_what = false;
+        }
+        if key == "name" {
+            editor.unnamed = false;
         }
         editor.take(&doc)
     }

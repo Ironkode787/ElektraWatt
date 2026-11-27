@@ -123,6 +123,7 @@ pub use stock::StockRow;
 mod part_new;
 mod part_offers;
 pub mod part_pieces;
+pub mod piece_symbols;
 mod part_plc;
 pub mod parts;
 pub mod plc_exchange;

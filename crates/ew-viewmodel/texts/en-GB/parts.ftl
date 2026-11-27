@@ -269,7 +269,7 @@ parts-done = Done
 parts-save-place = Save and place on { $p0 }
 parts-strip-symbol-page = A new symbol for page { $p0 }. Saved, it is placed there.
 parts-strip-symbol-like = A symbol like { $p0 }'s, for page { $p1 }. Saved, it takes the place of { $p0 }'s.
-parts-strip-symbol-piece = The symbol of piece { $p0 } of this part. The symbol it came from stays as it is; yours is kept with your parts and draws this piece only.
+parts-strip-symbol-piece = You are changing the symbol of the piece { $p0 } of { $p1 }. The symbol it came from stays as it is; yours is kept with your parts and draws this piece only.
 parts-strip-box = Arranging the box of { $p0 }. Drag a pin along its edge or onto another edge; drag an edge to size the box.
 parts-symbol-lock-starter = A starter symbol. It comes with the program and is the same on every PC, so it cannot be changed here.
 parts-symbol-lock-library = A symbol of { $p0 }, which you cannot write, so it cannot be changed here.
@@ -309,6 +309,26 @@ parts-new-symbol = New symbol
 parts-piece-change = Change it for this part…
 parts-piece-draw-new = Draw a new symbol…
 parts-arrange = Arrange…
+parts-drawn-as-head = Drawn as
+parts-piece-mine-not-saved = mine, not saved
+parts-use-for-all = Use it for every part with this piece…
+parts-use-for-all-none = No other part of yours has this piece.
+parts-use-for-all-card = It draws this piece of: { $p0 }.
+parts-use-for-all-held = { $p0 ->
+    [one] This project holds { $p0 } of them: its copy follows, in one undo step.
+   *[other] This project holds { $p0 } of them: their copies follow, in one undo step.
+    }
+parts-apply = Apply
+parts-cancel = Cancel
+parts-drawn-with = Parts drawn with it
+parts-drawn-with-none = None yet.
+reason-no-piece-drawing = Draw a piece's symbol first: Draw a new symbol… or Change it for this part… in its Symbol cell.
+toast-symbol-used-for = The symbol now draws this piece of { $p0 } other { $p0 ->
+    [one] part
+   *[other] parts
+    }.
+parts-strip-other-grid = This symbol is on { $p0 }; page { $p1 } is on { $p2 }: it is placed as a copy drawn on the page's grid.
+parts-piece-symbol-name = { $p0 } of { $p1 }
 parts-add-group = + { $p0 }
 parts-new-part-with-it = New part drawn with it…
 parts-filter-kind = Kind

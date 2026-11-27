@@ -294,7 +294,7 @@ impl ShellModel {
     }
 
     /// [`ShellModel::parts_session`] to change, with the place beside it.
-    fn parts_session_mut(&mut self) -> (Option<&mut ew_api::Session>, Option<&mut PartsPlace>) {
+    pub(crate) fn parts_session_mut(&mut self) -> (Option<&mut ew_api::Session>, Option<&mut PartsPlace>) {
         let session = match &mut self.parts_alone {
             Some(alone) => Some(&mut **alone),
             None => self.project.as_mut().map(|p| &mut p.session),

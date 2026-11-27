@@ -371,7 +371,7 @@ pub fn export_with(vfs: &dyn ew_store::Vfs, draft: &SymbolDraft, path: &Path) ->
 }
 
 /// Preview graphics with text shaped identically to page output. Slot contents are illustrative except pin designations;
-/// `slot_placeholder` names the other slots by their kind.
+/// `slot_placeholder` names the other slots by their kind (the tag by a sample of the tag a page would show).
 pub fn preview_display_list(
     draft: &SymbolDraft,
     geometry: &SymbolGeometry,
@@ -399,7 +399,6 @@ pub fn preview_display_list(
                 .and_then(|c| draft.function.cps.iter().find(|p| p.idx == c.fn_cp))
                 .map(|p| p.designation.to_string())
                 .unwrap_or_default(),
-            TextSource::Slot(schema::SlotKind::Tag) => "-U1".into(),
             TextSource::Slot(kind) => slot_placeholder(kind),
         };
         let style_key = match (&text.style_key, &text.source) {

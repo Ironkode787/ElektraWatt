@@ -436,6 +436,7 @@ impl EditorView {
         let Some(editor) = shell.symbol_editor() else {
             return;
         };
+        paint::set_sample_tag(shell.drawing_sample_tag());
         let t = theme::current(ui.ctx());
         let full = ui.max_rect();
         ui.allocate_rect(full, Sense::hover());
@@ -494,7 +495,7 @@ impl EditorView {
         }
         ui.scope_builder(UiBuilder::new().max_rect(left), |ui| {
             ui.set_clip_rect(left.intersect(ui.clip_rect()));
-            self.outline(ui, editor, events);
+            self.outline(ui, shell, editor, events);
         });
         ui.scope_builder(UiBuilder::new().max_rect(right), |ui| {
             ui.set_clip_rect(right.intersect(ui.clip_rect()));
@@ -795,7 +796,7 @@ impl EditorView {
     /// The left panel (doc 07 §5.6): the symbol's short sheet (Name, What it is, where it is listed, the grid of its
     /// pins), the line that says why it is not his to change, what it consists of (each row a click to the thing),
     /// and what is left to do.
-    fn outline(&mut self, ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
+    fn outline(&mut self, ui: &mut Ui, shell: &ShellModel, editor: &SymbolEditor, events: &mut Vec<Event>) {
         let t = theme::current(ui.ctx());
         let key = (
             editor.generation,
@@ -811,9 +812,20 @@ impl EditorView {
                 o
             }
         };
-        panels::panel_header(ui, label(key!("symbol-outline")));
+        let piece = match &editor.purpose {
+            ew_viewmodel::shell::symbol_editor::Drawing::Piece(p) => Some(p),
+            _ => None,
+        };
+        if piece.is_none() {
+            panels::panel_header(ui, label(key!("symbol-outline")));
+        }
         panels::body(ui, "symbol-outline", |ui| {
-            short_sheet(ui, editor, events);
+            // A piece's symbol is the part's: its head and its Drawn as table, no Name and no What it is, which
+            // follow from the piece; any other symbol has its short sheet.
+            match piece {
+                Some(p) => piece_head(ui, shell, editor, p),
+                None => short_sheet(ui, shell, editor, events),
+            }
             let mods = ui.input(|i| i.modifiers);
             let mode = if mods.shift {
                 "add"
@@ -834,11 +846,11 @@ impl EditorView {
                     }
                 }
             }
+            // This symbol: its things, a row each, a click selecting it.
+            ui.add_space(t.space_2);
+            ui.label(egui::RichText::new(label(key!("symbol-this-symbol"))).strong());
+            table_head(ui, label(key!("symbol-thing")), label(key!("symbol-thing-what")));
             for group in &outline.groups {
-                let id = ui.make_persistent_id(("symbol-outline", group.key));
-                if !components::section_header(ui, id, &group.label, Some(group.rows.len()), true) {
-                    continue;
-                }
                 for row in &group.rows {
                     let selected = editor.selection.contains(&row.item);
                     if panels::list_row(ui, &row.label, &row.detail, selected).clicked() {
@@ -849,12 +861,9 @@ impl EditorView {
                         );
                     }
                 }
-                if group.rows.is_empty() {
-                    ui.horizontal(|ui| {
-                        ui.add_space(t.size_tree_indent + t.space_2);
-                        ui.label(crate::components::small_tertiary(&t, group.empty.clone()));
-                    });
-                }
+            }
+            if outline.groups.iter().all(|g| g.rows.is_empty()) {
+                ui.label(crate::components::small_tertiary(&t, label(key!("symbol-nothing-drawn"))));
             }
             if !outline.import_notes.is_empty() {
                 let id = ui.make_persistent_id("symbol-outline-import");
@@ -964,7 +973,7 @@ impl EditorView {
 /// The symbol's short sheet (doc 07 §5.6): Name and What it is, typed and chosen where they stand (`parts.field`), and
 /// what follows from them, not asked: where it is listed and the grid of its pins; a symbol that is not his reads as
 /// text, with one line that says why and Make my own from it; a saved one of his offers a new part drawn with it.
-fn short_sheet(ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
+fn short_sheet(ui: &mut Ui, shell: &ShellModel, editor: &SymbolEditor, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
     if let Some(why) = &editor.locked {
         egui::Frame::NONE
@@ -1003,8 +1012,18 @@ fn short_sheet(ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
             );
         }
     }
+    // What it is taken from the symbol he drew last says so, under it.
+    if editor.kept_what {
+        ui.label(crate::components::small_tertiary(&t, label(key!("symbol-what-kept"))));
+    }
     let grid = editor.draft.symbol.grid;
-    let pins_on = ew_viewmodel::status::grid_words(grid.num() as i64, grid.den() as i64);
+    let mut pins_on = ew_viewmodel::status::grid_words(grid.num() as i64, grid.den() as i64);
+    // Drawn for a page on that page's grid: whose grid it is.
+    if let ew_viewmodel::shell::symbol_editor::Drawing::Page(page) = &editor.purpose
+        && page.grid == (grid.num(), grid.den())
+    {
+        pins_on = strings::format(key!("symbol-pins-on-page"), &[&pins_on, &page.folio]);
+    }
     for (caption, value) in [
         (label(key!("symbol-category")), editor.listed_under()),
         (label(key!("symbol-pins-on")), pins_on),
@@ -1027,7 +1046,92 @@ fn short_sheet(ui: &mut Ui, editor: &SymbolEditor, events: &mut Vec<Event>) {
     {
         action(events, "parts.new", json!({ "symbol": address }));
     }
+    // Parts drawn with it: the parts a page draws with this symbol, of his libraries and of the project.
+    if matches!(editor.purpose, ew_viewmodel::shell::symbol_editor::Drawing::Symbol)
+        && (editor.published().is_some() || editor.opened_from.is_some())
+    {
+        let parts = shell.drawing_parts();
+        ui.add_space(t.space_2);
+        ui.label(egui::RichText::new(label(key!("parts-drawn-with"))).strong());
+        if parts.is_empty() {
+            ui.label(crate::components::small_tertiary(&t, label(key!("parts-drawn-with-none"))));
+        }
+        for p in &parts {
+            ui.horizontal(|ui| {
+                ui.label(&p.number);
+                ui.label(crate::components::small_secondary(&t, p.maker.clone()));
+            });
+        }
+    }
     ui.add_space(t.space_2);
+}
+
+/// A two-column table's head, as the sheet's tables have it.
+fn table_head(ui: &mut Ui, first: &str, second: &str) {
+    let t = theme::current(ui.ctx());
+    ui.horizontal(|ui| {
+        let half = ui.available_width() * 0.55;
+        ui.add_sized([half, t.size_row], egui::Label::new(crate::components::small_secondary(&t, first)));
+        ui.label(crate::components::small_secondary(&t, second));
+    });
+}
+
+/// The head of a piece's drawing (doc 07 §5.6, picture v6): the part's number, its description and maker, and its
+/// Drawn as table (What it is, Pins, Symbol) with the piece being drawn marked as his, saved or not.
+fn piece_head(
+    ui: &mut Ui,
+    shell: &ShellModel,
+    editor: &SymbolEditor,
+    piece: &ew_viewmodel::shell::symbol_editor::PieceDrawing,
+) {
+    let t = theme::current(ui.ctx());
+    let Some(open) = shell.parts_place().and_then(|p| p.sheet.as_ref()) else {
+        return;
+    };
+    let d = &open.sheet;
+    ui.add_space(t.space_2);
+    ui.label(egui::RichText::new(open.title()).font(theme::font(&t.type_title)));
+    let about: Vec<&str> = [d.text("description"), d.text("manufacturer")]
+        .into_iter()
+        .filter(|s| !s.trim().is_empty())
+        .collect();
+    ui.label(crate::components::small_secondary(&t, about.join(" \u{b7} ")));
+    ui.add_space(t.space_2);
+    ui.label(egui::RichText::new(label(key!("parts-drawn-as-head"))).strong());
+    let kinds = ew_viewmodel::ew_api::part_pieces::piece_kinds();
+    egui::Grid::new("piece-head-drawn-as").num_columns(3).striped(true).show(ui, |ui| {
+        for head in [key!("parts-piece-what"), key!("parts-piece-pins"), key!("parts-piece-symbol")] {
+            ui.label(crate::components::small_secondary(&t, label(head)));
+        }
+        ui.end_row();
+        for (i, row) in d.pieces.iter().enumerate() {
+            let what = kinds
+                .iter()
+                .find(|k| k.key == row.what)
+                .map_or_else(|| row.what.clone(), |k| strings::render(&k.words));
+            let symbol = if i == piece.index {
+                if editor.stored() && !editor.dirty() {
+                    ew_viewmodel::shell::symbol_editor::display_name(&editor.draft)
+                } else {
+                    label(key!("parts-piece-mine-not-saved")).to_owned()
+                }
+            } else {
+                open.piece_symbols
+                    .get(i)
+                    .and_then(|c| c.iter().find(|(a, _)| *a == row.symbol))
+                    .map(|(_, n)| n.clone())
+                    .unwrap_or_default()
+            };
+            let mark = |s: String| {
+                let text = egui::RichText::new(s);
+                if i == piece.index { text.color(t.accent.color32()) } else { text }
+            };
+            ui.label(mark(what));
+            ui.label(mark(row.pins.clone()));
+            ui.label(mark(symbol));
+            ui.end_row();
+        }
+    });
 }
 
 /// The drawing grid's step and Snap to grid; the tooltip names the connection grid that connection points

@@ -122,6 +122,30 @@ impl DeviceBox {
         self.draft.pins_from().map(from_words)
     }
 
+    /// Where a bus device's network ports are drawn, in a sentence: on a bus page, not on this box ("Network ports X1
+    /// P1 and X1 P2 are drawn on a bus page"); `None` for a part without ports.
+    pub fn ports_line(&self) -> Option<String> {
+        let mut names: Vec<String> = Vec::new();
+        for row in &self.draft.bus {
+            let count = row.ports.trim().parse::<u32>().unwrap_or(1).max(1);
+            names.extend((1..=count).map(|k| format!("{} P{k}", row.interface.trim())));
+        }
+        let (last, rest) = names.split_last()?;
+        let list = if rest.is_empty() {
+            last.clone()
+        } else {
+            strings::format(key!("box-ports-and"), &[&rest.join(", "), last])
+        };
+        Some(strings::format(key!("box-ports-drawn"), &[&list]))
+    }
+
+    /// The box's size in millimetres and in steps of the 4 mm grid a page draws it on: `(width, height)` each.
+    pub fn size(&self) -> ((f64, f64), (i64, i64)) {
+        let b = self.steps();
+        let mm = |steps: i64| (steps * EDIT_STEP) as f64 / 1e6;
+        ((mm(b.w), mm(b.h)), (b.w, b.h))
+    }
+
     /// Whether the pins' places on the box and the box's size are edited here: also on a PLC card's or a bus
     /// device's box, whose pins' names and potentials are the part's.
     pub fn places_pins(&self) -> bool {
@@ -310,7 +334,7 @@ impl DeviceBox {
                 },
                 help: Some(words(key!("symbol-potential-role-help"))),
                 locked: locked.clone(),
-                ..text("role", key!("symbol-potential-role"), String::new())
+                ..text("role", key!("box-pin-carries"), String::new())
             },
             SheetRow {
                 value: RowValue::Choice {
@@ -334,7 +358,7 @@ impl DeviceBox {
         let (title, line) = match chosen[..] {
             [pin] => (
                 strings::format(key!("box-pin-title"), &[&pin.name]),
-                words(key!("box-pin-line")),
+                strings::format(key!("box-pin-line"), &[&self.title()]),
             ),
             _ => (
                 strings::format(key!("box-pins-selected"), &[&chosen.len().to_string()]),

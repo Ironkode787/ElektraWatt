@@ -13,6 +13,12 @@ status-handle-moves-up-down = This handle moves up and down only: press ↑ or �
 status-handle-moves-sideways = This handle moves left and right only: press ← or →.
 status-handle-cannot-move = The handle cannot go that way: the wire's ends stay on their connection points and its corners stay square.
 status-drawing = { $p0 } · { $p1 }
+status-box = { $p0 } · { $p1 } · the box: { $p2 ->
+    [one] { $p2 } pin
+   *[other] { $p2 } pins
+    }
+status-part-changed = changed, not saved
+status-part-saved = saved
 status-handle-refused = The handle did not move: { $p0 }
 bar-supply = Supply
 status-cursor = x { $p0 } y { $p1 } mm

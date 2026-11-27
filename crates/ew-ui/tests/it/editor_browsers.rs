@@ -183,6 +183,11 @@ fn a_drawn_symbol_is_listed_under_what_it_is() {
     );
     d.settle();
     for (action, params) in [
+        // Named, as To do asks first.
+        (
+            "parts.field",
+            json!({"field": "symbol.name", "value": "New symbol"}),
+        ),
         (
             "symbol.draw",
             json!({"tool": "rectangle", "x": -4, "y": 4, "x2": 4, "y2": 8}),

@@ -14,6 +14,12 @@ status-handle-moves-up-down = Deze greep gaat alleen omhoog en omlaag: druk op �
 status-handle-moves-sideways = Deze greep gaat alleen naar links en rechts: druk op ← of →.
 status-handle-cannot-move = De greep kan die kant niet op: de uiteinden van de draad blijven op hun aansluitpunten en zijn hoeken blijven haaks.
 status-drawing = { $p0 } · { $p1 }
+status-box = { $p0 } · { $p1 } · de kast: { $p2 ->
+    [one] { $p2 } aansluiting
+   *[other] { $p2 } aansluitingen
+    }
+status-part-changed = gewijzigd, niet opgeslagen
+status-part-saved = opgeslagen
 status-handle-refused = De greep is niet verschoven: { $p0 }
 bar-supply = Voeding
 status-cursor = x { $p0 } y { $p1 } mm

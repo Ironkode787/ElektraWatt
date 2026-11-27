@@ -868,10 +868,24 @@ fn ml_texts(m: &ew_mltext::MlText) -> Vec<String> {
 
 /// The letter the identifier set maps a FnDef's category to.
 fn letter_of(set: Option<&IdentifierSet>, def: Option<&LibCopy<FnDef>>) -> Option<String> {
-    let (set, def) = (set?, def?);
-    let (category, group, _) = &def.item.category;
+    category_letter(set?, &def?.item.category)
+}
+
+/// The letter the identifier set maps the function category `category` to: the one a new device of it takes.
+fn category_letter(set: &IdentifierSet, category: &ew_schema::CategoryKey) -> Option<String> {
+    let (category, group, _) = category;
     set.mapping(category.as_str(), Some(group.as_str()))
         .map(|m| m.letter().as_str().to_owned())
+}
+
+impl Session {
+    /// The letter a new device of a function of category `category` takes, by the project's identifier set (with no
+    /// project, the profile's): what a drawing's sample tag shows (doc 07 §5.6).
+    pub fn device_letter(&self, category: &ew_schema::CategoryKey) -> Option<String> {
+        let q = self.query();
+        let set = IdentifierSet::by_key(&q.profile().identifier_set)?;
+        category_letter(set, category)
+    }
 }
 
 /// Whether a page type allows a representation type (`ew_commands`' rule: an unknown page or representation type
