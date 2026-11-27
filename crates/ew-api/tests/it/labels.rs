@@ -296,3 +296,25 @@ fn a_terminal_of_two_levels_gets_a_marker_per_level() {
     assert_eq!(markers(&s, five), [["5"], ["6"]]);
     assert_eq!(markers(&s, four), [["4"]], "a terminal of one level");
 }
+
+/// A label file counts the labels to print, each row as many times as its Copies, as the consumables order them: the
+/// sample's cable markers are one row per cable with a marker at each end.
+#[test]
+fn a_label_files_count_is_the_labels_to_print() {
+    let s = common::sample();
+    let files = s
+        .label_files(&ew_api::LabelScope::All, None, None)
+        .expect("the label files");
+    let q = s.query();
+    let ordered = ew_derive::consumable_rows(&q).markers;
+    for f in &files {
+        let printed: usize = files.iter().filter(|g| g.set == f.set).map(|g| g.count).sum();
+        let order: usize = ordered.iter().filter(|m| m.set == f.set).map(|m| m.labels).sum();
+        assert_eq!(printed, order, "{}", f.name);
+    }
+    let cables = files
+        .iter()
+        .find(|f| f.set == LabelSet::CableMarkers)
+        .expect("the cable markers' file");
+    assert!(cables.count > 0 && copies(&s, LabelSet::CableMarkers) > 1);
+}

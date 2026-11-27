@@ -37,7 +37,7 @@ pub struct LabelFile {
     pub set: LabelSet,
     /// The marker part's number; `None`: the stock has no marker for the set.
     pub marker_part: Option<String>,
-    /// The number of labels (rows).
+    /// The number of labels to print: each row's Copies summed, as the consumables count them.
     pub count: usize,
     /// The texts of the labels that do not fit the marker part, each its lines joined by ` / `, in the file's order.
     pub misfits: Vec<String>,
@@ -285,11 +285,14 @@ impl Session {
                 .chain(number.as_deref())
                 .map(sanitise)
                 .collect();
-            let misfits = labels
-                .iter()
-                .filter(|l| l.set == file.set && l.marker_part == file.marker_part && !l.fits && keep(l))
-                .map(|l| l.lines.join(" / "))
-                .collect();
+            let of_file = || {
+                labels
+                    .iter()
+                    .filter(|l| l.set == file.set && l.marker_part == file.marker_part && keep(l))
+            };
+            let misfits = of_file().filter(|l| !l.fits).map(|l| l.lines.join(" / ")).collect();
+            // The labels to print: each row as many times as its Copies, as the consumables order them.
+            let count = of_file().map(|l| usize::from(l.copies)).sum();
             let all: Vec<Vec<String>> = std::iter::once(file.header.clone())
                 .chain(file.rows.clone())
                 .collect();
@@ -311,7 +314,7 @@ impl Session {
                 name: format!("{}.{extension}", stem.join(" ")),
                 set: file.set,
                 marker_part: number,
-                count: file.rows.len(),
+                count,
                 misfits,
                 bytes,
             });

@@ -885,3 +885,6 @@ change here.
   +CAB no longer lays are removed: 101.8, 103.2"), and its toast counts them after the wires it routed, also when it
   routes wires beside them; `ew route --page` prints the same sentence, which said "Removed 2 ways of wires +CAB no
   longer lays." (or "Would remove …" with `--dry-run`)
+- behaviour-change: a label file's count is the labels to print, each row as many times as its Copies, as the
+  consumables order them: Labels…, the package's dialog and Contents, and `ew export labels` say "6 labels" for the
+  sample's cable markers (3 cables, a marker at each end), where they counted the rows ("3 labels")

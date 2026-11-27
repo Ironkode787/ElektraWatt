@@ -22,8 +22,8 @@ What is in it
     SAMPLE-E Cut list.xlsx                       Rails, ducts, cables, wires and tubes.
     SAMPLE-E Consumables.xlsx                    Wire, ferrules and markers to order.
     SAMPLE-E Hole table.xlsx                     3 surfaces, 20 holes.
-  Labels/                                        One file per kind of label and marker, for the label program: 146 labels.
-    SAMPLE-E Cable markers.xlsx                  3 labels; no marker part: choose the marker in the label program.
+  Labels/                                        One file per kind of label and marker, for the label program: 149 labels.
+    SAMPLE-E Cable markers.xlsx                  6 labels; no marker part: choose the marker in the label program.
     SAMPLE-E Device labels EW-GEN-MRK-3.xlsx     26 labels.
     SAMPLE-E Strip markers EW-GEN-MRK-2.xlsx     3 labels.
     SAMPLE-E Terminal markers EW-GEN-MRK-2.xlsx  18 labels.
