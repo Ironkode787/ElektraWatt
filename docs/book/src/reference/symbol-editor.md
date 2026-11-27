@@ -137,9 +137,10 @@ arranged once you made your own from it.
 - <a id="a-pin-of-the-box"></a>**Properties** shows the selected pin's **Name**, **Potential**, **Edge** and its place **Along the edge**; with no
   pin selected the box's width and height.
 
-**Done** and **To the part** give the part's sheet the box; nothing is saved until the part is. A box part is laid out
-when it is saved, so **Draw ▸ Place ▸ Device from part…** places its box with one click, laid out as you drew it; on the page its
-edges and pins can still be dragged. Where boxes of the part are drawn already, Save's card names each box it draws
+**Done** and **To the part** give the part's sheet the box; nothing is saved until the part is. A box you arranged keeps
+its layout, so **Draw ▸ Place ▸ Device from part…** places its box with one click, laid out as you drew it; on the page its
+edges and pins can still be dragged. A box nobody arranged keeps none: the browsers picture it laid out as Arrange…
+would, Place draws it by its two corners, and saving another field of the part changes none of its boxes. Where boxes of the part are drawn already, Save's card names each box it draws
 anew, and its Apply redraws them in one undo step. A PLC card takes its pins from its channels, a bus device its box on
 a bus page from its interfaces and ports, and a part drawn with a symbol its connections from that symbol: the box
 shows where its pins come from.

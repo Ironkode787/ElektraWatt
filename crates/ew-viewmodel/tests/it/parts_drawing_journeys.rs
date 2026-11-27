@@ -512,7 +512,7 @@ fn a_box_speaks_of_its_part_and_its_ports() {
 }
 
 /// A box part of his own made in the test, `number`, with the supply pins L+ and M, saved and placed on page 101 at
-/// grid point (10, 10): the placed box's id.
+/// grid points (10, 10) to (30, 20), drawn by its corners as a box nobody arranged is: the placed box's id.
 fn own_box_placed(s: &mut ShellModel, number: &str) -> String {
     done(s, "parts.new", json!({"start": "box"}));
     for (field, value) in [("manufacturer", "Example"), ("part_number", number)] {
@@ -525,7 +525,12 @@ fn own_box_placed(s: &mut ShellModel, number: &str) -> String {
     done(s, "parts.back", json!({}));
     done(s, "tool.place", json!({}));
     done(s, "place.pick", json!({"part": number}));
-    click(s, (10, 10));
+    for k in [(10, 10), (30, 20)] {
+        let p = grid_point(s, k);
+        cursor(s, p);
+        done(s, "canvas.activate", json!({}));
+    }
+    done(s, "ui.dismiss", json!({}));
     done(s, "tool.select", json!({}));
     let rep = tables(s).reps.iter().find(|r| r.black_box.is_some()).map(|r| r.id.to_string());
     rep.expect("the box on the page")

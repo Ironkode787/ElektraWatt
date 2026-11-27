@@ -457,7 +457,13 @@ impl ShellModel {
             return Outcome::refused(key!("reason-no-device-box"));
         };
         let changed = b.dirty();
-        let draft = b.draft;
+        let mut draft = b.draft;
+        // A box arranged keeps its layout as the screen shows it, as 0.3.5's box Save did: a part with pins of its own
+        // that had none takes the one drawn here. A card's or a bus device's box takes one only from a pin placed or
+        // a size given (`relayout`). A box nobody arranged keeps none, and its part's Save draws no placed box anew.
+        if changed && draft.box_.is_none() && draft.pins_from().is_none() && !draft.pins.is_empty() {
+            draft.box_ = Some(draft.box_steps().layout(EDIT_STEP));
+        }
         if let Some(editor) = &mut self.symbol_editor {
             editor.shown = false;
             if !editor.in_hand() {

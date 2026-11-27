@@ -447,3 +447,47 @@ fn a_plc_card_s_pins_are_not_edited_on_the_box() {
         Outcome::Failed { message: why }
     );
 }
+
+/// A box part of his own whose box nobody arranged (as 0.3.5 saved every one): saved, and saved again for its
+/// description, it holds no layout and none of its placed boxes is drawn anew, so a box he drew on his page in a shape
+/// of his own keeps it.
+#[test]
+fn a_box_nobody_arranged_is_saved_without_a_layout_and_redraws_no_placed_box() {
+    let tmp = Tmp::new("device-box-unarranged");
+    let mut s = actual_size(&tmp, "102");
+    page_150(&mut s);
+    own_open(&mut s, "EW-GEN-PSU-1", "PSU-OLD");
+    let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("his part");
+    assert!(open.sheet.box_.is_none(), "Save wrote no layout into a box nobody arranged");
+    leave_parts(&mut s);
+    // His box, drawn by its two corners in a shape of his own, as 0.3.5 drew a box nobody arranged.
+    done(&mut s, "tool.place", json!({}));
+    done(&mut s, "place.pick", json!({"part": "PSU-OLD"}));
+    for k in [(10, 10), (50, 40)] {
+        let at = grid_point(&s, k);
+        cursor(&mut s, at);
+        done(&mut s, "canvas.activate", json!({}));
+    }
+    done(&mut s, "ui.dismiss", json!({}));
+    let drawn = |s: &ShellModel| -> Vec<ew_api::output::TableBox> {
+        tables(s).reps.iter().filter_map(|r| r.black_box.clone()).collect()
+    };
+    let before = drawn(&s);
+    assert_eq!(before.len(), 1, "one box: {before:?}");
+    done(&mut s, "parts.open", json!({"part": "PSU-OLD"}));
+    done(
+        &mut s,
+        "parts.field",
+        json!({"field": "description", "value": "Power supply 24 V, mine"}),
+    );
+    done(&mut s, "parts.save", json!({}));
+    if let Some(CardOrigin::Part(card)) = s.properties().card().map(|c| &c.origin) {
+        assert!(card.boxes.is_empty(), "no box drawn anew: {:?}", card.boxes);
+        done(&mut s, "preview.apply", json!({}));
+    }
+    let open = s.parts_place().and_then(|p| p.sheet.as_ref());
+    assert!(open.is_none_or(|o| o.sheet.box_.is_none()), "still no layout");
+    leave_parts(&mut s);
+    done(&mut s, "page.goto", json!({"folio": "150"}));
+    assert_eq!(drawn(&s), before, "the box keeps its shape");
+}

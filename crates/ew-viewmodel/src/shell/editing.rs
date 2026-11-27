@@ -728,7 +728,13 @@ impl ShellModel {
         }
         .and_then(|(p, k)| Some((picker.catalogue.parts.get(p)?, k)))
         .and_then(|(part, k)| Some((part.copy, part.functions.get(k)?)))
-        .filter(|(_, f)| f.black_box || f.layout.is_some())
+        // Drawn as a box: its function a black box, or (not in the project yet) its symbol the frame's.
+        .filter(|(_, f)| {
+            let framed = (f.symbol.as_ref())
+                .and_then(|k| picker.catalogue.symbols.iter().find(|s| s.key == *k))
+                .is_some_and(|s| s.black_box);
+            f.black_box || framed || f.layout.is_some()
+        })
         .and_then(|(copy, f)| {
             let card = self.project_session().map(|s| s.part_card_pins(copy, &f.cps));
             box_shape(f, card)

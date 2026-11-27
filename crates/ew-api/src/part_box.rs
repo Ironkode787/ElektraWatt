@@ -645,12 +645,11 @@ impl Session {
                 }
             }
         }
+        // Only a box arranged in this edit writes its layout (Done on it, `close_box`): a box nobody arranged keeps
+        // none, so Save draws none of its placed boxes anew; Parts and the browsers picture it laid out as Arrange…
+        // would.
         if draft.box_ != draft.original.box_ {
             p.box_.clone_from(&draft.box_);
-        } else if p.box_.is_none() && !p.cp_pattern.is_empty() {
-            // A box with pins of its own is laid out when it is saved, as Arrange… lays it out: a device of it is drawn
-            // with one click, and the browsers picture its pins.
-            p.box_ = Some(draft.box_steps().layout(EDIT_STEP));
         }
         Ok(())
     }

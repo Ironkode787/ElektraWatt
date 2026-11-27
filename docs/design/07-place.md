@@ -205,8 +205,9 @@ sentence what is being drawn and for what. Done returns to the sheet; nothing is
   row, a row typed moves the pin. A place typed between two steps of 4 mm, or on a corner, goes to the nearest step
   clear of the corners, and a note says where it stands. What a pin takes from a PLC channel or a network port (its
   name, what it carries, its address) is changed in that group and is shown here; its place on the box is the
-  box's. A box part is laid out when it is saved, so a device of it is drawn with one click; the Save of a part whose
-  box was arranged draws the part's placed boxes anew in the same step (`library.update` and `part.edit_copy` carry
+  box's. Done on a box arranged writes its layout into the sheet, so a device of it is drawn with one click; a box
+  nobody arranged keeps none (as 0.3.5 left every one), is pictured laid out as Arrange… would and drawn on a page by
+  its two corners, and its part's Save draws no placed box anew. The Save of a part whose box was arranged draws the part's placed boxes anew in the same step (`library.update` and `part.edit_copy` carry
   them as `redraw`, each a `box.reshape`), and its card names each box drawn anew.
 - **A symbol for a piece.** The Symbol cell of a Drawn as row offers the symbols that draw what the piece is with
   that many pins, the starter's first, and two more: **Change it for this part…** opens a copy of the piece's symbol,
