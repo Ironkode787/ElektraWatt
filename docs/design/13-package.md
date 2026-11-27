@@ -251,7 +251,9 @@ user name either way.
 The same project, options and program give the same file (FR-EXP-006, NFR-REL-07): the entries in byte order of
 their paths, each deflated at `ew-zip`'s fixed level with its fixed date; the date inside the members is the release's
 for a release package, else `SOURCE_DATE_EPOCH`, else the model's edited date ([09](09-output.md) §4.3), never the
-clock; the PDF's document ID is Export PDF's. A second export of an unchanged project is the same file, byte for byte.
+clock. A release package's PDF has Export PDF's document ID; a draft's, whose pages carry the mark (§8.4), has its
+own, as fixed by the project: the print set's, Export PDF's followed by ` print sheet actual` (`output::print`). A
+second export of an unchanged project is the same file, byte for byte.
 
 ### 8.9 Homes and the licence
 
