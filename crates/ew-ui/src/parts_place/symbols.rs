@@ -170,7 +170,13 @@ pub(super) fn pieces_section(ui: &mut Ui, open: &OpenSheet, editable: bool, even
 /// The Symbol cell of piece `i` (doc 07 §5.6): the symbol that draws it, the starter's marked as such; on a part of
 /// his own a choice of the symbols of what the piece is, and Change it for this part… and Draw a new symbol…, which
 /// open the drawing for this piece.
-pub(super) fn piece_symbol_cell(ui: &mut Ui, open: &OpenSheet, i: usize, editable: bool, events: &mut Vec<Event>) {
+pub(super) fn piece_symbol_cell(
+    ui: &mut Ui,
+    open: &OpenSheet,
+    i: usize,
+    editable: bool,
+    events: &mut Vec<Event>,
+) {
     let t = theme::current(ui.ctx());
     let choices = open.piece_symbols.get(i).map(Vec::as_slice).unwrap_or_default();
     let chosen = open.sheet.pieces.get(i).map_or("", |p| p.symbol.as_str());

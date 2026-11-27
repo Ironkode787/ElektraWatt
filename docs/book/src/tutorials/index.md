@@ -24,7 +24,7 @@ Each tutorial runs as a test of EW's own build, so its steps, menu paths and key
    read, its missing wire drawn and its parts chosen, until the report holds only the record of the import. You need
    EW installed and the tutorial's file [lamp-circuit.qet](files/lamp-circuit.qet).
 5. [Draw a six-pin power block](symbol-editor.md): a power block drawn in Parts, checked on the
-   connection grid, its eight orientations previewed, saved to a library and tested on a new page. You need EW
+   connection grid, its eight orientations previewed, saved with your parts and tested on a new page. You need EW
    installed and an empty folder.
 6. [A PLC with its modules](plc-station.md): a CPU with an input and an output module made in the New station dialog
    and drawn on a page, a position switch and a lamp wired to channels, their addresses and symbols in the PLC grid,

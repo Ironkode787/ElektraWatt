@@ -395,7 +395,7 @@ msgstr ""
 msgid ""
 "[Draw a six-pin power block](symbol-editor.md): a power block drawn in "
 "Parts, checked on the connection grid, its eight orientations previewed, "
-"saved to a library and tested on a new page. You need EW installed and an "
+"saved with your parts and tested on a new page. You need EW installed and an "
 "empty folder."
 msgstr ""
 
