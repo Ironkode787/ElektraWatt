@@ -67,3 +67,39 @@ fn a_face_gets_its_page_and_legend_in_one_undo_step() {
     assert_eq!(s.submit_form(), Outcome::Done, "the chooser draws the left side");
     s.shutdown();
 }
+
+/// The text of row `key` of the window's Properties sheet.
+fn row_text(s: &ew_viewmodel::shell::ShellModel, key: &str) -> String {
+    let sheet = s.properties().sheet().expect("a sheet");
+    let row = sheet
+        .sections
+        .iter()
+        .flat_map(|x| &x.rows)
+        .find(|r| r.key == key)
+        .unwrap_or_else(|| panic!("no row {key}"));
+    ew_viewmodel::properties::value_text(row)
+}
+
+/// In a Dutch window Properties names the door in Dutch: the header of the selected door, and the Carrier row of a lamp
+/// placed in it; the lamp's front reads by its measure, in no language (architecture §18).
+#[test]
+fn properties_name_the_door_in_the_window_s_language() {
+    let tmp = Tmp::new("door-words");
+    let mut s = tmp.sample_in(Mode::Gui, true, "904");
+    assert!(ew_viewmodel::strings::set_locale("nl"));
+    let t = s.panel_tables().expect("904's tables");
+    let lamp = t
+        .placements
+        .iter()
+        .find(|p| p.tag == "-102E1")
+        .expect("-102E1 in the door")
+        .id;
+    done(&mut s, "select.set", json!({"ids": [t.surface.to_string()]}));
+    let sheet = s.properties().sheet().expect("a sheet");
+    assert_eq!(sheet.header.title, "-UC1 deur");
+    done(&mut s, "select.set", json!({"ids": [lamp.to_string()]}));
+    assert_eq!(row_text(&s, "placement/derived.carrier"), "-UC1 deur");
+    assert_eq!(row_text(&s, "placement/derived.front"), "\u{d8} 30 mm");
+    assert!(ew_viewmodel::strings::set_locale("en"));
+    s.shutdown();
+}

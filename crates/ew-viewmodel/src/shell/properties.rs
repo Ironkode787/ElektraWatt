@@ -484,7 +484,7 @@ impl ShellModel {
         crate::properties::enums_in_words(&mut sheet);
         crate::properties::command_choices_in_words(&mut sheet);
         let surfaces = p.session.surface_choices();
-        crate::properties::surfaces_in_words(&mut sheet, |id| {
+        crate::properties::surfaces_in_words(&mut sheet, &uuids, |id| {
             surfaces
                 .iter()
                 .find(|(s, _)| s.to_string() == id)

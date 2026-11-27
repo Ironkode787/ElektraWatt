@@ -739,7 +739,13 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
         (_, Some(s)) => (surface_name(q, s), false),
         _ => ("Plate".to_owned(), false),
     };
-    rows.push(text_row(k, "carrier", carrier_text, Provenance::Authored, None));
+    let mut carrier_row = text_row(k, "carrier", carrier_text, Provenance::Authored, None);
+    // On a door, a wall, the top or the bottom the value is the surface's ID, which a window words in its language
+    // (`Session::surface_choices`); the text is its English words.
+    if let (Some(s), RowValue::One { json, .. }) = (&face, &mut carrier_row.value) {
+        *json = Value::String(s.id.as_uuid().to_string());
+    }
+    rows.push(carrier_row);
     if let (Some(s), Some(g)) = (&face, &geom) {
         let (x, y) = centre_from_datum(q, s, g.footprint);
         for (name, v) in [("centre_x", x), ("centre_y", y)] {
@@ -752,13 +758,17 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
             .and_then(|r| q.table::<LibCopy<Part>>().get(r.copy))
             .and_then(|c| c.item.mech.clone());
         if let Some(m) = mech.filter(|m| m.width.is_some() && m.height.is_some()) {
-            let shape = if m.front_is_round() { "Round" } else { "Rectangle" };
+            // The front's shape by its measure, in no language: "Ø 30 mm" round, "65 × 65 mm" a rectangle.
             let (w, h) = (m.width.unwrap_or_default(), m.height.unwrap_or_default());
-            let text = format!(
-                "{shape}, {} \u{d7} {} mm",
-                mm_text(q, i128::from(w.0)),
-                mm_text(q, i128::from(h.0))
-            );
+            let text = if m.front_is_round() {
+                format!("\u{d8} {} mm", mm_text(q, i128::from(w.0)))
+            } else {
+                format!(
+                    "{} \u{d7} {} mm",
+                    mm_text(q, i128::from(w.0)),
+                    mm_text(q, i128::from(h.0))
+                )
+            };
             rows.push(text_row(k, "front", text, derived_of("part"), None));
         }
         if let Some(d) = ew_derive::layout::behind_door(q, id) {
