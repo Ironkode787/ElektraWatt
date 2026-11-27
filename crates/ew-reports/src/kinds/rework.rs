@@ -11,29 +11,14 @@ use super::wire_list::{WireList, wire_row};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 
-/// The wire list's columns a rework row prints, in this order, as far as the wire list has them.
-const WIRE_COLUMNS: [&str; 12] = [
-    "no",
-    "from",
-    "from_cp",
-    "to",
-    "to_cp",
-    "colour",
-    "cross_section",
-    "length",
-    "from_end",
-    "to_end",
-    "from_marker",
-    "to_marker",
-];
-
 /// The rows of the rework list between the release `base` and `now` (`ew_derive::rework`): Action, the wire list's
-/// columns of [`WIRE_COLUMNS`] with their cells (a pulled wire as the release had it, every other row as it is now)
-/// and Change, the row's changes in words.
+/// printed columns but Pages (`ReportKindDef::printed`: a rework row is a wire to pull or lay, not a place in the
+/// drawing set) with their cells (a pulled wire as the release had it, every other row as it is now) and Change, the
+/// row's changes in words.
 pub fn rework_rows(base: &Q, now: &Q, items: &[ReworkItem]) -> RowSet {
     let list = WireList.columns();
-    let picked: Vec<usize> = WIRE_COLUMNS
-        .iter()
+    let picked: Vec<usize> = (WireList.printed().unwrap_or_default().iter())
+        .filter(|key| **key != "pages")
         .filter_map(|key| list.iter().position(|c| c.key == *key))
         .collect();
     let mut columns = vec![ColumnDef::new("action", CellType::Text, text!("column-action")).weighted(10)];

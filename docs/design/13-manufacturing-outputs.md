@@ -382,8 +382,8 @@ numbers before and after a change that a preview lists ([16](16-ux-ui.md) §7.6)
 | Add | a wire is new | — |
 
 A row with several changes takes the first action of the table that applies and lists every change. The columns are
-Action, No., From, CP, To, CP, Colour, mm², Length, From end, To end, From marker, To marker and Change; a pulled wire
-prints as the release had it, every other row as it is now.
+Action, the wire list's printed columns but Pages (§3.1: No., From, CP, To, CP, Colour, mm², Length, From end, To end,
+From marker, To marker) and Change; a pulled wire prints as the release had it, every other row as it is now.
 
 **What it does not report**: a wire that only moved on a page or took another route, a new number while no marker
 changes (with destination marking a renumber needs no work; a twin ferrule is compared by its partner wire, not by the
