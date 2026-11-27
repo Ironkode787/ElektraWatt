@@ -2102,14 +2102,14 @@ fn project_tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
     out
 }
 
-/// At the command level (NFR-REL-16): random sequences of the eleven `layout.*` commands, on a space,
+/// At the command level (NFR-REL-16): random sequences of the `layout.*` commands, on a space,
 /// an enclosure, a rail and a placement that the setup chain makes, with undos between them and an incremental save
-/// every five steps, leave the same files byte for byte as a full save of the final model (`Session::create` in a new
+/// every five steps after Route on each cabinet, leave the same files byte for byte as a full save of the final model (`Session::create` in a new
 /// folder). The manifest, which counts generations, and the lock file are not compared.
 #[test]
 fn layout_command_sequences_save_incrementally_as_a_full_save() {
-    // Route's ways are filed by their space, which no command re-keys: they follow nothing, and the sequences keep their
-    // seeds without them.
+    // Route runs on every cabinet before each save (below), where it lays again what the steps before staled; the random
+    // steps are the other layout commands.
     let layout: Vec<&arms::Arm> = ARMS
         .iter()
         .filter(|a| a.command.starts_with("layout.") && a.command != "layout.route")
@@ -2164,6 +2164,18 @@ fn layout_command_sequences_save_incrementally_as_a_full_save() {
                 }
             }
             if i % 5 == 4 {
+                // Route on each cabinet before the save, as a person does before the workshop lists: the ways it lays
+                // again are written by the same incremental saves as the edits that staled them.
+                let live = Live::read(&session.query(), &fixture);
+                for space in &live.layout.spaces {
+                    if let Step::Cmd(c) = Step::cmd("layout.route", serde_json::json!({"space": space})) {
+                        let applied = apply(&mut session, &c, &mut stats)
+                            .unwrap_or_else(|e| panic!("seed {seed}, step {i}, Route: {e}"));
+                        if applied.changed {
+                            *committed.entry("layout.route").or_default() += 1;
+                        }
+                    }
+                }
                 session
                     .save()
                     .unwrap_or_else(|e| panic!("seed {seed}, step {i}: save: {e:?}"));
@@ -2195,6 +2207,7 @@ fn layout_command_sequences_save_incrementally_as_a_full_save() {
         "layout.move",
         "layout.carrier.add",
         "layout.remove",
+        "layout.route",
     ] {
         assert!(
             committed.contains_key(command),
