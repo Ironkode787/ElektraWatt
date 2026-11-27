@@ -76,9 +76,9 @@ change here.
 - behaviour-change: a wire that ends open, or outside the project, at an interruption point across its pair, with a
   chain or a star behind the pair, shows and takes its ends set by hand at its clamps and keeps them through a change
   of the wiring; they read as the rule's and went at the next change (doc 13 §2.3)
-- behaviour-change: Label file columns… keeps what a newer build wrote into the export profile: a delimiter it does not
-  know, left as it is, stays (the edit was refused), and so do the profile's unknown members and those of a column it
-  keeps (they were dropped) (doc 13 §5.4)
+- behaviour-change: Label file… keeps what a newer build wrote into the export profile: a delimiter or a file form it
+  does not know, left as it is, stays (the edit was refused), and so do the profile's unknown members and those of a
+  column it keeps (they were dropped) (doc 13-package §7.3)
 - behaviour-change: Labels for these changes… (and `ew export labels --since`) writes a new strip's marker, the strip
   whose every terminal the rework list adds; it left it out (doc 13 §5.4)
 - behaviour-change: a terminal of several levels gets a terminal marker per level, each with the level's designation,
@@ -390,10 +390,11 @@ change here.
   of the old wire's typed length or its end set by hand, which stay the old wire's.
 - behaviour-change: Output ▸ Workshop ▸ Labels… lists the label files, one per label set and marker part, each with its
   count and a tick: every label, or those changed since a release (Labels for these changes… in the Rework list…
-  opens it on them); the format (CSV or XLSX); the columns with Change…, which sets them with their headings, order and
-  delimiter (Label file columns); and how many labels do not fit their marker part. Export… writes the ticked files
-  into a folder, each whole, and the toast offers Show in folder. Output ▸ Workshop ▸ Workshop settings shows the
-  project's Properties at its Workshop rows.
+  opens it on them); the label file's profile in a line ("Excel · Text 1, Text 2, Text 3, Copies, For") with Change…,
+  the form Label file, which sets the columns with their headings and order, Excel or CSV and a CSV's delimiter for the
+  whole project (Labels… has no format field of its own); and how many labels do not fit their marker part. Export…
+  writes the ticked files into a folder, each whole, and the toast offers Show in folder. Output ▸ Workshop ▸ Workshop
+  settings shows the project's Properties at its Workshop rows.
 - behaviour-change: Labels… lists the labels that do not fit their marker part under their count with Show (Hide
   counts them again), each by its label set, marker part and text ("Device labels on EW-GEN-MRK-3: -102S1").
 - text-change: The drawing's wire marker is now the wire annotation (Dutch: draadaanduiding) wherever the window says
