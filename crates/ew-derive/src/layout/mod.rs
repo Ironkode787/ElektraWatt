@@ -96,7 +96,7 @@ pub use surfaces::{
 };
 pub use template::{
     Paper, TEMPLATE_BAND, TEMPLATE_MARGIN, TEMPLATE_OVERLAP, TEMPLATE_PAST, TemplateSheets, TemplateTile,
-    hole_boxes, template_sheets,
+    drawable, hole_boxes, template_sheets,
 };
 
 #[cfg(test)]

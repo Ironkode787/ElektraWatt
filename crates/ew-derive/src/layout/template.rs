@@ -136,9 +136,29 @@ pub fn hole_boxes(q: &Q, surface: Id<MountingSurface>) -> Vec<Rect> {
         .collect()
 }
 
+/// Whether the drawings for drilling of `surface` can be made: its sheet's corners, its edge margin, and each hole's
+/// centre and size lie within ±[`MAX_SAFE_INTEGER`](ew_units::MAX_SAFE_INTEGER) nm (about 9000 km), so that the sums
+/// and differences the template and the DXF take of a few of them stay inside `i64`. A file may hold any coordinate; a
+/// surface beyond that range is offered no template and no DXF. `false` for a missing surface.
+pub fn drawable(q: &Q, surface: Id<MountingSurface>) -> bool {
+    let Some(s) = q.table::<MountingSurface>().get(surface) else {
+        return false;
+    };
+    let ok = |n: Nm| n.0.unsigned_abs() <= ew_units::MAX_SAFE_INTEGER.unsigned_abs();
+    s.usable.iter().all(|p| ok(p.x) && ok(p.y))
+        && s.edge_margin.is_none_or(ok)
+        && q.get::<SurfaceFeatures>(surface).iter().all(|f| {
+            let (w, h) = f.made.extent();
+            ok(f.at.x) && ok(f.at.y) && ok(w) && ok(h)
+        })
+}
+
 /// The template of `surface` on `paper` (doc 13 §9.1, the module documentation); `None` for a surface without holes or
-/// a sheet.
+/// a sheet, or one not [`drawable`].
 pub fn template_sheets(q: &Q, surface: Id<MountingSurface>, paper: Paper) -> Option<TemplateSheets> {
+    if !drawable(q, surface) {
+        return None;
+    }
     let s = q.table::<MountingSurface>().get(surface)?;
     let xs = s.usable.iter().map(|p| p.x.0);
     let ys = s.usable.iter().map(|p| p.y.0);

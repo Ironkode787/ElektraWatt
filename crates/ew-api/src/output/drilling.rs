@@ -11,7 +11,8 @@ use std::io;
 use std::path::Path;
 
 use ew_derive::layout::{
-    Made, Paper, SurfaceFeatures, TEMPLATE_OVERLAP, carrier_labels, face_of, surface_datum, surface_page,
+    Made, Paper, SurfaceFeatures, TEMPLATE_OVERLAP, carrier_labels, drawable, face_of, surface_datum,
+    surface_page,
     template_sheets,
 };
 use ew_derive::{Q, print_language};
@@ -154,16 +155,17 @@ fn rect_outline(c: Pt2, w: Nm, h: Nm, r: Option<Nm>) -> DrillEntity {
 }
 
 impl Session {
-    /// Whether a surface of the project has holes: what Drilling… needs.
+    /// Whether a surface of the project has holes its drawings can be made of: what Drilling… needs.
     pub fn has_holes(&self) -> bool {
         let q = self.query();
         q.table::<MountingSurface>()
             .iter()
-            .any(|(id, _)| !q.get::<SurfaceFeatures>(id).is_empty())
+            .any(|(id, _)| !q.get::<SurfaceFeatures>(id).is_empty() && drawable(&q, id))
     }
 
-    /// The surfaces the drawings for drilling can be made of: every surface with holes, in the page order of their
-    /// pages (a surface without a page last), with its template's printed sheets on `paper`.
+    /// The surfaces the drawings for drilling can be made of: every surface with holes whose coordinates a drawing
+    /// takes (`ew_derive::layout::drawable`), in the page order of their pages (a surface without a page last), with its
+    /// template's printed sheets on `paper`.
     pub fn drilling_surfaces(&self, paper: Paper) -> Vec<DrillingSurface> {
         let q = self.query();
         let order: Vec<_> = q
@@ -180,7 +182,7 @@ impl Session {
             .iter()
             .filter_map(|(id, _)| {
                 let holes = q.get::<SurfaceFeatures>(id).len();
-                if holes == 0 {
+                if holes == 0 || !drawable(&q, id) {
                     return None;
                 }
                 let face = face_of(&q, id)?;
@@ -223,7 +225,7 @@ impl Session {
             let (Some(face), Some(sheet)) = (face_of(&q, id), sheet_of(&s)) else {
                 continue;
             };
-            if features.is_empty() {
+            if features.is_empty() || !drawable(&q, id) {
                 continue;
             }
             let location = location_of(&q, &s);

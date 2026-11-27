@@ -110,6 +110,39 @@ fn the_door_s_template_lies_in_its_top_left_corner_and_its_dxf_holds_its_holes()
     );
 }
 
+/// A door whose sheet a file stretches from the least to the greatest coordinate the format holds gets no drawings,
+/// where the template's and the DXF's sums of its corners would leave `i64`: Drilling… leaves it out and asking for it
+/// makes no file.
+#[test]
+fn a_sheet_beyond_the_drawing_range_gets_no_drawings() {
+    let (project, mut records, lib) = common::sample_records();
+    let far = i64::MAX - 1;
+    let at = |x: i64, y: i64| ew_units::Pt2::new(ew_units::Nm(x), ew_units::Nm(y));
+    for r in &mut records {
+        if let ew_schema::Record::MountingSurface(m) = r
+            && m.kind == SurfaceKind::Door
+        {
+            m.usable = vec![at(-far, -far), at(far, -far), at(far, far), at(-far, far)];
+        }
+    }
+    let s = common::session_of(project, records, lib);
+    let door = door(&s);
+    assert!(
+        !ew_derive::layout::drawable(&s.query(), door),
+        "the door reaches past the range"
+    );
+    let offered = s.drilling_surfaces(Paper::A4);
+    assert!(!offered.is_empty(), "the plate and the bottom are offered");
+    assert!(offered.iter().all(|d| d.surface != door.as_uuid()));
+    let ask = DrillingAsk {
+        surfaces: vec![door.as_uuid()],
+        paper: Paper::A4,
+        template: true,
+        dxf: true,
+    };
+    assert_eq!(s.drilling_files(&ask).expect("no file"), Vec::new());
+}
+
 #[test]
 fn a_part_of_one_s_own_puts_its_holes_on_the_door_s_drawings() {
     let mut s = common::sample();
