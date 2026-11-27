@@ -309,7 +309,7 @@ fn workshop_defaults(built: &mut [Built]) {
             let text = match json {
                 Value::String(word) => word.clone(),
                 // A length in millimetres, as its row prints a value set.
-                Value::Number(n) if b.row.ty == FieldType::Nm => {
+                Value::Number(n) if *b.row.ty.inner() == FieldType::Nm => {
                     format!("{} mm", ew_derive::mm_exact(i128::from(n.as_i64().unwrap_or(0))))
                 }
                 other => other.to_string(),

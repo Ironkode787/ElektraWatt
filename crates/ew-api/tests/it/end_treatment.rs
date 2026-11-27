@@ -352,6 +352,26 @@ fn an_unset_workshop_setting_shows_its_default() {
     );
 }
 
+/// An unset workshop length prints its default in millimetres, an optional length as a required one: the door loop's
+/// "300 mm" beside the reserve's "50 mm".
+#[test]
+fn an_unset_workshop_length_prints_in_millimetres() {
+    let s = common::sample();
+    let text = |s: &Session, key: &str| {
+        let sheet = s.property_sheet(&[s.query().project().id.as_uuid()]);
+        let row = (sheet.sections.iter().flat_map(|x| x.rows.iter()))
+            .find(|r| r.key == key)
+            .unwrap_or_else(|| panic!("the row {key}"))
+            .clone();
+        match row.value {
+            ew_api::output::RowValue::One { text, .. } => text,
+            other => panic!("{other:?}"),
+        }
+    };
+    assert_eq!(text(&s, "project/settings.workshop.door_loop"), "300 mm");
+    assert_eq!(text(&s, "project/settings.workshop.reserve"), "50 mm");
+}
+
 /// Each end's marker names the far end (doc 13 §5.1); a core and a jumper carry none; a long one is broken to the
 /// stock's wire marker, and one that still does not fit is kept whole and EW-MFG-004 names it; wire-number marking
 /// prints the number; a marker set by hand wins, `none` leaves the end unmarked.
