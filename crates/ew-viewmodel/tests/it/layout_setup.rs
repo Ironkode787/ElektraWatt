@@ -324,7 +324,6 @@ fn create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosure()
         json!({"kind": "location", "designation": "J-E-999"}),
     );
     let surfaces_before = surfaces(&s);
-    assert_eq!(surfaces_before.len(), 3, "-UC1's plate, door and bottom");
     let rev = s.revision();
     done(
         &mut s,
@@ -333,12 +332,13 @@ fn create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosure()
     );
     assert!(s.dialog().is_none());
     let plates = surfaces(&s);
-    assert_eq!(plates.len(), 4, "one plate more: {plates:?}");
-    let plate = plates
-        .iter()
-        .find(|n| !surfaces_before.contains(n))
-        .unwrap()
-        .clone();
+    let new: Vec<&String> = plates.iter().filter(|n| !surfaces_before.contains(n)).collect();
+    assert_eq!(new.len(), 1, "one surface more, the new plate: {plates:?}");
+    assert!(
+        surfaces_before.iter().all(|n| plates.contains(n)),
+        "the others stay: {plates:?}"
+    );
+    let plate = new[0].clone();
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(surfaces(&s), surfaces_before, "one undo step");
     assert_ne!(s.revision(), rev);
