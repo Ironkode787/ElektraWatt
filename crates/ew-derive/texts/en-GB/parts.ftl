@@ -510,6 +510,7 @@ part-says-printed-list = Printed in the parts list.
 part-says-kind = Decides what the sheet asks for and where the part is offered.
 part-says-category = Where the part is listed when a part is chosen.
 part-says-key = Finds the part by its key.
+part-says-gtin = Finds the part when its GTIN is searched for.
 part-says-about = Shown where the part came from.
 part-says-status = A part no longer ordered is offered last.
 part-says-pieces = It is drawn on no schematic page until it says what it is drawn as.

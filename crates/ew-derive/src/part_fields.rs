@@ -663,6 +663,14 @@ pub static PART_FIELDS: &[PartField] = &[
         LIST,
     ),
     f(
+        "gtin",
+        key!("part-field-gtin"),
+        G::Identity,
+        Has::Every,
+        Field,
+        &[r(Ft::Search, Printed, key!("part-says-gtin"))],
+    ),
+    f(
         "description",
         key!("part-field-description"),
         G::Identity,
@@ -686,7 +694,6 @@ pub static PART_FIELDS: &[PartField] = &[
         Field,
         LIST,
     ),
-    stored("gtin", key!("part-field-gtin"), G::Identity, Has::Every, NOT_READ),
     // On the schematic
     f(
         "function_template[].fndef",

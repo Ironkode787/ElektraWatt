@@ -527,9 +527,44 @@ fn an_enclosure_of_ones_own_takes_its_size_and_door_in_the_editor() {
     );
 }
 
-/// A member that is no field (a GTIN) is shown under Also stored and written back unchanged when the part is saved.
+/// The GTIN is a field of Identity (doc 07 §2.5): typed and checked in the sheet, saved with the part, and the part is
+/// found by it in Parts' list.
 #[test]
-fn a_gtin_is_shown_and_kept_when_the_part_is_saved() {
+fn a_gtin_is_typed_saved_and_finds_the_part() {
+    let mut s = common::colleague_sample();
+    let copy = copy_of(&s, "EW-GEN-TRM-1");
+    let mut d = s.part_draft(copy).expect("its draft");
+    assert_eq!(d.text("gtin"), "", "no GTIN yet");
+    s.set_draft_field(&mut d, "gtin", "4011111222233").expect("a GTIN");
+    let cmd = s.part_edit_command(&d).expect("Save");
+    run(&mut s, &cmd).expect("saved");
+    let found: Vec<String> = s
+        .parts_find(
+            "4011111222233",
+            ew_api::parts::PartScope::Project,
+            None,
+            false,
+            None,
+            50,
+        )
+        .into_iter()
+        .map(|f| f.offer.part_number)
+        .collect();
+    assert_eq!(found, ["EW-GEN-TRM-1"], "found by its GTIN");
+    let saved = s
+        .query()
+        .parts()
+        .iter()
+        .find(|(_, c)| c.item.gtin.as_ref().map(|g| g.as_str()) == Some("4011111222233"))
+        .map(|(id, _)| id.as_uuid())
+        .expect("the saved part has its GTIN");
+    assert_eq!(s.part_draft(saved).expect("its draft").text("gtin"), "4011111222233");
+}
+
+/// A member that is no field (a maker's free property) is shown under Also stored and written back unchanged when the
+/// part is saved.
+#[test]
+fn a_member_that_is_no_field_is_shown_and_kept_when_the_part_is_saved() {
     let mut s = common::colleague_sample();
     let copy = copy_of(&s, "EW-GEN-TRM-1");
     let mut item = serde_json::to_value(
@@ -540,26 +575,26 @@ fn a_gtin_is_shown_and_kept_when_the_part_is_saved() {
             .item,
     )
     .unwrap();
-    item["gtin"] = json!("4011111222233");
+    item["free_props"] = json!([{"key": "housing", "value": "polyamide"}]);
     let edit = AnyCommand {
         name: "part.edit_copy".into(),
         params: json!({"copy": copy.to_string(), "part": item, "fork": s.next_fork_item(copy).to_string()}),
     };
-    run(&mut s, &edit).expect("the part takes a GTIN");
-    let with_gtin = |s: &Session, description: Option<&str>| {
+    run(&mut s, &edit).expect("the part takes a free property");
+    let with_prop = |s: &Session, description: Option<&str>| {
         s.query()
             .parts()
             .iter()
             .find(|(_, c)| {
-                c.item.gtin.as_ref().map(|g| g.as_str()) == Some("4011111222233")
+                c.item.free_props.iter().any(|p| p.key.as_str() == "housing")
                     && description.is_none_or(|d| c.item.description.neutral_or_first() == Some(d))
             })
             .map(|(id, _)| id.as_uuid())
     };
-    let fork = with_gtin(&s, None).expect("the project's own part with its GTIN");
+    let fork = with_prop(&s, None).expect("the project's own part with its free property");
     let mut d = s.part_draft(fork).expect("its draft");
     assert!(
-        d.also_stored().iter().any(|(_, v)| v == "4011111222233"),
+        d.also_stored().iter().any(|(_, v)| v.contains("polyamide")),
         "{:?}",
         d.also_stored()
     );
@@ -568,8 +603,8 @@ fn a_gtin_is_shown_and_kept_when_the_part_is_saved() {
     let cmd = s.part_edit_command(&d).expect("Save");
     run(&mut s, &cmd).expect("saved");
     assert!(
-        with_gtin(&s, Some("Feed-through terminal, grey")).is_some(),
-        "the saved part keeps its GTIN"
+        with_prop(&s, Some("Feed-through terminal, grey")).is_some(),
+        "the saved part keeps its free property"
     );
 }
 

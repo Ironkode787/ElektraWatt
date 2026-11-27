@@ -247,7 +247,7 @@ fn inactive(s: &ItemStatus) -> bool {
 }
 
 /// The rank of a held copy for the text: 0 without text, 1 the normalised part number equals it, 2 starts
-/// with it, 3 contains it (three characters or more), 4 every word is in the part number, type, manufacturer or
+/// with it, 3 contains it (three characters or more), 4 every word is in the part number, type, GTIN, manufacturer or
 /// description (in every language), or the part is for what the text names (`purpose`); `None` when it does not
 /// match.
 fn held_rank(text: &str, part: &Part, manufacturer: &str, purpose: bool) -> Option<u8> {
@@ -273,10 +273,12 @@ fn held_rank(text: &str, part: &Part, manufacturer: &str, purpose: bool) -> Opti
         .filter_map(|l| part.description.get(l).map(str::to_owned))
         .chain(part.description.as_neutral().map(str::to_owned))
         .collect();
+    // The GTIN finds a held part as the libraries' index finds a library part by it.
     let hay = format!(
-        "{} {} {} {}",
+        "{} {} {} {} {}",
         part.part_number.as_str(),
         part.type_designation.as_ref().map_or("", |t| t.as_str()),
+        part.gtin.as_ref().map_or("", |t| t.as_str()),
         manufacturer,
         descriptions.join(" ")
     )

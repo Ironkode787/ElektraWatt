@@ -508,6 +508,7 @@ part-says-printed-list = Afgedrukt in de stuklijst.
 part-says-kind = Bepaalt wat het blad vraagt en waar het artikel wordt aangeboden.
 part-says-category = Waar het artikel staat als een artikel wordt gekozen.
 part-says-key = Vindt het artikel op zijn sleutel.
+part-says-gtin = Vindt het artikel wanneer op zijn GTIN wordt gezocht.
 part-says-about = Getoond bij waar het artikel vandaan komt.
 part-says-status = Een artikel dat niet meer wordt besteld, wordt als laatste aangeboden.
 part-says-pieces = Het wordt op geen schemapagina getekend tot het zegt waaruit het getekend wordt.

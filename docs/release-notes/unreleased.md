@@ -18,8 +18,8 @@ change here.
 - behaviour-change: the part editor lists a part's groups as the sheet of Parts names them (Identity, On the schematic,
   In the cabinet, Connections, the kind's own group, Technical data, Goes with it), each with the fields one declaration
   of a part's fields gives (doc 07 §2.5); an enclosure, a mounting plate and a rail of one's own now have their
-  rows (size, plate, doors, edge margin, profile), a valve its coil and a tube its data; the GTIN is no longer asked for
-  (no list prints it) and stays as it is
+  rows (size, plate, doors, edge margin, profile), a valve its coil and a tube its data; the GTIN stands in Identity
+  after the order number, and Parts' list finds a part of the project by it as the libraries' search does
 - behaviour-change: `part.edit_copy` takes a change of any member of a part; it refused the mechanical data, the
   contacts, the sections of a library copy's fork and the free properties (doc 07 §5.4)
 - text-change: the guide's reference gains the page Parts ▸ Fields, every field of a part with what reads it

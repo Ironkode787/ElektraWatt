@@ -725,6 +725,7 @@ impl Session {
                     "part_number" => p.part_number.as_str().to_owned(),
                     "type_designation" => opt_text(p.type_designation.as_ref()),
                     "order_number" => opt_text(p.order_number.as_ref()),
+                    "gtin" => opt_text(p.gtin.as_ref()),
                     "description" => text_of(&p.description),
                     "kind" => kind_word(&p.kind),
                     "category" => p.category.as_ref().map_or_else(String::new, |(a, b, c)| {
@@ -972,7 +973,7 @@ impl Session {
                 }
                 ident(t).map(|_| ())
             }
-            "type_designation" | "order_number" | "description" => {
+            "type_designation" | "order_number" | "gtin" | "description" => {
                 if t.is_empty() || field == "description" {
                     Ok(())
                 } else {
@@ -1084,6 +1085,7 @@ impl Session {
         p.part_number = Ident::from_input(&text("part_number")).expect("checked");
         p.type_designation = opt("type_designation");
         p.order_number = opt("order_number");
+        p.gtin = opt("gtin");
         let description = draft.text("description").trim().to_owned();
         if description != text_of(&p.description) {
             if p.description.is_neutral() {
