@@ -228,6 +228,34 @@ fn copy_of_sample(seed: u64) -> Session {
     .unwrap()
 }
 
+/// A project made from the routed sample reads its ways: each stored way's ID is derived from its wire's
+/// (`v5(wire, "route")`, doc 12-3d §8.5), so it follows the wire's new ID, and every wire keeps the length and its
+/// source it has in the sample.
+#[test]
+fn a_copy_of_a_routed_project_reads_its_ways() {
+    // Per wire its number, its length and where the length comes from (a core's cable is another ID in the copy).
+    type Length = (String, Option<ew_units::Nm>, String);
+    let lengths = |s: &Session| -> Vec<Length> {
+        let q = s.query();
+        q.get::<ew_derive::WireRecordSet>(())
+            .iter()
+            .map(|r| {
+                let from = ew_derive::text::wire_length_source(&r.length).to_string();
+                (r.number.clone().unwrap_or_default(), r.length.value(), from)
+            })
+            .collect()
+    };
+    let sample = open_sample();
+    let copy = copy_of_sample(5);
+    let (was, now) = (lengths(&sample), lengths(&copy));
+    assert!(was.iter().any(|(_, _, from)| from == "routed"), "the sample is routed");
+    assert_eq!(now, was);
+    let q = copy.query();
+    for (id, way) in q.table::<ew_schema::CommittedRoute>().iter() {
+        assert_eq!(id, ew_ids::v5::route_id(way.wire), "a stored way's ID follows its wire's");
+    }
+}
+
 #[test]
 fn ordered_lists_keep_their_order_in_a_copy() {
     let sample = open_sample();
