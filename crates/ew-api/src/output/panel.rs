@@ -22,9 +22,9 @@ use std::sync::Arc;
 use ew_derive::layout::{
     CarrierGeometry, GroupAccessories, LabelMode, LayoutLabel, PlacementGeometry, Profile, Quarter, RailAxis,
     RailExtent, RailItem, Unplaced, brackets, carrier_labels, free_length, member_order, member_slot,
-    primary_part, rail_extent, rail_items, runs,
+    location_text, primary_part, rail_extent, rail_items, runs,
 };
-use ew_derive::{DeviceTag, PageRef, Policy, Q, Query, StructurePath, Tag};
+use ew_derive::{DeviceTag, PageRef, Policy, Q, Query, Tag};
 use ew_ids::{Id, Uuid};
 use ew_scene::forms::SheetMap;
 use ew_scene::panel::{
@@ -33,7 +33,7 @@ use ew_scene::panel::{
 };
 use ew_schema::{
     Carrier, CarrierKind, CarrierParams, CarrierRef, Device, Enclosure, LayoutLabels, LayoutSpace, LibCopy,
-    MountKind, MountingSurface, Page, PageItem, PageItemKind, PageType, Part, Placement, StructureNode,
+    MountKind, MountingSurface, Page, PageItem, PageItemKind, PageType, Part, Placement,
     SurfaceLabelMode,
 };
 use ew_text::{Shaped, TextStyle};
@@ -906,15 +906,6 @@ pub fn page_of_surface(projection: &Projection, (u, v): (i128, i128)) -> (i64, i
     let y = i128::from(projection.datum.y.0).saturating_sub(len(v));
     let sat = |n: i128| i64::try_from(n).unwrap_or(if n < 0 { i64::MIN } else { i64::MAX });
     (sat(x), sat(y))
-}
-
-/// A location as a designation prints it: `+` and its path's codes (`+J-E-2416`); empty for a missing node.
-pub(super) fn location_text(q: &Q, node: Id<StructureNode>) -> String {
-    let path = q.get::<StructurePath>(node);
-    if path.codes.is_empty() {
-        return String::new();
-    }
-    format!("+{}", path.codes.join("+"))
 }
 
 /// A device's tag as a sentence names it (the derived short tag, `-102F1`), empty without one.

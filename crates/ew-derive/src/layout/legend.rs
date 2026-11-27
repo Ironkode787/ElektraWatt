@@ -14,14 +14,13 @@ use std::cmp::Reverse;
 use ew_ids::Id;
 use ew_mltext::{NaturalKey, natural_key};
 use ew_schema::{
-    Carrier, CarrierKind, Device, Enclosure, LibCopy, MountingSurface, Page, PageItemKind, PageType, Part,
-    PartRef, Placement, ReportBlock, SurfaceKind,
+    Carrier, CarrierKind, CarrierRef, Device, Enclosure, LayoutSpace, LibCopy, MountingSurface, Page, PageItemKind, PageType, Part, PartRef, Placement, ReportBlock, StructureNode, SurfaceKind,
 };
 use ew_units::Dec3;
 
 use super::accessories::GroupAccessories;
 use super::queries::{CarrierGeometry, primary_part};
-use crate::Q;
+use crate::{Q, StructurePath};
 use crate::tag::DeviceTag;
 
 /// Nanometres per millimetre: a length in nm over this is the `Dec3` thousandths of metres.
@@ -32,6 +31,26 @@ const NM_PER_MM: i128 = 1_000_000;
 pub fn metres_of_nm(nm: i128) -> Dec3 {
     let mm = ew_units::arith::div_round_ties_away(nm, NM_PER_MM);
     Dec3(i64::try_from(mm).unwrap_or(if mm < 0 { i64::MIN } else { i64::MAX }))
+}
+
+/// A location as a designation prints it: `+` and its path's codes (`+J-E-2416`); empty for a missing node.
+pub fn location_text(q: &Q, node: Id<StructureNode>) -> String {
+    let path = q.get::<StructurePath>(node);
+    if path.codes.is_empty() {
+        return String::new();
+    }
+    format!("+{}", path.codes.join("+"))
+}
+
+/// A layout space as a sentence names its cabinet: its name, else its location (`+CAB`); empty for a missing space.
+pub fn cabinet_name(q: &Q, space: Id<LayoutSpace>) -> String {
+    let Some(s) = q.table::<LayoutSpace>().get(space) else {
+        return String::new();
+    };
+    match &s.name {
+        Some(n) => n.as_str().to_owned(),
+        None => location_text(q, s.location),
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------

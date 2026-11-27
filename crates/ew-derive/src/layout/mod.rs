@@ -89,7 +89,8 @@ pub use holes::{
 };
 pub use legend::{
     CarrierLabel, CarrierLabelKind, CarrierOrder, LegendItem, LegendRow, carrier_label, carrier_labels,
-    carrier_length, carrier_order, carriers_in_order, layout_legend, legend_layout_page, metres_of_nm,
+    cabinet_name, carrier_length, carrier_order, carriers_in_order, layout_legend, legend_layout_page,
+    location_text, metres_of_nm,
     page_surface, surface_pages,
 };
 pub use pins::{PinSpot, PinSpots, PinSpotsV, drawn_face, pin_face, placement_of_function};

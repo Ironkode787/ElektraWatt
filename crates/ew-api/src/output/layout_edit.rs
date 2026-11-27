@@ -31,7 +31,7 @@ use ew_schema::{
 use serde_json::{Value, json};
 
 use super::fields::{Category, EditRoute, FieldReadOnly, FieldType};
-use super::panel::{PageSurfaceView, location_text};
+use super::panel::PageSurfaceView;
 use super::properties::{DerivedRow, PropRow, Provenance, RowAction, RowValue};
 use super::scale_fit::{drawing_area, page_fitting_scale};
 use crate::{AnyCommand, Session};
@@ -392,11 +392,9 @@ pub(crate) fn layout_title(q: &Q, kind: Kind, id: Uuid) -> Option<String> {
         }
         Kind::Enclosure => tag(q, q.table::<Enclosure>().get(Id::from_uuid(id))?.device),
         Kind::LayoutSpace => {
-            let s = q.table::<LayoutSpace>().get(Id::from_uuid(id))?;
-            match &s.name {
-                Some(n) => n.as_str().to_owned(),
-                None => location_text(q, s.location),
-            }
+            let s = Id::from_uuid(id);
+            q.table::<LayoutSpace>().get(s)?;
+            ew_derive::layout::cabinet_name(q, s)
         }
         // A hole by hand by its number on its surface ("H10").
         Kind::SurfaceFeature => {
@@ -2451,7 +2449,7 @@ impl Session {
             .structure_nodes()
             .iter()
             .filter(|(_, n)| n.aspect == ew_schema::Open::Known(Aspect::Location))
-            .map(|(id, _)| (id.as_uuid(), location_text(&q, id)))
+            .map(|(id, _)| (id.as_uuid(), ew_derive::layout::location_text(&q, id)))
             .filter(|(_, code)| !code.is_empty())
             .collect();
         out.sort_by(|a, b| ew_mltext::natural_cmp(&a.1, &b.1).then(a.0.cmp(&b.0)));
