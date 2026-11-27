@@ -91,10 +91,20 @@ impl ShellModel {
                 title_key: key!("drilling-title"),
                 ok_key: key!("drilling-export"),
                 fields: vec![
-                    field("template", key!("drilling-template"), &super::choices::BOOL, "true"),
+                    field(
+                        "template",
+                        key!("drilling-template"),
+                        &super::choices::BOOL,
+                        "true",
+                    ),
                     field("dxf", key!("drilling-dxf"), &super::choices::BOOL, "true"),
                     field("paper", key!("drilling-paper"), &super::choices::PAPERS, "a4"),
-                    field("dir", key!("drilling-dir"), &super::choices::NONE, &folder.to_string_lossy()),
+                    field(
+                        "dir",
+                        key!("drilling-dir"),
+                        &super::choices::NONE,
+                        &folder.to_string_lossy(),
+                    ),
                 ],
                 error: None,
                 table: Some(FormTable {
@@ -130,7 +140,12 @@ impl ShellModel {
         if surfaces.is_empty() {
             return self.form_failed(ACTION, strings::text(key!("drilling-none-ticked")).to_owned());
         }
-        let dir = match p.get("dir").and_then(Value::as_str).map(str::trim).filter(|d| !d.is_empty()) {
+        let dir = match p
+            .get("dir")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|d| !d.is_empty())
+        {
             Some(d) => PathBuf::from(d),
             None => self.drilling_folder().unwrap_or_default(),
         };
@@ -154,7 +169,11 @@ impl ShellModel {
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default();
-        let text = strings::format_counted(crate::count_key!("toast-drilling-written"), files.len(), &[&folder]);
+        let text = strings::format_counted(
+            crate::count_key!("toast-drilling-written"),
+            files.len(),
+            &[&folder],
+        );
         if self.in_form_of(ACTION) {
             self.dialog = None;
         }

@@ -287,7 +287,11 @@ fn behind_door(q: &Q, door: &MountingSurface) -> Vec<Rect> {
     let outlines: Vec<Rect> = carriers(q, plate).into_iter().flat_map(|c| c.outline).collect();
     outlines
         .into_iter()
-        .chain(placements(q, &placements_on(q, plate)).into_iter().map(|d| d.footprint))
+        .chain(
+            placements(q, &placements_on(q, plate))
+                .into_iter()
+                .map(|d| d.footprint),
+        )
         .filter_map(|r| Some(Rect::from_points(shift(r.min())?, shift(r.max())?)))
         .collect()
 }
@@ -535,14 +539,21 @@ pub(crate) fn panel_view(q: &Q, page: Id<Page>, parts: Parts) -> Option<PanelVie
 /// dashed where a footprint covers the centre; a hole by hand selects its record, a derived one its first owner; a
 /// cable's gland with its cable's tag and its nut.
 fn feature_draws(q: &Q, surface: &MountingSurface) -> Vec<ew_scene::panel::FeatureDraw> {
-    use ew_derive::layout::{CableGlands, Made, Owner, PlacementGeometry, SurfaceFeatures, gland_nut, gland_section};
+    use ew_derive::layout::{
+        CableGlands, Made, Owner, PlacementGeometry, SurfaceFeatures, gland_nut, gland_section,
+    };
     let glands = q
         .table::<Enclosure>()
         .get(surface.enclosure)
         .map(|e| q.get::<CableGlands>(e.space));
     let gland = |feature: Id<ew_schema::SurfaceFeature>| {
         let g = glands.as_ref()?.iter().find(|g| g.placed == Some(feature))?;
-        let nut = g.part.as_ref().ok().and_then(|p| gland_section(q, p)).map(|s| gland_nut(&s))?;
+        let nut = g
+            .part
+            .as_ref()
+            .ok()
+            .and_then(|p| gland_section(q, p))
+            .map(|s| gland_nut(&s))?;
         Some((ew_derive::short_tag(q, g.cable), nut))
     };
     let footprints: Vec<Rect> = placements_on(q, surface.id)

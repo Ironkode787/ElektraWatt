@@ -26,7 +26,11 @@ fn drilling_is_greyed_without_holes_and_writes_the_door_s_drawings() {
         panic!("the form: {:?}", s.dialog())
     };
     let table = form.table.expect("the surfaces");
-    assert!(table.rows.iter().any(|r| r.key.starts_with("Door")), "{:?}", table.rows);
+    assert!(
+        table.rows.iter().any(|r| r.key.starts_with("Door")),
+        "{:?}",
+        table.rows
+    );
     let dir = tmp.path("drill");
     assert!(form.fields.iter().any(|f| f.name == "dir"), "the folder");
     s.set_form_field("dir", &dir.to_string_lossy());
@@ -36,7 +40,10 @@ fn drilling_is_greyed_without_holes_and_writes_the_door_s_drawings() {
         .filter_map(|e| e.ok()?.file_name().into_string().ok())
         .collect();
     for ext in [".dxf", ".pdf"] {
-        assert!(names.iter().any(|n| n.contains("Door") && n.ends_with(ext)), "{names:?}");
+        assert!(
+            names.iter().any(|n| n.contains("Door") && n.ends_with(ext)),
+            "{names:?}"
+        );
     }
     s.shutdown();
 }

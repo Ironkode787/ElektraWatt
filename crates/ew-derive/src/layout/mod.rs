@@ -89,13 +89,13 @@ pub use snap::{
     BracketRole, BracketSpan, RailItem, Resolution, SnapError, SnapMode, brackets, cascade, cascade_mirrored,
     end_gap, free_length, min_gap, next_fit, resolve, runs, start_gap,
 };
-pub use template::{
-    Paper, TEMPLATE_BAND, TEMPLATE_MARGIN, TEMPLATE_OVERLAP, TEMPLATE_PAST, TemplateSheets, TemplateTile, hole_boxes,
-    template_sheets,
-};
 pub use surfaces::{
     Face, behind_door, door_count, door_index, enclosure_section, face_of, face_size, from_datum, sheet_size,
     surface_datum, surface_frame, surface_page, surfaces, to_enclosure,
+};
+pub use template::{
+    Paper, TEMPLATE_BAND, TEMPLATE_MARGIN, TEMPLATE_OVERLAP, TEMPLATE_PAST, TemplateSheets, TemplateTile,
+    hole_boxes, template_sheets,
 };
 
 #[cfg(test)]

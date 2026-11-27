@@ -142,7 +142,11 @@ pub(super) fn unplaced_table(q: &Q, b: &mut Builder) {
             let thread = ew_derive::layout::gland_section(q, &part)
                 .and_then(|s| s.thread.mm())
                 .map_or_else(String::new, |m| format!("M{m}"));
-            let mut cells = plains(vec![label.clone(), ew_derive::printed_number(q, &part), String::new()]);
+            let mut cells = plains(vec![
+                label.clone(),
+                ew_derive::printed_number(q, &part),
+                String::new(),
+            ]);
             cells.push(text!("nav-unplaced-gland-mount", thread));
             b.push(
                 Some(gnode),

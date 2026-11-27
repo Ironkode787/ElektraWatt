@@ -148,7 +148,9 @@ impl ShellModel {
             return Outcome::refused(key!("reason-no-glands"));
         }
         let dropped = match super::canvas_actions::point_mm(p) {
-            Ok(at) => at.and_then(|s| Some(tables.to_surface(self.canvas()?.page().snapper.sheet_to_page(s)))),
+            Ok(at) => {
+                at.and_then(|s| Some(tables.to_surface(self.canvas()?.page().snapper.sheet_to_page(s))))
+            }
             Err(out) => return out,
         };
         let (u, v) = match (dropped, cables.as_slice()) {

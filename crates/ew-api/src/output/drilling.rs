@@ -332,8 +332,12 @@ impl Session {
                 let revision = ew_derive::current_revision(&q)
                     .map(|r| r.label.to_string())
                     .unwrap_or_default();
-                let caption = words(&ew_derive::text::surface_caption(&face.kind, face.door, face.doors));
-                let what = words(&ew_derive::text::template_band_what(&project, &location, &caption, &revision));
+                let caption = words(&ew_derive::text::surface_caption(
+                    &face.kind, face.door, face.doors,
+                ));
+                let what = words(&ew_derive::text::template_band_what(
+                    &project, &location, &caption, &revision,
+                ));
                 let (left, top) = (t.left(), t.top());
                 // The two edges at the corner, each along the sheet's side, with its words.
                 let (lo, hi) = (t.sheet.min(), t.sheet.max());
@@ -343,12 +347,18 @@ impl Session {
                     (
                         Pt2::new(ex, lo.y),
                         Pt2::new(ex, hi.y),
-                        words(&ew_derive::text::template_edge(if left { "left" } else { "right" }, &lower)),
+                        words(&ew_derive::text::template_edge(
+                            if left { "left" } else { "right" },
+                            &lower,
+                        )),
                     ),
                     (
                         Pt2::new(lo.x, ey),
                         Pt2::new(hi.x, ey),
-                        words(&ew_derive::text::template_edge(if top { "top" } else { "bottom" }, &lower)),
+                        words(&ew_derive::text::template_edge(
+                            if top { "top" } else { "bottom" },
+                            &lower,
+                        )),
                     ),
                 ];
                 let margin = s.edge_margin.filter(|m| m.0 > 0).and_then(|m| {
@@ -365,7 +375,12 @@ impl Session {
                         at: f.at,
                         size: f.made.extent(),
                         round: !matches!(f.made, Made::Cut { .. }),
-                        words: format!("H{} \u{b7} {} \u{b7} {}", f.no, words(&ew_derive::text::made(&f.made)), owners(f)),
+                        words: format!(
+                            "H{} \u{b7} {} \u{b7} {}",
+                            f.no,
+                            words(&ew_derive::text::made(&f.made)),
+                            owners(f)
+                        ),
                     })
                     .collect();
                 // Where four sheets meet: the middle of each shared corner square.
@@ -374,8 +389,16 @@ impl Session {
                     .iter()
                     .filter(|a| a.row + 1 < t.rows && a.col + 1 < t.cols)
                     .map(|a| {
-                        let x = if left { a.area.max().x.0 - TEMPLATE_OVERLAP.0 / 2 } else { a.area.min().x.0 + TEMPLATE_OVERLAP.0 / 2 };
-                        let y = if top { a.area.min().y.0 + TEMPLATE_OVERLAP.0 / 2 } else { a.area.max().y.0 - TEMPLATE_OVERLAP.0 / 2 };
+                        let x = if left {
+                            a.area.max().x.0 - TEMPLATE_OVERLAP.0 / 2
+                        } else {
+                            a.area.min().x.0 + TEMPLATE_OVERLAP.0 / 2
+                        };
+                        let y = if top {
+                            a.area.min().y.0 + TEMPLATE_OVERLAP.0 / 2
+                        } else {
+                            a.area.max().y.0 - TEMPLATE_OVERLAP.0 / 2
+                        };
                         Pt2::new(Nm(x), Nm(y))
                     })
                     .collect();
@@ -419,7 +442,10 @@ impl Session {
                         (&mm(y0.max(0)), &mm(y1.min(t.sheet.height().0))),
                         if top { "top" } else { "bottom" },
                     );
-                    let right_n = t.tiles.iter().any(|o| o.row == tile.row && map_at(o.row, o.col).1 == mc + 1);
+                    let right_n = t
+                        .tiles
+                        .iter()
+                        .any(|o| o.row == tile.row && map_at(o.row, o.col).1 == mc + 1);
                     let up_n = mr > 0;
                     let left_n = mc > 0;
                     let down_n = mr + 1 < t.rows;
@@ -439,7 +465,12 @@ impl Session {
                             words(&place),
                             words(&ew_derive::text::template_band_datum(&corner)),
                         ],
-                        map: (t.rows, t.cols, (mr, mc), on_map.clone()),
+                        map: ew_scene::template::TemplateMap {
+                            rows: t.rows,
+                            cols: t.cols,
+                            this: (mr, mc),
+                            printed: on_map.clone(),
+                        },
                         bar: words(&ew_derive::text::template_bar()),
                     };
                     let content = ew_scene::template::template_sheet(&view, fonts, &styles);
@@ -458,8 +489,10 @@ impl Session {
                 let mut options = ew_export::PdfOptions::new(super::model_date(&q));
                 options.title = Some(stem.clone());
                 options.creator = Some(format!("ElektraWatt {}", env!("CARGO_PKG_VERSION")));
-                options.document_id = format!("ew-drilling/1 {} {}", id.as_uuid().hyphenated(), ask.paper.word());
-                let pdf = ew_export::pdf(&pages, &options, &super::DrawingFonts, None).map_err(|e| e.to_string())?;
+                options.document_id =
+                    format!("ew-drilling/1 {} {}", id.as_uuid().hyphenated(), ask.paper.word());
+                let pdf = ew_export::pdf(&pages, &options, &super::DrawingFonts, None)
+                    .map_err(|e| e.to_string())?;
                 out.push(DrillingFile {
                     name: format!("{}.pdf", stem.trim()),
                     bytes: pdf.bytes,

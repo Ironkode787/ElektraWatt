@@ -501,7 +501,16 @@ fn form_fields(
     for f in &form.fields {
         // Surface…'s face: a table of the cabinet's faces, one chosen, across the body (doc 12 §3.8).
         if let Some((heads, rows)) = shell.surface_rows().filter(|_| f.name == "surface") {
-            surface_table(ui, &t, &f.name, &f.value, &heads, &rows, &mut first_control, events);
+            surface_table(
+                ui,
+                &t,
+                &f.name,
+                &f.value,
+                &heads,
+                &rows,
+                &mut first_control,
+                events,
+            );
             continue;
         }
         let label_text = f.label_text();

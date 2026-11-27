@@ -2272,7 +2272,12 @@ impl Session {
         let Some(new) = section(Id::from_uuid(cable)) else {
             return at;
         };
-        let web = q.project().settings.workshop.min_web.unwrap_or(ew_units::Nm(5_000_000));
+        let web = q
+            .project()
+            .settings
+            .workshop
+            .min_web
+            .unwrap_or(ew_units::Nm(5_000_000));
         let placed: Vec<(i128, i128, ew_schema::GlandSection)> = q
             .table::<ew_schema::SurfaceFeature>()
             .iter()
@@ -2285,7 +2290,10 @@ impl Session {
             for side in [-1, 1] {
                 let place = (u + side * pitch, *v);
                 // A row's end only: no gland of the row stands closer to that place than the pitch.
-                if placed.iter().any(|(pu, pv, _)| pv == v && (pu - place.0).abs() < pitch) {
+                if placed
+                    .iter()
+                    .any(|(pu, pv, _)| pv == v && (pu - place.0).abs() < pitch)
+                {
                     continue;
                 }
                 let d = (place.0 - at.0).abs().max((place.1 - at.1).abs());

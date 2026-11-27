@@ -408,8 +408,16 @@ fn rule_messages_nl() -> String {
 /// The messages whose en-GB text holds a table term in another sense than the table's, by (key, term, the
 /// sense): the terminology table does not ask the row's Dutch term there.
 const OTHER_SENSES: &[(&str, &str, &str)] = &[
-    ("drilling-template", "template", "a template for drilling (boormal)"),
-    ("drilling-nothing", "template", "a template for drilling (boormal)"),
+    (
+        "drilling-template",
+        "template",
+        "a template for drilling (boormal)",
+    ),
+    (
+        "drilling-nothing",
+        "template",
+        "a template for drilling (boormal)",
+    ),
     ("template-file", "template", "a template for drilling (boormal)"),
     ("action-view-frame-stats", "frame", "a drawn frame of the window"),
     ("canvas-stats-frame", "frame", "a drawn frame of the window"),

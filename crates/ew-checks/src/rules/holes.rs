@@ -386,7 +386,11 @@ impl Rule for CableGland {
                 let Some(f) = g.placed.and_then(|id| features.get(id)) else {
                     let mut f = base("unplaced", "unplaced".to_owned()).at_release(Severity::Error);
                     // Place on the bottom: the cabinet's bottom page, made where it is missing; its bar places them.
-                    if let Some(e) = q.table::<ew_schema::Enclosure>().iter().find(|(_, e)| e.space == space) {
+                    if let Some(e) = q
+                        .table::<ew_schema::Enclosure>()
+                        .iter()
+                        .find(|(_, e)| e.space == space)
+                    {
                         f = f.with_fix(QuickFix {
                             label: text!("fix-place-gland-bottom"),
                             command: "layout.surface_page".to_owned(),

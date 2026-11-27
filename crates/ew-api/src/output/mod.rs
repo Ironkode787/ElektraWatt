@@ -1032,9 +1032,12 @@ pub(crate) fn export_pages_hooked(
         if options.screen
             && let Some(list) = p.scene.layer(ew_dl::Layer::Highlights)
         {
-            sheet
-                .items
-                .extend(p.scene.map.apply_display_list(list, Some(&p.scene.geometry)).items);
+            sheet.items.extend(
+                p.scene
+                    .map
+                    .apply_display_list(list, Some(&p.scene.geometry))
+                    .items,
+            );
         }
         let (content, report) = ew_scene::images::resolve_images(&sheet, &|sha| assets.get(sha));
         let page = PdfPage {

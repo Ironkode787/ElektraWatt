@@ -472,9 +472,14 @@ impl Session {
                 Ok(p) if g.chosen => (ew_derive::printed_number(q, p), None),
                 Ok(p) => (
                     ew_derive::printed_number(q, p),
-                    Some(g.od.map_or_else(|| "proposed".to_owned(), |od| format!("proposed for {} mm", mm(od)))),
+                    Some(g.od.map_or_else(
+                        || "proposed".to_owned(),
+                        |od| format!("proposed for {} mm", mm(od)),
+                    )),
                 ),
-                Err(ew_derive::layout::NoGland::NoDiameter) => (String::new(), Some("no outer diameter".to_owned())),
+                Err(ew_derive::layout::NoGland::NoDiameter) => {
+                    (String::new(), Some("no outer diameter".to_owned()))
+                }
                 Err(ew_derive::layout::NoGland::NoneSeals { od }) => {
                     (String::new(), Some(format!("no gland seals {} mm", mm(*od))))
                 }

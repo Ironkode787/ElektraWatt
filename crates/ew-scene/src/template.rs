@@ -44,6 +44,19 @@ pub struct TemplateHole {
     pub words: String,
 }
 
+/// The map of a template's sheets in its band, rows and columns as the paper shows them (from its top-left).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct TemplateMap {
+    /// The rows.
+    pub rows: u32,
+    /// The columns.
+    pub cols: u32,
+    /// This sheet's row and column.
+    pub this: (u32, u32),
+    /// The printed sheets' rows and columns.
+    pub printed: Vec<(u32, u32)>,
+}
+
 /// One sheet of a template, as the caller gives it (the module documentation).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TemplateView {
@@ -70,8 +83,8 @@ pub struct TemplateView {
     pub joins: Vec<Pt2>,
     /// The band's lines, top down.
     pub band: Vec<String>,
-    /// The map: rows, columns, this sheet's row and column (from the map's top-left) and the printed ones.
-    pub map: (u32, u32, (u32, u32), Vec<(u32, u32)>),
+    /// The map of the sheets.
+    pub map: TemplateMap,
     /// The scale bar's words.
     pub bar: String,
 }
@@ -86,8 +99,16 @@ pub fn template_sheet(v: &TemplateView, fonts: &FontSet, styles: &ew_text::TextS
     let (pw, ph) = v.paper;
     let a = v.area;
     // A surface point on the paper.
-    let at = |p: Pt2| Pt2::new(Nm(MARGIN.0 + p.x.0 - a.min().x.0), Nm(MARGIN.0 + a.max().y.0 - p.y.0));
-    let content = Rect::from_points(at(Pt2::new(a.min().x, a.max().y)), at(Pt2::new(a.max().x, a.min().y)));
+    let at = |p: Pt2| {
+        Pt2::new(
+            Nm(MARGIN.0 + p.x.0 - a.min().x.0),
+            Nm(MARGIN.0 + a.max().y.0 - p.y.0),
+        )
+    };
+    let content = Rect::from_points(
+        at(Pt2::new(a.min().x, a.max().y)),
+        at(Pt2::new(a.max().x, a.min().y)),
+    );
     let thin = Stroke::pen(Pen::P013);
     let push = |b: &mut Builder<'_>, path: Path, stroke: Option<Stroke>, fill: Option<Brush>| {
         b.push(Item::path(path, stroke, fill));
@@ -111,8 +132,14 @@ pub fn template_sheet(v: &TemplateView, fonts: &FontSet, styles: &ew_text::TextS
     }
     // A segment of the surface within the sheet, on the paper.
     let clipped = |p: Pt2, q: Pt2| -> Option<(Pt2, Pt2)> {
-        let (x0, x1) = (p.x.0.min(q.x.0).max(a.min().x.0), p.x.0.max(q.x.0).min(a.max().x.0));
-        let (y0, y1) = (p.y.0.min(q.y.0).max(a.min().y.0), p.y.0.max(q.y.0).min(a.max().y.0));
+        let (x0, x1) = (
+            p.x.0.min(q.x.0).max(a.min().x.0),
+            p.x.0.max(q.x.0).min(a.max().x.0),
+        );
+        let (y0, y1) = (
+            p.y.0.min(q.y.0).max(a.min().y.0),
+            p.y.0.max(q.y.0).min(a.max().y.0),
+        );
         (x0 <= x1 && y0 <= y1).then(|| (at(Pt2::new(Nm(x0), Nm(y0))), at(Pt2::new(Nm(x1), Nm(y1)))))
     };
     if let Some(m) = v.margin {
@@ -131,16 +158,30 @@ pub fn template_sheet(v: &TemplateView, fonts: &FontSet, styles: &ew_text::TextS
     if let Some((p, q)) = v.hinge {
         // Ticks every 50 mm along the hinge edge, 3 mm long, outward of nothing: across the edge.
         let vertical = p.x == q.x;
-        let (from, to) = if vertical { (p.y.0.min(q.y.0), p.y.0.max(q.y.0)) } else { (p.x.0.min(q.x.0), p.x.0.max(q.x.0)) };
+        let (from, to) = if vertical {
+            (p.y.0.min(q.y.0), p.y.0.max(q.y.0))
+        } else {
+            (p.x.0.min(q.x.0), p.x.0.max(q.x.0))
+        };
         let mut t = from + 50_000_000;
         while t < to {
-            let c = if vertical { Pt2::new(p.x, Nm(t)) } else { Pt2::new(Nm(t), p.y) };
+            let c = if vertical {
+                Pt2::new(p.x, Nm(t))
+            } else {
+                Pt2::new(Nm(t), p.y)
+            };
             if a.contains(c) {
                 let c = at(c);
                 let (d0, d1) = if vertical {
-                    (Pt2::new(Nm(c.x.0 - 1_500_000), c.y), Pt2::new(Nm(c.x.0 + 1_500_000), c.y))
+                    (
+                        Pt2::new(Nm(c.x.0 - 1_500_000), c.y),
+                        Pt2::new(Nm(c.x.0 + 1_500_000), c.y),
+                    )
                 } else {
-                    (Pt2::new(c.x, Nm(c.y.0 - 1_500_000)), Pt2::new(c.x, Nm(c.y.0 + 1_500_000)))
+                    (
+                        Pt2::new(c.x, Nm(c.y.0 - 1_500_000)),
+                        Pt2::new(c.x, Nm(c.y.0 + 1_500_000)),
+                    )
                 };
                 push(&mut b, Path::line(d0, d1), Some(thin.clone()), None);
             }
@@ -170,17 +211,43 @@ pub fn template_sheet(v: &TemplateView, fonts: &FontSet, styles: &ew_text::TextS
             push(&mut b, Path::line(p0, q0), Some(Stroke::pen(Pen::P052)), None);
             let mid = Pt2::new(Nm((p0.x.0 + q0.x.0) / 2), Nm((p0.y.0 + q0.y.0) / 2));
             if p0.x == q0.x {
-                let inside = if p0.x.0 <= cmin.x.0 + 1 { 2_500_000 } else { -2_500_000 };
-                text(&mut b, words, Pt2::new(Nm(mid.x.0 + inside), mid.y), Angle2(90_000), &Align::Centre);
+                let inside = if p0.x.0 <= cmin.x.0 + 1 {
+                    2_500_000
+                } else {
+                    -2_500_000
+                };
+                text(
+                    &mut b,
+                    words,
+                    Pt2::new(Nm(mid.x.0 + inside), mid.y),
+                    Angle2(90_000),
+                    &Align::Centre,
+                );
             } else {
-                let inside = if p0.y.0 <= cmin.y.0 + 1 { 2_500_000 } else { -2_500_000 };
-                text(&mut b, words, Pt2::new(mid.x, Nm(mid.y.0 + inside)), Angle2::ZERO, &Align::Centre);
+                let inside = if p0.y.0 <= cmin.y.0 + 1 {
+                    2_500_000
+                } else {
+                    -2_500_000
+                };
+                text(
+                    &mut b,
+                    words,
+                    Pt2::new(mid.x, Nm(mid.y.0 + inside)),
+                    Angle2::ZERO,
+                    &Align::Centre,
+                );
             }
         }
     }
     if let Some(d) = v.datum.filter(|d| a.contains(*d)) {
         let d = at(d);
-        text(&mut b, "0", Pt2::new(Nm(d.x.0 + 1_000_000), Nm(d.y.0 - 1_000_000)), Angle2::ZERO, &Align::BottomLeft);
+        text(
+            &mut b,
+            "0",
+            Pt2::new(Nm(d.x.0 + 1_000_000), Nm(d.y.0 - 1_000_000)),
+            Angle2::ZERO,
+            &Align::BottomLeft,
+        );
     }
     // The holes at true size, each with its centre cross and its words.
     for h in &v.holes {
@@ -193,7 +260,14 @@ pub fn template_sheet(v: &TemplateView, fonts: &FontSet, styles: &ew_text::TextS
             continue;
         }
         let c = at(h.at);
-        let outline = if h.round { Path::circle(c, Nm(hw)) } else { Path::rect(Rect::from_points(at(Pt2::new(r.min().x, r.max().y)), at(Pt2::new(r.max().x, r.min().y)))) };
+        let outline = if h.round {
+            Path::circle(c, Nm(hw))
+        } else {
+            Path::rect(Rect::from_points(
+                at(Pt2::new(r.min().x, r.max().y)),
+                at(Pt2::new(r.max().x, r.min().y)),
+            ))
+        };
         push(&mut b, outline, Some(Stroke::pen(Pen::P026)), None);
         let (rx, ry) = (hw + CROSS_PAST.0, hh + CROSS_PAST.0);
         let cross = PathBuilder::default()
@@ -203,7 +277,13 @@ pub fn template_sheet(v: &TemplateView, fonts: &FontSet, styles: &ew_text::TextS
             .line_to(Pt2::new(c.x, Nm(c.y.0 + ry)))
             .build();
         push(&mut b, cross, Some(thin.clone()), None);
-        text(&mut b, &h.words, Pt2::new(Nm(c.x.0 + hw + 1_000_000), Nm(c.y.0 - hh - 1_000_000)), Angle2::ZERO, &Align::BottomLeft);
+        text(
+            &mut b,
+            &h.words,
+            Pt2::new(Nm(c.x.0 + hw + 1_000_000), Nm(c.y.0 - hh - 1_000_000)),
+            Angle2::ZERO,
+            &Align::BottomLeft,
+        );
     }
     // The crosses where four sheets meet.
     for j in v.joins.iter().filter(|j| a.contains(**j)) {
@@ -221,7 +301,13 @@ pub fn template_sheet(v: &TemplateView, fonts: &FontSet, styles: &ew_text::TextS
     let top = ph.0 - MARGIN.0 - BAND.0;
     for (i, line) in v.band.iter().enumerate() {
         let y = top + 2_500_000 * (i64::try_from(i).unwrap_or(0) + 1);
-        text(&mut b, line, Pt2::new(MARGIN, Nm(y)), Angle2::ZERO, &Align::BottomLeft);
+        text(
+            &mut b,
+            line,
+            Pt2::new(MARGIN, Nm(y)),
+            Angle2::ZERO,
+            &Align::BottomLeft,
+        );
     }
     let bar_y = top + BAND.0 - 500_000;
     let bar = PathBuilder::default()
@@ -229,11 +315,23 @@ pub fn template_sheet(v: &TemplateView, fonts: &FontSet, styles: &ew_text::TextS
         .line_to(Pt2::new(Nm(MARGIN.0 + 100_000_000), Nm(bar_y)));
     let bar = (0..=10).fold(bar, |p, k| {
         let x = MARGIN.0 + k * 10_000_000;
-        p.move_to(Pt2::new(Nm(x), Nm(bar_y))).line_to(Pt2::new(Nm(x), Nm(bar_y - 1_500_000)))
+        p.move_to(Pt2::new(Nm(x), Nm(bar_y)))
+            .line_to(Pt2::new(Nm(x), Nm(bar_y - 1_500_000)))
     });
     push(&mut b, bar.build(), Some(Stroke::pen(Pen::P026)), None);
-    text(&mut b, &v.bar, Pt2::new(Nm(MARGIN.0 + 103_000_000), Nm(bar_y)), Angle2::ZERO, &Align::BottomLeft);
-    let (rows, cols, (this_r, this_c), printed) = &v.map;
+    text(
+        &mut b,
+        &v.bar,
+        Pt2::new(Nm(MARGIN.0 + 103_000_000), Nm(bar_y)),
+        Angle2::ZERO,
+        &Align::BottomLeft,
+    );
+    let TemplateMap {
+        rows,
+        cols,
+        this: (this_r, this_c),
+        printed,
+    } = &v.map;
     let cell = 2_500_000i64;
     let mw = cell * i64::from(*cols);
     let (mx, my) = (pw.0 - MARGIN.0 - mw, top + 1_000_000);
@@ -248,7 +346,12 @@ pub fn template_sheet(v: &TemplateView, fonts: &FontSet, styles: &ew_text::TextS
             } else {
                 None
             };
-            push(&mut b, Path::rect(Rect::from_points(p, q)), Some(thin.clone()), fill);
+            push(
+                &mut b,
+                Path::rect(Rect::from_points(p, q)),
+                Some(thin.clone()),
+                fill,
+            );
         }
     }
     b.finish().list

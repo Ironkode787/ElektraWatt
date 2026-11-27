@@ -986,7 +986,9 @@ impl Builder<'_> {
                 )));
             }
             if let Some((tag, nut)) = &f.gland {
-                let room = i64::try_from(p.length(i128::from(nut.0)) / 2).unwrap_or(hw).max(hw);
+                let room = i64::try_from(p.length(i128::from(nut.0)) / 2)
+                    .unwrap_or(hw)
+                    .max(hw);
                 self.push(with(Item::path(
                     Path::circle(c, Nm(room)),
                     Some(Stroke::pen(Pen::P013).dashed(DashPattern::Dash42)),

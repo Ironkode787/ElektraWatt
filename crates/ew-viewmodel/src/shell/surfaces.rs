@@ -17,6 +17,9 @@ use crate::strings;
 /// The face of the chooser's choice.
 const FACE: &str = "surface";
 
+/// Surface…'s table: its column heads, and per face its value and its three cells.
+pub type SurfaceRows = ([String; 3], Vec<(String, [String; 3])>);
+
 impl ShellModel {
     /// The cabinet Surface… works on: the enclosure of the panel page shown, else the project's only one; `None` with
     /// several and no panel page (the chooser then lists every cabinet's faces by their tags).
@@ -261,7 +264,7 @@ impl ShellModel {
 
     /// The Surface… chooser as the window draws it, a table of faces with one chosen (doc 12 §3.8): its column heads
     /// (Surface, Size, Page) and per face its value and its three cells; `None` while the chooser is not open.
-    pub fn surface_rows(&self) -> Option<([String; 3], Vec<(String, [String; 3])>)> {
+    pub fn surface_rows(&self) -> Option<SurfaceRows> {
         let Some(super::Dialog::Form(f)) = &self.dialog else {
             return None;
         };

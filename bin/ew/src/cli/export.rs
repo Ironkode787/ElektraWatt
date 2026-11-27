@@ -1265,7 +1265,12 @@ pub(crate) struct DrillingCli {
     #[arg(long)]
     pub(super) no_template: bool,
     /// The folder to write into (required).
-    #[arg(long, value_name = "folder", allow_hyphen_values = true, overrides_with = "dir")]
+    #[arg(
+        long,
+        value_name = "folder",
+        allow_hyphen_values = true,
+        overrides_with = "dir"
+    )]
     pub(super) dir: Option<PathBuf>,
 }
 
@@ -1316,7 +1321,10 @@ pub(super) fn run_export_drilling(a: &DrillingCli, io: &mut Io<'_>) -> i32 {
     };
     let offered = session.drilling_surfaces(paper);
     if offered.is_empty() {
-        io.error(format_args!("{}: no surface of the project has holes", dir.display()));
+        io.error(format_args!(
+            "{}: no surface of the project has holes",
+            dir.display()
+        ));
         return 2;
     }
     let mut surfaces = Vec::new();
@@ -1330,7 +1338,9 @@ pub(super) fn run_export_drilling(a: &DrillingCli, io: &mut Io<'_>) -> i32 {
         match found {
             Some(o) => surfaces.push(o.surface),
             None => {
-                io.error(format_args!("--surface {name}: no surface with holes is called so"));
+                io.error(format_args!(
+                    "--surface {name}: no surface with holes is called so"
+                ));
                 return 2;
             }
         }

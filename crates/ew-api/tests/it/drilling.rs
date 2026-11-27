@@ -80,7 +80,10 @@ fn the_door_s_template_lies_in_its_top_left_corner_and_its_dxf_holds_its_holes()
     };
     let files = s.drilling_files(&ask).expect("the drawings");
     assert_eq!(files, s.drilling_files(&ask).expect("again"), "the same bytes");
-    let pdf = files.iter().find(|f| f.name.ends_with(".pdf")).expect("the template");
+    let pdf = files
+        .iter()
+        .find(|f| f.name.ends_with(".pdf"))
+        .expect("the template");
     assert!(pdf.bytes.starts_with(b"%PDF"));
     let text = door_dxf(&s, door);
     // The door's DXF as the workshop gets it: `tests/expected/door_drilling.dxf` (`EW_BLESS=1` writes it).
@@ -89,22 +92,32 @@ fn the_door_s_template_lies_in_its_top_left_corner_and_its_dxf_holds_its_holes()
         std::fs::write(expected, &text).expect("door_drilling.dxf");
     }
     let want = std::fs::read_to_string(expected).expect("door_drilling.dxf (EW_BLESS=1 writes it)");
-    assert_eq!(text, want.replace("
-", "
-"));
-    let probe = ew_import_dxf::probe(text.as_bytes(), &ew_interop_api::Limits::default()).expect("it reads back");
+    assert_eq!(text, want.replace("\r\n", "\n"));
+    let probe =
+        ew_import_dxf::probe(text.as_bytes(), &ew_interop_api::Limits::default()).expect("it reads back");
     assert_eq!(probe.unit, Some(ew_import_dxf::Unit::Millimetre));
     let found = circles(&text);
     let of = |layer: &str, r: &str| found.iter().filter(|(l, x)| l == layer && x == r).count();
-    assert_eq!(of("HOLE_4.5", "2.25"), 2, "the handle's fixings, through the door");
-    assert_eq!(of("CUT_22.3", "11.15"), 6, "the five fronts' and the handle's cut-outs");
+    assert_eq!(
+        of("HOLE_4.5", "2.25"),
+        2,
+        "the handle's fixings, through the door"
+    );
+    assert_eq!(
+        of("CUT_22.3", "11.15"),
+        6,
+        "the five fronts' and the handle's cut-outs"
+    );
 }
 
 #[test]
 fn a_part_of_one_s_own_puts_its_holes_on_the_door_s_drawings() {
     let mut s = common::sample();
     let door = door(&s);
-    let before = circles(&door_dxf(&s, door)).iter().filter(|(l, _)| l == "HOLE_4.5").count();
+    let before = circles(&door_dxf(&s, door))
+        .iter()
+        .filter(|(l, _)| l == "HOLE_4.5")
+        .count();
     // A lamp of one's own: a 40 mm square front with its cut-out and two M4 fixings.
     let mut d = s.new_part_draft().expect("a new part");
     d.to_library = false;
@@ -117,13 +130,18 @@ fn a_part_of_one_s_own_puts_its_holes_on_the_door_s_drawings() {
     ] {
         s.set_draft_field(&mut d, f, v).expect(f);
     }
-    for (i, (x, kind, size)) in [("20", "cutout", "22 mm"), ("5", "fixing", "M4"), ("35", "fixing", "M4")]
-        .into_iter()
-        .enumerate()
+    for (i, (x, kind, size)) in [
+        ("20", "cutout", "22 mm"),
+        ("5", "fixing", "M4"),
+        ("35", "fixing", "M4"),
+    ]
+    .into_iter()
+    .enumerate()
     {
         assert!(d.add_table_row("mech.holes"));
         for (f, v) in [("x", x), ("y", "20"), ("hole.kind", kind), ("hole.size", size)] {
-            s.set_draft_field(&mut d, &format!("mech.holes[{i}].{f}"), v).expect(f);
+            s.set_draft_field(&mut d, &format!("mech.holes[{i}].{f}"), v)
+                .expect(f);
         }
     }
     let made = s.new_part_command(&d).expect("the new part's command");
@@ -169,6 +187,9 @@ fn a_part_of_one_s_own_puts_its_holes_on_the_door_s_drawings() {
                 "pose": {"t": [240_000_000, 560_000_000, 0], "q": [1_000_000_000, 0, 0, 0]}}),
         },
     );
-    let after = circles(&door_dxf(&s, door)).iter().filter(|(l, _)| l == "HOLE_4.5").count();
+    let after = circles(&door_dxf(&s, door))
+        .iter()
+        .filter(|(l, _)| l == "HOLE_4.5")
+        .count();
     assert_eq!(after, before + 2, "the own part's two fixings, through the door");
 }

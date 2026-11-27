@@ -108,7 +108,10 @@ impl TemplateSheets {
 
     /// Whether the corner's vertical edge is the sheet's left one (else its right one).
     pub fn left(&self) -> bool {
-        matches!(self.corner, Corner::BottomLeft | Corner::TopLeft | Corner::Unknown(_))
+        matches!(
+            self.corner,
+            Corner::BottomLeft | Corner::TopLeft | Corner::Unknown(_)
+        )
     }
 
     /// Whether the corner's horizontal edge is the sheet's top one (else its bottom one).
@@ -123,7 +126,10 @@ pub fn hole_boxes(q: &Q, surface: Id<MountingSurface>) -> Vec<Rect> {
         .iter()
         .filter_map(|f| {
             let (w, h) = f.made.extent();
-            let a = Pt2::new(Nm(f.at.x.0.checked_sub(w.0 / 2)?), Nm(f.at.y.0.checked_sub(h.0 / 2)?));
+            let a = Pt2::new(
+                Nm(f.at.x.0.checked_sub(w.0 / 2)?),
+                Nm(f.at.y.0.checked_sub(h.0 / 2)?),
+            );
             let b = Pt2::new(Nm(a.x.0.checked_add(w.0)?), Nm(a.y.0.checked_add(h.0)?));
             Some(Rect::from_points(a, b))
         })
@@ -146,8 +152,16 @@ pub fn template_sheets(q: &Q, surface: Id<MountingSurface>, paper: Paper) -> Opt
     // The corner whose two edges enclose the holes in the smallest rectangle.
     let (lo, hi) = (sheet.min(), sheet.max());
     let reach = |left: bool, top: bool| {
-        let w = if left { span.max().x.0 - lo.x.0 } else { hi.x.0 - span.min().x.0 };
-        let h = if top { hi.y.0 - span.min().y.0 } else { span.max().y.0 - lo.y.0 };
+        let w = if left {
+            span.max().x.0 - lo.x.0
+        } else {
+            hi.x.0 - span.min().x.0
+        };
+        let h = if top {
+            hi.y.0 - span.min().y.0
+        } else {
+            span.max().y.0 - lo.y.0
+        };
         i128::from(w) * i128::from(h)
     };
     let corner = [
@@ -164,10 +178,26 @@ pub fn template_sheets(q: &Q, surface: Id<MountingSurface>, paper: Paper) -> Opt
         matches!(corner, Corner::TopLeft | Corner::TopRight),
     );
     let past = TEMPLATE_PAST.0;
-    let x0 = if left { lo.x.0 } else { (span.min().x.0 - past).max(lo.x.0) };
-    let x1 = if left { (span.max().x.0 + past).min(hi.x.0) } else { hi.x.0 };
-    let y0 = if top { (span.min().y.0 - past).max(lo.y.0) } else { lo.y.0 };
-    let y1 = if top { hi.y.0 } else { (span.max().y.0 + past).min(hi.y.0) };
+    let x0 = if left {
+        lo.x.0
+    } else {
+        (span.min().x.0 - past).max(lo.x.0)
+    };
+    let x1 = if left {
+        (span.max().x.0 + past).min(hi.x.0)
+    } else {
+        hi.x.0
+    };
+    let y0 = if top {
+        (span.min().y.0 - past).max(lo.y.0)
+    } else {
+        lo.y.0
+    };
+    let y1 = if top {
+        hi.y.0
+    } else {
+        (span.max().y.0 + past).min(hi.y.0)
+    };
     let cover = Rect::from_points(Pt2::new(Nm(x0), Nm(y0)), Pt2::new(Nm(x1), Nm(y1)));
     // The sheets each orientation needs; the fewer, portrait on a tie.
     let (short, long) = paper.sides();
@@ -182,7 +212,11 @@ pub fn template_sheets(q: &Q, surface: Id<MountingSurface>, paper: Paper) -> Opt
     let lay = |pw: Nm, ph: Nm| -> Option<((Nm, Nm), u32, u32)> {
         let room_w = pw.0 - 2 * TEMPLATE_MARGIN.0;
         let room_h = ph.0 - 2 * TEMPLATE_MARGIN.0 - TEMPLATE_BAND.0;
-        Some(((pw, ph), count(cover.height().0, room_h)?, count(cover.width().0, room_w)?))
+        Some((
+            (pw, ph),
+            count(cover.height().0, room_h)?,
+            count(cover.width().0, room_w)?,
+        ))
     };
     let portrait = lay(short, long)?;
     let landscape = lay(long, short)?;

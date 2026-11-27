@@ -1104,7 +1104,13 @@ fn page(sheet: &DxfSheet, opts: &DxfOptions, set: &Set, pictures: &mut Pictures)
         let name = set.names.get(id).cloned().unwrap_or_else(|| block_name(id));
         blocks.push((name, ents, !defs.is_empty()));
     }
-    let text = assemble(&mut w, model, blocks, opts.layers.all(), (sheet.width, sheet.height));
+    let text = assemble(
+        &mut w,
+        model,
+        blocks,
+        opts.layers.all(),
+        (sheet.width, sheet.height),
+    );
     DxfFile {
         name: dxf_file_name(&sheet.label),
         text,
@@ -1116,7 +1122,7 @@ fn page(sheet: &DxfSheet, opts: &DxfOptions, set: &Set, pictures: &mut Pictures)
 /// (0, 0)–(`width`, `height`): the header, the tables, the blocks, the entities and the objects every file of the
 /// writer has (handles from the writer's, the styles and line types it collected).
 fn assemble(
-    mut w: &mut Writer<'_>,
+    w: &mut Writer<'_>,
     model: Vec<Ent>,
     blocks: Vec<(String, Vec<Ent>, bool)>,
     layer_names: Vec<String>,
@@ -1152,7 +1158,7 @@ fn assemble(
     };
     let half = |n: Nm| mm(n.0 / 2);
     table(
-        &mut w,
+        w,
         &mut tables,
         "VPORT",
         vec![format!(
@@ -1188,7 +1194,7 @@ fn assemble(
         }
         ltypes.push(e);
     }
-    table(&mut w, &mut tables, "LTYPE", ltypes);
+    table(w, &mut tables, "LTYPE", ltypes);
     let mut layers =
         vec!["100\nAcDbLayerTableRecord\n  2\n0\n 70\n0\n 62\n7\n  6\nContinuous\n370\n-3\n".to_owned()];
     for name in layer_names {
@@ -1197,7 +1203,7 @@ fn assemble(
             text::dxf_text(&name)
         ));
     }
-    table(&mut w, &mut tables, "LAYER", layers);
+    table(w, &mut tables, "LAYER", layers);
     let mut styles = vec![
         "100\nAcDbTextStyleTableRecord\n  2\nStandard\n 70\n0\n 40\n0\n 41\n1\n 50\n0\n 71\n0\n 42\n2.5\n  3\nNotoSans-Regular.ttf\n  4\n\n"
             .to_owned(),
@@ -1211,11 +1217,11 @@ fn assemble(
             text::style_xdata(&face),
         ));
     }
-    table(&mut w, &mut tables, "STYLE", styles);
-    table(&mut w, &mut tables, "VIEW", Vec::new());
-    table(&mut w, &mut tables, "UCS", Vec::new());
+    table(w, &mut tables, "STYLE", styles);
+    table(w, &mut tables, "VIEW", Vec::new());
+    table(w, &mut tables, "UCS", Vec::new());
     table(
-        &mut w,
+        w,
         &mut tables,
         "APPID",
         vec![
@@ -1224,7 +1230,7 @@ fn assemble(
         ],
     );
     table(
-        &mut w,
+        w,
         &mut tables,
         "DIMSTYLE",
         vec!["100\nAcDbDimStyleTableRecord\n  2\nStandard\n 70\n0\n".to_owned()],
@@ -1289,7 +1295,7 @@ fn assemble(
         );
     };
     block(
-        &mut w,
+        w,
         &mut blocks_text,
         &model_record,
         "*Model_Space",
@@ -1298,7 +1304,7 @@ fn assemble(
         Vec::new(),
     );
     block(
-        &mut w,
+        w,
         &mut blocks_text,
         &paper_record,
         "*Paper_Space",
@@ -1307,7 +1313,7 @@ fn assemble(
         Vec::new(),
     );
     for ((name, ents, attributes), h) in blocks.into_iter().zip(&block_records) {
-        block(&mut w, &mut blocks_text, h, &name, false, attributes, ents);
+        block(w, &mut blocks_text, h, &name, false, attributes, ents);
     }
     // The entities.
     let mut entities = String::new();

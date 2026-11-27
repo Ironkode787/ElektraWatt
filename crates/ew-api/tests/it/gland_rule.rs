@@ -22,7 +22,10 @@ fn a_gland_not_placed_is_an_error_at_a_release_and_its_fix_opens_the_bottom() {
         .map(|(id, _)| id.as_uuid().to_string())
         .collect();
     assert!(!glands.is_empty(), "the sample's bottom holds glands");
-    let targets: Vec<_> = glands.iter().map(|id| json!({"kind": "surface_feature", "id": id})).collect();
+    let targets: Vec<_> = glands
+        .iter()
+        .map(|id| json!({"kind": "surface_feature", "id": id}))
+        .collect();
     let delete = AnyCommand {
         name: "edit.delete".into(),
         params: json!({ "targets": targets }),
@@ -41,10 +44,20 @@ fn a_gland_not_placed_is_an_error_at_a_release_and_its_fix_opens_the_bottom() {
     };
     let online = of(CheckMode::Online);
     assert!(!online.is_empty());
-    assert!(online.iter().all(|f| f.severity == Severity::Warning), "{online:#?}");
+    assert!(
+        online.iter().all(|f| f.severity == Severity::Warning),
+        "{online:#?}"
+    );
     let release = of(CheckMode::Release);
-    assert!(release.iter().all(|f| f.severity == Severity::Error), "{release:#?}");
+    assert!(
+        release.iter().all(|f| f.severity == Severity::Error),
+        "{release:#?}"
+    );
     let fix = release[0].fix.clone().expect("Place on the bottom");
     assert_eq!(fix.command, "layout.surface_page");
-    assert!(fix.params["surface"].as_str().is_some_and(|v| v.ends_with("/bottom")));
+    assert!(
+        fix.params["surface"]
+            .as_str()
+            .is_some_and(|v| v.ends_with("/bottom"))
+    );
 }

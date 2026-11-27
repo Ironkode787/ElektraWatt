@@ -718,7 +718,9 @@ impl ShellModel {
         let project = or_return!(crate::shell::gated(&self.project));
         // A fix that is a window action (Edit part…, Choose part…, Place on the bottom) runs on the finding's records,
         // selected and shown in Properties, without a card.
-        if project.session.registry().get(&fix.command).is_none() && crate::actions::find(&fix.command).is_some() {
+        if project.session.registry().get(&fix.command).is_none()
+            && crate::actions::find(&fix.command).is_some()
+        {
             let ids: Vec<Value> = finding
                 .targets
                 .iter()
