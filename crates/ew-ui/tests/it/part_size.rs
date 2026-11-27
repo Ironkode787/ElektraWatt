@@ -80,10 +80,9 @@ fn a_new_part_takes_its_size_and_a_saved_one_changes_it_through_the_card() {
     );
 }
 
-/// At 1920 × 1080 the whole New part form shows with its sections closed: the box "Also add to my parts library"
-/// stands inside the dialog above its foot row, and a field's message, said in the foot row, moves it not at all.
+/// At 1920 × 1080 a field's message of a new part, said under the sheet, moves no field.
 #[test]
-fn the_new_part_forms_library_box_shows_and_a_message_moves_nothing() {
+fn a_message_of_a_new_part_moves_no_field() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     d.input(&key("Shift+I"));
@@ -96,14 +95,6 @@ fn the_new_part_forms_library_box_shows_and_a_message_moves_nothing() {
             .unwrap_or_else(|| panic!("no widget named {name:?}"))
             .1
     };
-    let library = at(&d, "Also add to my parts library");
-    let save = at(&d, "Save");
-    let title = at(&d, "Maker");
-    // A row below the box's centre and half a button above Save's: the box ends clear of the foot row.
-    assert!(
-        library.1 > title.1 && library.1 + 24 < save.1 - 18,
-        "{library:?} {save:?}"
-    );
     fill(&mut d, "Maker", "Acme");
     press(&mut d, "In the cabinet section");
     let before = at(&d, "Width (mm)");

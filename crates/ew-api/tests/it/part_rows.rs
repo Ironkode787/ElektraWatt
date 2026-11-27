@@ -135,7 +135,7 @@ fn delete_part_deletes_a_part_of_the_projects_own_and_keeps_a_librarys() {
     let refused = run(
         &mut s,
         &AnyCommand {
-            name: "parts.remove".into(),
+            name: "part.delete".into(),
             params: json!({ "copy": library.to_string() }),
         },
     )
@@ -153,7 +153,7 @@ fn delete_part_deletes_a_part_of_the_projects_own_and_keeps_a_librarys() {
     run(
         &mut s,
         &AnyCommand {
-            name: "parts.remove".into(),
+            name: "part.delete".into(),
             params: json!({ "copy": own.to_string() }),
         },
     )
@@ -190,7 +190,7 @@ fn delete_part_refuses_a_part_another_part_names_as_its_accessory() {
     own_part(&mut s, "OWN-TRM", Some("OWN-EP"));
     let plate = copy_of(&s, "OWN-EP");
     let delete = |copy: Uuid| AnyCommand {
-        name: "parts.remove".into(),
+        name: "part.delete".into(),
         params: json!({ "copy": copy.to_string() }),
     };
     let refused = match run(&mut s, &delete(plate)).unwrap_err() {

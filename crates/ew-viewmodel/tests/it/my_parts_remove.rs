@@ -61,6 +61,7 @@ fn a_part_removed_from_my_parts_stays_in_the_project_that_uses_it() {
         done(&mut s, "parts.field", json!({"field": field, "value": value}));
     }
     done(&mut s, "parts.save", json!({}));
+    done(&mut s, "parts.back", json!({}));
     // A device of it on the page.
     done(&mut s, "tool.place", json!({}));
     done(&mut s, "place.pick", json!({"part": "DI-4"}));
@@ -70,8 +71,9 @@ fn a_part_removed_from_my_parts_stays_in_the_project_that_uses_it() {
         done(&mut s, "canvas.activate", json!({}));
     }
     done(&mut s, "ui.dismiss", json!({}));
-    // Its part editor offers the removal, apart from Save; it asks first, and its Remove takes the part out.
+    // Parts offers its removal; it asks first, and its Remove takes the part out.
     done(&mut s, "parts.open", json!({"part": "DI-4"}));
+    done(&mut s, "parts.remove", json!({}));
     let danger = |s: &ShellModel| {
         let dialog = s.dialog().cloned().expect("a dialog");
         let b = spec(&dialog, s).danger.expect("its danger button");
@@ -81,17 +83,11 @@ fn a_part_removed_from_my_parts_stays_in_the_project_that_uses_it() {
         (b.label, action, params)
     };
     let (label, action, params) = danger(&s);
-    assert_eq!(
-        (label.as_str(), action),
-        ("Remove from my parts library…", "parts.remove")
-    );
-    done(&mut s, action, params);
-    let (label, action, params) = danger(&s);
     assert_eq!((label.as_str(), action), ("Remove", "parts.remove"));
     done(&mut s, action, params);
     assert!(
         s.dialog().is_none(),
-        "the confirmation and the part editor give way"
+        "the confirmation gives way"
     );
     let said = toast(&s);
     assert!(
@@ -117,11 +113,9 @@ fn a_part_removed_from_my_parts_stays_in_the_project_that_uses_it() {
         lines.iter().any(|v| v["parts"].to_string().contains(&copy)),
         "the device keeps its part"
     );
-    // Removing it again is refused in words.
-    assert_eq!(
-        refused(&mut s, "parts.remove", json!({"part": "DI-4"})),
-        "reason-part-not-own"
-    );
+    // Removing it again is refused in words: the project's copy is no part of My parts now.
+    done(&mut s, "parts.open", json!({"part": "DI-4"}));
+    assert_eq!(refused(&mut s, "parts.remove", json!({})), "reason-part-not-own");
     s.shutdown();
     drop(s);
     // The next project, in the same person's folders, no longer finds it.

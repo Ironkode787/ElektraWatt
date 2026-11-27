@@ -446,6 +446,9 @@ impl App {
         if self.shell.symbol_editor().is_none() {
             self.symbol_editor_view = crate::symbol_editor::EditorView::default();
         }
+        if self.shell.parts_place().is_none() {
+            self.parts_view = crate::parts_place::PlaceView::default();
+        }
         CentralPanel::default().show(ui, |ui| {
             crate::properties::remember_free_area(ui);
             match screen {

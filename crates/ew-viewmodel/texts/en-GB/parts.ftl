@@ -257,6 +257,9 @@ part-section-locked = A part from a library keeps these: they change on a projec
 part-table-add-accessories = Add accessory
 part-table-add-variants = Add variant
 part-table-add-mech-holes = Add hole
+part-table-add-sections-enclosure-doors = Add door
+part-table-add-configured-components = Add component part
+part-table-add-sections-fluid-ports = Add port
 part-table-remove = Remove row { $p0 }
 part-table-empty = None yet
 
@@ -291,11 +294,11 @@ parts-filter-lacking = Lacks something
 parts-count = { $p0 ->
     [one] { $p0 } part
    *[other] { $p0 } parts
-}
+    }
 parts-used-by = { $p0 ->
     [one] { $p0 } device of this project uses it
    *[other] { $p0 } devices of this project use it
-}
+    }
 parts-changed = Changed, not saved
 parts-lives-mine = Mine · in My parts
 parts-lives-starter = Starter part
@@ -318,4 +321,4 @@ reason-parts-unsaved = The part has changes that are not saved: Save or Discard 
 reason-part-remove-used = { $p0 ->
     [one] { $p0 } device of this project uses the part.
    *[other] { $p0 } devices of this project use the part.
-}
+    }

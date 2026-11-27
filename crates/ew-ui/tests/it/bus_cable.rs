@@ -365,9 +365,9 @@ fn a_new_bus_cable_and_plug_are_made_in_the_cable_form() {
     d.shell_mut().set_form_field("part", &new_cable);
     {
         let Some(e) = d.shell_mut().parts_place().and_then(|p| p.sheet.as_ref()) else {
-            panic!("the New bus cable form");
+            panic!("the new bus cable in Parts");
         };
-        assert_eq!(e.title(), "New bus cable");
+        assert_eq!(e.title(), "New part");
         assert_eq!(e.sheet.text("cable.bus"), "profibus_dp");
         assert_eq!(
             e.sheet.cable.table,
@@ -400,7 +400,7 @@ fn a_new_bus_cable_and_plug_are_made_in_the_cable_form() {
         let Some(e) = d.shell_mut().parts_place().and_then(|p| p.sheet.as_ref()) else {
             panic!("the New plug form");
         };
-        assert_eq!(e.title(), "New bus plug");
+        assert_eq!(e.title(), "New part");
     }
     for (f, v) in [
         ("manufacturer", "Maker"),

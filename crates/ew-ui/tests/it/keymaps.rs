@@ -230,8 +230,8 @@ fn the_app_menu_and_the_context_menu_keys_are_bindings_a_person_can_change() {
         &tmp,
         FIRST_RUN_DONE,
         Some(
-            "[meta]\nname = \"Mine\"\nversion = 1\n\n[[bind]]\nkeys = \"F9\"\naction = \"ui.app_menu\"\n\
-             context = \"global\"\n\n[[bind]]\nkeys = \"Ctrl+F9\"\naction = \"ui.context_menu\"\ncontext = \"canvas\"\n",
+            "[meta]\nname = \"Mine\"\nversion = 1\n\n[[bind]]\nkeys = \"F12\"\naction = \"ui.app_menu\"\n\
+             context = \"global\"\n\n[[bind]]\nkeys = \"Ctrl+F12\"\naction = \"ui.context_menu\"\ncontext = \"canvas\"\n",
         ),
     );
     assert_eq!(h.state().shell().banner(), None);
@@ -239,10 +239,10 @@ fn the_app_menu_and_the_context_menu_keys_are_bindings_a_person_can_change() {
     h.key_press(Key::F10);
     settle(&mut h);
     assert!(!menu_open(&h), "F10 is no longer the app menu's");
-    h.key_press(Key::F9);
+    h.key_press(Key::F12);
     settle(&mut h);
     settle(&mut h);
-    assert!(menu_open(&h), "F9 opens the app menu");
+    assert!(menu_open(&h), "F12 opens the app menu");
     h.key_press(Key::Escape);
     settle(&mut h);
     // A selected symbol's menu at the selection, by the new key.
@@ -258,10 +258,10 @@ fn the_app_menu_and_the_context_menu_keys_are_bindings_a_person_can_change() {
     settle(&mut h);
     settle(&mut h);
     assert_eq!(menus(&h), closed, "Shift+F10 is no longer the context menu's");
-    h.key_press_modifiers(Modifiers::COMMAND, Key::F9);
+    h.key_press_modifiers(Modifiers::COMMAND, Key::F12);
     settle(&mut h);
     settle(&mut h);
-    assert!(menus(&h) > closed, "Ctrl+F9 opens the canvas's context menu");
+    assert!(menus(&h) > closed, "Ctrl+F12 opens the canvas's context menu");
 }
 
 /// Shift+F10 with nothing selected opens no menu, and the request goes with its frame: a later selection on the

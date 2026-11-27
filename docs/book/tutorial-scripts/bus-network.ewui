@@ -51,13 +51,14 @@
 {"action":"canvas.release","params":{"x_mm":133.075,"y_mm":46.324}}
 {"action":"bus.cable","params":{"part":"EW-GEN-CBL-3 · Industrial Ethernet cable, 4 cores, shielded (PROFINET)","length":"5"}}
 {"action":"ui.describe"}
-{"action":"part.new"}
-{"action":"part.field","params":{"field":"manufacturer","value":"Example"}}
-{"action":"part.field","params":{"field":"part_number","value":"FC-PN-2"}}
-{"action":"part.field","params":{"field":"description","value":"Frequency converter with PROFINET, 2 ports"}}
-{"action":"part.bus_row"}
-{"action":"part.field","params":{"field":"bus.0.ports","value":"2"}}
-{"action":"part.save"}
+{"action":"parts.new"}
+{"action":"parts.field","params":{"field":"manufacturer","value":"Example"}}
+{"action":"parts.field","params":{"field":"part_number","value":"FC-PN-2"}}
+{"action":"parts.field","params":{"field":"description","value":"Frequency converter with PROFINET, 2 ports"}}
+{"action":"parts.row","params":{"table":"bus"}}
+{"action":"parts.field","params":{"field":"bus.0.ports","value":"2"}}
+{"action":"parts.save"}
+{"action":"parts.back"}
 {"action":"tool.place_part"}
 {"action":"place.pick","params":{"part":"FC-PN-2"}}
 {"action":"cursor.set","params":{"x_mm":207.047,"y_mm":142.938}}

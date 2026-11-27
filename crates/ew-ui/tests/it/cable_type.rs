@@ -58,7 +58,7 @@ fn a_cable_type_is_made_in_the_cable_form_and_chosen_there() {
     assert_eq!(entry.1, "New cable type…", "the list's last entry");
     d.shell_mut().set_form_field("part", &entry.0);
     shown(&mut d);
-    assert_eq!(title(&mut d), "New cable type");
+    assert_eq!(title(&mut d), "New part");
     // Escape returns to the Cable form; New cable type… again.
     d.input(&key("escape"));
     shown(&mut d);
@@ -66,7 +66,7 @@ fn a_cable_type_is_made_in_the_cable_form_and_chosen_there() {
     d.shell_mut().set_form_field("part", &entry.0);
     shown(&mut d);
     fill(&mut d, "Maker", "Generic");
-    fill(&mut d, "Type (series)", "CTRL");
+    fill(&mut d, "Type", "CTRL");
     fill(&mut d, "Part number", "CTRL-4G1.5");
     fill(&mut d, "Number of cores", "4");
     assert_eq!(
@@ -85,7 +85,7 @@ fn a_cable_type_is_made_in_the_cable_form_and_chosen_there() {
     d.input(&click(d.find("Save and add another size").expect("the button")));
     shown(&mut d);
     // The next size of the series: everything kept but the part number and the cross-section.
-    assert_eq!(title(&mut d), "New cable type");
+    assert_eq!(title(&mut d), "New part");
     match d.shell_mut().parts_place().and_then(|p| p.sheet.as_ref()) {
         Some(e) => {
             let t = |f: &str| e.sheet.text(f).to_owned();

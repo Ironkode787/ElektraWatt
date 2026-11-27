@@ -468,8 +468,11 @@ impl ShellModel {
                 Some((l.parse::<Uuid>().ok()?, i.parse::<Uuid>().ok()?))
             });
         let mut copy_of = None;
+        // The open part of Parts goes into the box, and Parts gives way to it (Part data… brings it back).
         let draft = if let Some(open) = self.parts.as_deref().and_then(|p| p.sheet.as_ref()) {
-            open.sheet.clone()
+            let draft = open.sheet.clone();
+            self.parts = None;
+            draft
         } else if let Some(at) = library {
             let Some((library, item)) = at else {
                 return crate::shell::failed(key!("error-bad-param"), &["part"]);

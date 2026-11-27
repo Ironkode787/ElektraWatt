@@ -252,6 +252,9 @@ part-section-locked = Een artikel uit een bibliotheek houdt deze: ze veranderen 
 part-table-add-accessories = Toebehoren toevoegen
 part-table-add-variants = Variant toevoegen
 part-table-add-mech-holes = Gat toevoegen
+part-table-add-sections-enclosure-doors = Deur toevoegen
+part-table-add-configured-components = Samenstellend artikel toevoegen
+part-table-add-sections-fluid-ports = Poort toevoegen
 part-table-remove = Rij { $p0 } verwijderen
 part-table-empty = Nog geen
 
@@ -286,11 +289,11 @@ parts-filter-lacking = Mist iets
 parts-count = { $p0 ->
     [one] { $p0 } artikel
    *[other] { $p0 } artikelen
-}
+    }
 parts-used-by = { $p0 ->
     [one] { $p0 } apparaat van dit project gebruikt het
    *[other] { $p0 } apparaten van dit project gebruiken het
-}
+    }
 parts-changed = Gewijzigd, niet opgeslagen
 parts-lives-mine = Van mij · in Mijn artikelen
 parts-lives-starter = Startartikel
@@ -313,4 +316,4 @@ reason-parts-unsaved = Het artikel heeft wijzigingen die niet zijn opgeslagen: s
 reason-part-remove-used = { $p0 ->
     [one] { $p0 } apparaat van dit project gebruikt het artikel.
    *[other] { $p0 } apparaten van dit project gebruiken het artikel.
-}
+    }

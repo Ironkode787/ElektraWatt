@@ -24,6 +24,13 @@ page shows the plate; a location that has its enclosure already gets it drawn on
 +CAB1 on this page**). On another page the button makes a panel layout page after it and draws the enclosure there;
 **Create only** makes it without drawing it. See [Draw a panel layout](../../how-to/panel-layout.md#add-the-enclosure).
 
+### Parts
+
+Opens Parts (`F9`), the one place where a part of every kind is looked up, seen whole, changed and made: the list of
+your parts, the project's and the libraries', the open part's sheet with its groups, and beside it how the part is
+drawn and what the program's features still lack of it. **Back** returns to where you were. See
+[Make your own parts](../../how-to/own-parts.md) and [Parts ▸ Fields](../part-fields.md).
+
 ## Page
 
 ### New page…

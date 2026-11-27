@@ -244,9 +244,9 @@ fn the_card_of_a_corrected_part_speaks_words_and_names_a_line_that_loses_its_soc
     );
 }
 
-/// Item 6: the New part dialog holds still. The fields stand where they stood after a person types into the first one
-/// (the next clicks must not hit other fields when the dialog grows and moves up), and an interface row just added
-/// stands whole above the footer, with Add interface under it.
+/// Item 6: a new part's sheet holds still. The fields stand where they stood after a person types into the first one
+/// (the next clicks must not hit other fields), and an interface row just added stands whole in the window, with Add
+/// interface under it; Save keeps its place in the bar.
 #[test]
 fn the_new_part_dialog_holds_still_while_one_types_and_adds_rows() {
     let tmp = Tmp::new();
@@ -265,7 +265,7 @@ fn the_new_part_dialog_holds_still_while_one_types_and_adds_rows() {
     fill(&mut d, "Maker", "Acme");
     fill(&mut d, "Part number", "SW-8");
     let after = (at(&mut d, "Part number"), at(&mut d, "Save"));
-    assert_eq!(before, after, "the fields and the footer keep their place");
+    assert_eq!(before, after, "the fields and Save keep their place");
     for _ in 0..4 {
         press(&mut d, "Network ports section");
         press(&mut d, "Add interface");
@@ -276,10 +276,10 @@ fn the_new_part_dialog_holds_still_while_one_types_and_adds_rows() {
         at(&mut d, "Save"),
     );
     assert!(
-        row.1 < add.1 && add.1 < save.1,
-        "the new row and Add interface above the footer: {row:?} {add:?} {save:?}"
+        row.1 < add.1 && add.1 < 1080,
+        "the new row and Add interface in the window: {row:?} {add:?}"
     );
-    assert_eq!(save, before.1, "the footer stays where it was");
+    assert_eq!(save, before.1, "Save stays where it was");
 }
 
 /// Item 7: the small words. Allowed slots says what it takes, with an example; New page's line under Type says what
@@ -304,7 +304,10 @@ fn the_small_words_say_what_slots_and_a_bus_page_are_and_the_search_finds_the_ne
     );
     d.input(&key("Escape"));
     d.settle();
-    let _ = d.shell_mut().dispatch("ui.dismiss", &json!({}));
+    assert!(
+        d.shell_mut().parts_place().is_none(),
+        "Escape left the new part and Parts"
+    );
     press(&mut d, "New page…");
     d.shell_mut().set_form_field("type", "bus_topology");
     d.input(&Input::Hover { at: (900, 600) });

@@ -41,7 +41,7 @@ fn removing_a_part_from_my_parts_asks_and_cancel_keeps_it() {
     }
     assert!(in_my_parts(&tmp, "SW-6"), "saved into My parts");
     edit_part(&mut d, "SW-6");
-    press(&mut d, "Remove from my parts library…");
+    press(&mut d, "Remove");
     assert!(
         matches!(d.shell_mut().dialog(), Some(Dialog::ConfirmRemovePart { number, .. }) if number == "SW-6"),
         "the button asks: {:?}",
@@ -53,7 +53,7 @@ fn removing_a_part_from_my_parts_asks_and_cancel_keeps_it() {
         "Cancel returns to the part in Parts"
     );
     assert!(in_my_parts(&tmp, "SW-6"), "Cancel leaves the part in My parts");
-    press(&mut d, "Remove from my parts library…");
+    press(&mut d, "Remove");
     press(&mut d, "Remove");
     assert!(d.shell_mut().dialog().is_none(), "both give way");
     assert!(!in_my_parts(&tmp, "SW-6"), "Remove takes it out");

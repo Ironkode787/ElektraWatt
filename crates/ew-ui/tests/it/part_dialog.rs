@@ -13,7 +13,6 @@ use egui::Key;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::Dialog;
 use serde_json::json;
 use support::{Tmp, dispatch, settle};
@@ -128,6 +127,10 @@ fn the_part_editor_by_keyboard() {
     settle(&mut h);
     settle(&mut h);
     assert!(h.state().shell().parts_place().and_then(|p| p.sheet.as_ref()).is_some());
+    // The starter part is made the person's own, where its fields are typed into.
+    dispatch(&mut h, "parts.own", json!({}));
+    settle(&mut h);
+    settle(&mut h);
     // Every field is named by its label.
     for label in ["Maker", "Part number", "Description", "Sold by"] {
         let _ = field(&h, label);
@@ -156,9 +159,13 @@ fn the_part_editor_by_keyboard() {
     h.key_press(Key::Enter);
     settle(&mut h);
     settle(&mut h);
-    assert!(h.state().shell().dialog().is_none(), "Enter saved");
-    let card = h.state().shell().properties().card().expect("the part card");
-    assert!(matches!(card.origin, CardOrigin::Part(_)));
+    let message = h
+        .state()
+        .shell()
+        .parts_place()
+        .and_then(|p| p.sheet.as_ref())
+        .and_then(|o| o.foot_message());
+    assert!(message.is_some(), "Enter saves: a part needs its number first");
     // The technical data stand in a section of their own (picture A), each value named in words.
     dispatch(&mut h, "parts.open", json!({}));
     settle(&mut h);

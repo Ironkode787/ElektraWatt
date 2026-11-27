@@ -17,7 +17,8 @@ list.
    starter lamp) and confirm with **Choose**.
 
 The device's **Parts** row now shows the part, and the warning EW-CORE-041 for the device disappears from the
-Messages pane. **Edit ▸ Edit part…** changes the project's copy of the part.
+Messages pane. **Project ▸ Parts** (`F9`) opens the part in Parts, where a part of your own is changed and a starter part is
+made your own.
 
 ## Place a device with its part
 

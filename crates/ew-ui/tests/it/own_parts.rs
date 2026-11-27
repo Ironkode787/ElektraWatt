@@ -730,8 +730,8 @@ fn a_part_of_ones_own_is_corrected_and_the_next_placement_takes_it() {
     let said = d
         .texts()
         .into_iter()
-        .any(|t| t.starts_with("Devices that use this part: 1."));
-    assert!(said, "the note says what the drawn device keeps");
+        .any(|t| t == "1 device of this project uses it");
+    assert!(said, "the heading says which devices use the part");
     press(&mut d, "Network ports section");
     press(&mut d, "Ports 1");
     d.input(&key("Ctrl+A"));
@@ -755,8 +755,8 @@ fn a_part_of_ones_own_is_corrected_and_the_next_placement_takes_it() {
     );
 }
 
-/// A starter part is not the person's to change: its editor says so, with the way out, and Copy as a part of your
-/// own opens a new part with its interfaces, which Save keeps under a number of its own.
+/// A starter part is not the person's to change: Parts says so under its heading, with the way on, and Make my own
+/// from it opens a new part with its interfaces, which Save keeps under a number of its own.
 #[test]
 fn a_starter_part_is_copied_as_a_part_of_ones_own() {
     let tmp = Tmp::new();
@@ -770,12 +770,14 @@ fn a_starter_part_is_copied_as_a_part_of_ones_own() {
     let said = d
         .texts()
         .into_iter()
-        .any(|t| t.starts_with("This part belongs to ElektraWatt starter parts, which you cannot change"));
+        .any(|t| t.starts_with("A starter part. It comes with the program"));
     assert!(said, "the reason in words");
-    press(&mut d, "Copy as a part of your own…");
+    press(&mut d, "Make my own from it");
     let copy = draft(&mut d);
     assert!(copy.new, "a new part");
     assert_eq!(copy.bus[0].ports, "5", "with the starter part's interface");
+    assert_eq!(copy.text("manufacturer"), "", "the maker is the person's to give");
+    fill(&mut d, "Maker", "Example");
     press(&mut d, "Part number");
     d.input(&key("Ctrl+A"));
     d.input(&typed("ESW-5-OWN"));

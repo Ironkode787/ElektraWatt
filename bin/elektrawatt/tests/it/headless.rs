@@ -698,8 +698,8 @@ fn nightly_every_script_transcript_is_byte_identical_twice() {
             parts_scripts::ps5_the_editor_refusal_script_is_deterministic_case,
         ),
         (
-            "headless::parts_scripts::the_fork_script_is_deterministic_and_replays",
-            parts_scripts::ps7_the_fork_script_is_deterministic_and_replays_case,
+            "headless::parts_scripts::the_own_part_script_is_deterministic_and_replays",
+            parts_scripts::ps7_the_own_part_script_is_deterministic_and_replays_case,
         ),
         (
             "headless::parts_scripts::the_paste_choice_script_is_deterministic_and_replays",

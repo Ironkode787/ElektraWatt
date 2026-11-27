@@ -223,9 +223,7 @@ impl PartSheet {
     /// them; the cable's form for a cable; the network ports and the PLC section where the declaration gives the kind
     /// them, of a part that is not one's own only where it has them.
     pub fn sections(&self) -> Vec<Group> {
-        let mut part = self.original.clone();
-        part.kind = serde_json::from_value::<PartKind>(Value::String(self.text("kind").to_owned()))
-            .unwrap_or(PartKind::Unknown(Value::Null));
+        let part = self.of_kind();
         let mine = self.new || self.own;
         let mut out: Vec<Group> = ew_derive::part_fields::fields_of(&part)
             .into_iter()
@@ -247,6 +245,26 @@ impl PartSheet {
         out.sort();
         out.dedup();
         out
+    }
+
+    /// The part as opened, of the kind its Kind field says now: what the declaration's [`ew_derive::part_fields::Has`]
+    /// asks of it.
+    fn of_kind(&self) -> Part {
+        let mut part = self.original.clone();
+        part.kind = serde_json::from_value::<PartKind>(Value::String(self.text("kind").to_owned()))
+            .unwrap_or(PartKind::Unknown(Value::Null));
+        part
+    }
+
+    /// Whether the sheet shows the declared row or table `path` (`mech.width`, `accessories`): a part of the draft's
+    /// kind has it.
+    pub fn shows(&self, path: &str) -> bool {
+        let part = self.of_kind();
+        let list = format!("{path}[].");
+        PART_FIELDS
+            .iter()
+            .filter(|f| f.path == path || f.path.starts_with(&list))
+            .any(|f| f.has.holds(&part))
     }
 
     /// Whether the rows of group `group` may be changed: a wire's, a ferrule's and a marker's own data only on a

@@ -438,29 +438,38 @@ fn the_strip_editor_cells_choose_parts() {
     s.shutdown();
 }
 
+/// -101F2's part made the person's own in Parts (Make my own from the starter's EW-GEN-MCB-2, number MCB-OWN, maker
+/// Example), saved, and chosen for -101F2: a part only in this project, which a device uses.
+fn own_mcb(s: &mut ShellModel) {
+    select(s, "-101F2");
+    done(s, "parts.open", json!({}));
+    done(s, "parts.own", json!({}));
+    for (field, value) in [("manufacturer", "Example"), ("part_number", "MCB-OWN")] {
+        done(s, "parts.field", json!({ "field": field, "value": value }));
+    }
+    done(s, "parts.save", json!({}));
+    done(s, "parts.back", json!({}));
+    select(s, "-101F2");
+    done(s, "part.choose", json!({ "use": 0 }));
+    done(s, "part.pick", json!({ "part": "MCB-OWN" }));
+}
+
 /// PS5 in the shell: a field that does not parse prints its message under the field (`invalid`), Save is refused with
-/// it as the refusal line and the history is unchanged; an unchanged draft and a read-only project refuse.
+/// it as the refusal line and the history is unchanged; an unchanged part and a read-only project refuse.
 #[test]
 fn the_part_editor_refuses_with_a_message() {
     let tmp = Tmp::new("part-sel-5");
     let mut s = writable(&tmp);
-    select(&mut s, "-101F2");
-    done(&mut s, "parts.open", json!({}));
+    own_mcb(&mut s);
+    done(&mut s, "parts.open", json!({ "part": "MCB-OWN" }));
     assert_eq!(
-        lines(&s, "dialog "),
-        ["dialog \"Edit part EW-GEN-MCB-2 (Generic)\""]
+        lines(&s, "open "),
+        ["open \"MCB-OWN\" Only in this project"]
     );
-    assert!(lines(&s, "field ").contains(&"field \"Part number\" \"EW-GEN-MCB-2\"".to_owned()));
+    assert!(lines(&s, "field ").contains(&"field \"Part number\" \"MCB-OWN\"".to_owned()));
     assert!(lines(&s, "tech ").contains(&"tech \"rated_current\" \"10 A\"".to_owned()));
-    let version = starter_version("EW-GEN-MCB-2");
-    assert_eq!(
-        lines(&s, "source "),
-        [format!(
-            "source library \"ElektraWatt starter parts\" version \"{version}\" fork on"
-        )]
-    );
-    // An unchanged draft.
-    assert_eq!(refused(&mut s, "parts.save", json!({})), "reason-part-unchanged");
+    // An unchanged part.
+    assert_eq!(refused(&mut s, "parts.save", json!({})), "reason-part-not-changed");
     let n = steps(&s);
     let cases: [(&str, &str, &str, &str); 4] = [
         ("manufacturer", "", "Maker", "A part needs a manufacturer"),
@@ -469,7 +478,7 @@ fn the_part_editor_refuses_with_a_message() {
         ("tech:rated_current", "4 Amp", "Rated current", "rated_current: "),
     ];
     for (field, value, label, message) in cases {
-        done(&mut s, "parts.open", json!({ "part": "EW-GEN-MCB-2" }));
+        done(&mut s, "parts.open", json!({ "part": "MCB-OWN" }));
         done(&mut s, "parts.field", json!({ "field": field, "value": value }));
         let invalid = lines(&s, "invalid ");
         assert_eq!(invalid.len(), 1, "{field}: {invalid:?}");
@@ -485,17 +494,15 @@ fn the_part_editor_refuses_with_a_message() {
         assert_eq!(error.len(), 1, "{field}: the refusal line");
         assert!(error[0].starts_with(&format!("error: {message}")), "{error:?}");
         assert_eq!(steps(&s), n, "{field}: the history is unchanged");
-        done(&mut s, "ui.dismiss", json!({}));
     }
     // A key twice (up to case).
-    done(&mut s, "parts.open", json!({}));
+    done(&mut s, "parts.discard", json!({}));
     done(
         &mut s,
         "parts.field",
         json!({ "field": "tech:Rated_Current", "value": "6 A" }),
     );
     assert_eq!(lines(&s, "invalid ").len(), 1, "{}", s.describe());
-    done(&mut s, "ui.dismiss", json!({}));
     s.shutdown();
     drop(s);
     // A read-only project.
@@ -504,19 +511,18 @@ fn the_part_editor_refuses_with_a_message() {
     select(&mut s, "-102F1");
     assert!(
         !matches!(s.dispatch("parts.open", &json!({})), Outcome::Done),
-        "a read-only project refuses the part editor"
+        "a read-only project refuses Parts"
     );
 }
 
-/// PS6 in the shell: an edit in place of the project's copy of -101F2's part opens the `part` card with the field
-/// diff, the device and the BOM rows; Apply is one step, undo restores. (The sample holds no project-local copy, so
-/// the card's note on the library copy is not pinned here; `ew-commands`' `cmd_part_edit` edits a project-local one.)
+/// PS6 in the shell: Save of a part only in this project opens the `part` card with the field diff, the device that
+/// uses it and the BOM rows; Apply is one step in place (`part.edit_copy`), undo restores.
 #[test]
 fn an_edit_in_place_is_previewed() {
     let tmp = Tmp::new("part-sel-6");
     let mut s = writable(&tmp);
-    select(&mut s, "-101F2");
-    done(&mut s, "parts.open", json!({}));
+    own_mcb(&mut s);
+    done(&mut s, "parts.open", json!({ "part": "MCB-OWN" }));
     done(
         &mut s,
         "parts.field",
@@ -524,7 +530,6 @@ fn an_edit_in_place_is_previewed() {
     );
     let n = steps(&s);
     done(&mut s, "parts.save", json!({}));
-    assert!(s.dialog().is_none());
     let text = s.describe();
     let card = text
         .lines()
@@ -537,12 +542,44 @@ fn an_edit_in_place_is_previewed() {
         lines(&s, "device ").contains(&"device \"-101F2\"".to_owned()),
         "{text}"
     );
-    assert!(!lines(&s, "changed ").is_empty(), "{text}");
-
     done(&mut s, "preview.apply", json!({}));
     assert_eq!(steps(&s), n + 1);
-    assert_eq!(last(&s).0, "part.edit_copy");
+    let (cmd, params) = last(&s);
+    assert_eq!(cmd, "part.edit_copy");
+    assert!(params.get("fork").is_none_or(Value::is_null), "in place: {params}");
     done(&mut s, "edit.undo", json!({}));
+    s.shutdown();
+}
+
+/// A starter part is never changed (doc 07 §5.8): it opens as Starter part, a field of it is refused in words, and
+/// Make my own from it opens a new part with everything it has but its number and maker, which are the person's to
+/// give.
+#[test]
+fn a_starter_part_is_made_ones_own_not_changed() {
+    let tmp = Tmp::new("part-sel-7");
+    let mut s = writable(&tmp);
+    select(&mut s, "-101F2");
+    done(&mut s, "parts.open", json!({}));
+    assert_eq!(lines(&s, "open "), ["open \"EW-GEN-MCB-2\" Starter part"]);
+    assert_eq!(
+        refused(
+            &mut s,
+            "parts.field",
+            json!({ "field": "description", "value": "MCB 1P+N C4" })
+        ),
+        "reason-part-not-yours"
+    );
+    done(&mut s, "parts.own", json!({}));
+    assert_eq!(lines(&s, "open "), ["open \"New part\" New, not saved"]);
+    assert!(
+        lines(&s, "tech ").contains(&"tech \"rated_current\" \"10 A\"".to_owned()),
+        "{}",
+        s.describe()
+    );
+    assert_eq!(
+        lines(&s, "field \"Part number\""),
+        ["field \"Part number\" \"\""]
+    );
     s.shutdown();
 }
 
@@ -634,57 +671,6 @@ fn the_empty_search_says_it_once_and_chooses_nothing() {
     s.shutdown();
 }
 
-/// PS7 in the shell: a copy from a library forks: the card carries the fork note, Apply re-points F55 to the fork, and
-/// a second edit of the fork is in place.
-#[test]
-fn a_library_copy_forks() {
-    let tmp = Tmp::new("part-sel-7");
-    let mut s = writable(&tmp);
-    select(&mut s, "-101F2");
-    done(&mut s, "part.choose", json!({ "use": 0 }));
-    done(&mut s, "part.pick", json!({ "part": "EW-GEN-MCB-2" }));
-    done(&mut s, "parts.open", json!({}));
-    let version = starter_version("EW-GEN-MCB-2");
-    assert_eq!(
-        lines(&s, "source "),
-        [format!(
-            "source library \"ElektraWatt starter parts\" version \"{version}\" fork on"
-        )]
-    );
-    done(
-        &mut s,
-        "parts.field",
-        json!({ "field": "description", "value": "MCB 1P+N C4" }),
-    );
-    done(&mut s, "parts.save", json!({}));
-    let note = lines(&s, "note ");
-    assert_eq!(note.len(), 1, "{}", s.describe());
-    let n = steps(&s);
-    done(&mut s, "preview.apply", json!({}));
-    assert_eq!(steps(&s), n + 1);
-    let (cmd, params) = last(&s);
-    assert_eq!(cmd, "part.edit_copy");
-    assert!(params["fork"].is_string(), "{params}");
-    // F55 names the fork; a second edit is in place.
-    done(&mut s, "parts.open", json!({}));
-    assert!(lines(&s, "source ")[0].ends_with("fork off"), "{}", s.describe());
-    assert_eq!(
-        lines(&s, "field \"Description\""),
-        ["field \"Description\" \"MCB 1P+N C4\""]
-    );
-    done(
-        &mut s,
-        "parts.field",
-        json!({ "field": "description", "value": "MCB 1P+N C6" }),
-    );
-    done(&mut s, "parts.save", json!({}));
-    assert!(lines(&s, "note ").is_empty(), "{}", s.describe());
-    done(&mut s, "preview.apply", json!({}));
-    let (_, params) = last(&s);
-    assert!(params.get("fork").is_none_or(Value::is_null), "{params}");
-    s.shutdown();
-}
-
 /// The Parts row's actions menu lists Choose part…, Add part… and Edit part… after its row actions; each
 /// opens the part dialog (replace the first use, append) or the part editor.
 #[test]
@@ -713,12 +699,13 @@ fn the_parts_row_menu_opens_the_dialog_and_the_editor() {
         (n - 4, "dialog \"Choose a part for -101F2\""),
         (n - 3, "dialog \"Choose a part for -101F2\""),
         (n - 2, "dialog \"Choose a part for -101F2\""),
-        (n - 1, "dialog \"Edit part EW-GEN-MCB-2 (Generic)\""),
+        (n - 1, "open \"EW-GEN-MCB-2\" Starter part"),
     ] {
         done(&mut s, "props.row", json!({ "to": key }));
         done(&mut s, "props.row_menu", json!({}));
         done(&mut s, "props.choose", json!({ "index": i }));
-        assert_eq!(lines(&s, "dialog "), [title]);
+        let prefix = if i == n - 1 { "open " } else { "dialog " };
+        assert_eq!(lines(&s, prefix), [title]);
         if i == n - 2 {
             let Some(Dialog::PartChoose(c)) = s.dialog() else {
                 panic!("the part dialog")
@@ -734,7 +721,11 @@ fn the_parts_row_menu_opens_the_dialog_and_the_editor() {
                 "Add part… appends"
             );
         }
-        done(&mut s, "ui.dismiss", json!({}));
+        if i == n - 1 {
+            done(&mut s, "parts.back", json!({}));
+        } else {
+            done(&mut s, "ui.dismiss", json!({}));
+        }
     }
     s.shutdown();
 }

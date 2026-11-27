@@ -751,6 +751,8 @@ pub struct ShellModel {
     symbol_editor: Option<symbol_editor::SymbolEditor>,
     /// Parts, the one place for parts, while it is shown.
     parts: Option<Box<parts_place::PartsPlace>>,
+    /// How many parts Parts has opened: each opening's number, by which the window shows a part opened anew.
+    parts_opened: u64,
     symbol_editor_generation: u64,
     /// What the symbol editor's Copy and Cut hold, from one draft to the next.
     symbol_clipboard: symbol_editor::Clipboard,
@@ -1326,6 +1328,7 @@ impl ShellModel {
             macros: macros::MacroState::default(),
             symbol_editor: None,
             parts: None,
+            parts_opened: 0,
             symbol_editor_generation: 0,
             symbol_clipboard: symbol_editor::Clipboard::default(),
             dispatch_log: None,
@@ -2379,9 +2382,18 @@ impl ShellModel {
         if self.supply_panel.take().is_some() {
             return Outcome::Done;
         }
+        // Escape in Parts with nothing over it is its way back (doc 07 §5.2); a new part not saved goes with it, as a
+        // form's Cancel drops what was typed.
+        if self.dialog.is_none() && self.palette().is_none() && self.screen() == Screen::Parts {
+            if let Some(place) = self.parts.as_deref_mut()
+                && place.sheet.as_ref().is_some_and(|o| o.sheet.new)
+            {
+                place.sheet = None;
+            }
+            return self.act_parts_back();
+        }
         // Escape in the confirmation that Discard… opened returns to the recovery dialog.
         // And Escape in the unsaved-changes question of the import card's Apply returns to the card.
-        // And Escape and Cancel in the confirmation of Remove from my parts library… return to the part editor.
         if matches!(
             self.dialog,
             Some(

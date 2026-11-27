@@ -20,6 +20,7 @@ use serde_json::json;
 use crate::app::Event;
 use crate::components;
 use crate::components::Tip as _;
+use crate::icons::IconId;
 use crate::part_dialog::elide_to;
 use crate::theme;
 
@@ -41,7 +42,7 @@ const WIDE: f32 = 2200.0;
 pub(crate) struct PlaceView {
     scroll_to: Option<Group>,
     /// The open part the view last showed, so that a part opened at a group scrolls there once.
-    seen: Option<(Uuid, Option<Group>)>,
+    seen: Option<(Uuid, u64, Option<Group>)>,
 }
 
 /// One command of the place's bar: a large or small button by its action and label; greyed with `reason`.
@@ -111,7 +112,7 @@ pub(crate) fn toolbar(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) 
             .then(|| strings::text(key!("reason-no-part-open")).to_owned());
         if place_command(
             ui,
-            "parts.new",
+            "parts.like",
             strings::text(key!("parts-like-this")),
             "copy",
             CommandSize::Large,
@@ -222,8 +223,10 @@ impl PlaceView {
             });
             return;
         };
-        let key = (open.sheet.copy, open.group);
-        if self.seen != Some(key) {
+        let key = (open.sheet.copy, open.opened, open.group);
+        // A part opened anew shows from its top, or at the group it was opened at.
+        let anew = self.seen != Some(key);
+        if anew {
             self.seen = Some(key);
             self.scroll_to = open.group;
         }
@@ -252,7 +255,7 @@ impl PlaceView {
                             let r = ui.horizontal(|ui| {
                                 let r = ui.selectable_label(false, name);
                                 if lacks {
-                                    ui.label(RichText::new("\u{25cf}").color(t.warning.color32()));
+                                    dot(ui, t.warning.color32());
                                 }
                                 r
                             });
@@ -265,15 +268,21 @@ impl PlaceView {
                     },
                 );
                 ui.add_space(t.space_4);
-                let scroll_to = self.scroll_to.take();
+                // The group chosen in the contents list stays at the top while the sheet above it grows or shrinks, until the
+                // person scrolls.
+                if ui.input(|i| i.smooth_scroll_delta != egui::Vec2::ZERO) {
+                    self.scroll_to = None;
+                }
+                let scroll_to = self.scroll_to;
+                // Each opening has a scroll of its own: a part opened anew starts at its top.
                 ScrollArea::vertical()
-                    .id_salt("parts-sheet")
+                    .id_salt(("parts-sheet", open.opened))
                     .auto_shrink([false, false])
-                    .show(ui, |ui| {
+                    .show(ui, |ui| ui.vertical(|ui| {
                         heading(ui, shell, place, open, events);
                         let body = |ui: &mut Ui, groups: &[Group], events: &mut Vec<Event>| {
                             for g in groups {
-                                let r = ui.scope(|ui| group_body(ui, open, *g, events)).response;
+                                let r = ui.scope(|ui| group_body(ui, open, *g, anew, events)).response;
                                 if scroll_to == Some(*g) {
                                     r.scroll_to_me(Some(egui::Align::TOP));
                                 }
@@ -292,7 +301,7 @@ impl PlaceView {
                             ui.add_space(t.space_3);
                             ui.label(RichText::new(text).color(t.error.color32()));
                         }
-                    });
+                    }));
             });
         });
     }
@@ -303,6 +312,19 @@ fn sheet_groups(open: &OpenSheet) -> Vec<Group> {
     let mut groups = open.sheet.sections();
     groups.push(Group::About);
     groups
+}
+
+/// A 16-px icon in `colour` (Ready for's check and warning, a lacking field's warning): never colour alone.
+fn mark(ui: &mut Ui, id: IconId, colour: egui::Color32) {
+    let t = theme::current(ui.ctx());
+    let (rect, _) = ui.allocate_exact_size(vec2(t.icon_sm, t.icon_sm), Sense::hover());
+    crate::icons::paint(ui.painter(), id, rect, colour, t.icon_stroke);
+}
+
+/// The 7-px dot of a group that lacks something (doc 16a §6.27).
+fn dot(ui: &mut Ui, colour: egui::Color32) {
+    let (rect, _) = ui.allocate_exact_size(vec2(7.0, 7.0), Sense::hover());
+    ui.painter().circle_filled(rect.center(), 3.5, colour);
 }
 
 /// The strip over the sheet (doc 16a §6.27): where the person came from, and the way back.
@@ -393,7 +415,7 @@ fn heading_chips(open: &OpenSheet) -> Vec<String> {
 
 /// One group of the sheet: its heading over a hairline, its fields, and the sentences of what follows while its
 /// fields are empty, in the warning colour.
-fn group_body(ui: &mut Ui, open: &OpenSheet, group: Group, events: &mut Vec<Event>) {
+fn group_body(ui: &mut Ui, open: &OpenSheet, group: Group, anew: bool, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
     ui.add_space(t.space_4);
     let line = ui.available_rect_before_wrap();
@@ -409,7 +431,7 @@ fn group_body(ui: &mut Ui, open: &OpenSheet, group: Group, events: &mut Vec<Even
     }
     ui.add_space(t.space_2);
     let editable = open.editable() && open.sheet.section_editable(group);
-    let save = group_fields(ui, open, group, editable, events);
+    let save = group_fields(ui, open, group, editable, anew, events);
     if save {
         events.push(Event::Action("parts.save", serde_json::Value::Null));
     }
@@ -419,7 +441,7 @@ fn group_body(ui: &mut Ui, open: &OpenSheet, group: Group, events: &mut Vec<Even
         .filter(|l| l.fields.first().is_some_and(|f| f.group == group))
     {
         ui.horizontal_wrapped(|ui| {
-            ui.label(RichText::new("\u{26a0}").color(t.warning.color32()));
+            mark(ui, IconId::alert_triangle, t.warning.color32());
             ui.label(
                 RichText::new(strings::render(&lack.text()))
                     .font(theme::font(&t.type_small))
@@ -432,29 +454,51 @@ fn group_body(ui: &mut Ui, open: &OpenSheet, group: Group, events: &mut Vec<Even
 /// The fields of `group` of the open sheet: the identity's, the technical data, the pins, the cabinet's rows with the
 /// front, the network ports, the PLC, the cable, else the group's declared rows and tables; About shows where the part
 /// came from and what is stored that nothing asks for. `true` when Enter was pressed in a field.
-fn group_fields(ui: &mut Ui, open: &OpenSheet, group: Group, editable: bool, events: &mut Vec<Event>) -> bool {
+fn group_fields(
+    ui: &mut Ui,
+    open: &OpenSheet,
+    group: Group,
+    editable: bool,
+    anew: bool,
+    events: &mut Vec<Event>,
+) -> bool {
     let t = theme::current(ui.ctx());
     let d = &open.sheet;
     let mut save = false;
     match group {
-        Group::Identity => save |= identity_rows(ui, open, false, events),
+        Group::Identity => save |= identity_rows(ui, open, anew && open.editable(), events),
         Group::Technical => save |= tech_rows(ui, open, events),
         Group::Schematic => pins_section(ui, d, events),
         Group::Cabinet => save |= cabinet_rows(ui, d, editable, events),
-        Group::Ports => bus_section(ui, d, false, events),
+        Group::Ports => bus_section(ui, d, anew, events),
         Group::Plc => save |= plc_section(ui, d, events),
         Group::Cable => {
             save |= cable_section(ui, d, events);
+            // A new cable type's next size of the series: everything kept but the part number and the cross-section.
+            if d.new && open.bus_part.is_none() {
+                ui.add_space(t.space_2);
+                if components::button(
+                    ui,
+                    components::Kind::Secondary,
+                    strings::text(key!("part-save-another")),
+                    None,
+                    0.0,
+                )
+                .clicked()
+                {
+                    events.push(Event::Action("parts.save", json!({ "another": true })));
+                }
+            }
             if let Some(plug) = open.bus_part.filter(|b| b.plug) {
                 plug_section(ui, d, plug, events);
             }
         }
         Group::About => read_only_facts(ui, open),
         _ => {
-            for row in d.rows.iter().filter(|r| r.group == group) {
+            for row in d.rows.iter().filter(|r| r.group == group && d.shows(r.path)) {
                 save |= declared_row(ui, row, editable, events);
             }
-            for table in d.tables.iter().filter(|x| x.group == group) {
+            for table in d.tables.iter().filter(|x| x.group == group && d.shows(x.path)) {
                 if let Some(text) = strings::lookup(&format!("part-hint-{}", table.path)) {
                     ui.add(egui::Label::new(components::small_secondary(&t, text)).wrap());
                 }
@@ -504,7 +548,8 @@ fn list_column(ui: &mut Ui, place: &PartsPlace, events: &mut Vec<Event>) {
                 ew_viewmodel::shell::part_dialog::part_kind_word,
             );
             let mut picked = None;
-            components::choice(ui, egui::ComboBox::from_id_salt("parts-kind").selected_text(kind), |ui| {
+            let name = strings::text(key!("parts-filter-kind"));
+            let r = components::choice(ui, egui::ComboBox::from_id_salt("parts-kind").selected_text(kind), |ui| {
                 if ui.selectable_label(place.kind.is_none(), strings::text(key!("parts-filter-kind-all"))).clicked() {
                     picked = Some("all".to_owned());
                 }
@@ -515,6 +560,8 @@ fn list_column(ui: &mut Ui, place: &PartsPlace, events: &mut Vec<Event>) {
                     }
                 }
             });
+            r.response
+                .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, name));
             if let Some(k) = picked {
                 events.push(Event::Action("parts.find", json!({ "kind": k })));
             }
@@ -584,11 +631,9 @@ fn list_row(ui: &mut Ui, row: &PartFound, open: bool) -> egui::Response {
         t.text_tertiary.color32(),
     );
     if row.lacks {
-        painter.text(
-            pos2(tag.left() - t.space_2, top),
-            egui::Align2::RIGHT_TOP,
-            "\u{25cf}",
-            small.clone(),
+        painter.circle_filled(
+            pos2(tag.left() - t.space_2 - 3.5, tag.center().y),
+            3.5,
             t.warning.color32(),
         );
     }
@@ -667,14 +712,14 @@ fn ready_for(ui: &mut Ui, open: &OpenSheet) {
     ui.add_space(t.space_2);
     if open.lacks.is_empty() {
         ui.horizontal(|ui| {
-            ui.label(RichText::new("\u{2713}").color(t.success.color32()));
+            mark(ui, IconId::check, t.success.color32());
             ui.label(strings::text(key!("parts-ready-all")));
         });
         return;
     }
     for lack in &open.lacks {
         ui.horizontal_top(|ui| {
-            ui.label(RichText::new("\u{26a0}").color(t.warning.color32()));
+            mark(ui, IconId::alert_triangle, t.warning.color32());
             ui.vertical(|ui| {
                 ui.label(
                     RichText::new(strings::text(strings::Key::run_time(lack.feature.word())))

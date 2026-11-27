@@ -166,6 +166,8 @@ fn no_icon_key_serves_two_concepts() {
         ("ew-cable", &["pane cables", "cable.from_wires"]),
         // The Report blocks navigator and the command that adds one (Output ▸ Report).
         ("report", &["pane blocks", "report_block.new"]),
+        // The Parts navigator and Parts, the place where those parts are seen and changed.
+        ("packages", &["pane parts", "parts.open"]),
         // A QElectroTech project imported, and the same file imported again into its import.
         ("file-import", &["file.import_qet", "file.reimport_qet"]),
         // The Bus panel and the PLC tab's button that shows it.

@@ -954,9 +954,15 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // Remove…: a part of My parts taken out of it, confirmed; a part only in this project taken out of it.
     with_params(
         "confirm?:bool",
-        hidden(act("parts.remove", Command, Menu::Edit, &[], part_removable, None, |s, p| {
-            s.act_parts_remove(p)
-        })),
+        act(
+            "parts.remove",
+            Command,
+            Menu::Edit,
+            &[],
+            part_removable,
+            slot(Menu::Edit),
+            |s, p| s.act_parts_remove(p),
+        ),
     ),
     hidden(act("parts.back", View, Menu::Edit, &[], parts_shown, None, |s, _| {
         s.act_parts_back()

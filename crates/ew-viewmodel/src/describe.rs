@@ -2184,6 +2184,8 @@ pub fn describe(model: &ShellModel) -> String {
         wizard(model, &mut lines);
     } else if let Some(place) = model.parts_place().filter(|_| model.symbol_editor().is_none()) {
         parts_lines(place, &mut lines);
+        // The card of what Save changes stands beside the sheet.
+        card_and_toast_lines(model, &mut lines);
     } else if let Some(editor) = model.symbol_editor() {
         lines.push(format!("dialog \"{}\"", strings::text(key!("symbol-title"))));
         lines.push(format!(

@@ -70,10 +70,10 @@ nl-NL = "Een artikel waarvan het type nog niet vaststaat, in een paar woorden be
 
 [[term]]
 ew = "My parts library"
-actions = ["part.remove_own", "part.new"]
+actions = ["parts.remove", "parts.new", "parts.open"]
 [term.words]
-en-GB = ["delete part", "remove part", "own part", "new card", "new module", "own card"]
-nl-NL = ["artikel verwijderen", "onderdeel verwijderen", "eigen artikel", "nieuwe kaart", "nieuwe module", "eigen kaart"]
+en-GB = ["delete part", "remove part", "own part", "new card", "new module", "own card", "my parts", "edit part", "new cable type"]
+nl-NL = ["artikel verwijderen", "onderdeel verwijderen", "eigen artikel", "nieuwe kaart", "nieuwe module", "eigen kaart", "mijn artikelen", "artikel bewerken", "nieuw kabeltype"]
 [term.labels]
 en-GB = "My parts library"
 nl-NL = "Mijn artikelbibliotheek"

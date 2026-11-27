@@ -50,6 +50,11 @@ pub enum Origin {
     /// A form that needs a part that is not there (a cable's type, a bus cable, a plug): Save returns to it with the
     /// new part chosen, Back without it.
     Form(Box<FormDialog>),
+    /// The device browser of a page, whose New part… made a part: Save returns to the page.
+    Browser,
+    /// A station's view, whose catalogue asked for a new card or head: Save returns to it with the new part in the
+    /// catalogue (its head when the empty head was chosen).
+    Station,
 }
 
 /// The open part of the place.
@@ -71,6 +76,8 @@ pub struct OpenSheet {
     pub group: Option<Group>,
     /// Whether a text was typed since it was opened or saved.
     pub changed: bool,
+    /// The number of this opening among all the place's openings: the window shows a part opened anew from its top.
+    pub opened: u64,
 }
 
 impl OpenSheet {
@@ -128,7 +135,7 @@ impl PartsPlace {
     /// The strip's sentence over the sheet: where the person came from with a purpose; `None` from the project's window.
     pub fn strip(&self) -> Option<String> {
         match &self.origin {
-            Origin::Project => None,
+            Origin::Project | Origin::Station | Origin::Browser => None,
             Origin::Chooser(c) => Some(strings::format(key!("parts-strip-choosing"), &[&c.target_text])),
             Origin::Form(f) => Some(strings::format(key!("parts-strip-form"), &[strings::text(f.title_key)])),
         }
@@ -137,7 +144,7 @@ impl PartsPlace {
     /// The label of the way back: Back without choosing, Back to the form, Back.
     pub fn back_label(&self) -> &'static str {
         match &self.origin {
-            Origin::Project => strings::text(key!("parts-back")),
+            Origin::Project | Origin::Station | Origin::Browser => strings::text(key!("parts-back")),
             Origin::Chooser(_) => strings::text(key!("parts-back-without-choosing")),
             Origin::Form(_) => strings::text(key!("parts-back-without-it")),
         }
@@ -254,7 +261,13 @@ impl ShellModel {
             }
             other => {
                 self.dialog = other;
-                Origin::Project
+                if self.tools.picker.is_some() {
+                    Origin::Browser
+                } else if self.station_tab().is_some() {
+                    Origin::Station
+                } else {
+                    Origin::Project
+                }
             }
         };
         self.tools.picker = None;
@@ -299,8 +312,11 @@ impl ShellModel {
         let lives = project.session.sheet_lives(&sheet);
         let lacks = project.session.sheet_lacks(&sheet);
         let manufacturers = project.session.part_manufacturers();
+        self.parts_opened = self.parts_opened.wrapping_add(1);
+        let opened = self.parts_opened;
         if let Some(place) = self.parts.as_deref_mut() {
             place.sheet = Some(OpenSheet {
+                opened,
                 sheet,
                 lives,
                 lacks,
@@ -738,7 +754,7 @@ impl ShellModel {
         }
         let place = *self.parts.take().expect("checked");
         match place.origin {
-            Origin::Project => {}
+            Origin::Project | Origin::Station | Origin::Browser => {}
             Origin::Chooser(c) => {
                 self.dialog = Some(Dialog::PartChoose(c));
                 self.dialog_gen += 1;
@@ -1031,16 +1047,25 @@ impl ShellModel {
                 let pick = Map::from_iter([("part".to_owned(), Value::String(number))]);
                 self.act_part_pick(&pick)
             }
-            Origin::Project => {
+            Origin::Browser => {
+                // Made from a page's device browser: back to the page, where Device from part offers it.
+                self.parts = None;
+                Outcome::Done
+            }
+            Origin::Station => {
                 // Made from the view of a station not made yet with its empty head chosen, a part that can head a
                 // station is its head; else the part stands in the view's catalogue, offered.
+                self.parts = None;
                 let from_head = self
                     .station_tab()
                     .is_some_and(|t| t.cursor == Some(crate::area::StationCursor::Head));
                 if from_head && self.station_draft().is_some_and(|d| d.head.is_none()) {
-                    let head = Map::from_iter([("head".to_owned(), Value::String(number.clone()))]);
+                    let head = Map::from_iter([("head".to_owned(), Value::String(number))]);
                     let _ = self.act_plc_rack_set(&head);
                 }
+                Outcome::Done
+            }
+            Origin::Project => {
                 let copy = self.project.as_ref().and_then(|project| {
                     let q = project.session.query();
                     q.parts()

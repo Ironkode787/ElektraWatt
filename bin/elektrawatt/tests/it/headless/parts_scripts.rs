@@ -232,7 +232,8 @@ pub(crate) fn ps5_the_editor_refusal_script_is_deterministic_case(twice: bool) {
             ("page.goto", json!({"folio": "102"})),
             ("select.set", json!({"refs": ["tag:-102F1"]})),
             ("parts.open", json!({})),
-            ("parts.field", json!({"field": "manufacturer", "value": ""})),
+            ("parts.own", json!({})),
+            ("parts.field", json!({"field": "part_number", "value": "MCB-OWN"})),
             ("script.expect_refused", json!({"action": "parts.save"})),
             ("ui.describe", json!({})),
             ("ui.dismiss", json!({})),
@@ -242,7 +243,7 @@ pub(crate) fn ps5_the_editor_refusal_script_is_deterministic_case(twice: bool) {
         ]
     });
     assert_eq!(commands, 0, "nothing is committed");
-    let d = describe(&lines[6]);
+    let d = describe(&lines[7]);
     assert!(
         has_line(d, "invalid \"Maker\" \"A part needs a manufacturer\""),
         "{d}"
@@ -250,14 +251,14 @@ pub(crate) fn ps5_the_editor_refusal_script_is_deterministic_case(twice: bool) {
     assert!(has_line(d, "error: A part needs a manufacturer"), "{d}");
 }
 
-/// PS7: a library copy forks: EW-GEN-MCB-2 on -102F1, Edit part…, a new description, Save: the card's fork note,
-/// Apply; the record replays onto the sample without a library.
+/// PS7: a starter part is made one's own: EW-GEN-MCB-2 on -102F1, Parts, Make my own from it, a maker, a number and a
+/// description, Save; the part is the project's and the record replays onto the sample without a library.
 #[test]
-fn the_fork_script_is_deterministic_and_replays() {
-    ps7_the_fork_script_is_deterministic_and_replays_case(false);
+fn the_own_part_script_is_deterministic_and_replays() {
+    ps7_the_own_part_script_is_deterministic_and_replays_case(false);
 }
 
-pub(crate) fn ps7_the_fork_script_is_deterministic_and_replays_case(twice: bool) {
+pub(crate) fn ps7_the_own_part_script_is_deterministic_and_replays_case(twice: bool) {
     let (lines, commands) = run_flow("ps7", twice, |project| {
         vec![
             ("file.open", json!({ "dir": path(project) })),
@@ -266,28 +267,22 @@ pub(crate) fn ps7_the_fork_script_is_deterministic_and_replays_case(twice: bool)
             ("part.choose", json!({"use": 0})),
             ("part.pick", json!({"part": "EW-GEN-MCB-2"})),
             ("parts.open", json!({})),
+            ("parts.own", json!({})),
+            ("parts.field", json!({"field": "manufacturer", "value": "Example"})),
+            ("parts.field", json!({"field": "part_number", "value": "MCB-OWN"})),
             (
                 "parts.field",
                 json!({"field": "description", "value": "MCB 1P+N C4"}),
             ),
             ("parts.save", json!({})),
             ("ui.describe", json!({})),
-            ("preview.apply", json!({})),
-            ("parts.open", json!({})),
-            ("ui.describe", json!({})),
-            ("ui.dismiss", json!({})),
+            ("parts.back", json!({})),
             ("file.save", json!({})),
         ]
     });
-    assert_eq!(commands, 2, "the choice and the fork");
-    let d = describe(&lines[8]);
-    assert!(d.lines().any(|l| l.trim_start().starts_with("note ")), "{d}");
+    assert_eq!(commands, 2, "the choice and the part made");
     let d = describe(&lines[11]);
-    let version = starter_version("EW-GEN-MCB-2");
-    assert!(
-        has_line(d, &format!("source project version \"{version}\" fork off")),
-        "the second edit is in place: {d}"
-    );
+    assert!(d.lines().any(|l| l.trim_start().starts_with("open \"MCB-OWN\"")), "{d}");
     assert!(has_line(d, "field \"Description\" \"MCB 1P+N C4\""), "{d}");
 }
 
