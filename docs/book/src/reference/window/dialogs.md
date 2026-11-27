@@ -108,14 +108,15 @@ An EPLAN part package (`.edz`), a parts XML (`.xml`) or a report spreadsheet (`.
 Import…. Before the first EDZ of a session a notice says that the EPLAN Data Portal's terms restrict its data to EPLAN
 products; ElektraWatt reads the file from your disk only, and records the file and its SHA-256 on every part.
 
-For parts, the dialog says how many parts the file holds, how many of them the project has a copy of (matched by part
-number) and how many of those copies would change. Update shows the changed fields and the devices that use the copies
-before anything changes; one undo step reverts it. Add to my parts library writes the parts into your own library,
-as a new version where a part was there already. A part the project does not have is never added to it.
+A file of parts goes on to Parts after the notice: its parts stand in the list as a set, and Save writes them into My
+parts, as a new version where a part was there already. Where the open project has copies of the file's parts (matched
+by maker and part number), a line over the set says how many and how many would change; **Update them…** shows the
+changed fields and the devices that use the copies before anything changes, and one undo step reverts it. A part the
+project does not have is never added to it ([Make your own parts](../../how-to/own-parts.md#bring-parts-in-from-a-file)).
 
 For a report, the dialog offers the mappings that fit the file's column headers: your saved one, and the shipped German
 and English ones for a device list, a terminal diagram and a connection list. The result is a new project without
-drawings. A file that no mapping fits is mapped column by column (Map the columns…: the kind of report and what each column is; Import saves the mapping, which the next file of the report is offered first), or imported as a parts table.
+drawings. A file that no mapping fits is mapped column by column (Map the columns…: the kind of report and what each column is; Import saves the mapping, which the next file of the report is offered first), or read in Parts as a parts table.
 
 ## Set up merge driver
 

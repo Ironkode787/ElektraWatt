@@ -117,7 +117,70 @@ pub enum RowStatus {
         of_line: u32,
     },
     /// The row was not imported, with the reason.
-    Rejected(String),
+    Rejected(RowRefusal),
+}
+
+/// Why a row was not imported. Its text (`Display`) is the report's, in English; a window says each in its own words.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum RowRefusal {
+    /// The row has no part number.
+    NoPartNumber,
+    /// The row has no manufacturer.
+    NoManufacturer,
+    /// A mapped column's cell holds a spreadsheet error.
+    ErrorCell {
+        /// The column's header.
+        column: String,
+        /// The error the cell holds (`#DIV/0!`).
+        error: String,
+    },
+    /// A value of the row does not read, in the reader's words (the column, the cell and why).
+    Value(String),
+    /// The manufacturer names several records of the master list.
+    Ambiguous {
+        /// The cell's text.
+        maker: String,
+        /// The keys of the records it names.
+        keys: Vec<String>,
+    },
+    /// The manufacturer has no letters or digits.
+    MakerWithoutLetters(String),
+    /// The part number has no letters or digits.
+    NumberWithoutLetters(String),
+    /// The row repeats an earlier row's manufacturer and part number with other content.
+    Repeats {
+        /// The earlier row's line.
+        line: u32,
+    },
+    /// The held version of the part cannot be bumped.
+    NoNextVersion(String),
+    /// The host refused the row's part (its own words are its own; here, in English).
+    Host(String),
+}
+
+impl std::fmt::Display for RowRefusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RowRefusal::NoPartNumber => f.write_str("no part number"),
+            RowRefusal::NoManufacturer => f.write_str("no manufacturer"),
+            RowRefusal::ErrorCell { column, error } => {
+                write!(f, "column `{column}`: the cell holds the error {error}")
+            }
+            RowRefusal::Value(why) | RowRefusal::Host(why) => f.write_str(why),
+            RowRefusal::Ambiguous { maker, keys } => write!(
+                f,
+                "the manufacturer `{maker}` is ambiguous: it names {}",
+                keys.join(", ")
+            ),
+            RowRefusal::MakerWithoutLetters(t) => write!(f, "the manufacturer `{t}` has no letters or digits"),
+            RowRefusal::NumberWithoutLetters(t) => write!(f, "the part number `{t}` has no letters or digits"),
+            RowRefusal::Repeats { line } => write!(
+                f,
+                "same manufacturer and part number as line {line}, with other content"
+            ),
+            RowRefusal::NoNextVersion(v) => write!(f, "the held version `{v}` cannot be bumped"),
+        }
+    }
 }
 
 /// One part of a row: a row is one part, or one candidate of an "A / B" part number.
@@ -362,12 +425,12 @@ impl<'m> Makers<'m> {
         library: Uuid,
         report: &mut ImportReport,
         at: &SourceLocation,
-    ) -> Result<Maker, String> {
+    ) -> Result<Maker, RowRefusal> {
         let f = fold(text);
         let own = self.library;
         let shared = self.shared;
         let local = self.local;
-        let pick = |hits: &[usize], master: &[LibCopy<Manufacturer>]| -> Result<usize, String> {
+        let pick = |hits: &[usize], master: &[LibCopy<Manufacturer>]| -> Result<usize, RowRefusal> {
             // The target's own record wins over another library's of the same name (the copy a first import
             // wrote into the target beside the master record it copies), then a single record of a library the
             // target depends on; when the parts name a copy anyway and every hit has the same key, the first hit
@@ -386,13 +449,10 @@ impl<'m> Makers<'m> {
             match (hits, mine.as_slice(), depended.as_slice()) {
                 ([one], _, _) | (_, [one], _) | (_, [], [one]) => Ok(*one),
                 ([first, ..], [], []) if local && one_key => Ok(*first),
-                _ => {
-                    let keys: Vec<String> = hits.iter().map(|i| master[*i].item.key.to_string()).collect();
-                    Err(format!(
-                        "the manufacturer `{text}` is ambiguous: it names {}",
-                        keys.join(", ")
-                    ))
-                }
+                _ => Err(RowRefusal::Ambiguous {
+                    maker: text.to_owned(),
+                    keys: hits.iter().map(|i| master[*i].item.key.to_string()).collect(),
+                }),
             }
         };
         if let Some(hits) = self.direct.get(&f) {
@@ -428,7 +488,7 @@ impl<'m> Makers<'m> {
         let name = clean(text);
         let key = pn_norm(&name);
         if key.is_empty() {
-            return Err(format!("the manufacturer `{text}` has no letters or digits"));
+            return Err(RowRefusal::MakerWithoutLetters(text.to_owned()));
         }
         let item = manufacturer_item(library, &key);
         let maker = Maker {
@@ -443,7 +503,7 @@ impl<'m> Makers<'m> {
             return Ok(maker);
         }
         let doc: Manufacturer = serde_json::from_value(json!({"key": key, "name": name}))
-            .map_err(|e| format!("the manufacturer `{text}` cannot be recorded: {e}"))?;
+            .map_err(|e| RowRefusal::Value(format!("the manufacturer `{text}` cannot be recorded: {e}")))?;
         report.push(
             ReportEntry::new(
                 Code::imp(5),
@@ -568,7 +628,17 @@ fn bind(
     map: &ColumnMap,
     file: &str,
     report: &mut ImportReport,
+    host: bool,
 ) -> Result<Vec<(Member, usize)>, ImportError> {
+    // Without a host only the plain members are read: any other is refused before a row is.
+    if !host && let Some((member, _)) = map.columns().find(|(m, _)| !m.plain()) {
+        return Err(ImportError::Malformed {
+            message: format!(
+                "{file}: the map's member `{member}` is read only where the part's fields are known (the window's Parts)"
+            ),
+            line: None,
+        });
+    }
     let mut by_header: BTreeMap<&str, Vec<usize>> = BTreeMap::new();
     for (i, h) in sheet.headers.iter().enumerate() {
         if !h.is_empty() {
@@ -589,7 +659,7 @@ fn bind(
                     line: None,
                 });
             }
-            None if matches!(member, Member::Manufacturer | Member::PartNumber) => {
+            None if member.required() => {
                 return Err(ImportError::Malformed {
                     message: format!("{file}: the map's column `{header}` ({member}) is not in the table"),
                     line: None,
@@ -649,11 +719,16 @@ fn values(
     row: &table::Row,
     bound: &[(Member, usize)],
     headers: &[String],
-) -> Result<BTreeMap<Member, String>, String> {
+) -> Result<BTreeMap<Member, String>, RowRefusal> {
     let mut out = BTreeMap::new();
     for (m, i) in bound {
         match &row.cells[*i] {
-            Cell::Error(e) => return Err(format!("column `{}`: the cell holds the error {e}", headers[*i])),
+            Cell::Error(e) => {
+                return Err(RowRefusal::ErrorCell {
+                    column: headers[*i].clone(),
+                    error: e.to_string(),
+                });
+            }
             Cell::Text(t) => {
                 let t = clean(t);
                 if !t.is_empty() {
@@ -672,40 +747,35 @@ fn body(
     headers: &BTreeMap<Member, String>,
 ) -> Result<Map<String, Value>, String> {
     let col = |m: &Member| headers.get(m).cloned().unwrap_or_else(|| m.name());
+    let get = |f: &str| v.get(&Member::field(f));
     let mut out = Map::new();
-    if let Some(k) = kind(v.get(&Member::Kind).map_or("", String::as_str))
-        .map_err(|e| format!("column `{}`: {e}", col(&Member::Kind)))?
+    if let Some(k) = kind(get("kind").map_or("", String::as_str))
+        .map_err(|e| format!("column `{}`: {e}", col(&Member::field("kind"))))?
         && k != "device"
     {
         out.insert("kind".into(), json!(k));
     }
-    for (m, name) in [
-        (Member::TypeDesignation, "type_designation"),
-        (Member::OrderNumber, "order_number"),
-    ] {
-        if let Some(t) = v.get(&m) {
+    for name in ["type_designation", "order_number"] {
+        if let Some(t) = get(name) {
             out.insert(name.into(), json!(t));
         }
     }
-    if let Some(g) = v.get(&Member::Gtin) {
+    if let Some(g) = get("gtin") {
         if !(g.bytes().all(|b| b.is_ascii_digit()) && [8, 12, 13, 14].contains(&g.len())) {
             return Err(format!(
                 "column `{}`: `{g}` is not a GTIN (8, 12, 13 or 14 digits)",
-                col(&Member::Gtin)
+                col(&Member::field("gtin"))
             ));
         }
         out.insert("gtin".into(), json!(g));
     }
+    if let Some(t) = get("description") {
+        out.insert("description".into(), json!(t));
+    }
     let mut langs = Map::new();
     for (m, t) in v {
-        match m {
-            Member::Description(None) => {
-                out.insert("description".into(), json!(t));
-            }
-            Member::Description(Some(lang)) => {
-                langs.insert(lang.clone(), json!(t));
-            }
-            _ => {}
+        if let Member::Description(lang) = m {
+            langs.insert(lang.clone(), json!(t));
         }
     }
     if !langs.is_empty() {
@@ -728,8 +798,8 @@ fn body(
     if !free.is_empty() {
         out.insert("free_props".into(), Value::Array(free));
     }
-    if let Some(u) = unit(v.get(&Member::Unit).map_or("", String::as_str))
-        .map_err(|e| format!("column `{}`: {e}", col(&Member::Unit)))?
+    if let Some(u) = unit(get("unit").map_or("", String::as_str))
+        .map_err(|e| format!("column `{}`: {e}", col(&Member::field("unit"))))?
         && u != "piece"
     {
         out.insert("unit".into(), json!(u));
@@ -777,6 +847,31 @@ pub fn parse_parts(
     master: &[LibCopy<Manufacturer>],
     target: &CatalogTarget<'_>,
 ) -> Result<PartsImport, ImportError> {
+    parse_parts_built(input, map, master, target, None)
+}
+
+/// What builds a row's part where the host knows a part's fields (the window's Parts): from the row's texts by member
+/// and the part the target holds of the row's maker and number (the row's columns lay over it), the part's JSON form,
+/// or why not, in English (the host keeps its own words). It reads every member, [`Member::Like`] and the fields
+/// beyond [`Member::PLAIN`] too.
+pub type Build<'a> =
+    dyn Fn(&BTreeMap<Member, String>, Option<&LibCopy<Part>>) -> Result<Map<String, Value>, String> + 'a;
+
+/// [`parse_parts`] with the host's `build`: each row's part is built by it from the row's texts over the held part,
+/// instead of from the plain members alone; the maker, the number, the item ID and what the row is to the target (new,
+/// updated, unchanged, duplicate, rejected) are told as [`parse_parts`] tells them. Without `build` a map that names a
+/// member beyond the plain ones is refused.
+///
+/// # Errors
+///
+/// As [`parse_parts`].
+pub fn parse_parts_built(
+    input: &ImportInput,
+    map: &ColumnMap,
+    master: &[LibCopy<Manufacturer>],
+    target: &CatalogTarget<'_>,
+    build: Option<&Build<'_>>,
+) -> Result<PartsImport, ImportError> {
     let bytes = input.bytes();
     let size = bytes.len() as u64;
     if size > target.limits.max_input_bytes {
@@ -803,7 +898,7 @@ pub fn parse_parts(
             detail: None,
         },
     );
-    let bound = bind(&sheet, map, &file, &mut report)?;
+    let bound = bind(&sheet, map, &file, &mut report, build.is_some())?;
     let headers: BTreeMap<Member, String> = bound
         .iter()
         .map(|(m, i)| (m.clone(), sheet.headers[*i].clone()))
@@ -819,7 +914,7 @@ pub fn parse_parts(
         }
         let pn_cell = match &row.cells[bound
             .iter()
-            .find(|(m, _)| *m == Member::PartNumber)
+            .find(|(m, _)| *m == Member::field("part_number"))
             .map_or(0, |(_, i)| *i)]
         {
             Cell::Text(t) => clean(t),
@@ -832,18 +927,33 @@ pub fn parse_parts(
                 continue;
             }
         };
-        let Some(pn) = v.get(&Member::PartNumber).cloned() else {
-            placer.reject(row.line, "", false, "no part number".into());
+        let Some(pn) = v.get(&Member::field("part_number")).cloned() else {
+            placer.reject(row.line, "", false, RowRefusal::NoPartNumber);
             continue;
         };
-        let Some(maker_text) = v.get(&Member::Manufacturer).cloned() else {
-            placer.reject(row.line, &pn, false, "no manufacturer".into());
+        let Some(maker_text) = v.get(&Member::field("manufacturer")).cloned() else {
+            placer.reject(row.line, &pn, false, RowRefusal::NoManufacturer);
             continue;
         };
+        if let Some(build) = build {
+            placer.place_built(
+                &PartDraft {
+                    line: row.line,
+                    part_number: pn,
+                    manufacturer: maker_text,
+                    body: Map::new(),
+                    meta: Map::new(),
+                    sources: vec![file.clone()],
+                },
+                &v,
+                build,
+            );
+            continue;
+        }
         let body = match body(&v, &headers) {
             Ok(b) => b,
             Err(why) => {
-                placer.reject(row.line, &pn, false, why);
+                placer.reject(row.line, &pn, false, RowRefusal::Value(why));
                 continue;
             }
         };
@@ -920,7 +1030,7 @@ impl<'a> Placer<'a> {
     }
 
     /// Rejects a part (EW-IMP-002) with the reason; `candidate`: one of the candidates of an "A / B" number.
-    pub fn reject(&mut self, line: u32, pn: &str, candidate: bool, why: String) {
+    pub fn reject(&mut self, line: u32, pn: &str, candidate: bool, why: RowRefusal) {
         let entry = ReportEntry::new(
             Code::MALFORMED_ITEM,
             Severity::Error,
@@ -940,13 +1050,23 @@ impl<'a> Placer<'a> {
 
     /// Places the part (or the candidates of its "A / B" number) of `src`.
     pub fn place(&mut self, src: &PartDraft) {
+        self.place_with(src, None);
+    }
+
+    /// Places the part of a row whose part the host builds ([`Build`]) from `texts`, over the part the target holds of
+    /// its maker and number; `src` gives the row's line, number, maker and sources.
+    pub fn place_built(&mut self, src: &PartDraft, texts: &BTreeMap<Member, String>, build: &Build<'_>) {
+        self.place_with(src, Some((texts, build)));
+    }
+
+    fn place_with(&mut self, src: &PartDraft, built: Option<(&BTreeMap<Member, String>, &Build<'_>)>) {
         let (line, pn) = (src.line, src.part_number.as_str());
         if pn.trim().is_empty() {
-            self.reject(line, "", false, "no part number".into());
+            self.reject(line, "", false, RowRefusal::NoPartNumber);
             return;
         }
         if src.manufacturer.trim().is_empty() {
-            self.reject(line, pn, false, "no manufacturer".into());
+            self.reject(line, pn, false, RowRefusal::NoManufacturer);
             return;
         }
         let target = self.target;
@@ -986,12 +1106,7 @@ impl<'a> Placer<'a> {
         for name in names {
             let norm = pn_norm(&name);
             if norm.is_empty() {
-                self.reject(
-                    line,
-                    &name,
-                    split,
-                    format!("the part number `{name}` has no letters or digits"),
-                );
+                self.reject(line, &name, split, RowRefusal::NumberWithoutLetters(name.clone()));
                 continue;
             }
             let item = part_item(library, &maker.key, &norm);
@@ -1009,14 +1124,38 @@ impl<'a> Placer<'a> {
             if let Some(d) = target.as_of {
                 meta.insert("as_of".into(), json!(d));
             }
-            let mut part = src.body.clone();
-            part.insert("meta".into(), Value::Object(meta));
-            part.insert("manufacturer".into(), manufacturer);
-            part.insert("part_number".into(), json!(name));
+            // A built part lays the row over the held part, whose identity (its facts, maker and number) it keeps.
+            let held_first = built.and_then(|_| (target.existing)(item));
+            let mut part = match built {
+                Some((texts, build)) => match build(texts, held_first.as_ref()) {
+                    Ok(p) => p,
+                    Err(why) => {
+                        self.reject(line, &name, split, RowRefusal::Host(why));
+                        continue;
+                    }
+                },
+                None => src.body.clone(),
+            };
+            match &held_first {
+                Some(h) => {
+                    for m in ["meta", "manufacturer", "part_number"] {
+                        let held = serde_json::to_value(&h.item).unwrap_or_default();
+                        if let Some(v) = held.get(m) {
+                            part.insert(m.into(), v.clone());
+                        }
+                    }
+                }
+                None => {
+                    part.insert("meta".into(), Value::Object(meta));
+                    part.insert("manufacturer".into(), manufacturer);
+                    part.insert("part_number".into(), json!(name));
+                }
+            }
             let part: Part = match serde_json::from_value(Value::Object(part)) {
                 Ok(p) => p,
                 Err(e) => {
-                    self.reject(line, &name, split, format!("a value does not parse: {e}"));
+                    let why = RowRefusal::Value(format!("a value does not parse: {e}"));
+                    self.reject(line, &name, split, why);
                     continue;
                 }
             };
@@ -1039,14 +1178,12 @@ impl<'a> Placer<'a> {
                         status: RowStatus::Duplicate { of_line: first },
                     });
                 } else {
-                    let why =
-                        format!("same manufacturer and part number as line {first}, with other content");
-                    self.reject(line, &name, split, why);
+                    self.reject(line, &name, split, RowRefusal::Repeats { line: first });
                 }
                 continue;
             }
             self.seen.insert(dedupe, (line, part.clone()));
-            let held = (target.existing)(item);
+            let held = held_first.or_else(|| (target.existing)(item));
             let part = match (&held, self.merge) {
                 (Some(h), Some(merge)) => merge(&h.item, &part),
                 _ => part,
@@ -1059,7 +1196,7 @@ impl<'a> Placer<'a> {
                         match ew_interop_api::ew_schema::next_patch(&held.version) {
                             Some(v) => v,
                             None => {
-                                let why = format!("the held version `{}` cannot be bumped", held.version);
+                                let why = RowRefusal::NoNextVersion(held.version.clone());
                                 self.reject(line, &name, split, why);
                                 continue;
                             }
@@ -1067,15 +1204,18 @@ impl<'a> Placer<'a> {
                     } else {
                         held.version.clone()
                     };
+                    // The held part's own item, which the target may hold under another ID than the one minted here
+                    // (a part made by hand, found by its maker and number).
                     (
                         RowStatus::Updated {
                             from: held.version.clone(),
                             version: version.clone(),
                         },
-                        copy(library, item, &version, part),
+                        copy(library, held.item_id.as_uuid(), &version, part),
                     )
                 }
             };
+            let item = doc.item_id.as_uuid();
             self.rows.push(RowOutcome {
                 line,
                 part_number: name,

@@ -952,14 +952,7 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                     ));
                 }
             }
-            Ok(_) => match &card.origin {
-                // The parts table import's card counts the part copies, not records, tags or texts.
-                crate::properties::CardOrigin::Import { created, skipped, .. } => lines.push(format!(
-                    "card {} \"{}\" created {created} skipped {skipped} errors 0",
-                    card.preview.status(rev).word(),
-                    user(&card.preview.name),
-                )),
-                _ => {
+            Ok(_) => {
                     let mut line = format!(
                         "card {} \"{}\" targets {} changes {} tags {} xrefs {}",
                         card.preview.status(rev).word(),
@@ -1065,8 +1058,7 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                             ));
                         }
                     }
-                }
-            },
+            }
         }
         // The table card's invalid and ambiguous cells, numbered by their place in the gesture.
         if let crate::properties::CardOrigin::Table { gesture } = &card.origin {
@@ -1204,16 +1196,13 @@ fn preview_lines(model: &ShellModel, lines: &mut Vec<String>) {
         card.preview.base_rev
     ));
     let pane = model.preview_pane();
-    let mut summary = format!(
+    let summary = format!(
         "  summary records {} tags {} xrefs {} pages {}",
         preview.diff().len(),
         pane.tags().len(),
         pane.xrefs().len(),
         pane.pages().len()
     );
-    if let crate::properties::CardOrigin::Import { created, skipped, .. } = &card.origin {
-        summary.push_str(&format!(" created {created} skipped {skipped}"));
-    }
     lines.push(summary);
     listed(lines, pane.entities(), "entity", |e| entity_line("  ", e));
     listed(lines, pane.tags(), "tag", |(a, b)| {
@@ -2015,6 +2004,50 @@ fn part_choose_lines(
     }
 }
 
+/// The lines of an import's set in Parts: the file and its counts; while it shows, a table's mapping (each column, its
+/// first value and the field it goes to, the map's refusal), each row with its chip and the sentence of What was read,
+/// and the shown row's fields.
+fn set_lines(shown: &crate::shell::parts_place::ImportSet, middle: bool, lines: &mut Vec<String>) {
+    let (new, changed, same, refused) = shown.set.as_ref().map_or((0, 0, 0, 0), |s| s.counts());
+    lines.push(format!(
+        "  set \"{}\" new {new} changed {changed} same {same} refused {refused}",
+        user(&shown.file)
+    ));
+    if !middle {
+        return;
+    }
+    if let Some(map) = &shown.map {
+        lines.push(format!("  map source \"{}\"{}", user(&map.source), if map.saved { " saved" } else { "" }));
+        for c in &map.columns {
+            lines.push(format!(
+                "    column \"{}\" \"{}\" {}",
+                user(&c.header),
+                user(&c.sample),
+                c.member.as_deref().unwrap_or("-")
+            ));
+        }
+        if let Some(e) = map.error_text() {
+            lines.push(format!("    refused \"{}\"", user(&e)));
+        }
+    }
+    for (i, r) in shown.set.iter().flat_map(|s| &s.rows).enumerate() {
+        lines.push(format!(
+            "  set-row \"{}\" \"{}\" {}{}{}",
+            user(&r.number),
+            user(&r.maker),
+            user(crate::shell::row_chip(&r.status)),
+            if r.lacks() { " lacks" } else { "" },
+            if shown.row == Some(i) { " shown" } else { "" }
+        ));
+        if let Some(s) = crate::shell::row_sentence(r) {
+            lines.push(format!("    \"{}\"", user(&s)));
+        }
+    }
+    for (path, text) in &shown.texts {
+        lines.push(format!("  as-it-will-be {path} \"{}\"", user(text)));
+    }
+}
+
 /// The lines of Parts: its list's query and rows, then the open part's where it lives, its fields, its tables and
 /// forms.
 fn parts_lines(place: &crate::shell::parts_place::PartsPlace, lines: &mut Vec<String>) {
@@ -2034,6 +2067,9 @@ fn parts_lines(place: &crate::shell::parts_place::PartsPlace, lines: &mut Vec<St
             user(&crate::shell::parts_place::lives_word(&row.lives)),
             if row.lacks { " lacks" } else { "" }
         ));
+    }
+    if let Some(shown) = place.set.as_deref() {
+        set_lines(shown, place.set_shown(), lines);
     }
     let Some(open) = &place.sheet else {
         // New part…'s question: each card by its start's name and title, or the part to start from.

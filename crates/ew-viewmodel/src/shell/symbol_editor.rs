@@ -568,16 +568,17 @@ impl ShellModel {
     /// The drawing's actions: an import, its history, its tools and selection, a test placement.
     pub(crate) fn act_symbol(&mut self, action: &str, p: &Map<String, Value>) -> Outcome {
         // In the window a missing path opens the house file picker.
+        // An import's file is Import…'s (`parts.import {path}` on the Symbols shelf).
         let prompt = match action {
-            "open" => Some(("symbol.open", Prompt::OpenSymbol, "file")),
-            "export" => Some(("symbol.export", Prompt::SaveSymbol, "file")),
+            "open" => Some(("parts.import", Prompt::OpenSymbol, "file", "path")),
+            "export" => Some(("symbol.export", Prompt::SaveSymbol, "file", "file")),
             _ => None,
         };
-        if let Some((name, prompt, param)) = prompt
+        if let Some((name, prompt, param, asked)) = prompt
             && self.mode == Mode::Gui
             && !p.contains_key(param)
         {
-            return self.need_path(name, prompt, param, p);
+            return self.need_path(name, prompt, asked, p);
         }
         if let Some(editor) = &mut self.symbol_editor {
             editor.offer_new_page = false;
@@ -857,7 +858,8 @@ impl ShellModel {
         Ok(())
     }
 
-    /// `symbol.open {file, key?}` (a symbol file: a QElectroTech element, an EPLAN symbol file, a DXF drawing): its
+    /// Import… on the Symbols shelf (`parts.import {path, key?}`; a symbol file: a QElectroTech element, an EPLAN
+    /// symbol file, a DXF drawing): its
     /// first drawing as the drawing in Parts, a symbol of his own, the file's other drawings beside it. The drawing in
     /// hand with unsaved changes is kept unless `discard` (the window asks first).
     fn symbol_import(&mut self, p: &Map<String, Value>) -> Result<(), String> {

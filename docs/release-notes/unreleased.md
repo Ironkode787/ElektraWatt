@@ -748,3 +748,29 @@ change here.
 - behaviour-change: in a Dutch project the sheets of a drilling template print their words in Dutch (the band, the
   edges to lay it on, the 100 mm bar, each hole's words), and the DXF its datum; they were printed in English
 - api-add: `ew_api::output::mm_words` and `mm_with_unit`, the one text of a length in millimetres that Properties shows
+- behaviour-change: Import in the bar of Parts reads a file of parts (doc 07 §3.6, §5.9): a table (CSV or Excel), an
+  EPLAN parts file (EDZ or parts XML), an outline drawing for the open part, and on the Symbols shelf or the drawing a
+  symbol file. A table shows which column is what as the first step, each column mapped to a field of a part by its
+  words (Width, Height and Depth to the field of that name the row's kind has; Like to a part a new row starts as); its
+  rows stand in the list as This import, each new, changed, the same or refused with its reason in words, a row shown
+  beside it as it will be with Ready for; Save n to My parts writes the new and the changed parts. File ▸ Import… goes
+  on to Parts for a parts table, an EDZ and a parts XML
+- behaviour-change: a table's or an EPLAN file's parts go into My parts, not into the open project: a project takes a
+  part when a device uses it, and Undo does not take a write of My parts back. The import card of a parts table (Apply
+  put the parts into the project as its own copies, one undo step)
+  goes; reading a table of the project tables' form into a project, with its part functions and cores beside it, stays
+  the command line's `ew import parts`
+- behaviour-change: an EPLAN parts file's dialog (Update n part copies, Add to my parts library) goes: past the terms
+  notice the file's parts stand in Parts as a set, Save writes them into My parts, and the update of the open
+  project's copies of them is Update them… over the set, with the same card
+- behaviour-change: the column mapping card is the EPLAN report's alone; its columns read Column in the file, First
+  value, Goes to
+- api-break: `parts.import` is Import… of Parts (`path`, `index`, `key`, `discard`, `terms`, `update`); `parts.map`
+  maps a column of the set's table as of the report's card; `parts.open` takes `row`, a row of the set shown as it will
+  be; `parts.find` takes the scope `import`; `parts.save` and `parts.discard` save and drop the set; `symbol.open` and
+  `symbol.candidate` go (Import… on the Symbols shelf, `parts.import {path}` and `parts.import {index}`);
+  `file.import_eplan` takes `how` `report`, `map` and `parts` only
+- api-break: the parts importer's map members are a part's fields by their declared paths (`Member::Field`), a
+  description per language, a technical value, a free property and `like`; the command line's `ew lib import parts`
+  refuses a map that names a field beyond the plain ones (maker, part number, type, order number, GTIN, description,
+  kind, unit), and its row refusals keep their words

@@ -316,7 +316,11 @@ XLSX reader, and rows into part copies with item IDs `v5(lineage(catalog, librar
 deduplicated on manufacturer and normalised part number, so reading the same table again changes its parts in
 place. Manufacturers resolve through the libraries' master list (every tier's, the starter parts' "Generic"
 included), an alias reported EW-IMP-007, an unknown name EW-IMP-005, "A / B" split into two flagged candidates,
-unmapped columns EW-IMP-004. **Export as a table…** in Parts writes the selected parts with the same columns, so a
+unmapped columns EW-IMP-004. A map's member is a declared field by its path (`Member::Field`), a description per
+language, a technical value, a free property or Like; the reader reads the identity's plain members itself, and in
+the window hands each row's texts to the session, which types them into the sheet of the part the row lays over (My
+parts' part of that maker and number, else the part Like names, else a new part of its kind), so a text is read and
+refused as the sheet reads it. The command line's reader takes the plain members only. **Export as a table…** in Parts writes the selected parts with the same columns, so a
 table exported and read back unchanged brings every row as the same (§5.9).
 
 **The command line** reads the same sources into a library or a project: `ew lib import parts` and `ew import

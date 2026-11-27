@@ -105,6 +105,32 @@ A part only in this project has **Keep in my parts** in the bar: it is written i
 take that copy. **Remove** takes a part of your own out of My parts (it asks first); a project that uses it keeps its
 copy. **Back** returns to where you came from.
 
+## Bring parts in from a file
+
+**Import** in the bar of Parts reads a file of parts; **File ▸ Import…** goes on to Parts for one too.
+
+- **A table** (CSV or Excel), such as a maker's list or a family of your own parts: Parts shows **Which column is
+  what**, each column of the file with its first value and the field it **Goes to**, chosen from the fields by their
+  words (**Identity ▸ Part number**, **Width**, **Technical data ▸ Rated current**). A column whose header names a field
+  is mapped already; a column no field keeps stays **Not imported**. **Width**, **Height** and **Depth** go to the
+  field of that name the row's kind has: a cabinet's outer size, a plate's size, a device's size in the cabinet. A
+  column mapped to **Like** names a part by its number: a new row starts as that part (its pins, what it is drawn as,
+  its clamps, what it comes with) and takes its own columns over it, so that a family is one part made on its sheet and
+  a table of the others. The map is saved under the name in **Saved as**, and the next table of that source is read
+  the same way.
+- **An EPLAN parts file** (an EDZ, or a parts XML): before the first EDZ of a session a notice says that the EPLAN Data
+  Portal's terms restrict its data to EPLAN products. Where the open project holds copies of the file's parts, a line
+  says how many and how many would change, and **Update them…** shows the changed fields before anything changes.
+- **An outline drawing** (DXF) gives the open part its front outline, as **Import outline…** does.
+- **A symbol file**, on the **Symbols** shelf or on the drawing: a QElectroTech element, an EPLAN symbol file or a DXF
+  drawing opens as a drawing of your own.
+
+What a table or a parts file brings stands in the list as **This import**: each row **new**, **changed**, **the same**
+as the part in My parts, or **refused** with its reason under **What was read** ("Row 9 is refused: it has no part
+number"), and a dot where the part lacks something. A row shows on the right as it will be, with **Ready for**. Change
+the map and the list follows. Nothing is saved until **Save 12 to My parts**, which writes the new and the changed
+parts; a project takes a part when a device uses it. **Discard** drops the set.
+
 ## A device that is a box with pins
 
 A circuit protector, a power supply, a drive: a device the program has no symbol for is drawn as a box with its pins on

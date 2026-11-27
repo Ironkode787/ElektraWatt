@@ -25,65 +25,69 @@ use serde::{Deserialize, Serialize};
 /// A member of a part that a column can fill.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum Member {
-    /// `manufacturer`: the manufacturer's name, key, alias or brand, resolved through the master list. Required.
-    Manufacturer,
-    /// `part_number`. Required.
-    PartNumber,
-    /// `type_designation`.
-    TypeDesignation,
-    /// `order_number`.
-    OrderNumber,
-    /// `gtin`: 8, 12, 13 or 14 digits.
-    Gtin,
-    /// `description` (a text without language) or `description.<language>` (one column per language).
-    Description(Option<String>),
-    /// `kind`: a part kind's name (`device`, `terminal`, …); `device` when empty.
-    Kind,
-    /// `unit`: the order unit (`piece`, `m`, `set`); `piece` when empty.
-    Unit,
+    /// A field of a part by its path as the part's declaration names it (`manufacturer`, `part_number`, `mech.width`),
+    /// or a word several kinds share (`width`: the field of that name the row's kind has). The host names the fields
+    /// (the declaration is the host's); this reader reads [`Member::PLAIN`] itself, every other through the host.
+    Field(String),
+    /// `description.<language>`: the description in one language, one column per language.
+    Description(String),
     /// `tech_data.<key>`: a technical value, `<number> <unit>` or an identifier.
     TechData(String),
     /// `free_props.<key>`: a free property, kept as text.
     FreeProp(String),
+    /// `like`: the number of a part a new row starts as, taking from it everything its own columns do not give.
+    Like,
 }
 
 impl Member {
-    /// The members without a key, in declaration order (the column-mapping step's choices); a description
-    /// per language, technical data and free properties take a key ([`Member::parse`]).
-    pub const FIXED: [Member; 8] = [
-        Member::Manufacturer,
-        Member::PartNumber,
-        Member::TypeDesignation,
-        Member::OrderNumber,
-        Member::Gtin,
-        Member::Description(None),
-        Member::Kind,
-        Member::Unit,
+    /// The fields this reader reads without its host, as the plain reader of a table always has: the manufacturer
+    /// (its name, key, alias or brand, resolved through the master list; required), the part number (required), the
+    /// type designation, the order number, the GTIN (8, 12, 13 or 14 digits), the description without a language, the
+    /// kind (a kind's name, `device` when empty) and the order unit (`piece`, `m`, `set`; `piece` when empty).
+    pub const PLAIN: [&'static str; 8] = [
+        "manufacturer",
+        "part_number",
+        "type_designation",
+        "order_number",
+        "gtin",
+        "description",
+        "kind",
+        "unit",
     ];
 
     /// Whether a part needs this member mapped (`manufacturer`, `part_number`; [`MapError::Missing`]).
     pub fn required(&self) -> bool {
-        matches!(self, Member::Manufacturer | Member::PartNumber)
+        matches!(self, Member::Field(f) if f == "manufacturer" || f == "part_number")
     }
 
-    /// The member's name in a map, such as `part_number` or `tech_data.i_n`.
-    pub fn name(&self) -> String {
+    /// The field `name` ([`Member::Field`]).
+    pub fn field(name: &str) -> Member {
+        Member::Field(name.to_owned())
+    }
+
+    /// Whether this reader reads the member without its host: a field of [`Member::PLAIN`], a description per
+    /// language, a technical value or a free property.
+    pub fn plain(&self) -> bool {
         match self {
-            Member::Manufacturer => "manufacturer".into(),
-            Member::PartNumber => "part_number".into(),
-            Member::TypeDesignation => "type_designation".into(),
-            Member::OrderNumber => "order_number".into(),
-            Member::Gtin => "gtin".into(),
-            Member::Description(None) => "description".into(),
-            Member::Description(Some(lang)) => format!("description.{lang}"),
-            Member::Kind => "kind".into(),
-            Member::Unit => "unit".into(),
-            Member::TechData(key) => format!("tech_data.{key}"),
-            Member::FreeProp(key) => format!("free_props.{key}"),
+            Member::Field(f) => Member::PLAIN.contains(&f.as_str()),
+            Member::Like => false,
+            _ => true,
         }
     }
 
-    /// The member named `name`.
+    /// The member's name in a map, such as `part_number`, `mech.width` or `tech_data.i_n`.
+    pub fn name(&self) -> String {
+        match self {
+            Member::Field(f) => f.clone(),
+            Member::Description(lang) => format!("description.{lang}"),
+            Member::TechData(key) => format!("tech_data.{key}"),
+            Member::FreeProp(key) => format!("free_props.{key}"),
+            Member::Like => "like".into(),
+        }
+    }
+
+    /// The member named `name`: `like`, `description.<language>`, `tech_data.<key>`, `free_props.<key>`, else a field
+    /// path of one to four lower-case identifiers joined by `.`.
     ///
     /// # Errors
     ///
@@ -92,34 +96,36 @@ impl Member {
     /// not a canonical language tag.
     pub fn parse(name: &str) -> Result<Member, MapError> {
         let unknown = || MapError::UnknownMember(name.to_owned());
-        Ok(match name {
-            "manufacturer" => Member::Manufacturer,
-            "part_number" => Member::PartNumber,
-            "type_designation" => Member::TypeDesignation,
-            "order_number" => Member::OrderNumber,
-            "gtin" => Member::Gtin,
-            "description" => Member::Description(None),
-            "kind" => Member::Kind,
-            "unit" => Member::Unit,
-            _ => {
-                let (head, tail) = name.split_once('.').ok_or_else(unknown)?;
-                match head {
-                    "description" => {
-                        check_language(tail)?;
-                        Member::Description(Some(tail.to_owned()))
-                    }
-                    "tech_data" => {
-                        check_key(name, tail)?;
-                        Member::TechData(tail.to_owned())
-                    }
-                    "free_props" => {
-                        check_key(name, tail)?;
-                        Member::FreeProp(tail.to_owned())
-                    }
-                    _ => return Err(unknown()),
+        if name == "like" {
+            return Ok(Member::Like);
+        }
+        if let Some((head, tail)) = name.split_once('.') {
+            match head {
+                "description" => {
+                    check_language(tail)?;
+                    return Ok(Member::Description(tail.to_owned()));
                 }
+                "tech_data" => {
+                    check_key(name, tail)?;
+                    return Ok(Member::TechData(tail.to_owned()));
+                }
+                "free_props" => {
+                    check_key(name, tail)?;
+                    return Ok(Member::FreeProp(tail.to_owned()));
+                }
+                _ => {}
             }
-        })
+        }
+        let segment = |s: &str| {
+            !s.is_empty()
+                && s.starts_with(|c: char| c.is_ascii_lowercase())
+                && s.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
+        };
+        let segments: Vec<&str> = name.split('.').collect();
+        if segments.len() > 4 || !segments.iter().all(|s| segment(s)) {
+            return Err(unknown());
+        }
+        Ok(Member::Field(name.to_owned()))
     }
 }
 
@@ -170,7 +176,7 @@ impl fmt::Display for MapError {
             MapError::Syntax(m) => write!(f, "the column map cannot be read: {m}"),
             MapError::UnknownMember(m) => write!(
                 f,
-                "`{m}` is not a part member (manufacturer, part_number, type_designation, order_number, gtin, description[.<language>], kind, unit, tech_data.<key>, free_props.<key>)"
+                "`{m}` is not a part member (manufacturer, part_number, type_designation, order_number, gtin, description[.<language>], kind, unit, tech_data.<key>, free_props.<key>, like, or a field's path)"
             ),
             MapError::BadKey(m) => write!(f, "`{m}`: the key is not an identifier"),
             MapError::BadLanguage(l) => write!(f, "`description.{l}`: `{l}` is not a canonical language tag"),
@@ -223,16 +229,13 @@ impl ColumnMap {
             }
             columns.insert(m, header.to_owned());
         }
-        for (m, name) in [
-            (Member::Manufacturer, "manufacturer"),
-            (Member::PartNumber, "part_number"),
-        ] {
-            if !columns.contains_key(&m) {
+        for name in ["manufacturer", "part_number"] {
+            if !columns.contains_key(&Member::field(name)) {
                 return Err(MapError::Missing(name));
             }
         }
-        let neutral = columns.contains_key(&Member::Description(None));
-        let per_language = columns.keys().any(|m| matches!(m, Member::Description(Some(_))));
+        let neutral = columns.contains_key(&Member::field("description"));
+        let per_language = columns.keys().any(|m| matches!(m, Member::Description(_)));
         if neutral && per_language {
             return Err(MapError::MixedDescription);
         }
@@ -312,13 +315,19 @@ mod tests {
             "unit",
             "tech_data.i_n",
             "free_props.colour",
+            "mech.width",
+            "width",
+            "like",
         ] {
             assert_eq!(Member::parse(name).unwrap().name(), name);
         }
-        assert_eq!(
-            Member::parse("price"),
-            Err(MapError::UnknownMember("price".into()))
-        );
+        for bad in ["Price", "mech..width", "a.b.c.d.e", "", "9w"] {
+            assert_eq!(
+                Member::parse(bad),
+                Err(MapError::UnknownMember(bad.into())),
+                "{bad}"
+            );
+        }
         assert_eq!(
             Member::parse("tech_data. x"),
             Err(MapError::BadKey("tech_data. x".into()))
@@ -362,7 +371,7 @@ mod tests {
         let text = "sheet = \"Parts\"\n\n[columns]\n\"tech_data.i_n\" = \"Rated current\"\npart_number = \"Article\"\nmanufacturer = \"Maker\"\n";
         let map = ColumnMap::from_toml(text).unwrap();
         assert_eq!(map.sheet.as_deref(), Some("Parts"));
-        assert_eq!(map.header(&Member::PartNumber), Some("Article"));
+        assert_eq!(map.header(&Member::field("part_number")), Some("Article"));
         let printed = map.to_toml();
         assert_eq!(ColumnMap::from_toml(&printed).unwrap(), map);
         // Members in name order.

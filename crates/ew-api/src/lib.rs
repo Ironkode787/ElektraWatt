@@ -125,6 +125,7 @@ mod part_offers;
 pub mod part_pieces;
 mod part_plc;
 pub mod parts;
+pub mod parts_set;
 pub mod piece_symbols;
 pub mod plc_exchange;
 pub mod qet_collection;

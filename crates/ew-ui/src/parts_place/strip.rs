@@ -106,6 +106,18 @@ pub(super) fn use_for_all_card(
         });
 }
 
+/// A strip that says one sentence and offers nothing (an import's set: what a door into Parts is).
+pub(super) fn note_strip(ui: &mut Ui, sentence: &str) {
+    let t = theme::current(ui.ctx());
+    egui::Frame::NONE
+        .fill(t.accent_subtle.color32())
+        .inner_margin(egui::Margin::symmetric(t.space_4 as i8, t.space_2 as i8))
+        .show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            ui.add(egui::Label::new(RichText::new(sentence).font(theme::font(&t.type_body))).wrap());
+        });
+}
+
 /// The strip over the sheet (doc 16a §6.27): where the person came from, and the way back.
 pub(super) fn strip(ui: &mut Ui, sentence: &str, back: &str, events: &mut Vec<Event>) {
     strip_with(ui, sentence, back, ("parts.back", json!({})), events);

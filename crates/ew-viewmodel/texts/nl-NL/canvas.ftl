@@ -323,15 +323,6 @@ preview-records = { $p0 ->
         [one] 1 element
        *[other] { $p0 } elementen
     }
-preview-parts-new = { $p0 ->
-        [one] 1 nieuw artikel
-       *[other] { $p0 } nieuwe artikelen
-    }
-preview-parts-skipped = { $p0 ->
-        [one] 1 al in het project
-       *[other] { $p0 } al in het project
-    }
-preview-import-summary = { $p0 } · { $p1 }
 preview-records-made-of = { $p0 }: { $p1 }
 preview-move-lead = { $p0 ->
         [one] Verplaatst 1 symbool naar pagina { $p1 }

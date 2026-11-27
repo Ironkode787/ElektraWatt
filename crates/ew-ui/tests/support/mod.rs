@@ -257,21 +257,23 @@ pub fn table_part(key: &str) -> String {
         .to_owned()
 }
 
-/// `rows` (in the columns of the test tables' parts table) imported into the open project as File ▸ Import… of a parts
-/// table imports them: project part copies the sample's starter parts do not give (a supplier's part number, a long
-/// order code, a duct without a size).
+/// `rows` (in the columns of the test tables' parts table) imported into the open copy of the sample: project part copies
+/// the sample's starter parts do not give (a supplier's part number, a long order code, a duct without a size).
 pub fn import_parts(harness: &mut Harness<'_, App>, tmp: &Tmp, rows: &[String]) {
     let table = std::fs::read_to_string(TABLE_PARTS).unwrap();
     let header = table.lines().next().expect("the header");
     let file = tmp.path("parts.csv");
     std::fs::write(&file, format!("{header}\n{}\n", rows.join("\n"))).unwrap();
+    // The copy is the sample's project: its parts are read for the sample, as `ew import parts` reads them (the window's
+    // Import… puts a table's parts into My parts).
+    let (sample, _) = ew_viewmodel::ew_api::Session::open_read_only(std::path::Path::new(ew_testdir::SAMPLE), "test")
+        .expect("the sample");
+    let read = ew_viewmodel::ew_api::import::read_parts_tables(&file, &sample).expect("the rows read");
     dispatch(
         harness,
-        "parts.import",
-        serde_json::json!({"path": file.to_string_lossy()}),
+        "command.run",
+        serde_json::json!({"cmd": "parts.import", "params": read.params()}),
     );
-    dispatch(harness, "parts.map_import", serde_json::json!({}));
-    dispatch(harness, "preview.apply", serde_json::json!({}));
     settle(harness);
 }
 

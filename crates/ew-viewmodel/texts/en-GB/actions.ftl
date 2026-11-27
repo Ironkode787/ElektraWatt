@@ -400,7 +400,7 @@ submenu-workspace = Workspace
 action-file-new = New project…
 action-file-open-sample = Open sample project
 action-file-import-qet = Import QElectroTech project…
-action-parts-import = Parts table…
+action-parts-import = Import parts…
 action-place-variant = Variant of the part placed
 action-workshop-add-generic = Add the generic stock
 action-workshop-edit-stock = Edit stock…
@@ -511,8 +511,8 @@ action-page-describe = Describe the page content
 action-find-replace-all = Replace all
 
 # The column mapping step of the parts import.
-action-parts-map = Map a column of the parts table
-action-parts-map-import = Import the mapped parts table
+action-parts-map = Map a column of a table
+action-parts-map-import = Import the mapped report
 
 # The clipboard.
 action-edit-cut = Cut
@@ -838,7 +838,6 @@ action-bus-cable = Bus cable…
 
 # Output ▸ Reports ▸ Report block….
 action-report-block-new = Report block…
-action-symbol-open = Open symbol…
 action-symbol-undo = Undo symbol edit
 action-symbol-redo = Redo symbol edit
 action-symbol-variant = Preview symbol variant
@@ -848,7 +847,6 @@ action-symbol-cp = Edit symbol connection point
 action-symbol-slot = Add symbol text slot
 action-symbol-export = Export symbol draft…
 action-symbol-place = Place edited symbol
-action-symbol-candidate = Choose imported symbol
 action-symbol-link = Add mechanical link point
 action-symbol-scratch = Test symbol on a new page
 action-symbol-new-page = Place on a new page with its grid

@@ -219,7 +219,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
             unitless,
             converter,
         } => import_drawing_spec(path, name, *kind, folio.as_deref(), *unitless, *converter),
-        Dialog::ImportEplan { path, name, step } => import_eplan_spec(path, name, step, model.has_project()),
+        Dialog::ImportEplan { path, name, step } => import_eplan_spec(path, name, step),
         // Set up (Enter) or Cancel.
         Dialog::ConfirmGitSetup { folder } => git_setup_spec(folder),
         // Which station takes a module: the last one given a module first (Enter), the others, Cancel.
@@ -951,14 +951,9 @@ fn import_drawing_spec(
     }
 }
 
-/// Importing EPLAN data from `path`: the terms notice with Continue; the parts of a file with Update (the
-/// copies that would change) and Add to my parts library; a report with a button for each mapping that fits.
-fn import_eplan_spec(
-    path: &str,
-    name: &str,
-    step: &crate::shell::EplanStep,
-    has_project: bool,
-) -> DialogSpec {
+/// Importing EPLAN data from `path`: the terms notice with Continue (the file then goes on to Parts); a report with a
+/// button for each mapping that fits, its column mapper and Parts for a parts table.
+fn import_eplan_spec(path: &str, name: &str, step: &crate::shell::EplanStep) -> DialogSpec {
     use crate::shell::EplanStep;
     use ew_api::eplan::ReportTarget;
     let action = |extra: Value| {
@@ -981,37 +976,6 @@ fn import_eplan_spec(
                 DialogButton::new(key!("eplan-continue"), action(json!({ "terms": true }))),
             )
         },
-        EplanStep::Parts {
-            read,
-            matched,
-            changed,
-        } => {
-            let mut update = DialogButton::new(key!("eplan-update"), action(json!({ "how": "update" })));
-            update.label = strings::format_count(crate::count_key!("eplan-update"), *changed);
-            if *changed == 0 {
-                update.disabled = Some(strings::text(key!("reason-eplan-no-change")).to_owned());
-            }
-            let library = DialogButton::new(key!("eplan-library"), action(json!({ "how": "library" })));
-            DialogSpec {
-                secondary: vec![library, cancel()],
-                ..small(
-                    title,
-                    vec![
-                        strings::format(
-                            key!("eplan-parts-text"),
-                            &[
-                                name,
-                                &read.to_string(),
-                                &matched.to_string(),
-                                &changed.to_string(),
-                            ],
-                        ),
-                        strings::text(key!("eplan-parts-note")).to_owned(),
-                    ],
-                    update,
-                )
-            }
-        }
         EplanStep::Report { fits, saved } => {
             let mut buttons: Vec<DialogButton> = fits
                 .iter()
@@ -1043,11 +1007,10 @@ fn import_eplan_spec(
                 key!("eplan-report-map"),
                 action(json!({ "how": "map" })),
             ));
-            let mut parts = DialogButton::new(key!("eplan-report-parts"), action(json!({ "how": "parts" })));
-            if !has_project {
-                parts.disabled = Some(strings::text(key!("reason-no-project")).to_owned());
-            }
-            buttons.push(parts);
+            buttons.push(DialogButton::new(
+                key!("eplan-report-parts"),
+                action(json!({ "how": "parts" })),
+            ));
             let primary = buttons.remove(0);
             let mut secondary = buttons;
             secondary.push(cancel());

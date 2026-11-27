@@ -1,102 +1,52 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! File, Import, Parts table…: the headless action `parts.import`.
+//! The doors of Parts (doc 07 §3.6, §5.9): `parts.import {path?}`, Import… of the place, goes on by what the file is.
 //!
-//! The action asks for a `parts.csv` (the window's file dialog, or the `path` parameter), reads it with the tables
-//! beside it through `ew_api::import::read_parts_tables`, and previews the `parts.import` command through the host.
-//! The command's cost is Bulk, so the inline preview card always shows: Apply on a fresh card commits one transaction
-//! (one undo step) and leaves the banner "Imported 29 parts from parts.csv (0 skipped)."; a stale card previews the
-//! same copies again and shows a fresh card that needs a second Apply. A refused table shows its first problem, with
-//! its pointer, in the banner and opens no card. The registry's `writable` check has run before the action body
-//! (`ShellModel::dispatch`).
+//! - **A table** (CSV or XLSX): its columns are mapped to the part's declared fields as the set's first step, the map
+//!   pre-filled from the one saved for the file's source key (`<config dir>/imports/<key>.toml`), else from the headers
+//!   that name a field by its words; `parts.map` changes the source key or a column's field, and the set follows at once.
+//! - **An EPLAN parts file** (an EDZ, a ZIP or 7-Zip of one, a parts XML): the Data Portal terms notice first, once per
+//!   session, for an EDZ; the file is read as a job.
+//! - **An outline drawing** (DXF) on the Parts shelf: the open part's front outline (`parts.outline`).
+//! - **A symbol file** on the Symbols shelf (a QElectroTech element, an EPLAN symbol file, a DXF drawing, a symbol's own
+//!   JSON): its first drawing in the drawing, the file's others beside it, `index` taking another.
 //!
-//! **The column mapping step.** `parts.import {path}` first opens the mapping card on any
-//! table (CSV or XLSX): the source key (pre-filled from the file name), and per column its header, a sample value and
-//! the member it imports as, pre-filled from the map saved for the source key (`<config dir>/imports/<key>.toml`),
-//! else from the `ew` dialect's headers when the file has exactly those. `parts.map` changes the key or a column's
-//! member; `parts.map_import` saves the map and reads the table through `ew_api::catalog`, whose new parts go to the
-//! import card above. A table of the `ew` dialect imported with its pre-filled map unchanged is read by its reader
-//! with its sibling tables (part functions, cores), exactly as before the step. Escape (`ui.dismiss`) closes the card.
+//! What a table or a parts file brings is the set ([`ew_api::parts_set::PartsSet`]): the list's scope This import, each
+//! row new, changed, the same or refused with why; Save writes its new and changed parts into My parts (the map saved
+//! for the source then). With an EPLAN parts file, the copies the open project holds of its parts are offered an update
+//! (`parts.import {update}`, the previewed `library.update`). File ▸ Import… goes on to here for a file of parts.
+//!
+//! The EPLAN report's column mapping card (a report becomes a project, no part) is the other user of the column map.
 
 use std::path::PathBuf;
 
 use ew_api::catalog;
 use ew_api::eplan::{self, ReportMap, ReportTarget};
-use ew_api::import::{PartsImport, read_parts_tables};
-use ew_api::{AnyCommand, Submit};
+use ew_api::parts_set::{PartsSet, SetRefusal, SetStatus};
 use serde_json::{Map, Value};
 
-use super::navigation::bump;
-use super::tools::Kept;
-use super::{Outcome, Prompt, ShellModel, failed, string_param};
+use super::parts_place::ImportSet;
+use super::read_jobs::Finish;
+use super::{Dialog, EplanStep, Outcome, Prompt, ShellModel, failed, flag, string_param};
 use crate::key;
-use crate::properties::{Card, CardOrigin, PendingEdit};
 use crate::strings;
-use crate::tools::PreviewState;
 
-/// The name of the command the action dispatches.
-const COMMAND: &str = "parts.import";
-
-/// The columns of the `ew` dialect's `parts.csv` (`ew-import-tables`) and the member each fills in a column map:
-/// the required `key`, `manufacturer` and `part_number`, then the optional ones; `key`, `test_data`, `tech_data` (a
-/// `name=value;…` list), the mechanical columns (`width` … `rail_profile`, read by the dialect's reader) and
-/// `solenoids` (a valve part's fluid section) fill no member of the general importer.
-const EW_PARTS_COLUMNS: [(&str, Option<&str>); 18] = [
-    ("key", None),
-    ("manufacturer", Some("manufacturer")),
-    ("part_number", Some("part_number")),
-    ("kind", Some("kind")),
-    ("type_designation", Some("type_designation")),
-    ("description", Some("description")),
-    ("unit", Some("unit")),
-    ("test_data", None),
-    ("tech_data", None),
-    ("width", None),
-    ("height", None),
-    ("depth", None),
-    ("mount_kind", None),
-    ("enclosure", None),
-    ("enclosure_plate", None),
-    ("plate", None),
-    ("rail_profile", None),
-    ("solenoids", None),
-];
-
-/// The pre-fill of a table whose headers are exactly columns of the `ew` dialect, the three required ones among
-/// them, each once: one member per column. `None` for any other table.
-fn ew_dialect_members(columns: &[catalog::TableColumn]) -> Option<Vec<Option<String>>> {
-    let column = |h: &str| EW_PARTS_COLUMNS.iter().find(|(c, _)| *c == h);
-    let mut seen = std::collections::BTreeSet::new();
-    let all = columns
-        .iter()
-        .all(|c| column(&c.header).is_some() && seen.insert(c.header.as_str()));
-    let required = ["key", "manufacturer", "part_number"]
-        .iter()
-        .all(|r| seen.contains(r));
-    (all && required).then(|| {
-        columns
-            .iter()
-            .map(|c| column(&c.header).and_then(|(_, m)| m.map(str::to_owned)))
-            .collect()
-    })
-}
-
-/// One column of the mapping card.
+/// One column of the mapping.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct MapColumn {
     /// The header.
     pub header: String,
     /// The first value under it.
     pub sample: String,
-    /// The member it imports as (`part_number`, `tech_data.i_n`); `None`: not imported.
+    /// The member it imports as (`part_number`, `mech.width`, `tech_data.i_n`); `None`: not imported.
     pub member: Option<String>,
 }
 
-/// What the column mapping step maps for.
+/// What the column mapping maps for.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum MapKind {
-    /// A supplier's parts table (the members of the parts import).
+    /// A parts table (the fields of a part): the set's first step in Parts.
     Parts,
     /// An EPLAN report spreadsheet of the given kind (FR-IMP-029): the members of that report.
     Report(ReportTarget),
@@ -118,7 +68,7 @@ fn report_member_key(member: &str) -> Option<crate::strings::Key<'static>> {
     })
 }
 
-/// The column mapping step of File ▸ Import… of a parts table or of an EPLAN report, while it is open.
+/// The column mapping of a parts table (the set's first step in Parts) or of an EPLAN report (its card).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PartsMap {
     /// What it maps for.
@@ -134,36 +84,53 @@ pub struct PartsMap {
     pub saved: bool,
     /// The columns in table order.
     pub columns: Vec<MapColumn>,
-    ew_dialect: Option<Vec<Option<String>>>,
-    /// Why Import is refused: the importer's message for the map (`the column map needs a column for
-    /// `part_number``), or the last import's failure.
+    /// Why the table is not read: the importer's message for the map (`the column map needs a column for
+    /// `part_number``), or the last read's failure.
     pub error: Option<String>,
 }
 
+/// The identifier a header gives a technical value or a free property of its own (`Rated current` gives
+/// `rated_current`); empty where it gives none.
+fn header_ident(header: &str) -> String {
+    let ident: String = header
+        .trim()
+        .to_lowercase()
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+        .collect();
+    ident.trim_matches('_').to_owned()
+}
+
 impl PartsMap {
-    /// The member choices of the column `header`: the members without a key in declaration order, then the
-    /// column's own technical-data and free-property members (`tech_data.<header as identifier>`), when the header
-    /// gives an identifier the importer takes.
+    /// The member choices of the column `header` of a parts table: the part's fields a column goes to
+    /// ([`ew_api::parts_set::field_columns`]), the description in each language of the window after the description,
+    /// the column's own technical value and free property (`tech_data.<header as identifier>`) where the header gives an
+    /// identifier the importer takes, and Like.
     pub fn choices(header: &str) -> Vec<String> {
-        let mut out: Vec<String> = catalog::Member::FIXED.iter().map(catalog::Member::name).collect();
-        let ident: String = header
-            .trim()
-            .to_lowercase()
-            .chars()
-            .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+        let mut out: Vec<String> = ew_api::parts_set::field_columns()
+            .into_iter()
+            .map(str::to_owned)
             .collect();
-        let ident = ident.trim_matches('_').to_owned();
+        let at = out
+            .iter()
+            .position(|m| m == "description")
+            .map_or(out.len(), |i| i + 1);
+        for (i, lang) in crate::settings::LANGUAGES.iter().enumerate() {
+            out.insert(at + i, format!("description.{lang}"));
+        }
+        let ident = header_ident(header);
         for head in ["tech_data", "free_props"] {
             let name = format!("{head}.{ident}");
-            if !ident.is_empty() && catalog::Member::parse(&name).is_ok() {
+            if !ident.is_empty() && !out.contains(&name) && catalog::Member::parse(&name).is_ok() {
                 out.push(name);
             }
         }
+        out.push("like".to_owned());
         out
     }
 
-    /// The member choices of the column `header` for this step: a parts table's ([`PartsMap::choices`]), or the members
-    /// of the report's kind.
+    /// The member choices of the column `header` for this mapping: a parts table's ([`PartsMap::choices`]), or the
+    /// members of the report's kind.
     pub fn member_choices(&self, header: &str) -> Vec<String> {
         match self.kind {
             MapKind::Parts => Self::choices(header),
@@ -171,7 +138,7 @@ impl PartsMap {
         }
     }
 
-    /// A member in words for this step ([`PartsMap::member_text`], or the report member's words).
+    /// A member in words for this mapping ([`PartsMap::member_text`], or the report member's words).
     pub fn member_words(&self, member: &str, header: &str) -> String {
         match self.kind {
             MapKind::Parts => Self::member_text(member, header),
@@ -231,33 +198,54 @@ impl PartsMap {
         }
     }
 
-    /// A member in words, as the mapping card shows it (doc 16a P2): "Manufacturer",
-    /// "Part number", "Description (de)", "Technical data: Nennstrom", "Free property: Farbe", with `header` the
-    /// column's header. A name that is no member is shown as it is. Describe text and scripts keep the member names.
+    /// A member in words, as the mapping shows it (doc 16a P2): a field by its group and its word ("Identity ▸ Maker"),
+    /// a size several kinds share by its word ("Width"), a description in a language ("Identity ▸ Description,
+    /// Nederlands"), a technical value or a free property of the column's own ("Technical data: Nennstrom"), Like; with
+    /// `header` the column's header. A name that is no member is shown as it is. Describe text and scripts keep the
+    /// member names.
     pub fn member_text(member: &str, header: &str) -> String {
+        let in_group = |group: ew_api::part_fields::Group, word: &str| {
+            strings::format(
+                key!("parts-member-in-group"),
+                &[strings::text(strings::Key::run_time(group.word())), word],
+            )
+        };
         match catalog::Member::parse(member) {
-            Ok(catalog::Member::Description(Some(lang))) => {
-                strings::format(key!("parts-member-description-lang"), &[&lang])
+            Ok(catalog::Member::Like) => strings::text(key!("parts-member-like")).to_owned(),
+            Ok(catalog::Member::Description(lang)) => {
+                let name = strings::languages()
+                    .into_iter()
+                    .find(|(tag, _)| *tag == lang)
+                    .map_or_else(|| lang.clone(), |(_, n)| n.to_owned());
+                let word = Self::plain_word("description").unwrap_or_default();
+                in_group(
+                    ew_api::part_fields::Group::Identity,
+                    &strings::format(key!("parts-member-description-lang"), &[&word, &name]),
+                )
             }
-            Ok(catalog::Member::TechData(_)) => strings::format(key!("parts-member-tech-data"), &[header]),
             Ok(catalog::Member::FreeProp(_)) => strings::format(key!("parts-member-free-prop"), &[header]),
-            Ok(m) => strings::text(match m {
-                catalog::Member::Manufacturer => key!("parts-member-manufacturer"),
-                catalog::Member::PartNumber => key!("parts-member-part-number"),
-                catalog::Member::TypeDesignation => key!("parts-member-type-designation"),
-                catalog::Member::OrderNumber => key!("parts-member-order-number"),
-                catalog::Member::Gtin => key!("parts-member-gtin"),
-                catalog::Member::Kind => key!("parts-member-kind"),
-                catalog::Member::Unit => key!("parts-member-unit"),
-                _ => key!("parts-member-description"),
-            })
-            .to_owned(),
+            Ok(catalog::Member::TechData(_)) | Ok(catalog::Member::Field(_)) => {
+                match ew_api::part_fields::field(member) {
+                    Some(f) => in_group(f.group, &strings::render(&ew_api::part_fields::word(f.word))),
+                    None if member.starts_with("tech_data.") => {
+                        strings::format(key!("parts-member-tech-data"), &[header])
+                    }
+                    // A size several kinds share: its word ("Width").
+                    None => ew_api::part_fields::PART_FIELDS
+                        .iter()
+                        .find(|f| f.path.rsplit('.').next() == Some(member) && f.path.starts_with("mech."))
+                        .map_or_else(
+                            || member.to_owned(),
+                            |f| strings::render(&ew_api::part_fields::word(f.word)),
+                        ),
+                }
+            }
             Err(_) => member.to_owned(),
         }
     }
 
-    /// The card's refusal line in words ("Map a column to Manufacturer", "Part number is chosen for two columns");
-    /// `None` without a refusal. A failure of the last import is shown as it is. [`PartsMap::error`] keeps the
+    /// The mapping's refusal line in words ("Map a column to Identity ▸ Maker", "Identity ▸ Part number is chosen for two
+    /// columns"); `None` without a refusal. A failure of the last read is shown as it is. [`PartsMap::error`] keeps the
     /// importer's message for the describe text and the action's outcome.
     pub fn error_text(&self) -> Option<String> {
         let error = self.error.as_ref()?;
@@ -310,29 +298,96 @@ impl PartsMap {
             _ => error.clone(),
         })
     }
+
+    /// The member a header names by its words or its member's name, without regard to case (a table exported from
+    /// Parts, a supplier's "Description"): what a column without a saved map is pre-filled with.
+    fn named_by(header: &str) -> Option<String> {
+        let h = header.trim().to_lowercase();
+        if h.is_empty() {
+            return None;
+        }
+        // A column's own technical value or free property is mapped by choice only; a named technical value is a field.
+        let named = |m: &String| {
+            m != "like"
+                && !m.starts_with("free_props.")
+                && (!m.starts_with("tech_data.") || ew_api::part_fields::field(m).is_some())
+        };
+        Self::choices(header).into_iter().filter(named).find(|m| {
+            m.to_lowercase() == h
+                || Self::member_text(m, header).to_lowercase() == h
+                || Self::plain_word(m).is_some_and(|w| w.to_lowercase() == h)
+        })
+    }
+
+    /// A field's word without its group ("Maker", "Part number"), as a header names it.
+    fn plain_word(member: &str) -> Option<String> {
+        ew_api::part_fields::field(member).map(|f| strings::render(&ew_api::part_fields::word(f.word)))
+    }
+}
+
+/// Why a row of the set makes no part, in words (the end of the sentence that names the row).
+fn refusal_words(why: &SetRefusal) -> String {
+    use ew_api::catalog::RowRefusal as R;
+    match why {
+        SetRefusal::Read(r) => match r {
+            R::NoPartNumber => strings::text(key!("parts-set-no-number")).to_owned(),
+            R::NoManufacturer => strings::text(key!("parts-set-no-maker")).to_owned(),
+            R::ErrorCell { column, error } => strings::format(key!("parts-set-error-cell"), &[column, error]),
+            R::Ambiguous { maker, keys } => strings::format(key!("parts-set-maker-ambiguous"), &[maker, &keys.join(", ")]),
+            R::MakerWithoutLetters(t) => strings::format(key!("parts-set-maker-letters"), &[t]),
+            R::NumberWithoutLetters(t) => strings::format(key!("parts-set-number-letters"), &[t]),
+            R::Repeats { line } => strings::format(key!("parts-set-repeats-other"), &[&line.to_string()]),
+            R::NoNextVersion(_) => strings::text(key!("parts-set-no-version")).to_owned(),
+            R::Value(_) | R::Host(_) => strings::text(key!("parts-set-unread")).to_owned(),
+        },
+        SetRefusal::Field { column, message } => strings::format(
+            key!("parts-set-field"),
+            &[
+                column,
+                &super::part_dialog::message_text(strings::Key::run_time(message.key), &message.args),
+            ],
+        ),
+        SetRefusal::Like(number) => strings::format(key!("parts-set-like"), &[number]),
+    }
+}
+
+/// What a row of the set is, in a sentence of What was read: refused with why, the same, a repeat; `None` for a new
+/// or a changed row.
+pub fn row_sentence(row: &ew_api::parts_set::SetRow) -> Option<String> {
+    let line = row.line.to_string();
+    match &row.status {
+        SetStatus::Refused(why) => Some(strings::format(
+            key!("parts-set-refused-line"),
+            &[&line, &refusal_words(why)],
+        )),
+        SetStatus::Same => Some(strings::format(key!("parts-set-same-line"), &[&line, &row.number])),
+        SetStatus::Repeats(of) => Some(strings::format(
+            key!("parts-set-repeats-line"),
+            &[&line, &row.number, &of.to_string()],
+        )),
+        SetStatus::New | SetStatus::Changed => None,
+    }
+}
+
+/// The chip of a row of the set: new, changed, the same, refused.
+pub fn row_chip(status: &SetStatus) -> &'static str {
+    strings::text(match status {
+        SetStatus::New => key!("parts-set-chip-new"),
+        SetStatus::Changed => key!("parts-set-chip-changed"),
+        SetStatus::Same | SetStatus::Repeats(_) => key!("parts-set-chip-same"),
+        SetStatus::Refused(_) => key!("parts-set-chip-refused"),
+    })
 }
 
 impl ShellModel {
-    /// Whether the card on show is an import card (a window of its own, which needs neither the grid nor the find
-    /// pane).
-    pub fn import_card_open(&self) -> bool {
-        self.has_project()
-            && self
-                .props
-                .card()
-                .is_some_and(|c| matches!(c.origin, CardOrigin::Import { .. }))
-    }
-
-    /// The column mapping step while it is open.
+    /// The EPLAN report's column mapping card while it is open.
     pub fn parts_map(&self) -> Option<&PartsMap> {
         self.parts_map.as_ref()
     }
 
-    /// The banner and the failure of a table that cannot be read.
-    fn parts_refused(&mut self, why: &str) -> Outcome {
-        let message = strings::format(key!("error-parts-import"), &[why]);
-        self.banner = Some(message.clone());
-        Outcome::Failed { message }
+    /// The set an import brought into Parts, while it shows.
+    pub fn import_set(&self) -> Option<&ImportSet> {
+        self.parts.as_deref()?.set.as_deref()
     }
 
     /// `workshop.add_generic`: Add the generic stock (doc 07 §2.5): the starter's generic ferrules and markers the
@@ -351,30 +406,92 @@ impl ShellModel {
         self.run_commit(&cmd)
     }
 
-    /// `parts.import {path}`: reads the table's header row and opens the column mapping step on it,
-    /// pre-filled from the map saved for the file's source key, else from the `ew` dialect's headers when the file
-    /// has exactly those. A table that cannot be read shows its problem in the banner and opens nothing.
+    /// `parts.import {path?, index?, key?, discard?, terms?, update?}` (Import… of Parts; module documentation): the
+    /// file at `path` goes on by what it is and where Parts stands (the Symbols shelf takes a symbol file); without
+    /// `path` the window's file dialog asks. `index` takes another drawing of the symbol file in hand; `update` previews
+    /// the update of the project's copies of an EPLAN set's parts.
     pub(crate) fn act_parts_import(&mut self, p: &Map<String, Value>) -> Outcome {
+        if flag(p, "update") {
+            return self.set_update();
+        }
+        if p.contains_key("index") {
+            return self.act_symbol("candidate", p);
+        }
+        // A symbol file: one only a symbol is read from, or one of the files both read (an EPLAN file, a DXF drawing)
+        // on the drawing or the Symbols shelf. Its file dialog is the symbol files'.
+        let extension = or_return!(string_param(p, "path")).map(|path| {
+            std::path::Path::new(path)
+                .extension()
+                .map(|e| e.to_string_lossy().to_ascii_lowercase())
+                .unwrap_or_default()
+        });
+        let drawing = self.symbol_editor().is_some()
+            || self.parts.as_deref().is_some_and(|place| place.shelf_symbols);
+        let parts_too = |e: &str| matches!(e, "csv" | "xlsx" | "dxf") || super::EplanKind::of(e).is_some();
+        let symbol = match extension.as_deref() {
+            Some(e) if super::symbol_editor::FILE_EXTENSIONS.contains(&e) && !parts_too(e) => true,
+            Some("csv" | "xlsx") => false,
+            _ => drawing,
+        };
+        if symbol {
+            let mut q = p.clone();
+            if let Some(path) = q.remove("path") {
+                q.insert("file".to_owned(), path);
+            }
+            return self.act_symbol("open", &q);
+        }
         let path = match string_param(p, "path") {
             Err(e) => return e,
-            Ok(Some(path)) => std::path::PathBuf::from(path),
+            Ok(Some(path)) => PathBuf::from(path),
             Ok(None) => return self.need_path("parts.import", Prompt::OpenPartsTable, "path", p),
-        };
-        if self.project.is_none() {
-            return Outcome::Done;
-        }
-        let limits = catalog::table_limits();
-        let columns = match catalog::read_input(&path, &limits)
-            .map_err(|e| e.to_string())
-            .and_then(|input| catalog::table_columns(&input, None, &limits).map_err(|e| e.to_string()))
-        {
-            Ok(c) => c,
-            Err(why) => return self.parts_refused(&why),
         };
         let file = path
             .file_name()
             .map_or_else(String::new, |n| n.to_string_lossy().into_owned());
-        let ew_dialect = ew_dialect_members(&columns);
+        let extension = path
+            .extension()
+            .map(|e| e.to_string_lossy().to_ascii_lowercase())
+            .unwrap_or_default();
+        match extension.as_str() {
+            "csv" | "xlsx" => self.import_table(path, file),
+            "dxf" => self.act_parts_outline(p),
+            e if super::EplanKind::of(e).is_some_and(|k| k != super::EplanKind::Report) => {
+                self.import_eplan_parts(path, file, flag(p, "terms"))
+            }
+            _ => Outcome::refused(key!("reason-import-kind")),
+        }
+    }
+
+    /// The place shown for an import's set: a sheet with changes not saved is asked about first (a script refused in
+    /// words). `None` where the import goes on.
+    fn place_for_set(&mut self) -> Option<Outcome> {
+        if self
+            .parts
+            .as_deref()
+            .and_then(|p| p.sheet.as_ref())
+            .is_some_and(|o| o.changed)
+        {
+            return Some(Outcome::refused(key!("reason-parts-unsaved")));
+        }
+        self.enter_place();
+        None
+    }
+
+    /// A table: its columns and the set read through the map pre-filled for it.
+    fn import_table(&mut self, path: PathBuf, file: String) -> Outcome {
+        let limits = catalog::table_limits();
+        let read = catalog::read_input(&path, &limits).map_err(|e| e.to_string());
+        let (input, columns) = match read.and_then(|input| {
+            catalog::table_columns(&input, None, &limits)
+                .map(|c| (input, c))
+                .map_err(|e| e.to_string())
+        }) {
+            Ok(r) => r,
+            Err(why) => return failed(key!("error-parts-import"), &[&why]),
+        };
+        if let Some(out) = self.place_for_set() {
+            return out;
+        }
         let mut map = PartsMap {
             kind: MapKind::Parts,
             header_row: 0,
@@ -390,15 +507,239 @@ impl ShellModel {
                     member: None,
                 })
                 .collect(),
-            ew_dialect,
             error: None,
         };
         self.prefill(&mut map);
-        self.parts_map = Some(map);
+        self.read_set(input, map);
         Outcome::Done
     }
 
-    /// Fills the members from the map saved for the source key (`saved`), else from the `ew` dialect.
+    /// The set of the table `input` read through `map`, shown in the place (an empty set under the mapping's refusal
+    /// while the map is not usable).
+    fn read_set(&mut self, input: catalog::ImportInput, mut map: PartsMap) {
+        let set = match (map.column_map(), self.parts_session()) {
+            (Ok(columns), Some(session)) => match session.table_set(&input, &columns) {
+                Ok(set) => {
+                    map.error = None;
+                    Some(set)
+                }
+                Err(e) => {
+                    map.error = Some(e.to_string());
+                    None
+                }
+            },
+            (Err(e), _) => {
+                map.error = Some(e);
+                None
+            }
+            (Ok(_), None) => None,
+        };
+        self.show_set(set, Some(map), Some(input), None);
+    }
+
+    /// Shows the set in the place: the list on This import, the first row shown as it will be.
+    fn show_set(
+        &mut self,
+        set: Option<PartsSet>,
+        map: Option<PartsMap>,
+        input: Option<catalog::ImportInput>,
+        project: Option<(usize, usize)>,
+    ) {
+        let Some(place) = self.parts.as_deref_mut() else {
+            return;
+        };
+        let keep_row = place.set.as_deref().and_then(|s| s.row);
+        let rows = set.as_ref().map_or(0, |s| s.rows.len());
+        let file = set
+            .as_ref()
+            .map(|s| s.file.clone())
+            .or_else(|| map.as_ref().map(|m| m.file.clone()))
+            .unwrap_or_default();
+        place.sheet = None;
+        place.asking = None;
+        place.shelf_symbols = false;
+        place.scope = ew_api::parts::PartScope::Import;
+        place.set = Some(Box::new(ImportSet {
+            file,
+            row: keep_row.filter(|r| *r < rows).or((rows > 0).then_some(0)),
+            set,
+            map,
+            input,
+            project,
+            held: None,
+            texts: Vec::new(),
+            ready: Vec::new(),
+        }));
+        self.parts_refresh();
+        self.set_row_shown();
+    }
+
+    /// The shown row of the set as its sheet reads it, and its Ready for.
+    pub(super) fn set_row_shown(&mut self) {
+        let (Some(session), Some(place)) = self.parts_session_mut() else {
+            return;
+        };
+        let Some(shown) = place.set.as_deref_mut() else {
+            return;
+        };
+        let part = shown.shown().and_then(|r| r.part.clone());
+        (shown.texts, shown.ready) = match part {
+            Some(p) => (session.set_row_texts(&p), ew_api::part_fields::ready_for(&p)),
+            None => (Vec::new(), Vec::new()),
+        };
+    }
+
+    /// An EPLAN parts file: the terms notice first for an EDZ, once per session; then the file read as a job against
+    /// My parts, its set shown at the job's end.
+    fn import_eplan_parts(&mut self, path: PathBuf, file: String, terms: bool) -> Outcome {
+        // The notice's Continue: the notice closes as the file is read.
+        if terms && matches!(self.dialog, Some(Dialog::ImportEplan { .. })) {
+            self.dialog = None;
+        }
+        self.enter_place();
+        let Some(session) = self.parts_session() else {
+            return Outcome::Done;
+        };
+        let at = ew_api::parts_set::SetTarget::of(session.libraries());
+        // The open project's copies of the file's parts: the file read for the project, as its update reads it.
+        let project = self.project.as_ref().map(|p| p.session.eplan_parts_read(None));
+        let terms_seen = self.import.edz_terms;
+        let config_dir = self.config.config_dir.clone();
+        let name = file.clone();
+        self.start_read(&file, move |_| {
+            let Ok(input) = catalog::read_input(&path, &catalog::table_limits()) else {
+                return Ok(Box::new(move |_: &mut ShellModel| failed(key!("error-import-read"), &[&name])) as Finish);
+            };
+            // The notice belongs to an EDZ whatever the file is called.
+            let edz = eplan::is_edz(input.bytes());
+            if edz && !terms_seen && !terms {
+                let shown = path.to_string_lossy().into_owned();
+                return Ok(Box::new(move |s: &mut ShellModel| {
+                    s.open_dialog(Dialog::ImportEplan {
+                        path: shown,
+                        name,
+                        step: EplanStep::Terms,
+                    })
+                }) as Finish);
+            }
+            let read = eplan::fndef_map(config_dir.as_deref()).and_then(|fndefs| {
+                let set = at.read_eplan(&input, &fndefs).map_err(|e| e.to_string())?;
+                let held = project.and_then(|p| p.run(&input, &fndefs).ok());
+                Ok(EplanRead { set, held, fndefs })
+            });
+            Ok(Box::new(move |s: &mut ShellModel| s.eplan_set_read(&name, input, edz && terms, read)) as Finish)
+        })
+    }
+
+    /// The end of an EPLAN parts file's read: its set in the place, with how many of its parts the open project holds a
+    /// copy of and how many of those would change.
+    fn eplan_set_read(
+        &mut self,
+        name: &str,
+        input: catalog::ImportInput,
+        terms: bool,
+        read: Result<EplanRead, String>,
+    ) -> Outcome {
+        if terms {
+            self.import.edz_terms = true;
+        }
+        let EplanRead { set, held, fndefs } = match read {
+            Ok(r) => r,
+            Err(why) => return self.import_failed(name, &why),
+        };
+        if let Some(out) = self.place_for_set() {
+            return out;
+        }
+        let Some(session) = self.parts_session() else {
+            return Outcome::Done;
+        };
+        let set = session.eplan_set(&input, &fndefs, set);
+        let project = self.project.as_ref().zip(held.as_ref()).and_then(|(p, held)| {
+            let updates = p.session.update_parts_from_import(held).ok()?;
+            let changed = updates.plan.as_ref().map_or(0, |plan| plan.copies.len());
+            (!updates.matched.is_empty()).then_some((updates.matched.len(), changed))
+        });
+        self.show_set(Some(set), None, Some(input), project);
+        if let Some(shown) = self.parts.as_deref_mut().and_then(|p| p.set.as_deref_mut()) {
+            shown.held = held;
+        }
+        Outcome::Done
+    }
+
+    /// `parts.import {update}`: the previewed update of the open project's copies of the EPLAN set's parts (FR-PRT-014),
+    /// on the card beside the place; Apply commits it in one step.
+    fn set_update(&mut self) -> Outcome {
+        let Some(held) = self.import_set().and_then(|s| s.held.as_ref()) else {
+            return Outcome::refused(key!("reason-no-import-set"));
+        };
+        let Some(project) = &self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let plan = match project.session.update_parts_from_import(held) {
+            Ok(u) => u.plan,
+            Err(e) => return Outcome::Failed { message: e.to_string() },
+        };
+        let Some(plan) = plan else {
+            return Outcome::refused(key!("reason-eplan-no-change"));
+        };
+        self.preview_host_card(&plan.command.name, plan.command.params, key!("reason-library-update"))
+    }
+
+    /// Save of the set (Save n to My parts): its new and changed parts written into My parts, read again as My parts is
+    /// now; a table's map saved for its source. The list then shows My parts.
+    pub(crate) fn save_set(&mut self) -> Outcome {
+        let Some(shown) = self.import_set() else {
+            return Outcome::refused(key!("reason-no-import-set"));
+        };
+        let Some(set) = shown.set.clone() else {
+            return Outcome::refused(key!("reason-no-import-set"));
+        };
+        let map = shown.map.clone();
+        if let (Some(map), Some(dir)) = (&map, self.config.config_dir.as_deref())
+            && let Ok(columns) = map.column_map()
+            && let Err(e) = catalog::save_column_map(dir, &map.source, &columns)
+        {
+            return Outcome::Failed { message: e.to_string() };
+        }
+        let (Some(session), _) = self.parts_session_mut() else {
+            return Outcome::refused(key!("reason-no-parts-place"));
+        };
+        let (new, changed) = match session.save_set(&set) {
+            Ok(c) => c,
+            Err(catalog::CatalogError::Library(ew_api::library::LibraryError::NotFound)) => {
+                return failed(key!("error-part-no-my-parts"), &[]);
+            }
+            Err(e) => return failed(key!("error-parts-import"), &[&e.to_string()]),
+        };
+        self.libraries_changed();
+        if let Some(place) = self.parts.as_deref_mut() {
+            place.set = None;
+            place.scope = ew_api::parts::PartScope::Mine;
+        }
+        self.parts_refresh();
+        self.notify(
+            strings::format(
+                key!("toast-parts-set-saved"),
+                &[&set.file, &new.to_string(), &changed.to_string()],
+            ),
+            false,
+        );
+        Outcome::Done
+    }
+
+    /// Discard of the set: it goes, nothing of it saved; the list shows All again.
+    pub(crate) fn discard_set(&mut self) -> Outcome {
+        if let Some(place) = self.parts.as_deref_mut() {
+            place.set = None;
+            if place.scope == ew_api::parts::PartScope::Import {
+                place.scope = ew_api::parts::PartScope::All;
+            }
+        }
+        self.parts_refresh();
+        Outcome::Done
+    }
+
+    /// Fills the members from the map saved for the source key (`saved`), else from the headers that name a field.
     fn prefill(&self, map: &mut PartsMap) {
         if matches!(map.kind, MapKind::Report(_)) {
             return self.prefill_report(map);
@@ -409,20 +750,30 @@ impl ShellModel {
             .as_deref()
             .and_then(|dir| catalog::load_column_map(dir, &map.source).ok());
         map.saved = saved.is_some();
-        for (i, c) in map.columns.iter_mut().enumerate() {
+        for c in &mut map.columns {
             c.member = match &saved {
                 Some(m) => m
                     .columns()
                     .find(|(_, h)| *h == c.header)
                     .map(|(member, _)| member.name()),
-                None => map.ew_dialect.as_ref().and_then(|g| g[i].clone()),
+                None => PartsMap::named_by(&c.header),
             };
+        }
+        // A member chosen twice by the headers is kept for the first column only.
+        let mut chosen = std::collections::BTreeSet::new();
+        for c in &mut map.columns {
+            if let Some(m) = &c.member
+                && !chosen.insert(m.clone())
+                && !map.saved
+            {
+                c.member = None;
+            }
         }
         map.error = map.column_map().err();
     }
 
     /// Whether the table `input` of `path` reads as a parts table without asking: a map is saved for its source key,
-    /// or its headers are exactly those of the `ew` dialect (File ▸ Import… then goes on to the parts import).
+    /// or its headers name the maker and the part number (File ▸ Import… then goes on to Parts).
     pub(super) fn reads_as_parts_table(&self, path: &std::path::Path, input: &catalog::ImportInput) -> bool {
         let Ok(columns) = catalog::table_columns(input, None, &catalog::table_limits()) else {
             return false;
@@ -435,7 +786,8 @@ impl ShellModel {
             .config_dir
             .as_deref()
             .is_some_and(|dir| catalog::load_column_map(dir, &catalog::source_key_for(&file)).is_ok());
-        saved || ew_dialect_members(&columns).is_some()
+        let named: Vec<String> = columns.iter().filter_map(|c| PartsMap::named_by(&c.header)).collect();
+        saved || ["manufacturer", "part_number"].iter().all(|m| named.iter().any(|n| n == m))
     }
 
     /// Fills a report's members from the mapping saved for the source key (and takes its kind).
@@ -486,7 +838,6 @@ impl ShellModel {
                     member: None,
                 })
                 .collect(),
-            ew_dialect: None,
             error: None,
         };
         self.prefill_report(&mut map);
@@ -518,8 +869,9 @@ impl ShellModel {
         outcome
     }
 
-    /// `parts.map {source?, column?, member?}`: sets the source key (a map saved for it fills the members)
-    /// and the member the column with header `column` imports as (`member` empty or absent: not imported).
+    /// `parts.map {source?, column?, member?, target?}`: sets the source key (a map saved for it fills the members)
+    /// and the member the column with header `column` imports as (`member` empty or absent: not imported). On the set
+    /// of a table in Parts the set is read again at once; else the EPLAN report's mapping card (`target` its kind).
     pub(crate) fn act_parts_map(&mut self, p: &Map<String, Value>) -> Outcome {
         let (source, column, member, target) = match (
             string_param(p, "source"),
@@ -535,7 +887,16 @@ impl ShellModel {
             ),
             (Err(e), _, _, _) | (_, Err(e), _, _) | (_, _, Err(e), _) | (_, _, _, Err(e)) => return e,
         };
-        let Some(mut map) = self.parts_map.take() else {
+        let in_place = self.import_set().is_some_and(|s| s.map.is_some());
+        let taken = if in_place {
+            self.parts
+                .as_deref_mut()
+                .and_then(|p| p.set.as_deref_mut())
+                .and_then(|s| s.map.take())
+        } else {
+            self.parts_map.take()
+        };
+        let Some(mut map) = taken else {
             return Outcome::refused(key!("reason-no-parts-map"));
         };
         let outcome = (|| {
@@ -582,15 +943,10 @@ impl ShellModel {
                     return failed(key!("error-bad-param"), &["column"]);
                 };
                 let member = member.map(|m| m.trim().to_owned()).filter(|m| !m.is_empty());
-                if let Some(m) = &member {
-                    let refused = match map.kind {
-                        MapKind::Parts => catalog::Member::parse(m).err().map(|e| e.to_string()),
-                        MapKind::Report(_) => (!map.member_choices("").contains(m))
-                            .then(|| strings::format(key!("error-bad-param"), &["member"])),
-                    };
-                    if let Some(message) = refused {
-                        return Outcome::Failed { message };
-                    }
+                if let Some(m) = &member
+                    && !map.member_choices(&header).contains(m)
+                {
+                    return failed(key!("error-bad-param"), &["member"]);
                 }
                 map.columns[i].member = member;
             }
@@ -600,87 +956,29 @@ impl ShellModel {
             MapKind::Parts => map.column_map().err(),
             MapKind::Report(_) => map.report_map().err(),
         };
-        self.parts_map = Some(map);
+        if in_place {
+            let input = self.import_set().and_then(|s| s.input.clone());
+            match input {
+                Some(input) => self.read_set(input, map),
+                None => {
+                    if let Some(s) = self.parts.as_deref_mut().and_then(|p| p.set.as_deref_mut()) {
+                        s.map = Some(map);
+                    }
+                }
+            }
+        } else {
+            self.parts_map = Some(map);
+        }
         outcome
     }
 
-    /// `parts.map_import`: saves the map for the source key and reads the table through it
-    /// (`ew_api::catalog`): the new parts go to the import card (`parts.import`, as before), the counts of the rows read
-    /// to the toast. A table of the `ew` dialect whose pre-filled map is unchanged is read by the dialect's reader with its
-    /// sibling tables, as before the mapping step. Refused while the importer refuses the map (its message under the
-    /// table).
+    /// `parts.map_import`: Import on the EPLAN report's mapping card (the report becomes a new project, `dir` asked for
+    /// when absent); refused while the map is not usable (its message under the table).
     pub(crate) fn act_parts_map_import(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(map) = self.parts_map.clone() else {
             return Outcome::refused(key!("reason-no-parts-map"));
         };
-        if matches!(map.kind, MapKind::Report(_)) {
-            return self.report_map_import(map, p);
-        }
-        let columns = match map.column_map() {
-            Ok(c) => c,
-            Err(message) => return Outcome::Failed { message },
-        };
-        if let Some(dir) = self.config.config_dir.as_deref()
-            && let Err(e) = catalog::save_column_map(dir, &map.source, &columns)
-        {
-            return self.map_failed(e.to_string());
-        }
-        let unchanged = map
-            .ew_dialect
-            .as_ref()
-            .is_some_and(|g| map.columns.iter().zip(g).all(|(c, m)| c.member == *m));
-        let Some(project) = self.project.as_ref() else {
-            return Outcome::Done;
-        };
-        if unchanged {
-            let read = match read_parts_tables(&map.path, &project.session) {
-                Ok(read) => read,
-                Err(e) => return self.map_failed(e.to_string()),
-            };
-            self.parts_map = None;
-            let params = read.params();
-            let PartsImport { source, copies, .. } = read;
-            let outcome = self.preview_import(params, source.clone(), copies.len());
-            // The read's outcome is one toast, as on the mapped path; the card shows the list only.
-            let origin = self.props.card().map(|c| c.origin.clone());
-            if let Some(CardOrigin::Import { created, skipped, .. }) = origin {
-                let text = strings::format(
-                    key!("toast-parts-read"),
-                    &[&source, &created.to_string(), &skipped.to_string(), "0"],
-                );
-                self.notify(text, false);
-            }
-            return outcome;
-        }
-        let limits = catalog::table_limits();
-        let input = match catalog::read_input(&map.path, &limits) {
-            Ok(i) => i,
-            Err(e) => return self.map_failed(e.to_string()),
-        };
-        let master = catalog::manufacturer_master(project.session.libraries());
-        let (import, cmd) = match project.session.catalog_parts(&input, &columns, &master, None) {
-            Ok(r) => r,
-            Err(e) => return self.map_failed(e.to_string()),
-        };
-        self.parts_map = None;
-        let c = import.counts();
-        let held = (c.updated + c.unchanged + c.duplicate).to_string();
-        let rejected = c.rejected.to_string();
-        // Every outcome of the read is one toast line, never a banner over the tab title.
-        let Some(cmd) = cmd else {
-            let message = strings::format(key!("banner-parts-none"), &[&map.file, &held, &rejected]);
-            self.notify(message, false);
-            return Outcome::Done;
-        };
-        self.notify(
-            strings::format(
-                key!("toast-parts-read"),
-                &[&map.file, &c.new.to_string(), &held, &rejected],
-            ),
-            false,
-        );
-        let copies = c.new;
-        self.preview_import(cmd.params, map.file, copies)
+        self.report_map_import(map, p)
     }
 
     /// A failed import of the mapping step: the message under the table, the card stays open.
@@ -690,97 +988,14 @@ impl ShellModel {
         }
         Outcome::Failed { message }
     }
+}
 
-    /// Previews `parts.import` with `params` (a Bulk command: always through the host, never committed directly) and
-    /// shows the card.
-    fn preview_import(&mut self, params: Value, source: String, copies: usize) -> Outcome {
-        let Some(rev) = self.revision() else {
-            return Outcome::Done;
-        };
-        let cmd = AnyCommand {
-            name: COMMAND.to_owned(),
-            params: params.clone(),
-        };
-        let submit = Submit::from(self.origin());
-        let calls = &self.calls;
-        let Some(project) = &mut self.project else {
-            return Outcome::Done;
-        };
-        bump(calls, |c| c.preview_with += 1);
-        let result = project.session.preview_with(&cmd, submit);
-        let derived = match &result {
-            Ok(p) => project.session.derived_diff(p),
-            Err(_) => Default::default(),
-        };
-        let (created, skipped) = result
-            .as_ref()
-            .ok()
-            .and_then(|p| p.outcome().counts)
-            .map_or((0, 0), |c| (c.created, c.skipped));
-        let result = result.map_err(|e| super::tools::command_error_message(&e, &params));
-        let edit = PendingEdit {
-            kind: "part".to_owned(),
-            label: source.clone(),
-            ..PendingEdit::for_command(COMMAND, params.clone())
-        };
-        self.props.card = Some(Card {
-            preview: PreviewState {
-                base_rev: rev,
-                command: params,
-                name: COMMAND.to_owned(),
-                result,
-                derived,
-            },
-            edit,
-            targets: copies,
-            changes: created,
-            reason: key!("reason-parts-import"),
-            origin: CardOrigin::Import {
-                source,
-                created,
-                skipped,
-            },
-        });
-        Outcome::Done
-    }
-
-    /// Apply on an import card: a fresh card commits one transaction; a stale one previews the same copies again and
-    /// shows a fresh card (a second Apply).
-    pub(super) fn apply_import_card(&mut self, card: Card) -> Outcome {
-        let Some(rev) = self.revision() else {
-            return Outcome::Done;
-        };
-        let CardOrigin::Import {
-            source,
-            created,
-            skipped,
-        } = card.origin.clone()
-        else {
-            return Outcome::Done;
-        };
-        if let Err(message) = &card.preview.result {
-            return Outcome::Failed {
-                message: message.clone(),
-            };
-        }
-        if card.preview.base_rev == rev {
-            let Card { preview, edit, .. } = card;
-            let outcome = self.commit(edit.name.clone(), edit.params.clone(), Kept::Card(preview, None));
-            if outcome == Outcome::Done {
-                let key = if created == 1 {
-                    key!("banner-part-imported")
-                } else {
-                    key!("banner-parts-imported")
-                };
-                // The applied import is a toast with Undo, not a banner over the tab title.
-                let text = strings::format(key, &[&created.to_string(), &skipped.to_string(), &source]);
-                self.notify(text, true);
-            }
-            return outcome;
-        }
-        // Stale: the same copies, previewed again on the current revision.
-        self.preview_import(card.edit.params, source, card.targets)
-    }
+/// An EPLAN parts file's read, for its end ([`ShellModel::eplan_set_read`]): the set against My parts, the file read
+/// for the open project's copies, and the function definitions it was read with.
+struct EplanRead {
+    set: catalog::PartsImport,
+    held: Option<catalog::PartsImport>,
+    fndefs: eplan::FndefMap,
 }
 
 impl ShellModel {

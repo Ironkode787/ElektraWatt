@@ -318,13 +318,14 @@ reason-find-no-selection = Nothing is selected
 reason-find-replace = A replace is previewed first
 
 # The parts table import.
-reason-parts-import = An import is previewed first
 error-place-variant = The part has no variant { $p0 }
 reason-place-no-variants = The part placed has no variants
 reason-workshop-generic-held = The workshop stock holds the generic ferrules and markers already
 reason-no-stock-dialog = The stock dialog is not open
-error-parts-import = Parts table refused: { $p0 }
+error-parts-import = The table is not read: { $p0 }
 reason-no-parts-map = No parts table is being mapped
+reason-no-import-set = No import's set is shown in Parts
+reason-set-nothing-new = Nothing of this import is new or changed
 error-find-field = There is no find field { $p0 }
 error-find-option = There is no find option { $p0 }
 reason-cut-incomplete-items = Cut would lose page items or annotation connections; include every annotated wire or use Copy

@@ -199,6 +199,48 @@ pub struct PartsPlace {
     /// Whether the place stepped aside for a test placement of the drawing on a page: the page shows, the place and
     /// its drawing wait, and Back to the drawing returns.
     pub aside: bool,
+    /// The set an import brought (doc 07 §5.9), shown in the list as the scope This import until it is saved or
+    /// discarded.
+    pub set: Option<Box<ImportSet>>,
+}
+
+/// The set an import brought into Parts and its first step (doc 07 §5.9): a table's column map, the rows read through
+/// it, the row shown as it will be.
+#[derive(Clone, PartialEq, Debug)]
+pub struct ImportSet {
+    /// The file's name (never its path).
+    pub file: String,
+    /// The set; `None` while the table's map is not usable (the map's refusal under the mapping says why).
+    pub set: Option<ew_api::parts_set::PartsSet>,
+    /// A table's column map; `None` for an EPLAN parts file.
+    pub map: Option<super::parts::PartsMap>,
+    /// The file as it was read, to read again when the map changes.
+    pub input: Option<ew_api::catalog::ImportInput>,
+    /// The row shown as it will be, by its index among the rows.
+    pub row: Option<usize>,
+    /// The copies the open project holds of an EPLAN set's parts: how many, and how many of them would change.
+    pub project: Option<(usize, usize)>,
+    /// An EPLAN file read for the open project's copies, which their update lays over them.
+    pub held: Option<ew_api::catalog::PartsImport>,
+    /// The shown row's part as its sheet reads it: each field with a value, by its path, and its text.
+    pub texts: Vec<(&'static str, String)>,
+    /// Ready for of the shown row's part.
+    pub ready: Vec<ew_api::part_fields::Ready>,
+}
+
+impl ImportSet {
+    /// The row shown as it will be.
+    pub fn shown(&self) -> Option<&ew_api::parts_set::SetRow> {
+        self.set.as_ref()?.rows.get(self.row?)
+    }
+
+    /// How many of its parts Save writes into My parts: the new and the changed.
+    pub fn to_save(&self) -> usize {
+        self.set.as_ref().map_or(0, |s| {
+            let (new, changed, _, _) = s.counts();
+            new + changed
+        })
+    }
 }
 
 /// A row of the Symbols shelf: a symbol by its address, its name, what it is and where it lives.
@@ -257,8 +299,18 @@ impl PartsPlace {
         }
     }
 
-    /// The label of Save: Save and use for the chooser's target from a chooser, else Save.
+    /// Whether the middle shows the set an import brought: it is there and no part is open.
+    pub fn set_shown(&self) -> bool {
+        self.sheet.is_none() && self.set.is_some()
+    }
+
+    /// The label of Save: Save n to My parts for an import's set, Save and use for the chooser's target from a
+    /// chooser, else Save.
     pub fn save_label(&self) -> String {
+        if self.set_shown() {
+            let n = self.set.as_deref().map_or(0, ImportSet::to_save);
+            return strings::format(key!("parts-set-save"), &[&n.to_string()]);
+        }
         match &self.origin {
             Origin::Chooser(c) => strings::format(key!("parts-save-use"), &[&c.target_text]),
             _ => strings::text(key!("parts-save")).to_owned(),
@@ -276,6 +328,11 @@ impl ShellModel {
     /// The place, when it is shown.
     pub fn parts_place(&self) -> Option<&PartsPlace> {
         self.parts.as_deref()
+    }
+
+    /// Whether the place shows the set an import brought ([`PartsPlace::set_shown`]).
+    pub(crate) fn set_shown(&self) -> bool {
+        self.parts.as_deref().is_some_and(PartsPlace::set_shown)
     }
 
     /// Whether the place works on the libraries alone: it was opened with no project (from the start page), so a new
@@ -418,6 +475,7 @@ impl ShellModel {
             shelf_symbols: false,
             symbols: Vec::new(),
             aside: false,
+            set: None,
         }));
         self.parts_refresh();
     }
@@ -454,7 +512,15 @@ impl ShellModel {
             Some(strings::rule_language().to_owned()),
             usize::MAX,
         );
-        let mut makers: Vec<String> = found.iter().map(|f| f.offer.manufacturer.clone()).collect();
+        // The set's makers on This import, whose rows are the set's.
+        let set_makers = (place.scope == PartScope::Import)
+            .then(|| place.set.as_deref().and_then(|s| s.set.as_ref()))
+            .flatten()
+            .map(|s| s.rows.iter().filter(|r| !r.maker.is_empty()).map(|r| r.maker.clone()));
+        let mut makers: Vec<String> = match set_makers {
+            Some(m) => m.collect(),
+            None => found.iter().map(|f| f.offer.manufacturer.clone()).collect(),
+        };
         makers.sort_by_key(|m| m.to_lowercase());
         makers.dedup();
         place.makers = makers;
@@ -526,6 +592,21 @@ impl ShellModel {
     /// [`ShellModel::named_part`]) when there is one, else on its list; with `field` (a field's path, as an outcome's
     /// part lack names it), at that field, ringed.
     pub(crate) fn act_parts_open(&mut self, p: &Map<String, Value>) -> Outcome {
+        // A row of the set an import brought, shown as it will be.
+        if let Some(v) = p.get("row") {
+            let Some(row) = v.as_u64().and_then(|r| usize::try_from(r).ok()) else {
+                return failed(key!("error-bad-param"), &["row"]);
+            };
+            let Some(shown) = self.parts.as_deref_mut().and_then(|p| p.set.as_deref_mut()) else {
+                return Outcome::refused(key!("reason-no-import-set"));
+            };
+            if shown.set.as_ref().is_none_or(|s| row >= s.rows.len()) {
+                return failed(key!("error-bad-param"), &["row"]);
+            }
+            shown.row = Some(row);
+            self.set_row_shown();
+            return Outcome::Done;
+        }
         if self.parts_session().is_none() {
             // No project and no place: the place over the libraries alone (one a closed project left goes).
             self.parts = None;
@@ -722,6 +803,18 @@ impl ShellModel {
             place.query = t;
         }
         if let Some(s) = scope {
+            // This import shows the set and its first step in the middle, the open part set aside unless it has
+            // changes.
+            if s == PartScope::Import {
+                if place.set.is_none() {
+                    return Outcome::refused(key!("reason-no-import-set"));
+                }
+                if place.sheet.as_ref().is_some_and(|o| o.changed) {
+                    return Outcome::refused(key!("reason-parts-unsaved"));
+                }
+                place.sheet = None;
+                place.shelf_symbols = false;
+            }
             place.scope = s;
         }
         if let Some(k) = kind {
@@ -1046,6 +1139,9 @@ impl ShellModel {
         if self.symbol_editor().is_some() {
             return self.discard_drawing();
         }
+        if self.set_shown() {
+            return self.discard_set();
+        }
         let Some(open) = self.parts.as_deref().and_then(|p| p.sheet.as_ref()) else {
             return Outcome::refused(key!("reason-no-part-open"));
         };
@@ -1294,6 +1390,9 @@ impl ShellModel {
     pub(crate) fn act_parts_save(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.symbol_editor().is_some() {
             return self.save_drawing();
+        }
+        if self.set_shown() {
+            return self.save_set();
         }
         let Some(open) = self.parts.as_deref().and_then(|p| p.sheet.as_ref()) else {
             return Outcome::refused(key!("reason-no-part-open"));

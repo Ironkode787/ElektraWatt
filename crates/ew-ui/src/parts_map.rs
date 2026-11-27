@@ -1,16 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The column mapping step of File, Import, Parts table…: a card floating in the window's centre, where a dialog
-//! stands (at the top of the window it read as a strip left behind), while `ShellModel::parts_map` is open,
-//! before the import card (doc 16a §6.9, `elevation.1`).
+//! The column mapping of an EPLAN report spreadsheet: a card floating in the window's centre, where a dialog stands
+//! (at the top of the window it read as a strip left behind), while `ShellModel::parts_map` is open (doc 16a §6.9,
+//! `elevation.1`). Its column table is the one Parts shows as the first step of a parts table's set ([`columns`]).
 //!
-//! **Layout.** "Map columns" in `type.title`, one line naming the file, the Source field (the key the map is saved
-//! under) with the "Saved map" caption when the members came from it, then the column table: Column, Sample (in
-//! `color.text.secondary`) and "Imports as", a drop-down of the members in words ("Not imported" first, then
-//! "Manufacturer", "Part number", …, "Technical data: `<header>`"). The importer's refusal of the map stands under the
-//! table in words in `color.error` ("Map a column to Manufacturer"); Import (Primary, disabled with that reason as its tooltip) and
-//! Cancel close the card.
+//! **Layout.** "Map columns" in `type.title`, one line naming the file, the report's kind, the Source field (the key
+//! the map is saved under) with the "Saved map" caption when the members came from it, then the column table: Column,
+//! Sample (in `color.text.secondary`) and "Imports as", a drop-down of the members in words ("Not imported" first).
+//! The refusal of the map stands under the table in words in `color.error`; Import (Primary, disabled with that reason
+//! as its tooltip) and Cancel close the card.
 //!
 //! **Input.** The Source field dispatches `parts.map {source}` on Enter or when it loses the focus; a member choice
 //! `parts.map {column, member}`; Import `parts.map_import`; Cancel and Escape `ui.dismiss`.
@@ -59,19 +58,15 @@ fn body(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
         &t,
         strings::text(key!("parts-map-title")),
     ));
-    let intro = match map.kind {
-        MapKind::Parts => key!("parts-map-intro"),
-        MapKind::Report(_) => key!("eplan-map-intro"),
-    };
     ui.label(crate::components::body_secondary(
         &t,
-        strings::format(intro, &[&map.file]),
+        strings::format(key!("eplan-map-intro"), &[&map.file]),
     ));
     if let MapKind::Report(target) = map.kind {
         report_row(ui, target, events);
     }
     source_row(ui, map, events);
-    columns(ui, map, events);
+    columns(ui, map, 9.0, events);
     // The refusal in words ("Map a column to Manufacturer").
     if let Some(e) = map.error_text() {
         crate::components::live_line(ui, &e, true);
@@ -192,8 +187,8 @@ fn column_widths(ui: &egui::Ui, map: &PartsMap) -> (f32, f32, f32) {
     (names, samples, t.size_dialog_label * 1.4)
 }
 
-/// The column table: header, sample and the member drop-down per column.
-fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
+/// The column table: header, sample and the member drop-down per column, scrolling past `rows` rows.
+pub(crate) fn columns(ui: &mut egui::Ui, map: &PartsMap, rows: f32, events: &mut Vec<Event>) {
     let t = crate::components::tokens(ui);
     let none = strings::text(key!("parts-map-none"));
     let small = |s: &str, strong: bool| {
@@ -217,7 +212,7 @@ fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
         (ui.available_width() - names - combo - 2.0 * t.space_4 - ui.spacing().scroll.bar_width).max(narrow);
     egui::ScrollArea::vertical()
         .id_salt("parts-map-columns")
-        .max_height(t.size_control * 9.0)
+        .max_height(t.size_control * rows)
         .auto_shrink([false, true])
         .show(ui, |ui| {
             egui::Grid::new("parts-map-grid")

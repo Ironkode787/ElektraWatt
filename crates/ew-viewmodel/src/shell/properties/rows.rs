@@ -618,10 +618,6 @@ impl ShellModel {
         if matches!(card.origin, CardOrigin::Find { .. }) {
             return self.apply_find_card(card);
         }
-        // An import card is the parts table's (`parts.import`).
-        if matches!(card.origin, CardOrigin::Import { .. }) {
-            return self.apply_import_card(card);
-        }
         // A reorder card is the Pages navigator's (`pages.reorder`).
         if matches!(card.origin, CardOrigin::Reorder { .. }) {
             return self.apply_reorder_card(card);

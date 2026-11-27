@@ -417,7 +417,7 @@ fn a_new_symbol_from_a_page_asks_a_name_keeps_the_last_and_warns_of_another_grid
     doc["symbol"]["grid"] = json!({"num": 7_937_500, "den": 3});
     let file = tmp.0.join("qet.symbol.json");
     std::fs::write(&file, serde_json::to_vec(&doc).unwrap()).unwrap();
-    done(&mut s, "symbol.open", json!({"file": file, "discard": true}));
+    done(&mut s, "parts.import", json!({"path": file, "discard": true}));
     let strip = s.symbol_editor().unwrap().strip().unwrap_or_default();
     assert!(
         strip.contains("This symbol is on QET 10 px; page 101 is on 4 mm"),
@@ -929,7 +929,7 @@ fn an_older_version_of_his_symbol_is_refused_in_both_languages() {
     done(&mut s, "parts.save", json!({}));
     for (locale, words) in [("en", "newer version"), ("nl", "nieuwere versie")] {
         assert!(ew_viewmodel::strings::set_locale(locale));
-        done(&mut s, "symbol.open", json!({"file": file, "discard": true}));
+        done(&mut s, "parts.import", json!({"path": file, "discard": true}));
         let message = crate::common::failed(&mut s, "parts.save", json!({}));
         assert!(message.contains(words), "{locale}: {message}");
     }

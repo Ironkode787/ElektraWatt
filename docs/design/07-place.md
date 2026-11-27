@@ -319,11 +319,18 @@ My parts since this project took it. See changes…"); nothing changes in the pr
 
 - **A table mapped once.** Import… with a table (CSV, Excel) shows as the sheet which column is what: each column
   of the file with its first value and the field it goes to, chosen from the fields by their words and groups; Not
-  imported for a column no field keeps, said beside it. The map is saved under the source's name and read again for
-  the next table of that source. Width, Height and Depth go to the field of that name the row's kind has.
-- **The set.** What a table or a parts file brings stands in the list as a scope of its own, each row new, changed,
-  the same or refused with its reason, and a dot where it lacks something; a row opens as its sheet. Nothing is
-  saved until **Save n to My parts**.
+  imported for a column no field keeps. A column whose header is a field's word or its name is mapped already. The map
+  is saved under the source's name when the set is saved, and read again for the next table of that source. Width,
+  Height and Depth go to the field of that name the row's kind has. A changed map reads the set again at once.
+- **The set.** What a table or a parts file brings stands in the list as a scope of its own, This import, each row
+  new, changed, the same or refused with its reason, and a dot where it lacks something; the sheet's What was read
+  says each refusal and each row that is the same in a sentence. A row shows beside it as it will be: its kind, its
+  fields and Ready for. A row is laid over the part My parts holds of its maker and number, and its texts are read as
+  the part's sheet reads them, so a text that does not read refuses its row in the sheet's words. Nothing is saved
+  until **Save n to My parts**, which reads the file again against My parts as it is then and writes the new and the
+  changed parts in one write; Discard drops the set. An EPLAN parts file's set also says how many of its parts the
+  open project holds a copy of and how many of those would change, with **Update them…**, the previewed update of
+  those copies.
 - **Several parts selected** in the list show the fields they share on one sheet: a value they all have, or "mixed".
   A value typed goes to all of them; Save saves them together, with one card for the devices of the open project.
   The Connection points table is shared too where the selected parts have the same pins; the other tables, the forms and

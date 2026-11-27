@@ -851,7 +851,7 @@ impl EditorView {
                 if components::section_header(ui, id, title, Some(outline.candidates.len()), true) {
                     for (i, name) in outline.candidates.iter().enumerate() {
                         if panels::list_row(ui, name, "", false).clicked() {
-                            ask(events, "symbol.candidate", json!({ "index": i }));
+                            ask(events, "parts.import", json!({ "index": i }));
                         }
                     }
                 }

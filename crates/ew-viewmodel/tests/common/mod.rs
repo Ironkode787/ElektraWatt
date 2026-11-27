@@ -183,16 +183,19 @@ pub fn place_free_button(s: &mut ShellModel) {
     done(s, "ui.dismiss", json!({}));
 }
 
-/// Imports `rows` (parts-table CSV rows, without the header) into the project open in `s` and applies them: the parts
-/// a test needs that the sample does not hold (a screw-mounted device, an end bracket, a bridge).
+/// Imports `rows` (parts-table CSV rows, without the header) into the copy of the sample open in `s`, as `ew import
+/// parts` reads a table of the project tables into a project (the window's Import… puts a table's parts into My parts):
+/// the project's own parts a test needs that the sample does not hold (a screw-mounted device, an end bracket, a
+/// bridge).
 pub fn import_parts(s: &mut ShellModel, tmp: &Tmp, rows: &str) {
     let csv = tmp.0.join("parts.csv");
     let header = "key,manufacturer,part_number,kind,type_designation,description,unit,test_data,tech_data,width,\
                   height,depth,mount_kind,enclosure,enclosure_plate,plate,rail_profile,solenoids";
     std::fs::write(&csv, format!("{header}\n{rows}")).unwrap();
-    done(s, "parts.import", json!({"path": csv.to_string_lossy()}));
-    done(s, "parts.map_import", json!({}));
-    done(s, "preview.apply", json!({}));
+    // The copy is the sample's project: its parts are read for the sample.
+    let (sample, _) = ew_api::Session::open_read_only(Path::new(SAMPLE), "test").expect("the sample");
+    let read = ew_api::import::read_parts_tables(&csv, &sample).expect("the rows read");
+    done(s, "command.run", json!({"cmd": "parts.import", "params": read.params()}));
 }
 
 /// The bridge BRIDGE-1 as an [`import_parts`] row (the sample holds no bridge part; its end bracket is the starter's

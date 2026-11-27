@@ -5,10 +5,11 @@
 //!
 //! FR-PRT-016: one general parts import for every supplier list.
 //!
-//! - **The column map** ([`ColumnMap`]): `member ← header` for the members `manufacturer`, `part_number`,
-//!   `type_designation`, `order_number`, `gtin`, `description` (one column per language), `kind`, `unit`,
-//!   `tech_data.<key>` and `free_props.<key>`, and an XLSX sheet by name; saved per source as a TOML file whose text
-//!   this crate reads and prints ([`ColumnMap::from_toml`], [`ColumnMap::to_toml`], [`check_source_key`]).
+//! - **The column map** ([`ColumnMap`]): `member ← header` for a part's fields by the paths of the host's declaration
+//!   (`manufacturer`, `part_number`, `mech.width`; this crate reads the plain ones itself, [`Member::PLAIN`]), a
+//!   description per language, `tech_data.<key>`, `free_props.<key>` and `like`, and an XLSX sheet by name; saved per
+//!   source as a TOML file whose text this crate reads and prints ([`ColumnMap::from_toml`], [`ColumnMap::to_toml`],
+//!   [`check_source_key`]). A host that knows a part's fields builds each row's part ([`parse_parts_built`]).
 //! - **The tables**: CSV (UTF-8 with or without a byte-order mark, `,` or `;` found from the header line) and XLSX
 //!   (its own reader over miniz_oxide and quick-xml: the first or the named sheet, each value as its displayed text, a
 //!   formula's cached value; every unpacked entry capped, the shared strings bounded by the loader limits),
@@ -35,8 +36,8 @@ mod xlsx;
 
 pub use map::{ColumnMap, MapError, Member, check_source_key};
 pub use parts::{
-    CatalogTarget, FIRST_VERSION, IMPORTER_ID, IMPORTER_VERSION, PartsImport, Placer, RowCounts, RowOutcome,
-    RowStatus, manufacturer_item, namespace, parse_parts, part_item,
+    Build, CatalogTarget, FIRST_VERSION, IMPORTER_ID, IMPORTER_VERSION, PartsImport, Placer, RowCounts, RowOutcome,
+    RowRefusal, RowStatus, manufacturer_item, namespace, parse_parts, parse_parts_built, part_item,
 };
 /// The readers of the parts import as the table round trip uses them: a
 /// table of a CSV or an XLSX sheet as header and cell texts ([`sheet::read_sheet`]), every record of one whole, without a

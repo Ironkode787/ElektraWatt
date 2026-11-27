@@ -601,8 +601,7 @@ impl App {
         crate::chooser::show(ctx, &self.shell, self.page_pane, &mut self.chooser_typing, events);
         crate::junction::show(ctx, &self.shell, events);
         crate::text_popup::show(ctx, &self.shell, &mut self.text_buffer, events);
-        crate::parts_card::show(ctx, &self.shell, events);
-        // The parts import's column mapping step.
+        // The EPLAN report's column mapping card.
         crate::parts_map::show(ctx, &self.shell, events);
         // Show changes of the history panel.
         crate::history::show_changes(ctx, &self.shell, events);

@@ -44,11 +44,18 @@ pub enum PartScope {
     Project,
     /// The parts of My parts.
     Mine,
+    /// The set an import has just brought, while it applies (doc 07 §5.9): its rows, not found by a search.
+    Import,
 }
 
 impl PartScope {
     /// The scopes, in the list's order.
-    pub const ALL: [PartScope; 3] = [PartScope::All, PartScope::Project, PartScope::Mine];
+    pub const ALL: [PartScope; 4] = [
+        PartScope::All,
+        PartScope::Project,
+        PartScope::Mine,
+        PartScope::Import,
+    ];
 
     /// The scope's word in `parts.find`.
     pub fn word(self) -> &'static str {
@@ -56,6 +63,7 @@ impl PartScope {
             PartScope::All => "all",
             PartScope::Project => "project",
             PartScope::Mine => "mine",
+            PartScope::Import => "import",
         }
     }
 }
@@ -151,7 +159,8 @@ impl Session {
     }
 
     /// The list of Parts: the parts that match `text` (as the choosers match it) in `scope`, of `kind` when given,
-    /// only those that lack something with `lacking`, each with where it lives; at most `limit` rows.
+    /// only those that lack something with `lacking`, each with where it lives; at most `limit` rows. The scope of an
+    /// import's set finds nothing: its rows are the set's.
     pub fn parts_find(
         &self,
         text: &str,
@@ -161,6 +170,9 @@ impl Session {
         lang: Option<String>,
         limit: usize,
     ) -> Vec<PartFound> {
+        if scope == PartScope::Import {
+            return Vec::new();
+        }
         let offers = self.part_offers(&PartOfferQuery {
             text: text.to_owned(),
             // Every kind, a cable gland too, which a device's choosers leave out.

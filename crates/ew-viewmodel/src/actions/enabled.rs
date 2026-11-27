@@ -987,7 +987,15 @@ pub(super) fn chooser_open(m: &ShellModel) -> Result<(), Text> {
     }
 }
 
-/// The parts import's column mapping step is open on a writable project.
+/// A column mapping is open: a table's in Parts (the set's first step), else the EPLAN report's card.
+pub(super) fn mapping_open(m: &ShellModel) -> Result<(), Text> {
+    if m.import_set().is_some_and(|s| s.map.is_some()) {
+        return Ok(());
+    }
+    parts_map_open(m)
+}
+
+/// The EPLAN report's column mapping card is open on a writable project.
 pub(super) fn parts_map_open(m: &ShellModel) -> Result<(), Text> {
     writable(m)?;
     if m.parts_map().is_some() {
@@ -1096,7 +1104,6 @@ pub(super) fn card_shown(m: &ShellModel) -> Result<(), Text> {
     // The Preview tab shows every card: a table card is in its navigator.
     if m.properties_shown()
         || m.find_shown()
-        || m.import_card_open()
         || m.preview_shown()
         || m.table_gesture().is_some()
     {
@@ -1341,6 +1348,15 @@ pub(super) fn part_savable(m: &ShellModel) -> Result<(), Text> {
             None => Ok(()),
         };
     }
+    // An import's set: Save writes its new and changed parts into My parts.
+    if let Some(set) = m.parts_place().filter(|p| p.set_shown()).and_then(|p| p.set.as_deref()) {
+        parts_writable(m)?;
+        return if set.to_save() > 0 {
+            Ok(())
+        } else {
+            Err(key!("reason-set-nothing-new").into())
+        };
+    }
     part_editable(m)?;
     let open = open_sheet(m)?;
     if open.changed || open.sheet.new {
@@ -1358,6 +1374,10 @@ pub(super) fn part_changed(m: &ShellModel) -> Result<(), Text> {
         } else {
             Err(key!("reason-part-not-changed").into())
         };
+    }
+    // An import's set: Discard drops it.
+    if m.parts_place().is_some_and(|p| p.set_shown()) {
+        return Ok(());
     }
     let open = open_sheet(m)?;
     if open.changed || open.sheet.new {

@@ -896,7 +896,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // place a part is met and the start page (no project: the libraries alone); an outcome's Edit part… names the
     // `field` the part lacks. `card` settles the card of the open part's Save before another part opens.
     with_params(
-        "part?:text, symbol?:text, field?:text, card?:enum(apply|cancel), discard?:bool",
+        "part?:text, symbol?:text, field?:text, row?:uint, card?:enum(apply|cancel), discard?:bool",
         placed(
             place(Group::Parts, 0, CommandSize::Large, Some(key!("bar-parts"))),
             "packages",
@@ -912,7 +912,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     with_params(
-        "text?:text, shelf?:text, scope?:enum(all|project|mine), kind?:text, maker?:text, lacking?:bool",
+        "text?:text, shelf?:text, scope?:enum(all|project|mine|import), kind?:text, maker?:text, lacking?:bool",
         hidden(act(
             "parts.find",
             View,
@@ -1201,24 +1201,6 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             parts_shown,
             None,
             |s, p| s.act_parts_use_for_all(p),
-        )),
-    ),
-    with_params(
-        "file?:path, key?:text, discard?:bool",
-        hidden(act("symbol.open", View, Menu::Edit, &[], always, None, |s, p| {
-            s.act_symbol("open", p)
-        })),
-    ),
-    with_params(
-        "index:uint, discard?:bool",
-        hidden(act(
-            "symbol.candidate",
-            View,
-            Menu::Edit,
-            &[],
-            always,
-            None,
-            |s, p| s.act_symbol("candidate", p),
         )),
     ),
     with_params(

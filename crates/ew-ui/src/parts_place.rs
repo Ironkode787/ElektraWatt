@@ -24,6 +24,7 @@ use crate::icons::IconId;
 use crate::part_dialog::elide_to;
 use crate::theme;
 
+mod set;
 mod strip;
 mod symbols;
 
@@ -154,6 +155,20 @@ pub(crate) fn toolbar(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) 
         .clicked()
         {
             push(events, "parts.new_symbol");
+        }
+        bar_divider(ui);
+        // The doors (doc 07 §3.6): a table, an EPLAN parts file, an outline drawing, a symbol file.
+        if place_command(
+            ui,
+            "parts.import",
+            strings::text(key!("parts-import")),
+            "database-import",
+            CommandSize::Large,
+            refusal(shell, "parts.import"),
+        )
+        .clicked()
+        {
+            push(events, "parts.import");
         }
         bar_divider(ui);
         for (id, key, icon) in [
@@ -287,6 +302,14 @@ impl PlaceView {
             strip(ui, &sentence, place.back_label(), events);
             ui.add_space(t.space_3);
         }
+        // The set an import brought, with its first step (doc 07 §5.9).
+        if let (true, Some(shown)) = (place.set_shown(), place.set.as_deref()) {
+            let width = ui
+                .available_width()
+                .min(SHEET_WIDTH[usize::from(two)] + CONTENTS_WIDTH);
+            set::middle(ui, shown, width, events);
+            return;
+        }
         let Some(open) = &place.sheet else {
             if let Some(asking) = place.asking {
                 question(ui, asking, events);
@@ -419,6 +442,18 @@ fn mark(ui: &mut Ui, id: IconId, colour: egui::Color32) {
     let t = theme::current(ui.ctx());
     let (rect, _) = ui.allocate_exact_size(vec2(t.icon_sm, t.icon_sm), Sense::hover());
     crate::icons::paint(ui.painter(), id, rect, colour, t.icon_stroke);
+}
+
+/// The 16-px dash of what reads nothing of the part, or of a line that says no more than what is (Ready for, What was
+/// read).
+fn dash(ui: &mut Ui) {
+    let t = theme::current(ui.ctx());
+    let (rect, _) = ui.allocate_exact_size(vec2(t.icon_sm, t.icon_sm), Sense::hover());
+    ui.painter().hline(
+        rect.x_range().shrink(rect.width() / 4.0),
+        rect.center().y,
+        theme::stroke(t.icon_stroke, t.text_tertiary),
+    );
 }
 
 /// The 7-px dot of a group that lacks something (doc 16a §6.27).
@@ -705,6 +740,18 @@ fn list_column(
                         events.push(Event::Action("parts.find", json!({ "scope": scope.word() })));
                     }
                 }
+                // The set an import brought, while it applies (doc 07 §5.3).
+                if place.set.is_some()
+                    && !place.shelf_symbols
+                    && ui
+                        .selectable_label(
+                            place.scope == PartScope::Import,
+                            strings::text(key!("parts-scope-import")),
+                        )
+                        .clicked()
+                {
+                    events.push(Event::Action("parts.find", json!({ "scope": "import" })));
+                }
             });
             if place.shelf_symbols {
                 symbol_shelf(ui, place, events);
@@ -785,6 +832,10 @@ fn list_column(
                     events.push(Event::Action("parts.find", json!({ "lacking": !place.lacking })));
                 }
             });
+            if let (PartScope::Import, Some(shown)) = (place.scope, place.set.as_deref()) {
+                set::list(ui, place, shown, events);
+                return;
+            }
             let all = strings::format_count(count_key!("parts-count"), place.counts.all);
             let mine = place.counts.mine.to_string();
             ui.label(components::small_secondary(
@@ -973,6 +1024,20 @@ fn list_row(ui: &mut Ui, row: &PartFound, open: bool) -> egui::Response {
 /// what Save changes for the project while one is open.
 fn pictures_column(ui: &mut Ui, shell: &ShellModel, place: &PartsPlace, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
+    if let (true, Some(shown)) = (place.set_shown(), place.set.as_deref()) {
+        ScrollArea::vertical()
+            .id_salt("parts-pictures")
+            .auto_shrink([false, false])
+            .show(ui, |ui| {
+                // The update of the project's copies of an EPLAN set's parts, while its card shows.
+                if shell.properties().card().is_some() {
+                    crate::preview::show(ui, shell, events);
+                    ui.add_space(t.space_4);
+                }
+                set::as_it_will_be(ui, shown);
+            });
+        return;
+    }
     let Some(open) = &place.sheet else {
         return;
     };
@@ -1024,7 +1089,7 @@ fn pictures_column(ui: &mut Ui, shell: &ShellModel, place: &PartsPlace, events: 
                 }
             });
             ui.add_space(t.space_4);
-            ready_for(ui, open);
+            ready_for(ui, strings::text(key!("parts-ready-for")), &open.ready);
         });
 }
 
@@ -1046,24 +1111,17 @@ fn picture_card(ui: &mut Ui, title: strings::Key<'static>, body: impl FnOnce(&mu
 
 /// Ready for (doc 07 §5.7, doc 16a §6.27): one row per feature that reads the part, a check when nothing it reads is
 /// missing, a warning with each lack's sentence, a dash when it reads nothing of this part; a hairline between rows.
-fn ready_for(ui: &mut Ui, open: &OpenSheet) {
+fn ready_for(ui: &mut Ui, title: &str, ready: &[ew_viewmodel::ew_api::part_fields::Ready]) {
     use ew_viewmodel::ew_api::part_fields::Readiness;
     let t = theme::current(ui.ctx());
-    ui.label(RichText::new(strings::text(key!("parts-ready-for"))).font(theme::font(&t.type_label)));
+    ui.label(RichText::new(title).font(theme::font(&t.type_label)));
     ui.add_space(t.space_2);
-    for r in &open.ready {
+    for r in ready {
         ui.horizontal_top(|ui| {
             match &r.state {
                 Readiness::Ready(_) => mark(ui, IconId::check, t.success.color32()),
                 Readiness::Lacks(_) => mark(ui, IconId::alert_triangle, t.warning.color32()),
-                Readiness::NotHere(_) => {
-                    let (rect, _) = ui.allocate_exact_size(vec2(t.icon_sm, t.icon_sm), Sense::hover());
-                    ui.painter().hline(
-                        rect.x_range().shrink(rect.width() / 4.0),
-                        rect.center().y,
-                        theme::stroke(t.icon_stroke, t.text_tertiary),
-                    );
-                }
+                Readiness::NotHere(_) => dash(ui),
             }
             ui.vertical(|ui| {
                 ui.label(

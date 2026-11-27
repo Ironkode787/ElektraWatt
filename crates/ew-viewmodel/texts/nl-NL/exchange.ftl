@@ -218,13 +218,6 @@ eplan-terms-title = Voorwaarden van het EPLAN Data Portal
 eplan-terms-text = De voorwaarden van het EPLAN Data Portal beperken de gegevens die je daar downloadt tot EPLAN-producten. Zorg dat jouw voorwaarden dit gebruik toestaan; de download van de fabrikant zelf is de betere bron.
 eplan-terms-local = ElektraWatt leest het bestand alleen van je schijf. Het downloadt of deelt nooit artikelgegevens, en legt van elk artikel het bestand en de SHA-256 ervan vast.
 eplan-continue = Doorgaan
-eplan-parts-text = { $p0 } bevat { $p1 } artikelen. Het project heeft een kopie van { $p2 } ervan; { $p3 } van die kopieën zouden veranderen.
-eplan-parts-note = Bijwerken toont de gewijzigde velden voordat er iets verandert. Een artikel dat het project niet heeft, wordt er nooit aan toegevoegd: voeg de artikelen toe aan je artikelbibliotheek en wijs ze vandaar toe.
-eplan-update = { $p0 ->
-        [one] 1 artikelkopie bijwerken
-       *[other] { $p0 } artikelkopieën bijwerken
-    }
-eplan-library = Aan mijn artikelbibliotheek toevoegen
 eplan-report-text = { $p0 } is een EPLAN-rapport. Het wordt een nieuw project zonder tekeningen.
 eplan-report-none = Geen koppeling past bij de kolommen van dit bestand. Koppel de kolommen zelf, of importeer het bestand als artikeltabel.
 eplan-report-devices = Importeren als apparatenlijst

@@ -70,7 +70,6 @@ mod parts_place;
 mod parts_sheet;
 // The print pre-dialog and its preview.
 mod part_card;
-mod parts_card;
 mod parts_map;
 mod print_dialog;
 // The junction sequence editor popup.

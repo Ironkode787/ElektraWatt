@@ -229,7 +229,7 @@ fn table_parts() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tables/parts.csv")
 }
 
-/// File, Import, Parts table…: the column mapping step, then the import card (`parts_import.rs`).
+/// Import… of a parts table: its set in Parts, which column is what first (`parts_import.rs`).
 fn parts_import(size: Size) {
     let tmp = Tmp::new();
     let mut shell = ShellModel::new(Mode::Gui, tmp.config());
@@ -242,9 +242,7 @@ fn parts_import(size: Size) {
     let path = table_parts();
     dispatch(&mut h, "parts.import", json!({"path": path.to_string_lossy()}));
     step(&mut h);
-    dispatch(&mut h, "parts.map_import", json!({}));
-    step(&mut h);
-    assert!(h.state().shell().properties().card().is_some());
+    assert!(h.state().shell().import_set().is_some());
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -338,7 +336,7 @@ fn the_recovery_dialog_at_300_and_with_14_pt_text() {
 }
 
 #[test]
-fn the_parts_import_card_at_300_and_with_14_pt_text() {
+fn the_parts_import_set_at_300_and_with_14_pt_text() {
     at_both_sizes(parts_import);
 }
 

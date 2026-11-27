@@ -412,11 +412,11 @@ The window answers meanwhile, so a report's new project replaces the open one on
 where it changed while the file was read, the unsaved-changes question comes again at the end, and its Cancel keeps the
 project and drops what was read, which a toast says. A cancel takes effect when the parsing ends and is said in words ("The import of … was cancelled; nothing was
 imported."); a job of a project that closed meanwhile imports nothing and says so, and a read that fails says why in
-the banner. A script waits for the read. Add to my parts library
-takes the user's library's part of the registry first (its manufacturers, the parts it holds), parses the file against
-it in the job and writes at the end, into the library as it is then: a part another write changed meanwhile takes its
-version from the copy held at the write. A user library that does not exist yet is made at the end and the
-file read again for it, so an EDZ that stops at the terms notice makes none.
+the banner. A script waits for the read. An EDZ's or a parts XML's set in Parts
+takes My parts' part of the registry first (its manufacturers, the parts it holds by maker and number), parses the file
+against it in the job, and the file read for the open project's copies beside it; Save reads the file again against My
+parts as it is then and writes it there, making My parts where there is none, so an EDZ that stops at the terms notice
+makes none.
 
 ### 8.4 Message panel
 

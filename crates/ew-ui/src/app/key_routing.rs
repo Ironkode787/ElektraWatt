@@ -135,17 +135,6 @@ impl App {
         if !palette_open && crate::history::keys(ctx, events) {
             return true;
         }
-        // The keys of `preview.apply` (Ctrl+Enter) apply an open parts import card from anywhere (the card is a window
-        // of its own).
-        if !palette_open
-            && self.shell.import_card_open()
-            && (self.bindings.iter())
-                .filter(|b| b.action == "preview.apply")
-                .any(|b| ctx.input_mut(|i| crate::keys::take_chord(i, &b.shortcut)))
-        {
-            events.push(Event::Action("preview.apply", Value::Null));
-            return true;
-        }
         false
     }
 

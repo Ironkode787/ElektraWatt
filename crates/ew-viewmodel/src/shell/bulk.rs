@@ -106,17 +106,6 @@ impl ShellModel {
     /// prints it for a bulk or table card, which has no inline card of its own.
     pub fn preview_summary(&self) -> Option<String> {
         let card = self.props.card()?;
-        // A parts import says what it imports in words ("29 new parts · 3 already in the project"), from
-        // the importer's counts, not the records of its diff (the parts and their manufacturers).
-        if let crate::properties::CardOrigin::Import { created, skipped, .. } = &card.origin {
-            return Some(strings::format(
-                key!("preview-import-summary"),
-                &[
-                    &strings::format_count(count_key!("preview-parts-new"), *created),
-                    &strings::format_count(count_key!("preview-parts-skipped"), *skipped),
-                ],
-            ));
-        }
         // A route card's summary is its plan's lead, and so is an Arrange and route card's.
         if let crate::properties::CardOrigin::Route { lead, .. } = &card.origin {
             return Some(lead.clone());

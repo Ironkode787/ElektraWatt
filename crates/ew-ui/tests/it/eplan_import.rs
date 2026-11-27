@@ -2,17 +2,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! File ▸ Import… of EPLAN data in the window (doc 14 §5, §13), at 1920 × 1080: an EDZ shows the Data Portal
-//! terms notice once per session, then what it means for the project; Update previews the changed fields of the
-//! project's part copy on the card; Add to my parts library writes the user's library; a report spreadsheet
-//! offers the mappings that fit its headers and makes a new project. Not here: that the terms notice cannot be skipped
-//! (`ew-viewmodel`'s `eplan_import.rs`).
+//! terms notice once per session, then its parts stand in Parts as a set (doc 07 §5.9); the update of the project's
+//! part copy is offered there and previews the changed fields on the card; Save writes My parts; a report
+//! spreadsheet offers the mappings that fit its headers and makes a new project. Not here: that the terms notice cannot
+//! be skipped (`ew-viewmodel`'s `eplan_import.rs`).
 
 use crate::support;
 
 use egui_kittest::kittest::Queryable;
 use ew_ui::app::Pick;
 use ew_viewmodel::ew_api::library::LibraryTiers;
-use ew_viewmodel::shell::{Dialog, EplanStep, Mode, Outcome, ShellModel};
+use ew_viewmodel::shell::{Dialog, EplanStep, Mode, Outcome, Screen, ShellModel};
 use serde_json::json;
 use std::path::Path;
 use support::{Scripted, Tmp, harness_with, settle, wait_for_page};
@@ -53,11 +53,11 @@ fn import_menu(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>) {
 }
 
 #[test]
-fn an_edz_asks_the_terms_once_then_updates_the_part_copy_on_the_card_and_fills_the_library() {
+fn an_edz_asks_the_terms_once_then_its_set_updates_the_part_copy_and_fills_my_parts() {
     let tmp = Tmp::new();
     let edz = tmp.0.join("psu.edz");
     std::fs::copy(EDZ, &edz).unwrap();
-    let mut h = open_sample(&tmp, &[&edz, &edz, &edz]);
+    let mut h = open_sample(&tmp, &[&edz, &edz]);
     // The sample holds no copy of the EDZ's part: the test tables' row gives it one whose fields the EDZ changes.
     support::import_parts(&mut h, &tmp, &[support::table_part("2904602")]);
 
@@ -73,45 +73,26 @@ fn an_edz_asks_the_terms_once_then_updates_the_part_copy_on_the_card_and_fills_t
     support::assert_accessible(&h);
     h.get_by_label("Continue").click();
     support::finish_jobs(&mut h);
-    let Some(Dialog::ImportEplan {
-        step: EplanStep::Parts {
-            read,
-            matched,
-            changed,
-        },
-        ..
-    }) = h.state().shell().dialog().cloned()
-    else {
-        panic!("the parts step: {:?}", h.state().shell().dialog());
-    };
-    assert_eq!((read, matched, changed), (1, 1, 1));
-    h.get_by_label_contains("The project has a copy of 1 of them");
-    support::assert_accessible(&h);
-    h.get_by_label("Update 1 part copy").click();
-    support::finish_jobs(&mut h);
+    settle(&mut h);
+    // The notice closes; the file's part stands in Parts as a set; the project's copy of it is offered its update.
     assert!(h.state().shell().dialog().is_none());
+    assert_eq!(h.state().shell().screen(), Screen::Parts);
+    assert_eq!(h.state().shell().import_set().and_then(|s| s.project), Some((1, 1)));
+    h.get_by_label_contains("This project holds copies of 1 of these parts");
+    support::assert_accessible(&h);
+    h.get_by_label("Update them…").click();
+    settle(&mut h);
     assert!(
         h.state().shell().properties().card().is_some(),
         "the card of the update lists the changed fields"
     );
-    support::dispatch(&mut h, "ui.dismiss", json!({}));
-
-    // The notice is shown once per session: the second import goes to the parts step; the library takes the part.
-    import_menu(&mut h);
-    assert!(matches!(
-        h.state().shell().dialog(),
-        Some(Dialog::ImportEplan {
-            step: EplanStep::Parts { .. },
-            ..
-        })
-    ));
-    h.get_by_label("Add to my parts library").click();
-    support::finish_jobs(&mut h);
-    assert!(h.state().shell().dialog().is_none());
+    support::dispatch(&mut h, "preview.cancel", json!({}));
+    h.get_by_label("Save 1 to My parts").click();
+    settle(&mut h);
     let toast = h.state().shell().toast().map(|t| t.text.clone());
     assert_eq!(
         toast.as_deref(),
-        Some("psu.edz: 1 parts added to your parts library, 0 updated, 0 not imported.")
+        Some("psu.edz: 1 new parts and 0 changed ones saved to My parts.")
     );
     assert!(
         tmp.0
@@ -120,6 +101,11 @@ fn an_edz_asks_the_terms_once_then_updates_the_part_copy_on_the_card_and_fills_t
             .join("user-parts.ewlib")
             .is_dir()
     );
+
+    // The notice is shown once per session: the second import shows the set at once.
+    import_menu(&mut h);
+    assert!(h.state().shell().dialog().is_none());
+    assert!(h.state().shell().import_set().is_some());
 }
 
 /// A report whose headers fit a shipped mapping offers it; Import as terminal diagram makes a new project without
@@ -168,8 +154,8 @@ fn a_report_that_fits_a_mapping_becomes_a_new_project_and_a_pageless_project_jud
 }
 
 /// One File ▸ Import… takes every file and goes on by what the file is: a drawing to its dialog, an EDZ to
-/// the terms, a parts XML to its parts, a parts table of the `ew` dialect to the column mapping, a report to its
-/// mappings; the menus hold no separate entry for any of them.
+/// the terms, a parts XML and a parts table to their sets in Parts, a report to its mappings; the menus hold no
+/// separate entry for any of them.
 #[test]
 fn one_import_goes_on_by_what_the_file_is() {
     let tmp = Tmp::new();
@@ -203,20 +189,16 @@ fn one_import_goes_on_by_what_the_file_is() {
     ));
     support::dispatch(&mut h, "ui.dismiss", json!({}));
     import_menu(&mut h);
-    assert!(matches!(
-        h.state().shell().dialog(),
-        Some(Dialog::ImportEplan {
-            step: EplanStep::Parts { .. },
-            ..
-        })
-    ));
-    support::dispatch(&mut h, "ui.dismiss", json!({}));
+    assert!(
+        h.state().shell().import_set().is_some_and(|s| s.map.is_none()),
+        "a parts XML: its set in Parts"
+    );
     import_menu(&mut h);
     assert!(
-        h.state().shell().parts_map().is_some(),
-        "a parts table: its column mapping"
+        h.state().shell().import_set().is_some_and(|s| s.map.is_some()),
+        "a parts table: its set, which column is what first"
     );
-    support::dispatch(&mut h, "ui.dismiss", json!({}));
+    support::dispatch(&mut h, "parts.back", json!({}));
     import_menu(&mut h);
     assert!(matches!(
         h.state().shell().dialog(),

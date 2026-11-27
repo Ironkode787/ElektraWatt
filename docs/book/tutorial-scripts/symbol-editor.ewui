@@ -35,6 +35,6 @@
 {"action":"symbol.scratch"}
 {"action":"file.save"}
 {"action":"ui.describe"}
-{"action":"symbol.open","params":{"file":"power.symbol.json"}}
+{"action":"parts.import","params":{"path":"power.symbol.json"}}
 {"action":"ui.describe"}
 {"action":"parts.back"}

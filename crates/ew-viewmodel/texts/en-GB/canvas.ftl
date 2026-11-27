@@ -355,15 +355,6 @@ preview-records = { $p0 ->
         [one] 1 item
        *[other] { $p0 } items
     }
-preview-parts-new = { $p0 ->
-        [one] 1 new part
-       *[other] { $p0 } new parts
-    }
-preview-parts-skipped = { $p0 ->
-        [one] 1 already in the project
-       *[other] { $p0 } already in the project
-    }
-preview-import-summary = { $p0 } · { $p1 }
 preview-records-made-of = { $p0 }: { $p1 }
 preview-move-lead = { $p0 ->
         [one] Moves 1 symbol to page { $p1 }

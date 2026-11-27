@@ -192,8 +192,7 @@ The window and `.ewui` scripts share these actions:
 | `parts.field` | `field`: `symbol.name`, `symbol.what` (`box` or a starter function's key), `symbol.licence` or `symbol.source`, `value` |
 | `parts.save`, `parts.back`, `parts.own`, `parts.discard` | none: the next step, the way back, Make my own from it, Discard |
 | `parts.find` | `shelf`: `parts` or `symbols`, with `text` and `scope` (`all`, `project`, `mine`) |
-| `symbol.open` | `file`, optional import `key` (default: the file's name), optional `discard: true` |
-| `symbol.candidate` | zero-based `index` from an import package |
+| `parts.import` | on the Symbols shelf or the drawing: `path` of a symbol file, optional import `key` (default: the file's name), optional `discard: true`; or `index`, zero-based, another drawing of the file in hand |
 | `symbol.draw` | `tool`, `x`, `y`, optional `x2`, `y2`, `text`, arc `start`/`sweep` in whole degrees |
 | `symbol.path` | `points` as millimetre pairs, optional `closed` for a polygon |
 | `symbol.cp` | `x`, `y`, optional `idx`, `fn_cp`, `designation`, `direction` (`up`, `right`, `down`, `left`, or `lead`: along the lead that ends there) |

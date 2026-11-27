@@ -1,11 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! File ▸ Import… of a parts table in the window without rendering: without a project it opens no mapping;
-//! with a new project it raises the file prompt (`Prompt::OpenImport`), the answer opens the column mapping step
-//!  and its Import the import card in the Preview tab, the read's outcome in one toast and no strip over the
-//! tab title, Ctrl+Enter applies it from anywhere, and the project has the 29 part copies; the accessible-name
-//! walker after every step.
+//! File ▸ Import… of a parts table in the window without rendering: it goes on to Parts (doc 07 §3.6) with or without
+//! a project; with a new project it raises the file prompt (`Prompt::OpenImport`), the answer shows the table's set in
+//! Parts with which column is what as its first step, and its Save writes the parts into My parts; Discard drops it;
+//! the accessible-name walker after the steps. The file dialog's frames and its thread.
 
 use crate::support;
 
@@ -19,9 +18,10 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::{App, Pick, PickReply, Platform, setup};
 use ew_ui::clock::Clock;
-use ew_viewmodel::shell::{Mode, Outcome, Prompt, ShellModel};
+use ew_viewmodel::ew_api::library::LibraryTiers;
+use ew_viewmodel::shell::{Mode, Outcome, Prompt, Screen, ShellModel};
 use serde_json::{Value, json};
-use support::{Scripted, Tmp, harness, harness_with, screen, settle, wait_for_page};
+use support::{Scripted, Tmp, harness_with, screen, settle, wait_for_page};
 
 /// The newest notification's text: the toast it showed (the harness's clock may already have timed the toast out).
 fn toast(h: &Harness<'_, App>) -> Option<String> {
@@ -33,10 +33,16 @@ fn toast(h: &Harness<'_, App>) -> Option<String> {
         .map(|n| n.text.clone())
 }
 
+/// A shell whose person has a user folder under `tmp` (My parts is made there on the first Save).
+fn shell(tmp: &Tmp) -> ShellModel {
+    let mine = LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), Vec::new(), Vec::new());
+    ShellModel::new(Mode::Gui, tmp.config().with_libraries(Some(mine)))
+}
+
 /// A shell on a new project with the built-in template, and the project's directory.
 fn new_project(tmp: &Tmp) -> (ShellModel, PathBuf) {
     let dir = tmp.0.join("proj.ew");
-    let mut shell = ShellModel::new(Mode::Gui, tmp.config());
+    let mut shell = shell(tmp);
     let params: Value = json!({"dir": dir.to_string_lossy(), "template": "builtin"});
     assert_eq!(shell.dispatch("file.new", &params), Outcome::Done);
     (shell, dir)
@@ -46,27 +52,38 @@ fn table_parts() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tables/parts.csv")
 }
 
+/// A table of two parts in the project tables' columns.
+fn two_parts(tmp: &Tmp) -> PathBuf {
+    let csv = tmp.0.join("parts.csv");
+    std::fs::write(
+        &csv,
+        "key,manufacturer,part_number,kind,type_designation,description,unit,test_data,tech_data\nA1,Acme,A1,,,Relay A,piece,,\nA2,Acme,A2,,,Relay B,piece,,\n",
+    )
+    .unwrap();
+    csv
+}
+
 #[test]
-fn without_a_project_a_parts_table_opens_no_mapping() {
+fn without_a_project_a_parts_table_goes_on_to_parts() {
     let tmp = Tmp::new();
     let platform = Scripted::default();
     platform.answers.borrow_mut().push_back(Pick::Path(table_parts()));
-    let mut h = harness(&tmp, platform, None);
+    let mut h = harness_with(shell(&tmp), platform, None);
     settle(&mut h);
     support::open_menu(&mut h, &["File"]);
     settle(&mut h);
     h.get_by_label("Import…").click();
     settle(&mut h);
     settle(&mut h);
-    assert!(
-        h.state().shell().parts_map().is_none(),
-        "no project: no mapping card"
-    );
-    assert!(h.state().shell().dialog().is_none());
+    assert_eq!(h.state().shell().screen(), Screen::Parts);
+    assert!(h.state().shell().import_set().is_some(), "the table's set");
+    assert!(h.state().shell().parts_without_project());
+    support::assert_accessible(&h);
+    h.state_mut().shell_mut().shutdown();
 }
 
 #[test]
-fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
+fn the_entry_prompts_and_save_writes_the_set_into_my_parts() {
     let tmp = Tmp::new();
     let platform = Scripted::default();
     platform.answers.borrow_mut().push_back(Pick::Path(table_parts()));
@@ -77,78 +94,37 @@ fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
 
     support::open_menu(&mut h, &["File"]);
     settle(&mut h);
-    assert!(
-        !h.get_by_label("Import…").accesskit_node().is_disabled(),
-        "a writable project: enabled"
-    );
+    assert!(!h.get_by_label("Import…").accesskit_node().is_disabled());
     h.get_by_label("Import…").click();
     settle(&mut h);
     settle(&mut h);
     assert_eq!(platform.asked.borrow().as_slice(), [Prompt::OpenImport]);
-    // The column mapping step first, pre-filled from the `ew` dialect's headers; Import reads the table.
-    assert!(h.query_by_label("Map columns").is_some(), "the mapping card");
+    // Parts shows the set, which column is what first, a drop-down per column.
+    assert_eq!(h.state().shell().screen(), Screen::Parts);
+    assert!(h.query_by_label("Which column is what").is_some(), "the mapping");
     assert!(
-        h.query_by_label("Imports as part_number").is_some(),
-        "a member drop-down per column"
+        h.query_by_label("Goes to part_number").is_some(),
+        "a field drop-down per column"
     );
-    h.get_by_label("Import").click();
+    support::assert_accessible(&h);
+    // Every row of a maker and a number is a part; the rows that repeat one with other values are refused.
+    let new = h.state().shell().import_set().map_or(0, |s| s.to_save());
+    assert!(new > 0);
+    h.get_by_label(&format!("Save {new} to My parts")).click();
     settle(&mut h);
-    settle(&mut h);
-    assert!(h.state().shell().parts_map().is_none());
-    // The read's outcome once, in the toast; the Preview tab shows the card with its title and buttons, and
-    // neither a strip over the tab title nor the tab repeats the counts.
-    let rows = ew_testdir::table_rows("parts.csv");
+    assert!(h.state().shell().import_set().is_none(), "saved");
     assert_eq!(
         toast(&h),
         Some(format!(
-            "Read parts.csv: {rows} new, 0 already in the project, 0 rejected."
+            "parts.csv: {new} new parts and 0 changed ones saved to My parts."
         ))
     );
-    assert_eq!(
-        h.state()
-            .shell()
-            .notifications()
-            .entries()
-            .filter(|n| n.text.contains("parts.csv"))
-            .count(),
-        1,
-        "one toast"
-    );
-    assert!(
-        h.query_by_label_contains(&format!("parts.csv: {rows} created"))
-            .is_none()
-    );
-    assert!(h.query_by_label_contains("Preview open").is_none());
-    assert!(h.query_by_label_contains("part copies").is_none());
-    assert!(h.state().shell().banner().is_none());
-    assert!(
-        h.query_all_by_label_contains("Preview: Import parts")
-            .next()
-            .is_some(),
-        "the card's title in the Preview tab"
-    );
-    assert_eq!(h.get_all_by_label("Apply").count(), 1, "the tab's button");
-    assert!(h.get_all_by_label("Cancel").next().is_some());
-    assert!(h.state().shell().import_card_open());
-    assert!(!h.state().shell().can_undo(), "the card waits for Apply");
-
-    // Ctrl+Enter applies it.
-    h.key_press_modifiers(Modifiers::COMMAND, Key::Enter);
-    settle(&mut h);
-    assert!(
-        h.state().shell().properties().card().is_none(),
-        "the card is gone"
-    );
-    assert!(h.state().shell().can_undo());
-    assert!(h.state().shell().banner().is_none(), "a toast, not a banner");
-    assert_eq!(
-        toast(&h),
-        Some(format!("Imported {rows} parts from parts.csv (0 skipped)."))
-    );
+    assert!(!h.state().shell().can_undo(), "nothing went into the project");
+    h.state_mut().shell_mut().shutdown();
 }
 
 #[test]
-fn cancel_drops_the_card_without_a_change() {
+fn discard_drops_the_set_without_a_change() {
     let tmp = Tmp::new();
     let (shell, _) = new_project(&tmp);
     let mut h = harness_with(shell, Scripted::default(), None);
@@ -160,18 +136,20 @@ fn cancel_drops_the_card_without_a_change() {
         .shell_mut()
         .dispatch("parts.import", &json!({"path": path.to_string_lossy()}));
     assert_eq!(out, Outcome::Done);
-    let out = h.state_mut().shell_mut().dispatch("parts.map_import", &json!({}));
-    assert_eq!(out, Outcome::Done);
     settle(&mut h);
-    // The Preview tab shows the card too; its chip and the tab each have the button.
-    h.get_all_by_label("Cancel").next().unwrap().click();
+    h.get_by_label("Discard").click();
     settle(&mut h);
-    assert!(h.state().shell().properties().card().is_none());
-    assert!(!h.state().shell().can_undo());
+    assert!(h.state().shell().import_set().is_none());
+    assert!(
+        !tmp.0
+            .join("data")
+            .join("libraries")
+            .join("user-parts.ewlib")
+            .exists()
+    );
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The next frame after the file dialog returns, with no pointer input, shows the menu closed and the import card;
 /// A platform that records the egui pass in which it answered the dialog, so the test can inspect that exact frame.
 struct DialogPlatform {
     path: PathBuf,
@@ -188,17 +166,12 @@ impl Platform for DialogPlatform {
     }
 }
 
-/// The frame that answers the file dialog, with no pointer input, has the menu closed and the import card in the
-/// shell; the following frame paints its text, and Apply's next frame shows the banner.
+/// The frame that answers the file dialog, with no pointer input, has the menu closed and the set in the shell; the
+/// following frame paints it, and Save's next frames say it.
 #[test]
-fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
+fn the_set_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
     let tmp = Tmp::new();
-    let csv = tmp.0.join("parts.csv");
-    std::fs::write(
-        &csv,
-        "key,manufacturer,part_number,kind,type_designation,description,unit,test_data,tech_data\nA1,Acme,A1,,,Relay A,piece,,\nA2,Acme,A2,,,Relay B,piece,,\n",
-    )
-    .unwrap();
+    let csv = two_parts(&tmp);
     let (shell, _) = new_project(&tmp);
     let ctx_slot = Rc::new(RefCell::new(None));
     let pick_pass = Rc::new(Cell::new(u64::MAX));
@@ -218,8 +191,8 @@ fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
     support::open_menu(&mut h, &["File"]);
     settle(&mut h);
     h.get_by_label("Import…").click();
-    // Step frames until the one in which the dialog was answered; it must already show the menu closed and the card in
-    // the shell (the card's text is laid out in the following frame).
+    // Step frames until the one in which the dialog was answered; it must already show the menu closed and the set in
+    // the shell (the set is laid out in the following frame).
     let mut answered = false;
     for _ in 0..6 {
         let before = h.ctx.cumulative_pass_nr();
@@ -231,10 +204,9 @@ fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
                 h.query_by_label("Import…").is_none(),
                 "the File menu closes in the frame that answers the pick"
             );
-            // The column mapping step is the card that answers the pick.
             assert!(
-                h.state().shell().parts_map().is_some(),
-                "the card is in the shell in the frame that answers the pick"
+                h.state().shell().import_set().is_some(),
+                "the set is in the shell in the frame that answers the pick"
             );
             answered = true;
             break;
@@ -243,32 +215,15 @@ fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
     assert!(answered, "the pick was answered");
     h.step();
     assert!(
-        h.query_by_label("Map columns").is_some(),
-        "the mapping card is painted"
+        h.query_by_label("Which column is what").is_some(),
+        "the set is painted"
     );
-    h.get_by_label("Import").click();
+    h.get_by_label("Save 2 to My parts").click();
     h.step();
-    h.step();
-    h.step();
-    assert!(
-        toast(&h).is_some_and(|t| t.starts_with("Read parts.csv: 2 new")),
-        "the toast: {:?} {:?} {:?}",
-        h.state().shell().parts_map(),
-        h.state().shell().banner(),
-        h.state().shell().properties().card().map(|c| c.reason)
-    );
-    // The Preview tab shows the card too; its chip and the tab each have the button.
-    h.get_all_by_label("Apply").next().unwrap().click();
-    h.step();
-    assert_eq!(h.state().shell().banner(), None);
     h.step();
     assert_eq!(
         toast(&h).as_deref(),
-        Some("Imported 2 parts from parts.csv (0 skipped).")
-    );
-    assert!(
-        h.state().shell().properties().card().is_none(),
-        "the card is gone"
+        Some("parts.csv: 2 new parts and 0 changed ones saved to My parts.")
     );
     h.state_mut().shell_mut().shutdown();
 }
@@ -293,7 +248,7 @@ impl Platform for ThreadedPlatform {
     }
 }
 
-/// A harness on a new project whose File, Import, Parts table… has been clicked once with `platform`.
+/// A harness on a new project whose File ▸ Import… has been clicked once with `platform`.
 fn harness_with_open_dialog<'a>(tmp: &Tmp, platform: ThreadedPlatform) -> Harness<'a, App> {
     let (shell, _) = new_project(tmp);
     let app = App::new(shell, Box::new(platform), None, Clock::Wall);
@@ -311,16 +266,11 @@ fn harness_with_open_dialog<'a>(tmp: &Tmp, platform: ThreadedPlatform) -> Harnes
 }
 
 /// While the dialog is open on its own thread the window keeps painting, nothing is dispatched and no second
-/// dialog starts; the frame after the answer arrives has the card in the shell, and the next one paints it.
+/// dialog starts; the frame after the answer arrives has the set in the shell, and the next one paints it.
 #[test]
-fn an_answer_from_the_dialog_thread_opens_the_card_in_the_next_frame() {
+fn an_answer_from_the_dialog_thread_shows_the_set_in_the_next_frame() {
     let tmp = Tmp::new();
-    let csv = tmp.0.join("parts.csv");
-    std::fs::write(
-        &csv,
-        "key,manufacturer,part_number,kind,type_designation,description,unit,test_data,tech_data\nA1,Acme,A1,,,Relay A,piece,,\nA2,Acme,A2,,,Relay B,piece,,\n",
-    )
-    .unwrap();
+    let csv = two_parts(&tmp);
     let platform = ThreadedPlatform::default();
     let mut h = harness_with_open_dialog(&tmp, platform.clone());
     assert_eq!(platform.started.get(), 1, "the dialog started once");
@@ -332,7 +282,7 @@ fn an_answer_from_the_dialog_thread_opens_the_card_in_the_next_frame() {
         h.ctx.cumulative_pass_nr() > pass,
         "the window keeps painting while the dialog is open"
     );
-    assert!(!h.state().shell().import_card_open(), "no card before the answer");
+    assert!(h.state().shell().import_set().is_none(), "no set before the answer");
     assert_eq!(platform.started.get(), 1, "no second dialog while one is open");
     assert!(
         h.query_by_label("Import…").is_none(),
@@ -342,28 +292,19 @@ fn an_answer_from_the_dialog_thread_opens_the_card_in_the_next_frame() {
     let tx = platform.answer.borrow_mut().take().unwrap();
     tx.send(Pick::Path(csv)).unwrap();
     h.step();
-    // The column mapping step is the card the answer opens.
     assert!(
-        h.state().shell().parts_map().is_some(),
-        "the card is in the shell in the frame after the answer"
+        h.state().shell().import_set().is_some(),
+        "the set is in the shell in the frame after the answer"
     );
     h.step();
-    h.get_by_label("Import").click();
-    h.step();
-    h.step();
-    h.step();
     assert!(
-        h.state().shell().properties().card().is_some(),
-        "the card is open"
-    );
-    assert!(
-        toast(&h).is_some_and(|t| t.starts_with("Read parts.csv: 2 new")),
-        "the read's toast"
+        h.query_by_label("Which column is what").is_some(),
+        "the set is painted"
     );
     h.state_mut().shell_mut().shutdown();
 }
 
-/// A dialog thread that ends without an answer (it panicked) counts as a cancel: no card, no change, and the
+/// A dialog thread that ends without an answer (it panicked) counts as a cancel: no set, no change, and the
 /// next prompt starts a new dialog.
 #[test]
 fn a_dialog_thread_without_an_answer_counts_as_cancelled() {
@@ -373,7 +314,7 @@ fn a_dialog_thread_without_an_answer_counts_as_cancelled() {
     drop(platform.answer.borrow_mut().take());
     h.step();
     h.step();
-    assert!(!h.state().shell().import_card_open());
+    assert!(h.state().shell().import_set().is_none());
     assert!(!h.state().shell().can_undo());
     support::open_menu(&mut h, &["File"]);
     settle(&mut h);

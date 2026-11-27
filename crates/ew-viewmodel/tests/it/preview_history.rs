@@ -469,22 +469,6 @@ fn every_origin_opens_the_tab_and_closing_it_cancels() {
     assert_eq!(state(&shell)["card"]["origin"], "bulk");
     done(&mut shell, "preview.cancel", json!({}));
     shell.shutdown();
-
-    // Import: the parts table's card on a new project.
-    let tmp = Tmp::new("pv3-import");
-    let mut s = tmp.empty_shell(Mode::Headless);
-    crate::common::make_project(&mut s, &tmp.0.join("p.ew"), &[]);
-    let parts = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tables/parts.csv");
-    done(&mut s, "parts.import", json!({"path": parts.to_string_lossy()}));
-    done(&mut s, "parts.map_import", json!({}));
-    assert!(s.preview_shown());
-    assert_eq!(
-        lines_with(&s, "card ")[0],
-        "card ready \"parts.import\" created 29 skipped 0 errors 0"
-    );
-    let section = preview_section(&s);
-    assert!(section[1].ends_with(" created 29 skipped 0"), "{section:#?}");
-    s.shutdown();
 }
 
 /// The Preview tab a card opened closes when the card is applied or cancelled; a tab the user

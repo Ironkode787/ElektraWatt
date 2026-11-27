@@ -987,14 +987,6 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
                 &xrefs,
             ],
         ),
-        CardOrigin::Import {
-            source,
-            created,
-            skipped,
-        } => strings::format(
-            key!("parts-card-line"),
-            &[source, &created.to_string(), &skipped.to_string(), "0"],
-        ),
         CardOrigin::Reorder { notices } => crate::properties::reorder_line(card, notices),
         CardOrigin::QuickFix { .. } => crate::properties::fix_line(card),
         // The Preview tab's title (a table card's gesture title) and its summary line, as the window shows them.

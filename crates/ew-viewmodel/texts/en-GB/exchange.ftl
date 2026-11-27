@@ -223,13 +223,6 @@ eplan-terms-title = EPLAN Data Portal terms
 eplan-terms-text = The EPLAN Data Portal's terms restrict the data downloaded from it to EPLAN products. Make sure your terms allow this use; the manufacturer's own download is the better source.
 eplan-terms-local = ElektraWatt reads the file from your disk only. It never downloads or shares part data, and it records the file and its SHA-256 on every part.
 eplan-continue = Continue
-eplan-parts-text = { $p0 } holds { $p1 } parts. The project has a copy of { $p2 } of them; { $p3 } of those copies would change.
-eplan-parts-note = Update lists the changed fields before anything changes. A part the project does not have is never added to it: add the parts to your parts library, and assign them from there.
-eplan-update = { $p0 ->
-        [one] Update 1 part copy
-       *[other] Update { $p0 } part copies
-    }
-eplan-library = Add to my parts library
 eplan-report-text = { $p0 } is an EPLAN report. It becomes a new project without drawings.
 eplan-report-none = No mapping fits the columns of this file. Map the columns yourself, or import the file as a parts table.
 eplan-report-devices = Import as device list

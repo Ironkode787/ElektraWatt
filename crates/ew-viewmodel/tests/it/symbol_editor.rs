@@ -266,11 +266,11 @@ fn a_drawings_history_export_save_and_test_in_both_frontends() {
         assert_eq!(shell.kept_symbol_editor().unwrap().draft, draft);
         if mode == Mode::Headless {
             assert_eq!(
-                failed(&mut shell, "symbol.open", json!({"file":file})),
+                failed(&mut shell, "parts.import", json!({"path":file})),
                 "This symbol has unsaved changes. Save it or choose Discard changes."
             );
         }
-        done(&mut shell, "symbol.open", json!({"file":file,"discard":true}));
+        done(&mut shell, "parts.import", json!({"path":file,"discard":true}));
         assert_eq!(
             shell.symbol_editor().unwrap().draft.symbol,
             original.symbol,
@@ -370,7 +370,7 @@ fn a_new_symbol_takes_its_key_from_its_name() {
         include_bytes!("../../../ew-import-qet/tests/fixtures/contact_no.elmt"),
     )
     .unwrap();
-    done(&mut shell, "symbol.open", json!({"file":file,"discard":true}));
+    done(&mut shell, "parts.import", json!({"path":file,"discard":true}));
     assert_eq!(key(&shell), "contact_no");
     shell.shutdown();
 }
@@ -389,7 +389,7 @@ fn a_symbol_whose_key_his_parts_hold_says_where_that_one_is() {
     )
     .unwrap();
     let import = |shell: &mut ShellModel| {
-        done(shell, "symbol.open", json!({"file": file, "discard": true}));
+        done(shell, "parts.import", json!({"path": file, "discard": true}));
         for (field, value) in [
             ("symbol.licence", "CC0-1.0"),
             ("symbol.source", "A test fixture"),
@@ -497,14 +497,14 @@ fn the_drawing_state_says_unsaved_only_after_an_edit_and_saved_only_once_stored(
     let file = tmp.0.join("state.symbol.json");
     done(&mut shell, "symbol.export", json!({"file":file}));
     assert_eq!(words(&shell), "Saved");
-    done(&mut shell, "symbol.open", json!({"file":file,"discard":true}));
+    done(&mut shell, "parts.import", json!({"path":file,"discard":true}));
     assert!(!shell.symbol_editor().unwrap().dirty());
     assert_eq!(words(&shell), "Not saved yet");
     let qet = concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../ew-import-qet/tests/fixtures/contact_no.elmt"
     );
-    done(&mut shell, "symbol.open", json!({"file":qet}));
+    done(&mut shell, "parts.import", json!({"path":qet}));
     assert_eq!(words(&shell), "Not saved yet");
     shell.shutdown();
 }
@@ -516,8 +516,11 @@ fn symbol_paths_are_refused_when_empty_and_resolve_against_the_user_library_fold
     let tmp = Tmp::new("symbol-paths");
     let config = tmp.0.join("config");
     let mut shell = ShellModel::new(Mode::Headless, ShellConfig::in_dir(&config, "0.0.0-test"));
+    // Import… on the Symbols shelf reads a symbol file.
+    done(&mut shell, "parts.open", json!({}));
+    done(&mut shell, "parts.find", json!({"shelf": "symbols"}));
     assert_eq!(
-        failed(&mut shell, "symbol.open", json!({"file":""})),
+        failed(&mut shell, "parts.import", json!({"path":""})),
         "Choose a symbol file first."
     );
     drawn(&mut shell, "Paths");
@@ -539,7 +542,7 @@ fn the_window_asks_the_pickers_for_a_missing_symbol_path() {
     let mut shell = tmp.empty_shell(Mode::Gui);
     new_drawing(&mut shell, "Pick");
     for (action, prompt) in [
-        ("symbol.open", Prompt::OpenSymbol),
+        ("parts.import", Prompt::OpenSymbol),
         ("symbol.export", Prompt::SaveSymbol),
     ] {
         done(&mut shell, action, json!({}));
@@ -858,7 +861,7 @@ fn a_bad_symbol_file_and_a_failed_export_are_said_in_words() {
     let bad = tmp.0.join("bad.symbol.json");
     std::fs::write(&bad, "{ \"format\": ").unwrap();
     assert_eq!(
-        failed(&mut shell, "symbol.open", json!({ "file": bad })),
+        failed(&mut shell, "parts.import", json!({ "path": bad })),
         "This file cannot be read as a symbol. It may be damaged, or not a symbol file."
     );
     drawn(&mut shell, "Words");
@@ -1169,7 +1172,7 @@ fn refusals_of_the_drawings_actions_are_in_words() {
     drawn(&mut shell, "Words");
     for (action, params, text) in [
         (
-            "symbol.candidate",
+            "parts.import",
             json!({"index": 5, "discard": true}),
             "Choose one of the drawings this file holds.",
         ),

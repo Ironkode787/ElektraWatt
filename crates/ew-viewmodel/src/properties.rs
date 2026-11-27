@@ -246,16 +246,6 @@ pub enum CardOrigin {
         /// The number of hits the replace writes.
         hits: usize,
     },
-    /// File, Import, Parts table: the card of `parts.import`, a window of its own that no selection change
-    /// and no pane of the layout ends; it goes with the project.
-    Import {
-        /// The base name of the chosen table (`parts.csv`).
-        source: String,
-        /// The copies the command creates.
-        created: usize,
-        /// The copies it skips: their key exists already.
-        skipped: usize,
-    },
     /// The Pages navigator's reorder (`pages.reorder`): the card in the Pages pane, with the preview's folio
     /// changes `"<old> → <new>"` in position order.
     Reorder {
@@ -575,12 +565,11 @@ pub struct MacroField {
 }
 
 impl CardOrigin {
-    /// The transcript's word (`properties`, `find`, `import`, `reorder`, `fix`, `bulk`).
+    /// The transcript's word (`properties`, `find`, `reorder`, `fix`, `bulk`).
     pub fn word(&self) -> &'static str {
         match self {
             CardOrigin::Properties => "properties",
             CardOrigin::Find { .. } => "find",
-            CardOrigin::Import { .. } => "import",
             CardOrigin::Reorder { .. } => "reorder",
             CardOrigin::QuickFix { .. } => "fix",
             CardOrigin::Bulk { .. } => "bulk",

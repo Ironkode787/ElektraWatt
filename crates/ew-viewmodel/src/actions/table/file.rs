@@ -65,7 +65,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     // An EDZ, a parts XML or a report spreadsheet of EPLAN; File ▸ Import… reaches it.
     with_params(
-        "file?:path, how?:enum(update|library|report|map|parts), preset?:text, terms?:bool, dir?:path, discard?:bool",
+        "file?:path, how?:enum(report|map|parts), preset?:text, terms?:bool, dir?:path, discard?:bool",
         act(
             "file.import_eplan",
             Command,
@@ -164,21 +164,23 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_reimport_qet_apply(),
     )),
-    // File, Import, Parts table…
+    // Import… of Parts (doc 07 §3.6): a table, an EPLAN parts file, an outline drawing for the open part, a symbol file
+    // on the Symbols shelf; File ▸ Import… goes on to it for a file of parts. `index` takes another drawing of the symbol
+    // file in hand, `update` the update of the project's copies of an EPLAN set's parts.
     with_params(
-        "path?:path",
-        with_icon(
+        "path?:path, index?:uint, key?:text, discard?:bool, terms?:bool, update?:bool",
+        in_symbol_editor(with_icon(
             "database-import",
             act(
                 "parts.import",
                 Command,
-                Menu::Project,
+                Menu::Edit,
                 &[],
-                writable,
+                always,
                 None,
                 |s, p| s.act_parts_import(p),
             ),
-        ),
+        )),
     ),
     // Project, Add the generic stock: the starter's ferrules and markers the workshop stock lacks (doc 07 §2.5).
     with_icon(
@@ -251,7 +253,8 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_workshop_stock_apply(),
     )),
-    // The parts import's column mapping step (the card's fields and its Import button).
+    // The column mapping: a table's in Parts (the set follows each change), else the EPLAN report's card; the card's
+    // Import button.
     with_params(
         "source?:text, column?:text, member?:text, target?:enum(devices|terminals|connections)",
         hidden(act(
@@ -259,7 +262,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             Command,
             Menu::Project,
             &[],
-            parts_map_open,
+            mapping_open,
             None,
             |s, p| s.act_parts_map(p),
         )),

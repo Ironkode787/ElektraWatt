@@ -131,6 +131,11 @@ fn is_part_ref(ty: &FieldType) -> bool {
         .all(|n| m.iter().any(|c| c.name == *n)))
 }
 
+/// Whether the part member at `path` names another part (a cabinet's plate), which the place chooses by number.
+pub(crate) fn names_a_part(path: &str) -> bool {
+    field_type(path).is_some_and(|t| is_part_ref(&t))
+}
+
 /// A value's text in a row: a length in millimetres as the layout writes them (`6.2`), anything else as the grid
 /// shows it.
 fn display(ty: &FieldType, v: &Value) -> String {

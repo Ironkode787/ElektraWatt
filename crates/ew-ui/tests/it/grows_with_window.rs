@@ -324,33 +324,34 @@ fn mapping_card(h: &Harness<'_, App>) -> f32 {
         .width()
 }
 
-/// Opens the parts import's mapping step on the table at `path`.
+/// Opens the EPLAN report's mapping card on the report at `path`.
 fn open_mapping(path: &std::path::Path) -> impl Fn(&mut Harness<'_, App>) + '_ {
     move |h| {
-        let path = path.to_string_lossy().into_owned();
-        dispatch(h, "parts.import", json!({ "path": path }));
-        assert!(h.state().shell().parts_map().is_some(), "the mapping step");
+        let file = path.to_string_lossy().into_owned();
+        dispatch(h, "file.import_eplan", json!({ "file": file, "how": "map" }));
+        assert!(h.state().shell().parts_map().is_some(), "the mapping card");
     }
 }
 
-/// The parts import's column mapping card is a form that grows with the window when its samples need
-/// the room (a table with a long description): wider at 2560 than at 1920. The test tables' parts table fits the form
-/// width at both sizes, so it is not stretched.
+/// The EPLAN report's column mapping card is a form that grows with the window when its samples need the room (a
+/// report with a long description): wider at 2560 than at 1920. A report of short values keeps the form width at both
+/// sizes, so it is not stretched.
 #[test]
-fn the_parts_mapping_card_grows_with_the_window() {
+fn the_report_mapping_card_grows_with_the_window() {
     let csv_dir = Tmp::new();
     let csv = csv_dir.0.join("long.csv");
     let long = "Miniature circuit breaker 1P+N characteristic C 10 A 6 kA with auxiliary contact and a long \
                 catalogue text that no form at 1920 can show whole";
-    let head = "key,manufacturer,part_number,kind,type_designation,description,unit,test_data,tech_data";
-    std::fs::write(&csv, format!("{head}\nA1,Acme,A1,,,{long},piece,,\n")).unwrap();
+    let head = "Terminal strip,Terminal,Level,Part number,Description";
+    std::fs::write(&csv, format!("{head}\n-X1,1,1,A1,{long}\n")).unwrap();
     let (main, extension) = at_both_sizes(open_mapping(&csv), mapping_card);
     assert_grows_from("the mapping card", tokens().size_dialog_form, main, extension);
-    let tables = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/tables/parts.csv");
-    let (main, extension) = at_both_sizes(open_mapping(&tables), mapping_card);
+    let short = csv_dir.0.join("short.csv");
+    std::fs::write(&short, format!("{head}\n-X1,1,1,A1,Terminal\n")).unwrap();
+    let (main, extension) = at_both_sizes(open_mapping(&short), mapping_card);
     assert!(
         (main - extension).abs() < 0.5 && main < tokens().size_dialog_form + 0.5,
-        "the test tables' parts table keeps the form width: {main} and {extension}"
+        "a report of short values keeps the form width: {main} and {extension}"
     );
 }
 
