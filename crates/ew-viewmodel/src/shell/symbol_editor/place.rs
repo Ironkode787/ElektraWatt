@@ -647,6 +647,12 @@ impl ShellModel {
             .published()
             .map(str::to_owned)
             .or_else(|| editor.opened_from.clone());
+        let read_for = (address.clone(), self.revision());
+        if let Some((k, list)) = editor.drawn_parts.borrow().as_ref()
+            && *k == read_for
+        {
+            return list.clone();
+        }
         let Some(session) = self.parts_session() else {
             return Vec::new();
         };
@@ -656,7 +662,16 @@ impl ShellModel {
             Some(Ok(schema::LibDocument::Symbol(s))) => s.item.fndef,
             _ => editor.draft.symbol.fndef.clone(),
         };
-        session.parts_drawn_with(symbol.as_ref(), &fndef)
+        let list = session.parts_drawn_with(symbol.as_ref(), &fndef);
+        *editor.drawn_parts.borrow_mut() = Some((read_for, list.clone()));
+        list
+    }
+
+    /// The libraries changed: Parts drawn with it is read again.
+    pub(crate) fn forget_drawn_parts(&self) {
+        if let Some(editor) = &self.symbol_editor {
+            editor.drawn_parts.replace(None);
+        }
     }
 
     /// `parts.use_for_all {apply?, cancel?}` (Use it for every part with this piece…, on the strip of a piece's

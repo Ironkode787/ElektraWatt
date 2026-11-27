@@ -487,6 +487,7 @@ impl ShellModel {
         }
         self.macros.detail = None;
         self.macros.copy_detail = None;
+        self.forget_drawn_parts();
     }
 
     /// The page UUID of the focused tab, `None` without a drawn page.

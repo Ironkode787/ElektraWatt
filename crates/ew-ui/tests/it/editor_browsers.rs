@@ -315,8 +315,9 @@ fn the_browser_opens_a_starter_symbol_in_parts_and_his_copy_is_changed_where_it_
     };
     press(&mut d, "Save");
     assert_eq!(d.shell_mut().symbol_editor().unwrap().error, None);
-    // The save's message stands over the header's corner until it goes.
-    d.input(&Input::Wait { ms: 15_000 });
+    // The save's message stands over the header's corner: he closes it.
+    press(&mut d, ew_viewmodel::strings::text(ew_viewmodel::key!("toast-dismiss")));
+    assert!(d.shell_mut().notifications().visible().is_empty(), "the message is gone");
     for _ in 0..2 {
         assert_eq!(d.shell_mut().dispatch("parts.back", &json!({})), Outcome::Done);
     }

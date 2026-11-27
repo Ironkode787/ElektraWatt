@@ -120,6 +120,9 @@ pub const FILE_EXTENSIONS: [&str; 12] = [
     "json", "elmt", "edz", "pxf", "ema", "ems", "esl", "slk", "xml", "zip", "7z", "dxf",
 ];
 
+/// Parts drawn with a symbol, read for its address and a project revision.
+type DrawnParts = ((Option<String>, Option<u64>), Vec<ew_api::piece_symbols::DrawnPart>);
+
 /// Editable document state. History never shares the project's undo stack.
 #[derive(Debug)]
 pub struct SymbolEditor {
@@ -150,6 +153,9 @@ pub struct SymbolEditor {
     pub opened_from: Option<String>,
     /// The card of Use it for every part with this piece…: the parts it would change, before Apply.
     pub use_for_all: Option<Vec<ew_api::piece_symbols::DrawnPart>>,
+    /// Parts drawn with it as last read, with the symbol's address and the project revision it was read for: every
+    /// frame of the drawing shows it, and reading it scans every part of the libraries.
+    drawn_parts: std::cell::RefCell<Option<DrawnParts>>,
     undo: Vec<SymbolDraft>,
     redo: Vec<SymbolDraft>,
     /// Current orientation of the live preview (A–H).
@@ -223,6 +229,7 @@ impl SymbolEditor {
             unnamed: false,
             opened_from: None,
             use_for_all: None,
+            drawn_parts: std::cell::RefCell::new(None),
             undo: Vec::new(),
             redo: Vec::new(),
             variant: 0,

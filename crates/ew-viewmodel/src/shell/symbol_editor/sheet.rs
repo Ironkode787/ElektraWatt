@@ -133,6 +133,15 @@ pub const BOX: &str = "box";
 /// (`ew.fn.coil`), from the functions' one home ([`ew_api::part_pieces::symbol_kinds`], which the pieces table reads
 /// too), whatever the discipline: a function chosen is the one the symbol draws, its pins standing for the function's.
 pub fn what_kinds() -> Vec<(String, String)> {
+    // Built once per language (every frame of the drawing reads it): the starter's functions do not change.
+    static KINDS: std::sync::Mutex<Option<(u64, Vec<(String, String)>)>> = std::sync::Mutex::new(None);
+    let generation = strings::generation();
+    let mut kinds = KINDS.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    if let Some((g, list)) = kinds.as_ref()
+        && *g == generation
+    {
+        return list.clone();
+    }
     let mut out = vec![(BOX.to_owned(), label("symbol-what-box"))];
     out.extend(
         (ew_api::part_pieces::symbol_kinds().into_iter())
@@ -140,6 +149,7 @@ pub fn what_kinds() -> Vec<(String, String)> {
     );
     // After the box, by their words in the window's language.
     out[1..].sort_by(|a, b| a.1.cmp(&b.1));
+    *kinds = Some((generation, out.clone()));
     out
 }
 
