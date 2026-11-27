@@ -39,8 +39,8 @@ holes of the cabinet's surfaces ([Place devices in the door, and make holes and 
 
 ## The package
 
-9. Choose **Output ▸ Workshop ▸ Package** (**Package…** in the menu and the command palette). The dialog "Package for
-   the workshop" has two panes.
+9. Choose **Output ▸ Workshop ▸ Package…** (the command bar's button reads Package). The dialog "Package for the
+   workshop" has two panes.
 10. On the left, **What goes in**: the drawings, the wire list, the assembly lists, the cut list, the consumables, the
     hole table, the label files and the drawings for drilling, each ticked and with what it holds, such as "54 wires,
     2 bridges". Untick what the shop does not need. A member without content has no tick, such as the drawings for

@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-27T20:43:21Z\n"
+"POT-Creation-Date: 2026-11-27T22:21:08+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4373,14 +4373,14 @@ msgstr ""
 
 #: src/how-to/workshop-lists.md:15
 msgid ""
-"Choose **Output ▸ Workshop ▸ Wire list**. The first page of the project's "
-"wire list opens (907 on the sample): per wire its number, its two ends with "
-"their pins or clamps, its colour, its size, its length, what goes on each "
-"end (such as \"ferrule 1.5 BK\", or \"twin 2.5 BU · 101.6\" where two wires "
-"share a twin ferrule), the marker of each end and its pages. A device in the "
-"door prints \"(door)\" after its tag, a cable's core prints its cable and "
-"core (such as \"-101W1 BN\") and \"cable\" for its length, and a wire "
-"without a length prints \"—\"."
+"Choose **Output ▸ Workshop ▸ Open wire list**. The first page of the "
+"project's wire list opens (907 on the sample): per wire its number, its two "
+"ends with their pins or clamps, its colour, its size, its length, what goes "
+"on each end (such as \"ferrule 1.5 BK\", or \"twin 2.5 BU · 101.6\" where "
+"two wires share a twin ferrule), the marker of each end and its pages. A "
+"device in the door prints \"(door)\" after its tag, a cable's core prints "
+"its cable and core (such as \"-101W1 BN\") and \"cable\" for its length, and "
+"a wire without a length prints \"—\"."
 msgstr ""
 
 #: src/how-to/workshop-lists.md:20
@@ -4402,28 +4402,28 @@ msgstr ""
 
 #: src/how-to/workshop-lists.md:26
 msgid ""
-"Choose **Output ▸ Workshop ▸ Assembly lists**. Each strip starts with a line "
-"that says where it goes and how long it is, such as \"-X1011 · on rail 1 "
-"from 0 to 48.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm with its end "
-"brackets\", then every item in the order the fitter mounts it: end bracket, "
-"terminals with their part, colour and marker, end plate, end bracket; then "
-"its bridges."
+"Choose **Output ▸ Workshop ▸ Open assembly lists**. Each strip starts with a "
+"line that says where it goes and how long it is, such as \"-X1011 · on rail "
+"1 from 0 to 48.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm with its "
+"end brackets\", then every item in the order the fitter mounts it: end "
+"bracket, terminals with their part, colour and marker, end plate, end "
+"bracket; then its bridges."
 msgstr ""
 
 #: src/how-to/workshop-lists.md:30
 msgid ""
-"Choose **Output ▸ Workshop ▸ Cut list**. Under Rails, Ducts, Cables, Wires "
-"and Tubes it lists each piece to cut with its part or its size and colour, "
-"what it is for, the pieces, the piece length and the total. Each piece is "
-"rounded up to **Cut to** (5 mm unless the project sets another); a wire is "
-"as long as the wire list says."
+"Choose **Output ▸ Workshop ▸ Open cut list**. Under Rails, Ducts, Cables, "
+"Wires and Tubes it lists each piece to cut with its part or its size and "
+"colour, what it is for, the pieces, the piece length and the total. Each "
+"piece is rounded up to **Cut to** (5 mm unless the project sets another); a "
+"wire is as long as the wire list says."
 msgstr ""
 
 #: src/how-to/workshop-lists.md:33
 msgid ""
-"Choose **Output ▸ Workshop ▸ Consumables**: the metres of each wire, the "
-"ferrules and lugs per part, and the markers per label set, to order beside "
-"the parts list."
+"Choose **Output ▸ Workshop ▸ Open consumables**: the metres of each wire, "
+"the ferrules and lugs per part, and the markers per label set, to order "
+"beside the parts list."
 msgstr ""
 
 #: src/how-to/workshop-lists.md:35
@@ -4599,8 +4599,8 @@ msgstr ""
 
 #: src/how-to/workshop-package.md:42
 msgid ""
-"Choose **Output ▸ Workshop ▸ Package** (**Package…** in the menu and the "
-"command palette). The dialog \"Package for the workshop\" has two panes."
+"Choose **Output ▸ Workshop ▸ Package…** (the command bar's button reads "
+"Package). The dialog \"Package for the workshop\" has two panes."
 msgstr ""
 
 #: src/how-to/workshop-package.md:44
