@@ -172,7 +172,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         Dialog::ConfirmJournalDiscard => journal_discard_spec(),
         Dialog::ConfirmPurge { files, .. } => purge_spec(files),
         Dialog::ConfirmRemovePart { part, number } => remove_part_spec(part, number),
-        Dialog::ConfirmLeavePart { number } => leave_part_spec(number),
+        Dialog::ConfirmLeavePart { number, next } => leave_part_spec(number, next.as_ref()),
         Dialog::ConfirmReplaceDxf { dir, folder, files } => replace_dxf_spec(dir, folder, *files),
         // Choose (Enter, the active row) and Cancel; the list and the filters are the dialog's.
         // An empty search is said once, in the list (not here); Choose is disabled while the list is
@@ -656,18 +656,28 @@ fn remove_part_spec(_part: &str, number: &str) -> DialogSpec {
 }
 
 /// Back of Parts with the open part `number`'s changes not saved: Save the Primary, Stay, and Discard apart.
-fn leave_part_spec(number: &str) -> DialogSpec {
+fn leave_part_spec(number: &str, next: Option<&(&'static str, serde_json::Map<String, Value>)>) -> DialogSpec {
+    // Another part opened while the open part's card waits: the action again, the card applied or cancelled first.
+    let answer = |back: Value, card: &str| match next {
+        None => DialogAnswer::Action("parts.back", back),
+        Some((action, params)) => {
+            let mut params = params.clone();
+            params.insert("card".to_owned(), Value::String(card.to_owned()));
+            DialogAnswer::Action(action, Value::Object(params))
+        }
+    };
+    let text = match next {
+        None => key!("confirm-part-leave-text"),
+        Some(_) => key!("confirm-part-card-text"),
+    };
     DialogSpec {
         title: strings::format(key!("confirm-part-leave-title"), &[number]),
-        body: vec![strings::text(key!("confirm-part-leave-text")).to_owned()],
-        primary: DialogButton::new(
-            key!("dialog-save"),
-            DialogAnswer::Action("parts.back", json!({ "save": true })),
-        ),
+        body: vec![strings::text(text).to_owned()],
+        primary: DialogButton::new(key!("dialog-save"), answer(json!({ "save": true }), "apply")),
         secondary: vec![DialogButton::new(key!("dialog-stay"), DialogAnswer::Dismiss)],
         danger: Some(DialogButton::new(
             key!("dialog-discard"),
-            DialogAnswer::Action("parts.back", json!({ "discard": true })),
+            answer(json!({ "discard": true }), "cancel"),
         )),
         asks: true,
         form: false,

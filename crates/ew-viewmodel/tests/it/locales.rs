@@ -326,13 +326,18 @@ fn nl_has(texts: &str, term: &str) -> bool {
 }
 
 /// Whether the rejected Dutch word `alt` is in `texts` (lower case), inside a word too ("standaarddraadkleur"
-/// holds "draadkleur"), once the row's own term `own` is taken out ("kabelgoot" holds a duct's "goot" by right).
+/// holds "draadkleur"), once the row's own term `own` is taken out, its plural too ("kabelgoot" and "kabelgoten" hold
+/// a duct's "goot" by right).
 fn nl_rejected(texts: &str, alt: &str, own: &str) -> bool {
-    let texts = if own.is_empty() {
-        texts.to_owned()
-    } else {
-        texts.replace(&own.to_lowercase(), " ")
-    };
+    let mut texts = texts.to_owned();
+    if !own.is_empty() {
+        // The longest form first, so that a plural goes whole.
+        let mut forms = nl_forms(&own.to_lowercase());
+        forms.sort_by_key(|f| std::cmp::Reverse(f.len()));
+        for form in forms {
+            texts = texts.replace(&form, " ");
+        }
+    }
     let alt = alt.to_lowercase();
     if alt.chars().all(char::is_alphanumeric) {
         nl_forms(&alt).iter().any(|f| texts.contains(f.as_str()))

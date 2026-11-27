@@ -382,6 +382,16 @@ impl Session {
         Ok(Session::new(model, options))
     }
 
+    /// A session over the libraries of `options` alone, no project open (Parts from the start page, doc 07 §5.8): its
+    /// project is empty, held in memory only and never written; a part is read from the libraries and a new one saved
+    /// into My parts ([`Session::new_part_in_my_parts`]).
+    pub fn libraries_only(options: SessionOptions) -> Session {
+        let (project, _, _) = builtin(Id::new_v7(), NewProjectKind::Schematic);
+        let model = Model::from_records(project, [], [])
+            .unwrap_or_else(|_| unreachable!("a project record without records is a model"));
+        Session::new(model, options)
+    }
+
     /// Save as basic project (FR-MAC-011): writes the session's model into `dir` (a directory without a
     /// project) as a new project of kind [`NewProjectKind::Basic`] under a new project ID (a UUIDv7 of the system
     /// clock) and new record IDs, as [`Session::new_project`] copies a directory. Schemes, profiles, frames and

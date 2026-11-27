@@ -293,6 +293,7 @@ error-part-bus-twice = Interface { $p0 } staat er twee keer; geef elke rij een e
 error-part-new-id = Er kon geen nieuw artikel worden gemaakt: het systeem gaf geen willekeurig getal; probeer het opnieuw
 error-part-exists = { $p1 } { $p0 } staat al in Mijn artikelen of in dit project: open het in de lijst, of geef het nieuwe artikel een eigen artikelnummer
 error-part-library = { $p0 } kon niet worden geschreven: { $p1 }
+error-part-no-my-parts = Zonder open project wordt een nieuw artikel in Mijn artikelen bewaard, en Mijn artikelen kan hier niet worden gemaakt: open een project om het artikel daarin te bewaren
 reason-part-symbol-unsaved = Sla het symbool eerst op in een bibliotheek; het artikel noemt het dan
 reason-part-not-own = Dit artikel staat niet in uw artikelbibliotheek: alleen een eigen artikel wordt eruit verwijderd
 # de PLC-sectie van een nieuw artikel.

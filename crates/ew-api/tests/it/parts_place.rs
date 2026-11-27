@@ -285,3 +285,42 @@ fn a_part_of_a_library_that_is_not_installed_is_only_in_this_project() {
     assert_eq!(s.sheet_lives(&sheet), Lives::OnlyHere);
     assert!(sheet.own, "his to change");
 }
+
+/// What a piece is reads in the function's word without pins, in both languages: a piece of the schematic table has
+/// its own pins, so "Coil", never "Coil A1-A2" beside the pins 1 and 2 (doc 07 §5.4).
+#[test]
+fn a_piece_kind_reads_without_its_functions_pins() {
+    let say = |t: &ew_l10n::Text, lang| ew_api::catalogue().text_or_english(t, lang);
+    let kinds = ew_api::part_pieces::piece_kinds();
+    for (key, en, nl) in [
+        ("ew.fn.coil", "Coil", "Spoel"),
+        ("ew.fn.contact-co", "Changeover contact", "Wisselcontact"),
+    ] {
+        let kind = kinds.iter().find(|k| k.key == key).expect("a piece");
+        assert_eq!(say(&kind.words, "en-GB"), en);
+        assert_eq!(say(&kind.words, "nl-NL"), nl);
+    }
+}
+
+/// The sheet and its contents list the groups the start asked for or that hold a value (doc 07 §5.5): a contactor made
+/// as a device lists no network ports and no PLC section, new or saved and opened again; a module lists both.
+#[test]
+fn a_device_lists_no_network_ports_or_plc_and_a_module_does() {
+    use ew_api::part_fields::Group;
+    let tmp = ew_testdir::Tmp::new("parts-place-groups");
+    let mut s = project(&tmp.0);
+    let start = |name| ew_api::parts::start_named(name).expect(name);
+    let mut sheet = s.start_sheet(start("device")).expect("a device");
+    for (f, v) in [("manufacturer", "Example"), ("part_number", "K-1")] {
+        s.set_draft_field(&mut sheet, f, v).expect(f);
+    }
+    let none = |groups: Vec<Group>| !groups.contains(&Group::Ports) && !groups.contains(&Group::Plc);
+    assert!(none(sheet.sections()), "{:?}", sheet.sections());
+    let made = s.new_part_command(&sheet).expect("the new part's command");
+    run(&mut s, &made.command);
+    let again = s.part_draft(copy_of(&s, "K-1")).expect("its sheet");
+    assert!(again.own, "his own");
+    assert!(none(again.sections()), "{:?}", again.sections());
+    let module = s.start_sheet(start("module")).expect("a module").sections();
+    assert!(module.contains(&Group::Ports) && module.contains(&Group::Plc), "{module:?}");
+}

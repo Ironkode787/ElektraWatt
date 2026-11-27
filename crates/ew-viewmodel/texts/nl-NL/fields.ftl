@@ -204,6 +204,23 @@ choice-tube = Slang
 choice-accessory = Toebehoren
 choice-configured = Samengesteld
 choice-gland = Wartel
+# A part kind's plural: a heading of many parts of the kind (the list of Parts).
+choice-device-plural = Apparaten
+choice-terminal-plural = Klemmen
+choice-cable-plural = Kabels
+choice-wire-plural = Draden
+choice-ferrule-plural = Adereindhulzen
+choice-marker-plural = Merkers
+choice-duct-plural = Kabelgoten
+choice-rail-plural = Rails
+choice-busbar-plural = Stroomrails
+choice-end-bracket-plural = Eindsteunen
+choice-enclosure-plural = Kasten
+choice-mounting-plate-plural = Montageplaten
+choice-tube-plural = Slangen
+choice-accessory-plural = Toebehoren
+choice-configured-plural = Samengestelde producten
+choice-gland-plural = Wartels
 choice-working = Werkleiding
 choice-pilot = Stuurleiding
 choice-exhaust = Afvoerleiding
@@ -430,6 +447,9 @@ choice-extract = Uitpakken
 choice-read-only = Alleen-lezen
 choice-mine = Mijn versie
 choice-theirs = Hun versie
+# The card of the open part's Save, settled before another part opens (`parts.open`, `parts.new`).
+choice-apply = Toepassen
+choice-cancel = Annuleren
 
 ## W49.3-F3: fields as the collision dialog's headings.
 field-device-tag-letter = Kenmerkletter

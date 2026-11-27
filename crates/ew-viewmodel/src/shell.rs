@@ -460,10 +460,14 @@ pub enum Dialog {
         number: String,
     },
     /// Back of Parts with changes not saved: Save (`parts.back` with `save`), Discard (`parts.back` with `discard`)
-    /// or Stay (Escape), which returns to the sheet.
+    /// or Stay (Escape), which returns to the sheet. With `next`, another part opened (`parts.open`, `parts.new`) while
+    /// the card of the open part's Save waits: Save applies the card and Discard cancels it (the action's `card`), each
+    /// then running the action.
     ConfirmLeavePart {
         /// The open part's heading: its number, or New part.
         number: String,
+        /// The action that asked and its parameters, when it was another part's opening.
+        next: Option<(&'static str, Map<String, Value>)>,
     },
     /// Export DXF… into a folder that holds an earlier DXF set (doc 09 §4.9): its files go, with a person's later
     /// edits to them, which undo does not bring back; Replace (`file.export_dxf` with `confirm`) or Cancel (Escape).
@@ -756,6 +760,9 @@ pub struct ShellModel {
     symbol_editor: Option<symbol_editor::SymbolEditor>,
     /// Parts, the one place for parts, while it is shown.
     parts: Option<Box<parts_place::PartsPlace>>,
+    /// The libraries alone, the session of Parts opened with no project (from the start page); the place's only other
+    /// session is the project's ([`ShellModel::parts_session`]).
+    parts_alone: Option<Box<Session>>,
     /// How many parts Parts has opened: each opening's number, by which the window shows a part opened anew.
     parts_opened: u64,
     symbol_editor_generation: u64,
@@ -1333,6 +1340,7 @@ impl ShellModel {
             macros: macros::MacroState::default(),
             symbol_editor: None,
             parts: None,
+            parts_alone: None,
             parts_opened: 0,
             symbol_editor_generation: 0,
             symbol_clipboard: symbol_editor::Clipboard::default(),
@@ -1439,7 +1447,7 @@ impl ShellModel {
             Screen::Wizard
         } else if self.symbol_editor().is_some() {
             Screen::SymbolEditor
-        } else if self.parts.is_some() && self.has_project() {
+        } else if self.parts.is_some() && (self.has_project() || self.parts_alone.is_some()) {
             Screen::Parts
         } else if self.has_project() {
             Screen::Project

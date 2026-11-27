@@ -892,10 +892,11 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_part_favourite(p),
         )),
     ),
-    // Parts, the one place for parts (doc 07 §5): a screen of its own, from the Project tab, F9, the menus and every
-    // place a part is met.
+    // Parts, the one place for parts (doc 07 §5): a screen of its own, from the Project tab, F9, the menus, every
+    // place a part is met and the start page (no project: the libraries alone). `card` settles the card of the open
+    // part's Save before another part opens.
     with_params(
-        "part?:text, section?:text",
+        "part?:text, section?:text, card?:enum(apply|cancel)",
         placed(
             place(Group::Parts, 0, CommandSize::Large, Some(key!("bar-parts"))),
             "packages",
@@ -904,7 +905,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 View,
                 Menu::Edit,
                 &["F9"],
-                project_open,
+                always,
                 slot(Menu::Edit),
                 |s, p| s.act_parts_open(p),
             ),
@@ -926,13 +927,13 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // a card of What is it?, Like this, New cable type… and a bus line's New bus cable… and New plug…, and New
     // station…'s split on the PLC tab (each names its start).
     with_params(
-        "start?:text, like?:bool, symbol?:text, bus?:text, field?:text, for_field?:text",
+        "start?:text, like?:bool, symbol?:text, bus?:text, field?:text, for_field?:text, card?:enum(apply|cancel)",
         act(
             "parts.new",
             View,
             Menu::Edit,
             &[],
-            writable,
+            parts_writable,
             slot(Menu::Edit),
             |s, p| s.act_parts_new(p),
         ),

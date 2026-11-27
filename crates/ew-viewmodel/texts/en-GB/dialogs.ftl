@@ -68,6 +68,7 @@ confirm-part-remove-title = Remove { $p0 } from your parts library?
 confirm-part-remove-text = The next projects no longer offer it, and undo does not bring it back; a project that uses it keeps its copy.
 confirm-part-leave-title = Save the changes to { $p0 }?
 confirm-part-leave-text = The part has changes that are not saved. Leaving without saving drops them.
+confirm-part-card-text = What Save changes in this project waits on the card beside the part. Save applies it before the other part opens; Discard leaves the project as it is.
 dialog-stay = Stay
 dialog-remove = Remove
 prompt-open-keymap-title = Import keymap

@@ -227,11 +227,35 @@ impl ShellModel {
         self.parts.as_deref()
     }
 
+    /// Whether the place works on the libraries alone: it was opened with no project (from the start page), so a new
+    /// part is saved into My parts only and nothing is kept in or taken out of a project.
+    pub fn parts_without_project(&self) -> bool {
+        self.parts_alone.is_some()
+    }
+
+    /// The session the place works on: the libraries alone where it was opened with no project, else the project's.
+    /// [`ShellModel::parts_session_mut`] is the same, to change.
+    pub(crate) fn parts_session(&self) -> Option<&ew_api::Session> {
+        match &self.parts_alone {
+            Some(alone) => Some(alone),
+            None => self.project.as_ref().map(|p| &p.session),
+        }
+    }
+
+    /// [`ShellModel::parts_session`] to change, with the place beside it.
+    fn parts_session_mut(&mut self) -> (Option<&mut ew_api::Session>, Option<&mut PartsPlace>) {
+        let session = match &mut self.parts_alone {
+            Some(alone) => Some(&mut **alone),
+            None => self.project.as_mut().map(|p| &mut p.session),
+        };
+        (session, self.parts.as_deref_mut())
+    }
+
     /// The part `parts.open`'s `part` names: `id:<copy>`, `lib:<library>/<item>`, or a part number the project holds;
     /// without it, the Libraries navigator's part row when it has the focus, else the property grid's device's first
     /// part use, else that navigator's cursor row.
     fn named_part(&self, p: &Map<String, Value>) -> Result<Option<Named>, Outcome> {
-        let Some(project) = &self.project else {
+        let Some(session) = self.parts_session() else {
             return Ok(None);
         };
         if let Some(text) = string_param(p, "part")? {
@@ -245,7 +269,7 @@ impl ShellModel {
                     _ => Err(failed(key!("error-bad-param"), &["part"])),
                 };
             }
-            let held = project.session.part_offers(&PartOfferQuery {
+            let held = session.part_offers(&PartOfferQuery {
                 view: OfferView::Project,
                 // Every kind, a cable gland too.
                 kinds: ew_api::part_kinds(),
@@ -331,6 +355,9 @@ impl ShellModel {
             }
         };
         self.tools.picker = None;
+        // With no project the place works on the libraries alone, read anew at each opening.
+        self.parts_alone = (!self.has_project())
+            .then(|| Box::new(ew_api::Session::libraries_only(self.session_options())));
         self.parts = Some(Box::new(PartsPlace {
             origin,
             query: String::new(),
@@ -351,13 +378,11 @@ impl ShellModel {
 
     /// The list again, from the place's query.
     pub(crate) fn parts_refresh(&mut self) {
-        let Some(project) = &self.project else {
+        let (Some(session), Some(place)) = self.parts_session_mut() else {
             return;
         };
-        let Some(place) = self.parts.as_deref_mut() else {
-            return;
-        };
-        let mut found = project.session.parts_find(
+        let session = &*session;
+        let mut found = session.parts_find(
             &place.query,
             place.scope,
             place.kind.as_deref(),
@@ -383,26 +408,27 @@ impl ShellModel {
         found.truncate(LIST_ROWS);
         place.found = found;
         if let Some(open) = &mut place.sheet {
-            open.lacks = project.session.sheet_lacks(&open.sheet);
-            open.ready = project.session.sheet_ready(&open.sheet);
+            open.lacks = session.sheet_lacks(&open.sheet);
+            open.ready = session.sheet_ready(&open.sheet);
         }
     }
 
     /// Opens `sheet` in the place, where it lives.
     pub(crate) fn open_sheet(&mut self, sheet: PartSheet, bus_part: Option<BusPart>) {
-        let Some(project) = &self.project else {
+        let Some(session) = self.parts_session() else {
             return;
         };
-        let lives = project.session.sheet_lives(&sheet);
-        let lacks = project.session.sheet_lacks(&sheet);
-        let ready = project.session.sheet_ready(&sheet);
+        let lives = session.sheet_lives(&sheet);
+        let lacks = session.sheet_lacks(&sheet);
+        let ready = session.sheet_ready(&sheet);
         let used_by = if sheet.new {
             Vec::new()
         } else {
-            project.session.part_users(sheet.copy)
+            session.part_users(sheet.copy)
         };
-        let manufacturers = project.session.part_manufacturers();
-        let read_only = !self.is_writable();
+        let manufacturers = session.part_manufacturers();
+        // The libraries alone are his to write; a project only where it can be written.
+        let read_only = !self.parts_without_project() && !self.is_writable();
         self.parts_opened = self.parts_opened.wrapping_add(1);
         let opened = self.parts_opened;
         if let Some(place) = self.parts.as_deref_mut() {
@@ -432,8 +458,10 @@ impl ShellModel {
     /// `parts.open {part?, section?}` (Parts, Edit part…, Open part): shows the place, on the part named (see
     /// [`ShellModel::named_part`]) when there is one, else on its list; with `section`, at that group of the sheet.
     pub(crate) fn act_parts_open(&mut self, p: &Map<String, Value>) -> Outcome {
-        if self.project.is_none() {
-            return Outcome::refused(key!("reason-no-project"));
+        if self.parts_session().is_none() {
+            // No project and no place: the place over the libraries alone (one a closed project left goes).
+            self.parts = None;
+            self.enter_place();
         }
         let named = match self.named_part(p) {
             Ok(n) => n,
@@ -447,24 +475,29 @@ impl ShellModel {
             Ok(None) => None,
             Err(e) => return e,
         };
-        let sheet = match (&self.project, named) {
-            (Some(project), Some(Named::Held(c))) => match project.session.part_draft(c) {
+        let sheet = match (self.parts_session(), named) {
+            (Some(session), Some(Named::Held(c))) => match session.part_draft(c) {
                 Ok(s) => Some(s),
                 Err(_) => return Outcome::refused(key!("reason-part-edit-target")),
             },
-            (Some(project), Some(Named::Library(l, i))) => match project.session.library_part_draft(l, i) {
+            (Some(session), Some(Named::Library(l, i))) => match session.library_part_draft(l, i) {
                 Ok(s) => Some(s),
                 Err(_) => return Outcome::refused(key!("reason-part-edit-target")),
             },
             _ => None,
         };
+        if sheet.is_some()
+            && let Some(out) = self.settle_part_card("parts.open", p)
+        {
+            return out;
+        }
         self.enter_place();
         let like = self.parts.as_deref().and_then(|p| p.asking) == Some(Asking::LikeWhich);
         if let Some(sheet) = sheet {
-            if like && let Some(project) = &self.project {
-                return match project.session.new_part_draft_copying(&sheet) {
+            if like && let Some(session) = self.parts_session() {
+                return match session.new_part_draft_copying(&sheet) {
                     Ok(mut new) => {
-                        let _ = project.session.set_draft_field(&mut new, "part_number", "");
+                        let _ = session.set_draft_field(&mut new, "part_number", "");
                         new.messages.clear();
                         self.open_sheet(new, None);
                         Outcome::Done
@@ -478,6 +511,37 @@ impl ShellModel {
             }
         }
         Outcome::Done
+    }
+
+    /// The card of the open part's Save that waits (what the Save changes in the project) belongs to that part: before
+    /// `action` opens another part, its `card` applies the card (`apply`) or cancels it (`cancel`); without it the
+    /// window asks Save, Discard or Stay and a script is refused in words. `None` where `action` goes on.
+    fn settle_part_card(&mut self, action: &'static str, p: &Map<String, Value>) -> Option<Outcome> {
+        if !matches!(self.props.card().map(|c| &c.origin), Some(CardOrigin::Part(_))) {
+            return None;
+        }
+        let out = match string_param(p, "card") {
+            Err(e) => e,
+            Ok(Some("apply")) => self.act_preview_apply(),
+            Ok(Some("cancel")) => self.act_preview_cancel(),
+            Ok(Some(_)) => failed(key!("error-bad-param"), &["card"]),
+            Ok(None) => match self.mode {
+                crate::shell::Mode::Headless => Outcome::refused(key!("reason-parts-card-waits")),
+                crate::shell::Mode::Gui => {
+                    let number = (self.parts.as_deref().and_then(|p| p.sheet.as_ref()))
+                        .map_or_else(String::new, OpenSheet::title);
+                    let next = Some((action, p.clone()));
+                    return Some(self.open_dialog(Dialog::ConfirmLeavePart { number, next }));
+                }
+            },
+        };
+        if out != Outcome::Done {
+            return Some(out);
+        }
+        if matches!(&self.dialog, Some(Dialog::ConfirmLeavePart { .. })) {
+            self.dialog = None;
+        }
+        None
     }
 
     /// `parts.find {text?, scope?, kind?, lacking?}`: the list's search, scope (`all`, `project`, `mine`), kind filter
@@ -532,15 +596,20 @@ impl ShellModel {
         };
         let like = flag(p, "like");
         let for_field = or_return!(string_param(p, "for_field")).map(str::to_owned);
-        let project = or_return!(crate::shell::gated(&self.project));
+        if let Some(out) = self.settle_part_card("parts.new", p) {
+            return out;
+        }
+        let Some(session) = self.parts_session() else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
         let open = self.parts.as_deref().and_then(|p| p.sheet.as_ref());
         let made = match (&symbol, start, like) {
-            (Some(address), _, _) => project.session.new_part_draft_for_symbol(address),
-            (None, Some(start), _) => project.session.start_sheet(start),
+            (Some(address), _, _) => session.new_part_draft_for_symbol(address),
+            (None, Some(start), _) => session.start_sheet(start),
             (None, None, true) if open.is_some() => {
                 let held = &open.expect("checked").sheet;
-                project.session.new_part_draft_copying(held).map(|mut d| {
-                    let _ = project.session.set_draft_field(&mut d, "part_number", "");
+                session.new_part_draft_copying(held).map(|mut d| {
+                    let _ = session.set_draft_field(&mut d, "part_number", "");
                     d.messages.clear();
                     d
                 })
@@ -560,7 +629,7 @@ impl ShellModel {
             Err(e) => return draft_refusal(e),
         };
         let set = |sheet: &mut PartSheet, f: &str, v: &str| {
-            let _ = project.session.set_draft_field(sheet, f, v);
+            let _ = session.set_draft_field(sheet, f, v);
         };
         let bus_part = match or_return!(string_param(p, "bus")) {
             None => None,
@@ -617,17 +686,17 @@ impl ShellModel {
 
     /// After a text of the open sheet changed: changed, and what it lacks again.
     fn sheet_changed(&mut self) {
-        let Some(project) = &self.project else {
+        let (Some(session), Some(place)) = self.parts_session_mut() else {
             return;
         };
-        if let Some(open) = self.parts.as_deref_mut().and_then(|p| p.sheet.as_mut()) {
+        if let Some(open) = place.sheet.as_mut() {
             open.changed = true;
             open.error = None;
             // While a field's text does not read, Ready for stays as it was: it says what the part lacks, not what a
             // half-typed text would make of it (and the sheet does not jump).
             if open.sheet.messages.is_empty() {
-                open.lacks = project.session.sheet_lacks(&open.sheet);
-                open.ready = project.session.sheet_ready(&open.sheet);
+                open.lacks = session.sheet_lacks(&open.sheet);
+                open.ready = session.sheet_ready(&open.sheet);
             }
         }
     }
@@ -641,10 +710,11 @@ impl ShellModel {
             (_, Ok(None)) => return failed(key!("error-missing-param"), &["value"]),
             (Err(e), _) | (_, Err(e)) => return e,
         };
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
+        let (Some(session), Some(place)) = self.parts_session_mut() else {
+            return Outcome::refused(key!("reason-no-parts-place"));
         };
-        let Some(open) = self.parts.as_deref_mut().and_then(|p| p.sheet.as_mut()) else {
+        let session = &*session;
+        let Some(open) = place.sheet.as_mut() else {
             return Outcome::refused(key!("reason-no-part-open"));
         };
         if !open.editable() {
@@ -660,16 +730,13 @@ impl ShellModel {
             }
             open.bus_part = Some(plug);
             if !field.starts_with("plug.")
-                && let Err(PartDraftError::Refused(_)) =
-                    project.session.set_draft_field(&mut open.sheet, &field, &value)
+                && let Err(PartDraftError::Refused(_)) = session.set_draft_field(&mut open.sheet, &field, &value)
             {
                 return failed(key!("error-part-field"), &[&field]);
             }
             if field.starts_with("plug.") || field.starts_with("bus.") {
                 let words = plug_description(&open.sheet, plug);
-                let _ = project
-                    .session
-                    .set_draft_field(&mut open.sheet, "description", &words);
+                let _ = session.set_draft_field(&mut open.sheet, "description", &words);
             }
             self.sheet_changed();
             return Outcome::Done;
@@ -687,7 +754,7 @@ impl ShellModel {
             self.sheet_changed();
             return Outcome::Done;
         }
-        let out = match project.session.set_draft_field(&mut open.sheet, &field, &value) {
+        let out = match session.set_draft_field(&mut open.sheet, &field, &value) {
             Err(PartDraftError::Refused(_)) => failed(key!("error-part-field"), &[&field]),
             Ok(()) | Err(PartDraftError::Field(_)) => Outcome::Done,
         };
@@ -770,13 +837,13 @@ impl ShellModel {
             Ok(Some(path)) => std::path::PathBuf::from(path),
             Ok(None) => return self.need_path("parts.outline", Prompt::OpenOutline, "path", p),
         };
-        let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
+        let (Some(session), Some(place)) = self.parts_session_mut() else {
+            return Outcome::refused(key!("reason-no-parts-place"));
         };
-        let Some(open) = self.parts.as_deref_mut().and_then(|p| p.sheet.as_mut()) else {
+        let Some(open) = place.sheet.as_mut() else {
             return Outcome::refused(key!("reason-no-part-open"));
         };
-        match project.session.draft_outline_import(&mut open.sheet, &path) {
+        match session.draft_outline_import(&mut open.sheet, &path) {
             Ok(_) => {
                 self.sheet_changed();
                 Outcome::Done
@@ -801,12 +868,12 @@ impl ShellModel {
         }
         let copy = open.sheet.copy;
         let source = open.sheet.source;
-        let Some(project) = &self.project else {
+        let Some(session) = self.parts_session() else {
             return Outcome::Done;
         };
         let again = match source {
-            Some((l, i)) => project.session.library_part_draft(l, i),
-            None => project.session.part_draft(copy),
+            Some((l, i)) => session.library_part_draft(l, i),
+            None => session.part_draft(copy),
         };
         match again {
             Ok(sheet) => {
@@ -823,15 +890,15 @@ impl ShellModel {
         let Some(open) = self.parts.as_deref().and_then(|p| p.sheet.as_ref()) else {
             return Outcome::refused(key!("reason-no-part-open"));
         };
-        let Some(project) = &self.project else {
+        let Some(session) = self.parts_session() else {
             return Outcome::Done;
         };
-        let mut sheet = match project.session.new_part_draft_copying(&open.sheet) {
+        let mut sheet = match session.new_part_draft_copying(&open.sheet) {
             Ok(s) => s,
             Err(e) => return draft_refusal(e),
         };
         for field in ["part_number", "manufacturer"] {
-            let _ = project.session.set_draft_field(&mut sheet, field, "");
+            let _ = session.set_draft_field(&mut sheet, field, "");
         }
         sheet.messages.clear();
         self.open_sheet(sheet, None);
@@ -850,8 +917,10 @@ impl ShellModel {
         else {
             return Outcome::refused(key!("reason-part-keep"));
         };
-        let project = or_return!(crate::shell::gated_mut(&mut self.project));
-        let cmd = match project.session.keep_in_my_parts(copy) {
+        let (Some(session), _) = self.parts_session_mut() else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let cmd = match session.keep_in_my_parts(copy) {
             Ok(c) => c,
             Err(e) => return draft_refusal(e),
         };
@@ -859,8 +928,8 @@ impl ShellModel {
         if out == Outcome::Done {
             self.libraries_changed();
             let kept = cmd.params["to"].as_str().and_then(|s| s.parse::<Uuid>().ok());
-            if let (Some(project), Some(kept)) = (&self.project, kept)
-                && let Ok(sheet) = project.session.part_draft(kept)
+            if let (Some(session), Some(kept)) = (self.parts_session(), kept)
+                && let Ok(sheet) = session.part_draft(kept)
             {
                 self.open_sheet(sheet, None);
             }
@@ -900,7 +969,7 @@ impl ShellModel {
                     crate::shell::Mode::Headless => Outcome::refused(key!("reason-parts-unsaved")),
                     crate::shell::Mode::Gui => {
                         let number = open.title();
-                        self.open_dialog(Dialog::ConfirmLeavePart { number })
+                        self.open_dialog(Dialog::ConfirmLeavePart { number, next: None })
                     }
                 };
             }
@@ -911,6 +980,7 @@ impl ShellModel {
         }
         let show = string_param(p, "show").ok().flatten().map(str::to_owned);
         let place = *self.parts.take().expect("checked");
+        self.parts_alone = None;
         match place.origin {
             Origin::Project | Origin::Station | Origin::Browser => {}
             Origin::Chooser(c) => {
@@ -972,8 +1042,10 @@ impl ShellModel {
                         }),
                     };
                 }
-                let project = or_return!(crate::shell::gated_mut(&mut self.project));
-                let removed = match project.session.remove_own_part(library, item) {
+                let (Some(session), _) = self.parts_session_mut() else {
+                    return Outcome::refused(key!("reason-no-parts-place"));
+                };
+                let removed = match session.remove_own_part(library, item) {
                     Ok(r) => r,
                     Err(e) => return draft_refusal(e),
                 };
@@ -1002,10 +1074,10 @@ impl ShellModel {
 
     /// The library and item of the open part of My parts `copy` (held, or a library part opened from the list).
     fn mine_item(&self, copy: Uuid) -> Option<(Uuid, Uuid)> {
-        let project = self.project.as_ref()?;
+        let session = self.parts_session()?;
         let open = self.parts.as_deref()?.sheet.as_ref()?;
         let held = {
-            let q = project.session.query();
+            let q = session.query();
             copy.to_string().parse().ok().and_then(|id| {
                 q.parts()
                     .get(id)
@@ -1013,7 +1085,7 @@ impl ShellModel {
             })
         };
         let (library, item) = held.or(open.sheet.source)?;
-        project.session.own_part_number(library, item)?;
+        session.own_part_number(library, item)?;
         Some((library, item))
     }
 
@@ -1056,14 +1128,14 @@ impl ShellModel {
     /// Save of a part of My parts: its next version goes into My parts, and the card of the `library.update` that
     /// brings the project's copy to it opens beside the sheet; Apply commits it.
     fn parts_save_mine(&mut self) -> Outcome {
-        let Some(project) = &mut self.project else {
+        let (Some(session), Some(place)) = self.parts_session_mut() else {
             return Outcome::Done;
         };
-        let Some(open) = self.parts.as_deref().and_then(|p| p.sheet.as_ref()) else {
+        let Some(open) = place.sheet.as_ref() else {
             return Outcome::Done;
         };
         let title = open.title();
-        match project.session.own_part_update(&open.sheet) {
+        match session.own_part_update(&open.sheet) {
             Ok(None) => {
                 // A part of My parts the project does not hold: its next version is in My parts, nothing else changes.
                 if let Some(open) = self.open_mut() {
@@ -1109,14 +1181,14 @@ impl ShellModel {
     /// Save of a part only in this project: the card of its correction (`part.edit_copy`, in place) opens beside the
     /// sheet; Apply commits it.
     fn parts_save_here(&mut self) -> Outcome {
-        let Some(project) = &self.project else {
+        let Some(session) = self.parts_session() else {
             return Outcome::Done;
         };
         let Some(open) = self.parts.as_deref().and_then(|p| p.sheet.as_ref()) else {
             return Outcome::Done;
         };
         let title = open.title();
-        let plan = match project.session.part_edit_plan(&open.sheet) {
+        let plan = match session.part_edit_plan(&open.sheet) {
             Ok(plan) => plan,
             Err(e) => return self.save_refused(e),
         };
@@ -1148,17 +1220,26 @@ impl ShellModel {
     /// the part chosen; with `another` a new part like this one but for its number and its cross-section opens (the
     /// next size of a series); else the place shows the saved part.
     fn parts_save_new(&mut self, another: bool) -> Outcome {
-        let Some(project) = &mut self.project else {
+        let alone = self.parts_without_project();
+        let (Some(session), Some(place)) = self.parts_session_mut() else {
             return Outcome::Done;
         };
-        let Some(open) = self.parts.as_deref().and_then(|p| p.sheet.as_ref()) else {
+        let Some(open) = place.sheet.as_ref() else {
             return Outcome::Done;
         };
-        let made = match project.session.new_part_command(&open.sheet) {
+        let item = open.sheet.copy;
+        // With no project the part goes into My parts alone (the library's ID kept to show it from there); else into
+        // My parts and the project by the command.
+        let made = if alone {
+            (session.new_part_in_my_parts(&open.sheet)).map(|(lib, name)| (None, Some(name), Some(lib)))
+        } else {
+            (session.new_part_command(&open.sheet)).map(|made| (Some(made.command), made.library, None))
+        };
+        let (command, library, mine) = match made {
             Ok(made) => made,
             Err(e) => return self.save_refused(e),
         };
-        let out = self.run_commit(&made.command);
+        let out = command.as_ref().map_or(Outcome::Done, |c| self.run_commit(c));
         if out != Outcome::Done {
             if let Some(open) = self.open_mut() {
                 open.error = Some(match &out {
@@ -1175,7 +1256,7 @@ impl ShellModel {
             .and_then(|p| p.sheet.take())
             .expect("checked");
         let number = open.sheet.text("part_number").trim().to_owned();
-        let toast = match &made.library {
+        let toast = match &library {
             Some(name) => strings::format(key!("toast-part-new-library"), &[&number, name]),
             None => strings::format(key!("toast-part-new"), &[&number]),
         };
@@ -1231,16 +1312,17 @@ impl ShellModel {
                 Outcome::Done
             }
             Origin::Project => {
-                let copy = self.project.as_ref().and_then(|project| {
-                    let q = project.session.query();
-                    q.parts()
-                        .iter()
-                        .find(|(_, c)| c.item.part_number.as_str() == number)
-                        .map(|(id, _)| id.as_uuid())
+                let saved = self.parts_session().and_then(|session| match mine {
+                    Some(lib) => session.library_part_draft(lib, item).ok(),
+                    None => {
+                        let q = session.query();
+                        let copy = (q.parts().iter())
+                            .find(|(_, c)| c.item.part_number.as_str() == number)
+                            .map(|(id, _)| id.as_uuid())?;
+                        session.part_draft(copy).ok()
+                    }
                 });
-                if let (Some(project), Some(copy)) = (&self.project, copy)
-                    && let Ok(sheet) = project.session.part_draft(copy)
-                {
+                if let Some(sheet) = saved {
                     self.open_sheet(sheet, None);
                 }
                 self.parts_refresh();
@@ -1268,16 +1350,16 @@ impl ShellModel {
     /// A new part like the saved `saved` but for its number and its cross-section (Save and add another size): its own
     /// item ID, the form's way back kept.
     fn parts_new_like(&mut self, saved: OpenSheet) -> Outcome {
-        let Some(project) = &self.project else {
+        let Some(session) = self.parts_session() else {
             return Outcome::Done;
         };
         let mut sheet = saved.sheet.clone();
-        sheet.copy = match project.session.new_part_draft() {
+        sheet.copy = match session.new_part_draft() {
             Ok(d) => d.copy,
             Err(e) => return draft_refusal(e),
         };
         for field in ["part_number", "cable.csa"] {
-            let _ = project.session.set_draft_field(&mut sheet, field, "");
+            let _ = session.set_draft_field(&mut sheet, field, "");
         }
         sheet.messages.clear();
         self.open_sheet(sheet, saved.bus_part);
@@ -1292,7 +1374,7 @@ impl ShellModel {
         &self,
         sheet: &PartSheet,
     ) -> Option<(ew_dl::DisplayList, (ew_units::Nm, ew_units::Nm))> {
-        let session = &self.project.as_ref()?.session;
+        let session = self.parts_session()?;
         // A part drawn as a box: its box with its pins, as the page lays it out; else its pieces' symbols.
         sheet
             .box_picture()

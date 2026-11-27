@@ -55,6 +55,13 @@ change here.
   Keep in my parts moves every use of the part with what it chose (a device's variant included), in one undo step
 - api-break: `part.edit_copy` refuses a starter part ("make a part of your own from it"); `part.keep` is new;
   `parts.back` takes `save`, `discard` and `show`, `parts.find` takes `maker`, `parts.new` takes `for_field`
+- behaviour-change: Parts opens with no project too (the start page's Parts, `F9`): the libraries alone, a new part
+  saved into My parts; nothing is kept in or removed from a project there
+- behaviour-change: another part opened or New part… while the card of a Save waits asks Save, Discard or Stay, as
+  Back does; a piece of the schematic table reads what it is without another piece's pins ("NO contact"); the list's
+  groups read in the plural; the sheet lists network ports and the PLC section where the start asked for them or they
+  hold a value
+- api-break: `parts.open` and `parts.new` take `card` (`apply`, `cancel`); `parts.open` needs no project
 - behaviour-change: a bond made, removed or given another via connection, where it changes the wires through the via,
   keeps each wire's own values with the wire as every other change of the wiring does; a wire it joined anew kept the
   typed length of one it was made from (doc 13 §2.3)

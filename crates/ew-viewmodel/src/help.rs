@@ -1279,7 +1279,10 @@ mod tests {
                 part: text(),
                 number: text(),
             },
-            Dialog::ConfirmLeavePart { number: text() },
+            Dialog::ConfirmLeavePart {
+                number: text(),
+                next: None,
+            },
             Dialog::ConfirmReplaceDxf {
                 dir: text(),
                 folder: text(),

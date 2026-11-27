@@ -1291,9 +1291,18 @@ pub(super) fn parts_shown(m: &ShellModel) -> Result<(), Text> {
     }
 }
 
-/// The open sheet of Parts, in a writable project.
+/// New part…: Parts over the libraries alone (no project), else a writable project.
+pub(super) fn parts_writable(m: &ShellModel) -> Result<(), Text> {
+    if m.parts_without_project() {
+        Ok(())
+    } else {
+        writable(m)
+    }
+}
+
+/// The open sheet of Parts, over the libraries alone or in a writable project.
 fn open_sheet(m: &ShellModel) -> Result<&crate::shell::parts_place::OpenSheet, Text> {
-    writable(m)?;
+    parts_writable(m)?;
     m.parts_place()
         .and_then(|p| p.sheet.as_ref())
         .ok_or_else(|| key!("reason-no-part-open").into())
@@ -1340,7 +1349,7 @@ pub(super) fn part_not_mine(m: &ShellModel) -> Result<(), Text> {
 /// Keep in my parts: the open part is only in this project.
 pub(super) fn part_only_here(m: &ShellModel) -> Result<(), Text> {
     match open_sheet(m)?.lives {
-        ew_api::parts::Lives::OnlyHere => Ok(()),
+        ew_api::parts::Lives::OnlyHere if !m.parts_without_project() => Ok(()),
         _ => Err(key!("reason-part-keep").into()),
     }
 }
@@ -1350,6 +1359,8 @@ pub(super) fn part_removable(m: &ShellModel) -> Result<(), Text> {
     let open = open_sheet(m)?;
     match open.lives {
         ew_api::parts::Lives::Mine => Ok(()),
+        // With no project nothing is taken out of one.
+        ew_api::parts::Lives::OnlyHere if m.parts_without_project() => Err(key!("reason-part-not-own").into()),
         ew_api::parts::Lives::OnlyHere if open.sheet.users == 0 => Ok(()),
         ew_api::parts::Lives::OnlyHere => Err(strings::keyed(
             key!("reason-part-remove-used"),

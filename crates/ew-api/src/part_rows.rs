@@ -253,24 +253,20 @@ impl PartSheet {
         t.origin = origin;
     }
 
-    /// The groups the editor lists for the draft, in the sheet's order: Identity and Technical data always; a group of
+    /// The groups the sheet and its contents list, in the sheet's order: Identity and Technical data always; a group of
     /// declared rows or tables where a field of it holds for a part of the draft's kind; the pins where the kind has
-    /// them; the cable's form for a cable; the network ports and the PLC section where the declaration gives the kind
-    /// them, of a part that is not one's own only where it has them; of a new part, those its start asks for (doc 07
-    /// §5.5) and the ports it has.
+    /// them; the cable's form for a cable; the network ports and the PLC section where the start asked for them
+    /// (doc 07 §5.5) or where they hold a value.
     pub fn sections(&self) -> Vec<Group> {
         let part = self.of_kind();
-        let asks = |g: Group| match self.start {
-            Some(start) => start.asks.contains(&g),
-            None => self.new || self.own,
-        };
+        let asks = |g: Group| self.start.is_some_and(|start| start.asks.contains(&g));
         let mut out: Vec<Group> = ew_derive::part_fields::fields_of(&part)
             .into_iter()
             .filter(|f| match f.group {
                 Group::Identity | Group::Technical | Group::About => false,
                 Group::Schematic | Group::Cable => true,
                 Group::Ports => asks(Group::Ports) || !self.bus.is_empty(),
-                Group::Plc => asks(Group::Plc),
+                Group::Plc => asks(Group::Plc) || !self.plc.role.is_empty(),
                 _ => {
                     declared_rows().any(|r| r.path == f.path)
                         || declared_tables()

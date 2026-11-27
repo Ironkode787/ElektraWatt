@@ -304,6 +304,7 @@ reason-part-not-yours = Het artikel is niet van u: maak uw eigen ervan.
 reason-part-not-changed = Er is niets gewijzigd sinds het artikel werd geopend of opgeslagen.
 reason-part-own-already = Het artikel is al van u: Zoals dit maakt er nog een zoals het.
 reason-parts-unsaved = Het artikel heeft wijzigingen die niet zijn opgeslagen: sla ze eerst op of verwerp ze.
+reason-parts-card-waits = Wat Opslaan in dit project wijzigt, wacht op de kaart naast het artikel: pas die eerst toe of annuleer hem.
 reason-part-remove-used = { $p0 ->
     [one] { $p0 } apparaat van dit project gebruikt het artikel.
    *[other] { $p0 } apparaten van dit project gebruiken het artikel.
@@ -323,6 +324,8 @@ parts-free-bottom = onder
 parts-free-left = links
 parts-free-right = rechts
 parts-count-line = { $p0 } · { $p1 } van mij · { $p2 } in dit project
+# The count line of Parts opened with no project.
+parts-count-line-alone = { $p0 } · { $p1 } van mij
 parts-group-recent = Pas geopend
 parts-chip-mine = van mij
 parts-chip-starter = start

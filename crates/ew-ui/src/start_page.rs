@@ -148,6 +148,18 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             {
                 action(events, "templates.open", Value::Null);
             }
+            // Parts with no project: the libraries alone, a new part saved into My parts.
+            if crate::components::button(
+                ui,
+                crate::components::Kind::Secondary,
+                strings::text(key!("bar-parts")),
+                None,
+                0.0,
+            )
+            .clicked()
+            {
+                action(events, "parts.open", Value::Null);
+            }
             // The tutorials and the how-to guides, as Help lists them (F5).
             ui.menu_button(strings::text(key!("start-tutorials")), |ui| {
                 crate::menu::tutorial_lists(ui, shell, events);

@@ -69,6 +69,12 @@ fn every_dialog(tmp: &Tmp) -> (ShellModel, Vec<Dialog>) {
         // Leaving a part with changes not saved.
         Dialog::ConfirmLeavePart {
             number: "SW-6".into(),
+            next: None,
+        },
+        // Opening another part while the card of the open part's Save waits.
+        Dialog::ConfirmLeavePart {
+            number: "SW-6".into(),
+            next: Some(("parts.open", serde_json::Map::new())),
         },
         // Replacing an earlier DXF set.
         Dialog::ConfirmReplaceDxf {

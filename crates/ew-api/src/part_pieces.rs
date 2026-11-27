@@ -40,15 +40,18 @@ pub struct LevelRow {
 pub struct PieceKind {
     /// The starter function's key.
     pub key: &'static str,
-    /// Its words (`Coil A1-A2`, `NO contact 13-14`).
+    /// Its words without pins (`Coil`, `NO contact`).
     pub words: Text,
 }
 
 /// The most levels a terminal is made with here.
 pub const MOST_LEVELS: usize = 3;
 
-/// What a piece of a part can be: every starter function a piece is drawn with, in the starter's order.
+/// What a piece of a part can be: every starter function a piece is drawn with, in the starter's order, each by the
+/// word its function has without pins ("Coil", "NO contact"): a word in the table never carries another piece's pins.
+/// Where the starter draws two pieces with one function (a main and an auxiliary contact), that function's one word.
 pub fn piece_kinds() -> Vec<PieceKind> {
+    use ew_l10n::TextArg;
     crate::output::starter_piece_fndefs()
         .filter_map(|(key, c)| {
             let cps: Vec<String> = c
@@ -57,7 +60,18 @@ pub fn piece_kinds() -> Vec<PieceKind> {
                 .iter()
                 .map(|cp| cp.designation.as_str().to_owned())
                 .collect();
-            crate::output::navigators::kind_text(&c.item, &cps).map(|words| PieceKind { key, words })
+            let words = crate::output::navigators::kind_text(&c.item, &cps)?;
+            // The function's words end in its own pins (`Coil A1-A2`); the piece's pins are the row's.
+            let pins = cps.join("-");
+            let words = match words.args() {
+                [TextArg::Ml(m)] => Text::bare(TextArg::Ml(ew_mltext::MlText::from_langs(
+                    m.languages()
+                        .filter_map(|l| m.get(l).map(|t| (l.clone(), t.trim_end_matches(pins.as_str()).trim_end().to_owned())))
+                        .collect::<Vec<_>>(),
+                ))),
+                _ => words,
+            };
+            Some(PieceKind { key, words })
         })
         .collect()
 }

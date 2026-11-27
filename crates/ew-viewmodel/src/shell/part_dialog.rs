@@ -205,6 +205,12 @@ pub fn part_kinds() -> Vec<String> {
     ew_api::part_kinds()
 }
 
+/// The plural of a part kind's word ("Terminals"), a heading of many parts of the kind; its word where it has none.
+pub fn part_kind_plural(kind: &str) -> String {
+    strings::lookup(&format!("choice-{}-plural", kind.replace('_', "-")))
+        .map_or_else(|| part_kind_word(kind), str::to_owned)
+}
+
 /// The word of part kind `kind` (`end_bracket` is "End bracket"; M39: the editor shows words, not raw values),
 /// through [`strings::choice_text`].
 pub fn part_kind_word(kind: &str) -> String {

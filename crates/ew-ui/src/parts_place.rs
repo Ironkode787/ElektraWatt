@@ -138,6 +138,10 @@ pub(crate) fn toolbar(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) 
             ("parts.keep", key!("parts-keep"), "folder-plus"),
             ("parts.remove", key!("parts-remove"), "trash"),
         ] {
+            // With no project nothing is kept from one.
+            if id == "parts.keep" && shell.parts_without_project() {
+                continue;
+            }
             if place_command(
                 ui,
                 id,
@@ -229,7 +233,7 @@ impl PlaceView {
             pos2(pictures.left(), full.bottom()),
         );
         ui.scope_builder(UiBuilder::new().max_rect(list), |ui| {
-            list_column(ui, place, &mut self.folded, events)
+            list_column(ui, place, shell.parts_without_project(), &mut self.folded, events)
         });
         ui.scope_builder(
             UiBuilder::new().max_rect(middle.shrink2(vec2(t.space_4, t.space_3))),
@@ -601,10 +605,12 @@ fn group_fields(
     save
 }
 
-/// The list (doc 07 §5.3): the search, the scopes, the filters and the rows.
+/// The list (doc 07 §5.3): the search, the scopes, the filters and the rows; with no project (`alone`) no scope or
+/// count of a project.
 fn list_column(
     ui: &mut Ui,
     place: &PartsPlace,
+    alone: bool,
     folded: &mut std::collections::BTreeSet<String>,
     events: &mut Vec<Event>,
 ) {
@@ -640,6 +646,9 @@ fn list_column(
                     (PartScope::Project, key!("parts-scope-project")),
                     (PartScope::Mine, key!("parts-scope-mine")),
                 ] {
+                    if alone && scope == PartScope::Project {
+                        continue;
+                    }
                     if ui
                         .selectable_label(place.scope == scope, strings::text(key))
                         .clicked()
@@ -724,16 +733,17 @@ fn list_column(
                 }
             });
             let all = strings::format_count(count_key!("parts-count"), place.counts.all);
+            let mine = place.counts.mine.to_string();
             ui.label(components::small_secondary(
                 &t,
-                strings::format(
-                    key!("parts-count-line"),
-                    &[
-                        &all,
-                        &place.counts.mine.to_string(),
-                        &place.counts.project.to_string(),
-                    ],
-                ),
+                if alone {
+                    strings::format(key!("parts-count-line-alone"), &[&all, &mine])
+                } else {
+                    strings::format(
+                        key!("parts-count-line"),
+                        &[&all, &mine, &place.counts.project.to_string()],
+                    )
+                },
             ));
             ui.add_space(t.space_2);
             let open = place.sheet.as_ref().map(|o| o.sheet.copy);
@@ -780,7 +790,7 @@ fn list_column(
                         group(
                             ui,
                             kind.to_owned(),
-                            ew_viewmodel::shell::part_dialog::part_kind_word(kind),
+                            ew_viewmodel::shell::part_dialog::part_kind_plural(kind),
                             rows,
                         );
                     }

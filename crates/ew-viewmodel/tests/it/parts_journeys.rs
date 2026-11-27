@@ -567,3 +567,71 @@ fn back_with_changes_not_saved_asks_save_discard_or_stay() {
     assert!(s.parts_place().is_none(), "saved, and back on the page");
     saved(&mut s, "SW-6");
 }
+
+/// Parts from the start page, no project open (doc 07 §5.8): the place works on the libraries alone, a new part is
+/// saved into My parts only and nothing offers to keep a part in a project; a project opened later finds it in My
+/// parts.
+#[test]
+fn parts_with_no_project_save_a_new_part_into_my_parts_alone() {
+    let tmp = Tmp::new("journey-alone");
+    let mine = LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), Vec::new(), Vec::new());
+    let mut s = ShellModel::new(Mode::Gui, tmp.config().with_libraries(Some(mine)));
+    done(&mut s, "parts.open", json!({}));
+    assert_eq!(s.screen(), ew_viewmodel::shell::Screen::Parts);
+    assert!(s.parts_without_project());
+    done(&mut s, "parts.new", json!({"start": "device"}));
+    fill(&mut s, &[("manufacturer", "Example"), ("part_number", "ALONE-1")]);
+    done(&mut s, "parts.save", json!({}));
+    assert!(!s.has_project(), "no project is made");
+    let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the saved part");
+    assert_eq!(open.sheet.text("part_number"), "ALONE-1");
+    assert_eq!(open.lives, ew_viewmodel::ew_api::parts::Lives::Mine);
+    assert!(
+        s.dispatch("parts.keep", &json!({})) != ew_viewmodel::shell::Outcome::Done,
+        "nothing is kept from a project"
+    );
+    done(&mut s, "parts.back", json!({}));
+    assert_eq!(s.screen(), ew_viewmodel::shell::Screen::Start);
+    done(
+        &mut s,
+        "file.new",
+        json!({"dir": tmp.0.join("p.ew"), "template": "builtin"}),
+    );
+    done(&mut s, "parts.open", json!({}));
+    assert!(!s.parts_without_project());
+    done(&mut s, "parts.find", json!({"text": "ALONE-1", "scope": "mine"}));
+    let place = s.parts_place().expect("Parts");
+    assert!(
+        place.found.iter().any(|f| f.offer.part_number == "ALONE-1"),
+        "My parts holds it"
+    );
+}
+
+/// The card of a Save belongs to the part it changes (doc 07 §5.2): another part opened while it waits asks Save,
+/// Discard or Stay as Back does; Save applies the card and then opens the other part.
+#[test]
+fn another_part_opened_while_a_saves_card_waits_asks_first() {
+    let tmp = Tmp::new("journey-card");
+    let mut s = project(&tmp);
+    make(&mut s, "device", "CARD-1", &[]);
+    make(&mut s, "device", "CARD-2", &[]);
+    done(&mut s, "parts.open", json!({"part": "CARD-1"}));
+    fill(&mut s, &[("description", "Contactor")]);
+    done(&mut s, "parts.save", json!({}));
+    assert!(s.properties().card().is_some(), "Save of a part the project holds opens its card");
+    done(&mut s, "parts.open", json!({"part": "CARD-2"}));
+    assert!(
+        matches!(
+            s.dialog(),
+            Some(ew_viewmodel::shell::Dialog::ConfirmLeavePart { next: Some(_), .. })
+        ),
+        "another part asks first"
+    );
+    let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("a sheet");
+    assert_eq!(open.sheet.text("part_number"), "CARD-1", "the part stays until answered");
+    done(&mut s, "parts.open", json!({"part": "CARD-2", "card": "apply"}));
+    assert!(s.properties().card().is_none(), "the card is applied");
+    assert!(s.dialog().is_none());
+    let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("a sheet");
+    assert_eq!(open.sheet.text("part_number"), "CARD-2");
+}

@@ -343,7 +343,7 @@ impl Session {
     /// [`PartDraftError::Field`] for the first field that does not parse; on `part_number` (`error-part-exists`) when
     /// the project or My parts holds a part of that number and manufacturer; on `part` when My parts cannot be written.
     pub fn new_part_command(&mut self, draft: &PartSheet) -> Result<NewPart, PartDraftError> {
-        let mut part = self.new_part_item(draft)?;
+        let part = self.new_part_item(draft)?;
         let maker = draft.text("manufacturer").trim().to_owned();
         let number = part.part_number.as_str().to_owned();
         let exists = || {
@@ -373,6 +373,44 @@ impl Session {
         let Some(lib) = library else {
             return self.project_part(part, &maker, item);
         };
+        let name = self.write_my_part(part, lib, draft)?;
+        let docs = self.closure_docs(&[lib_ref(lib, item)]).map_err(|e| {
+            PartDraftError::Field(message(
+                "part",
+                key!("error-part-library"),
+                &[&name, &e.to_string()],
+            ))
+        })?;
+        let copies = docs.iter().filter_map(|d| serde_json::to_value(d).ok()).collect();
+        let command = AnyCommand::of(&EmbedLibraryCopies { copies }).map_err(|e| {
+            PartDraftError::Field(message("part", key!("error-part-value"), &[&e.to_string()]))
+        })?;
+        Ok(NewPart {
+            command,
+            library: Some(name),
+        })
+    }
+
+    /// Saves a new part into My parts alone, no project taking it (Parts without a project, doc 07 §5.8): the library
+    /// it was added to, its ID and name; the part's item there is the draft's `copy`.
+    ///
+    /// # Errors
+    ///
+    /// As [`Session::new_part_command`]; on `part` (`error-part-no-my-parts`) when My parts cannot be made here.
+    pub fn new_part_in_my_parts(&mut self, draft: &PartSheet) -> Result<(Uuid, String), PartDraftError> {
+        let part = self.new_part_item(draft)?;
+        let lib = crate::eplan::user_parts_library(self.libraries_mut())
+            .map_err(|_| PartDraftError::Field(message("part", key!("error-part-no-my-parts"), &[])))?;
+        let name = self.write_my_part(part, lib, draft)?;
+        Ok((lib, name))
+    }
+
+    /// Writes the new part `part` of `draft` into My parts `lib`, its maker made there where it has none: the library's
+    /// name. Refused on `part_number` (`error-part-exists`) where My parts holds a part of that number and maker.
+    fn write_my_part(&mut self, mut part: Part, lib: Uuid, draft: &PartSheet) -> Result<String, PartDraftError> {
+        let maker = draft.text("manufacturer").trim().to_owned();
+        let number = part.part_number.as_str().to_owned();
+        let item = draft.copy;
         let docs = self.libraries().documents(lib, Kind::Part);
         let mine: Vec<Part> = docs
             .iter()
@@ -382,7 +420,11 @@ impl Session {
             })
             .collect();
         if self.same_part(&mine, &number, &maker) {
-            return Err(exists());
+            return Err(PartDraftError::Field(message(
+                "part_number",
+                key!("error-part-exists"),
+                &[&number, &maker],
+            )));
         }
         let mut written = Vec::new();
         part.manufacturer = self.my_maker(lib, &maker, &mut written)?;
@@ -413,21 +455,7 @@ impl Session {
                 &[&name, &e.to_string()],
             ))
         })?;
-        let docs = self.closure_docs(&[lib_ref(lib, item)]).map_err(|e| {
-            PartDraftError::Field(message(
-                "part",
-                key!("error-part-library"),
-                &[&name, &e.to_string()],
-            ))
-        })?;
-        let copies = docs.iter().filter_map(|d| serde_json::to_value(d).ok()).collect();
-        let command = AnyCommand::of(&EmbedLibraryCopies { copies }).map_err(|e| {
-            PartDraftError::Field(message("part", key!("error-part-value"), &[&e.to_string()]))
-        })?;
-        Ok(NewPart {
-            command,
-            library: Some(name),
-        })
+        Ok(name)
     }
 
     /// The manufacturer named `maker` in library `lib`: its record there, else a new one, added to `written`.

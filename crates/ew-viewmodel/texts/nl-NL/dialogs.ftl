@@ -63,6 +63,7 @@ confirm-part-remove-title = { $p0 } uit uw artikelbibliotheek verwijderen?
 confirm-part-remove-text = Volgende projecten bieden het niet meer aan, en ongedaan maken brengt het niet terug; een project dat het gebruikt houdt zijn kopie.
 confirm-part-leave-title = De wijzigingen aan { $p0 } opslaan?
 confirm-part-leave-text = Het artikel heeft wijzigingen die niet zijn opgeslagen. Weggaan zonder opslaan laat ze vervallen.
+confirm-part-card-text = Wat Opslaan in dit project wijzigt, wacht op de kaart naast het artikel. Opslaan past het toe voordat het andere artikel opengaat; Verwerpen laat het project zoals het is.
 dialog-stay = Blijven
 dialog-remove = Verwijderen
 prompt-open-keymap-title = Toetsenindeling importeren

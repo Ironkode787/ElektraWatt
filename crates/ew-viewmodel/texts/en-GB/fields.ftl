@@ -207,6 +207,23 @@ choice-tube = Tube
 choice-accessory = Accessory
 choice-configured = Configured
 choice-gland = Gland
+# A part kind's plural: a heading of many parts of the kind (the list of Parts).
+choice-device-plural = Devices
+choice-terminal-plural = Terminals
+choice-cable-plural = Cables
+choice-wire-plural = Wires
+choice-ferrule-plural = Ferrules
+choice-marker-plural = Markers
+choice-duct-plural = Ducts
+choice-rail-plural = Rails
+choice-busbar-plural = Busbars
+choice-end-bracket-plural = End brackets
+choice-enclosure-plural = Enclosures
+choice-mounting-plate-plural = Mounting plates
+choice-tube-plural = Tubes
+choice-accessory-plural = Accessories
+choice-configured-plural = Configured products
+choice-gland-plural = Glands
 # The line kinds of a fluid line.
 choice-working = Working
 choice-pilot = Pilot
@@ -437,6 +454,9 @@ choice-extract = Extract
 choice-read-only = Read only
 choice-mine = Mine
 choice-theirs = Theirs
+# The card of the open part's Save, settled before another part opens (`parts.open`, `parts.new`).
+choice-apply = Apply
+choice-cancel = Cancel
 
 ## W49.3-F3: fields as the collision dialog's headings.
 field-device-tag-letter = Tag letter

@@ -309,6 +309,7 @@ reason-part-not-yours = The part is not yours: make your own from it.
 reason-part-not-changed = Nothing was changed since the part was opened or saved.
 reason-part-own-already = The part is yours already: Like this makes another like it.
 reason-parts-unsaved = The part has changes that are not saved: Save or Discard them first.
+reason-parts-card-waits = What Save changes in this project waits on the card beside the part: apply or cancel it first.
 reason-part-remove-used = { $p0 ->
     [one] { $p0 } device of this project uses the part.
    *[other] { $p0 } devices of this project use the part.
@@ -328,6 +329,8 @@ parts-free-bottom = below
 parts-free-left = left
 parts-free-right = right
 parts-count-line = { $p0 } · { $p1 } mine · { $p2 } in this project
+# The count line of Parts opened with no project.
+parts-count-line-alone = { $p0 } · { $p1 } mine
 parts-group-recent = Lately opened
 parts-chip-mine = mine
 parts-chip-starter = starter

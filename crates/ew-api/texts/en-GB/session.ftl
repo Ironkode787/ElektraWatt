@@ -304,6 +304,7 @@ error-part-bus-twice = Interface { $p0 } is listed twice; give each row its own 
 error-part-new-id = No new part could be made: the system gave no random number; try again
 error-part-exists = { $p1 } { $p0 } is in My parts or in this project already: open it from the list, or give the new part a part number of its own
 error-part-library = { $p0 } could not be written: { $p1 }
+error-part-no-my-parts = With no project open a new part is saved in My parts, and My parts cannot be made here: open a project to keep the part in it
 reason-part-symbol-unsaved = Save the symbol to a library first; the part then names it
 reason-part-not-own = This part is not in your parts library: only a part of your own is taken out of it
 # The PLC section of a new part.
