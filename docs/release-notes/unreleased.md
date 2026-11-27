@@ -545,3 +545,20 @@ change here.
   is gone
 - behaviour-change: Route on a cabinet whose every wire has its way says so and opens its card with Route every wire
   again ticked, so the whole cabinet can be laid again from the window
+- behaviour-change: Route's card lays its groups out as the design draws them: Ducts (each with its wires, its fullest
+  piece's, its fill, the inner area, the limit and the default diameters assumed), Lengths, and Typed by hand, Made on
+  site (with the end outside the cabinet), Without a way and Route every wire again (with its count in words), side by
+  side where the window has room; the canvas shows the cabinet whole while the card is open and the view comes back
+  when it closes; the wires that leave for the door are noted where they leave the plate
+- behaviour-change: a wire's Way row has Show on 902 (its cabinet's page, the wire selected, its way drawn); a wire
+  selected in the Connections table shows its way on the panel page; a duct's Wires row has Select them; a selected
+  duct shows its fullest piece hatched with its fill chip; a placement's Ways row says how many of its ways no longer
+  hold, with Route; the toast of a turn or a nudge that leaves ways no longer holding says what it did first, with Undo
+- behaviour-change: a stored way of a wire its cabinet no longer routes (an end re-wired to the field or an external
+  point, a wire become a core) is read nowhere, so the wire prints no length or "site" and its duct no longer counts
+  it; Route's next run removes it
+- text-change: a wire without a way says its own reason (the ducts at two pins do not meet, two devices in two doors,
+  a device on a second plate or on a named face, a door without a size), and a way that no longer holds its own cause
+  (a pin its part or drawing put elsewhere, the duct or the door changed); EW-LAY-011 has these forms; `ew route
+  --json` names them `ducts_apart`, `other_plate`, `two_doors` and `door_size`
+- text-change: Dutch: "vulgraad" and "maximale vulgraad" for a duct's fill and its limit, "deurlus" for the door loop
