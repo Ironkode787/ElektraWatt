@@ -608,3 +608,28 @@ fn file_save_on_the_drawing_is_the_strip_s_save() {
     let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the part");
     assert!(open.sheet.box_.is_some(), "its sheet took the box");
 }
+
+/// Leaving a page's drawing never drops a part sheet open in Parts: Parts stepped aside for Test on a page with a part
+/// half typed, New symbol on that page, then Save and place: the page shows with the Place tool armed, and Parts
+/// comes back with the part and its typing.
+#[test]
+fn save_and_place_keeps_a_part_sheet_open_in_parts() {
+    let tmp = Tmp::new("drawing-place-keeps-sheet");
+    let mut s = project(&tmp);
+    done(&mut s, "parts.new", json!({"start": "device"}));
+    done(&mut s, "parts.field", json!({"field": "part_number", "value": "HALF-TYPED"}));
+    done(&mut s, "parts.new_symbol", json!({}));
+    done(&mut s, "parts.field", json!({"field": "symbol.name", "value": "Tested"}));
+    draw_contact(&mut s);
+    done(&mut s, "symbol.scratch", json!({}));
+    assert!(s.symbol_editor().is_none(), "the page shows");
+    done(&mut s, "parts.new_symbol", json!({"discard": true}));
+    done(&mut s, "parts.field", json!({"field": "symbol.name", "value": "Placed"}));
+    draw_contact(&mut s);
+    done(&mut s, "parts.save", json!({}));
+    assert!(s.symbol_editor().is_none(), "the page shows to place it");
+    done(&mut s, "parts.open", json!({}));
+    let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the part is still open");
+    assert!(open.changed, "with its typing");
+    assert_eq!(open.title(), "HALF-TYPED");
+}
