@@ -574,10 +574,11 @@ fn declared_row(
     let field = row.path;
     if !editable {
         crate::components::form_row(ui, &label, |ui, _| {
-            let value = if row.text.is_empty() {
-                "\u{2014}"
-            } else {
-                row.text.as_str()
+            // A choice reads in its words, as the editable row offers it.
+            let value = match row.ty.inner() {
+                _ if row.text.is_empty() => "\u{2014}".to_owned(),
+                FieldType::Enum { .. } => choice_words(field, &row.text),
+                _ => row.text.clone(),
             };
             ui.label(RichText::new(value).color(t.text_secondary.color32()));
         });
@@ -744,7 +745,14 @@ fn declared_table(
                         if editable {
                             table_cell(ui, &field, &name, ty, text, events);
                         } else {
-                            ui.label(RichText::new(text).color(t.text_secondary.color32()));
+                            // A choice reads in its words.
+                            let words = match ty.inner() {
+                                ew_viewmodel::ew_api::output::FieldType::Enum { .. } if !text.is_empty() => {
+                                    strings::field_choice_text("part", &field, text)
+                                }
+                                _ => text.clone(),
+                            };
+                            ui.label(RichText::new(words).color(t.text_secondary.color32()));
                         }
                     }
                     if editable && table.key.is_none() {
