@@ -572,3 +572,26 @@ fn a_gtin_is_shown_and_kept_when_the_part_is_saved() {
         "the saved part keeps its GTIN"
     );
 }
+
+/// Viewing shows the whole part (doc 07 §5.1): a starter PLC card, which is not the person's own, lists its PLC group
+/// with its channels; a starter device without a PLC section does not.
+#[test]
+fn a_starter_plc_card_shows_its_plc_group() {
+    use ew_api::part_fields::Group;
+    let s = common::new_project(1);
+    let sheet = |number: &str| {
+        let c = s
+            .library_parts()
+            .into_iter()
+            .find(|c| c.item.part_number.as_str() == number)
+            .unwrap_or_else(|| panic!("the starter part {number}"));
+        s.library_part_draft(c.library_id.as_uuid(), c.item_id.as_uuid())
+            .expect("its sheet")
+    };
+    let card = sheet("EW-GEN-DI-1");
+    assert!(!card.own && !card.new, "a starter part");
+    assert!(card.sections().contains(&Group::Plc), "{:?}", card.sections());
+    assert!(!card.plc.role.trim().is_empty(), "its PLC data is read: {:?}", card.plc);
+    let breaker = sheet("EW-GEN-MCB-1");
+    assert!(!breaker.sections().contains(&Group::Plc), "{:?}", breaker.sections());
+}

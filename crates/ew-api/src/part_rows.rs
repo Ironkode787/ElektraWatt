@@ -266,7 +266,9 @@ impl PartSheet {
                 Group::Identity | Group::Technical | Group::About => false,
                 Group::Schematic | Group::Cable => true,
                 Group::Ports => asks(Group::Ports) || !self.bus.is_empty(),
-                Group::Plc => asks(Group::Plc) || !self.plc.role.is_empty(),
+                Group::Plc => {
+                    asks(Group::Plc) || !self.plc.role.is_empty() || self.original.sections.plc.is_some()
+                }
                 _ => {
                     declared_rows().any(|r| r.path == f.path)
                         || declared_tables()
