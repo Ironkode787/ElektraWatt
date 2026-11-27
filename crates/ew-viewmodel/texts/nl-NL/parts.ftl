@@ -360,3 +360,5 @@ parts-connections-pins = Aansluitingen
 parts-connections-open = De rij van aansluitingen { $p0 } openen
 parts-connections-close = De rij van aansluitingen { $p0 } sluiten
 parts-unit-mm = mm
+part-face-drawing = Volgens de tekening
+part-face-drawn = { $p0 } · tekening

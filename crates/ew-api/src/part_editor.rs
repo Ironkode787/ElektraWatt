@@ -122,8 +122,8 @@ pub struct PartSheet {
     /// The name of the symbol a new part made from the symbol editor is drawn with ("Make a part for this symbol…").
     pub drawn_with: Option<String>,
     /// Per pin of the part's pins, in their order, the edge the drawing gives it where the part names none (doc 12
-    /// §8.1): `top` or `bottom` as the first device of the part (by ID) is drawn, empty where no device draws it. The
-    /// Pins table's Wired at shows it in place of an empty choice.
+    /// §8.1): `top` or `bottom` as the first device of the part (by ID) is drawn, empty where no device draws it.
+    /// Connections' Wired at shows it in place of an empty choice.
     pub drawn_faces: Vec<String>,
     /// That symbol's function definition, the new part's main template entry.
     pub(crate) fndef: Option<LibRef>,
@@ -1315,4 +1315,38 @@ pub(crate) fn bom_changes(before: &Q, after: &Q) -> (Vec<String>, Vec<String>, V
             Vec::new(),
         )
     }
+}
+
+/// The edge the drawing gives each pin of the part `p` (copy `copy`), in its pins' order ([`PartSheet::drawn_faces`]).
+fn drawn_faces(q: &Q, copy: Uuid, p: &Part) -> Vec<String> {
+    let mut devices: Vec<ew_ids::Id<ew_schema::Device>> = q
+        .devices()
+        .iter()
+        .filter(|(_, d)| d.parts.iter().any(|u| u.part.copy.as_uuid() == copy))
+        .map(|(id, _)| id)
+        .collect();
+    devices.sort();
+    let mut faces: std::collections::BTreeMap<u16, ew_schema::PinFace> = std::collections::BTreeMap::new();
+    for d in devices {
+        for f in q.idx().functions_of_device(d) {
+            for cp in q.get::<ew_derive::FunctionCps>(f).iter() {
+                if let Some((idx, _)) = cp.pin {
+                    faces
+                        .entry(idx)
+                        .or_insert_with(|| ew_derive::layout::drawn_face(q, f, cp.idx));
+                }
+            }
+        }
+        if !faces.is_empty() {
+            break;
+        }
+    }
+    p.cp_pattern
+        .iter()
+        .map(|c| match faces.get(&c.idx) {
+            Some(ew_schema::PinFace::Top) => "top".to_owned(),
+            Some(ew_schema::PinFace::Bottom) => "bottom".to_owned(),
+            _ => String::new(),
+        })
+        .collect()
 }

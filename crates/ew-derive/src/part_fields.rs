@@ -324,6 +324,10 @@ pub enum Feature {
     TubeFit,
     /// The check of a coil against its output.
     CoilCheck,
+    /// How full a wiring duct is (EW-LAY-007).
+    DuctFill,
+    /// The way of a wire from a pin (which edge it leaves by).
+    WireWay,
 }
 
 impl Feature {
@@ -365,6 +369,8 @@ impl Feature {
             Feature::Fluid => key!("part-feature-fluid"),
             Feature::TubeFit => key!("part-feature-tube-fit"),
             Feature::CoilCheck => key!("part-feature-coil-check"),
+            Feature::DuctFill => key!("part-feature-duct-fill"),
+            Feature::WireWay => key!("part-feature-wire-way"),
         }
     }
 }
@@ -848,7 +854,7 @@ pub static PART_FIELDS: &[PartField] = &[
         key!("part-field-mech-depth"),
         G::Cabinet,
         Has::Placed,
-        &[r_on(Ft::DoorReach, Skipped, key!("part-says-depth"), Has::Cutout)],
+        &[r_on(Ft::DoorReach, Skipped, key!("part-says-depth"), Has::Placed)],
     ),
     f(
         "mech.mount_kind",
@@ -898,12 +904,12 @@ pub static PART_FIELDS: &[PartField] = &[
         Field,
         CLEARANCE,
     ),
-    stored(
+    size(
         "mech.clearance.front",
         key!("part-field-mech-clearance-front"),
         G::Cabinet,
         Has::Placed,
-        NOT_YET,
+        &[r(Ft::DoorReach, Assumed, key!("part-says-clearance-front"))],
     ),
     f(
         "mech.rail_offset",
@@ -1004,6 +1010,14 @@ pub static PART_FIELDS: &[PartField] = &[
         Column("cp_pattern"),
         &[r(Ft::WireEnds, Printed, key!("part-says-twin"))],
     ),
+    f(
+        "cp_pattern[].face",
+        key!("part-field-cp-pattern-face"),
+        G::Connections,
+        Has::Pinned,
+        Column("cp_pattern"),
+        &[r_on(Ft::WireWay, Assumed, key!("part-says-face"), Has::HasPins)],
+    ),
     // Enclosure
     size(
         "sections.enclosure.width",
@@ -1058,12 +1072,12 @@ pub static PART_FIELDS: &[PartField] = &[
         Field,
         &[r(Ft::Surfaces, Assumed, key!("part-says-edge-margin"))],
     ),
-    stored(
+    size(
         "sections.enclosure.usable_depth",
         key!("part-field-enclosure-usable-depth"),
         G::Enclosure,
         ENCLOSURE,
-        NOT_YET,
+        &[r(Ft::DoorReach, Skipped, key!("part-says-usable-depth"))],
     ),
     stored(
         "sections.enclosure.wall",
@@ -1111,19 +1125,19 @@ pub static PART_FIELDS: &[PartField] = &[
         NOT_READ,
     ),
     // Wiring duct
-    stored(
+    size(
         "sections.duct.inner_width",
         key!("part-field-duct-inner-width"),
         G::Duct,
         DUCT,
-        NOT_YET,
+        &[r(Ft::DuctFill, Assumed, key!("part-says-duct-inner"))],
     ),
-    stored(
+    size(
         "sections.duct.inner_height",
         key!("part-field-duct-inner-height"),
         G::Duct,
         DUCT,
-        NOT_YET,
+        &[r(Ft::DuctFill, Assumed, key!("part-says-duct-inner"))],
     ),
     stored(
         "sections.duct.slot_pitch",
@@ -1212,6 +1226,13 @@ pub static PART_FIELDS: &[PartField] = &[
         WIRE_KIND,
         Field,
         &[r(Ft::WireEnds, Assumed, key!("part-says-wire-class"))],
+    ),
+    size(
+        "sections.wire.outer_diameter",
+        key!("part-field-wire-outer-diameter"),
+        G::Wire,
+        WIRE_KIND,
+        &[r(Ft::DuctFill, Assumed, key!("part-says-wire-diameter"))],
     ),
     // Ferrule or lug
     f(

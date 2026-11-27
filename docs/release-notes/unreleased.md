@@ -55,6 +55,9 @@ change here.
   Keep in my parts moves every use of the part with what it chose (a device's variant included), in one undo step
 - api-break: `part.edit_copy` refuses a starter part ("make a part of your own from it"); `part.keep` is new;
   `parts.back` takes `save`, `discard` and `show`, `parts.find` takes `maker`, `parts.new` takes `for_field`
+- behaviour-change: a bond made, removed or given another via connection, where it changes the wires through the via,
+  keeps each wire's own values with the wire as every other change of the wiring does; a wire it joined anew kept the
+  typed length of one it was made from (doc 13 §2.3)
 - behaviour-change: a wire that ends open, or outside the project, at an interruption point across its pair, with a
   chain or a star behind the pair, shows and takes its ends set by hand at its clamps and keeps them through a change
   of the wiring; they read as the rule's and went at the next change (doc 13 §2.3)

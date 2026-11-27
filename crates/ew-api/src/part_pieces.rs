@@ -121,8 +121,9 @@ impl PartSheet {
     /// Whether On the schematic asks for the part's pieces: a device drawn with symbols (its start, or the pieces it
     /// has), its pins not given by its channels or its ports.
     pub fn drawn_as_pieces(&self) -> bool {
+        use crate::part_box::PinsFrom;
         self.text("kind") == "device"
-            && self.pins_from().is_none()
+            && !matches!(self.pins_from(), Some(PinsFrom::Channels | PinsFrom::Ports))
             && self.start.map_or(!self.pieces.is_empty(), |s| s.pieces)
     }
 
@@ -331,9 +332,16 @@ impl Session {
                     cps: split(&row.pins).filter_map(|n| idx_of(p, n)).collect(),
                     extra: Default::default(),
                 });
-                if p.category.is_none() {
-                    p.category = Some(def.item.category.clone());
-                }
+            }
+            // The part is listed under what its first piece is, unless it was listed under something of its own.
+            let boxed = crate::output::starter_fndef_by_key(ew_schema::starter::FN_BLACKBOX)
+                .map(|b| b.item.category.clone());
+            if p.category.is_none() || p.category == boxed {
+                p.category = template
+                    .first()
+                    .and_then(|t: &TemplateFn| t.fndef.extra.get("key").and_then(|k| k.as_str()))
+                    .and_then(crate::output::starter_fndef_by_key)
+                    .map(|d| d.item.category.clone());
             }
             p.function_template = template;
         }

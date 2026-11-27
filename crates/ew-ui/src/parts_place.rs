@@ -1285,6 +1285,7 @@ fn keep_free(ui: &mut Ui, e: &OpenSheet, editable: bool, events: &mut Vec<Event>
                     ui.label(
                         RichText::new(strings::text(key!("parts-unit-mm"))).color(t.text_secondary.color32()),
                     );
+                    ui.add_space(t.space_4);
                     enter |= edit.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter));
                     if text != row.text {
                         events.push(Event::Action(
@@ -1409,7 +1410,7 @@ fn table_cell(
     field: &str,
     name: &str,
     ty: &ew_viewmodel::ew_api::output::FieldType,
-    text: &str,
+    (text, drawn): (&str, Option<&str>),
     events: &mut Vec<Event>,
 ) {
     use ew_viewmodel::ew_api::output::FieldType;
@@ -1423,17 +1424,27 @@ fn table_cell(
                 .into_iter()
                 .chain(options.iter().cloned())
                 .collect();
+            // A pin's Wired at names its empty choice "From the drawing" and, while it is empty, shows the edge the
+            // drawing gives the pin (`drawn`) in the secondary colour ("top · drawing", doc 12 §12.5).
+            let face = field.ends_with(".face");
             let words = |w: &str| {
-                if w.is_empty() {
+                if w.is_empty() && face {
+                    strings::text(key!("part-face-drawing")).to_owned()
+                } else if w.is_empty() {
                     "\u{2014}".to_owned()
                 } else {
                     strings::field_choice_text("part", field, w)
                 }
             };
+            let selected = match drawn.filter(|d| face && text.is_empty() && !d.is_empty()) {
+                Some(d) => RichText::new(strings::format(key!("part-face-drawn"), &[&words(d)]))
+                    .color(t.text_secondary.color32()),
+                None => RichText::new(words(text)),
+            };
             crate::components::choice(
                 ui,
                 egui::ComboBox::from_id_salt(field)
-                    .selected_text(words(text))
+                    .selected_text(selected)
                     .width(t.size_control * 5.0),
                 |ui| {
                     for c in &choices {
@@ -1522,7 +1533,7 @@ fn declared_table(
                         let field = format!("{}[{i}].{member}", table.path);
                         let name = format!("{} {}", header(member), i + 1);
                         if editable {
-                            table_cell(ui, &field, &name, ty, text, events);
+                            table_cell(ui, &field, &name, ty, (text, None), events);
                         } else {
                             // A choice reads in its words.
                             let words = match ty.inner() {
@@ -2849,7 +2860,10 @@ fn connections_table(
             }
             // A value typed on the row is every one of its pins'.
             let mut typed = Vec::new();
-            table_cell(ui, &field, &name, ty, text, &mut typed);
+            let drawn = (*member == "face")
+                .then(|| d.drawn_faces.get(first).map(String::as_str))
+                .flatten();
+            table_cell(ui, &field, &name, ty, (text, drawn), &mut typed);
             for e in typed {
                 if let Event::Action(_, v) = &e {
                     let value = v["value"].clone();
