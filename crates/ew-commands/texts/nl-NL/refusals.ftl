@@ -920,6 +920,7 @@ refusal-part-edit-needs-fork = een kopie uit een bibliotheek wordt afgesplitst: 
 refusal-part-edit-no-manufacturer = een artikel heeft een fabrikant nodig
 refusal-part-edit-no-number = een artikel heeft een artikelnummer nodig
 refusal-part-edit-starter = Een startartikel wordt nooit gewijzigd: maak er een eigen artikel van (Mijn eigen maken in Artikelen)
+refusal-part-use-unmoved = Een gebruik van het artikel kan niet naar zijn nieuwe kopie worden verplaatst, dus er verandert niets: meld het alstublieft
 refusal-part-edit-local-fork = een projecteigen kopie wordt ter plekke bewerkt; geef geen `fork`
 refusal-part-edit-not-object = geen artikelitem: geef de velden van het artikel als object
 refusal-part-edit-tech-data-list = de technische gegevens zijn een lijst

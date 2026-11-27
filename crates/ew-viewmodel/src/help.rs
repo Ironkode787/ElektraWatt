@@ -1275,10 +1275,7 @@ mod tests {
                 files: Vec::new(),
                 assets: Vec::new(),
             },
-            Dialog::ConfirmRemovePart {
-                part: text(),
-                number: text(),
-            },
+            Dialog::ConfirmRemovePart { number: text() },
             Dialog::ConfirmLeavePart {
                 number: text(),
                 next: None,

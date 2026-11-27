@@ -237,7 +237,14 @@ pub(crate) fn repoint_part_copy(
     }
     // A placement names the part use it realises by its copy (not a link); it follows the use, as a replaced part
     // follows in `part.assign`.
-    repoint_kind::<ew_schema::Placement>(tx, "part.copy", from, to)
+    repoint_kind::<ew_schema::Placement>(tx, "part.copy", from, to)?;
+    // A use at a link's path that does not match its record's form would stay on the old copy: refused in words,
+    // never left behind.
+    let key = (Kind::Part, from.cast());
+    if (tx.planning_model()?.referrers(&key).iter()).any(|(link, _)| !link.lib_ref) {
+        return tx.reject(text!("refusal-part-use-unmoved"));
+    }
+    Ok(())
 }
 
 /// Whether the command re-points a part-copy link of the link table: `true` for the kinds [`repoint_kind`] is

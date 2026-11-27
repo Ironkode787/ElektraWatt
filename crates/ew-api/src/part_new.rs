@@ -407,7 +407,12 @@ impl Session {
 
     /// Writes the new part `part` of `draft` into My parts `lib`, its maker made there where it has none: the library's
     /// name. Refused on `part_number` (`error-part-exists`) where My parts holds a part of that number and maker.
-    fn write_my_part(&mut self, mut part: Part, lib: Uuid, draft: &PartSheet) -> Result<String, PartDraftError> {
+    fn write_my_part(
+        &mut self,
+        mut part: Part,
+        lib: Uuid,
+        draft: &PartSheet,
+    ) -> Result<String, PartDraftError> {
         let maker = draft.text("manufacturer").trim().to_owned();
         let number = part.part_number.as_str().to_owned();
         let item = draft.copy;

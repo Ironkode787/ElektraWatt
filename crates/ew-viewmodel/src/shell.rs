@@ -454,8 +454,6 @@ pub enum Dialog {
     /// Remove… of Parts: the part taken out of My parts, which undo does not bring back; Remove (`parts.remove` with
     /// `confirm`) or Cancel (Escape), which returns to the part's sheet it was asked from.
     ConfirmRemovePart {
-        /// The part as `parts.open` names it (`id:<copy>`).
-        part: String,
         /// Its part number.
         number: String,
     },

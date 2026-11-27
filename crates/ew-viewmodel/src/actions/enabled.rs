@@ -1360,7 +1360,9 @@ pub(super) fn part_removable(m: &ShellModel) -> Result<(), Text> {
     match open.lives {
         ew_api::parts::Lives::Mine => Ok(()),
         // With no project nothing is taken out of one.
-        ew_api::parts::Lives::OnlyHere if m.parts_without_project() => Err(key!("reason-part-not-own").into()),
+        ew_api::parts::Lives::OnlyHere if m.parts_without_project() => {
+            Err(key!("reason-part-not-own").into())
+        }
         ew_api::parts::Lives::OnlyHere if open.sheet.users == 0 => Ok(()),
         ew_api::parts::Lives::OnlyHere => Err(strings::keyed(
             key!("reason-part-remove-used"),

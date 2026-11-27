@@ -356,8 +356,8 @@ impl ShellModel {
         };
         self.tools.picker = None;
         // With no project the place works on the libraries alone, read anew at each opening.
-        self.parts_alone = (!self.has_project())
-            .then(|| Box::new(ew_api::Session::libraries_only(self.session_options())));
+        self.parts_alone =
+            (!self.has_project()).then(|| Box::new(ew_api::Session::libraries_only(self.session_options())));
         self.parts = Some(Box::new(PartsPlace {
             origin,
             query: String::new(),
@@ -730,7 +730,8 @@ impl ShellModel {
             }
             open.bus_part = Some(plug);
             if !field.starts_with("plug.")
-                && let Err(PartDraftError::Refused(_)) = session.set_draft_field(&mut open.sheet, &field, &value)
+                && let Err(PartDraftError::Refused(_)) =
+                    session.set_draft_field(&mut open.sheet, &field, &value)
             {
                 return failed(key!("error-part-field"), &[&field]);
             }
@@ -1036,10 +1037,7 @@ impl ShellModel {
                 if !flag(p, "confirm") {
                     return match self.mode {
                         crate::shell::Mode::Headless => failed(key!("error-part-remove-confirm"), &[]),
-                        crate::shell::Mode::Gui => self.open_dialog(Dialog::ConfirmRemovePart {
-                            part: format!("id:{copy}"),
-                            number,
-                        }),
+                        crate::shell::Mode::Gui => self.open_dialog(Dialog::ConfirmRemovePart { number }),
                     };
                 }
                 let (Some(session), _) = self.parts_session_mut() else {

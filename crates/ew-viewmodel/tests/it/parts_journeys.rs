@@ -583,7 +583,10 @@ fn parts_with_no_project_save_a_new_part_into_my_parts_alone() {
     fill(&mut s, &[("manufacturer", "Example"), ("part_number", "ALONE-1")]);
     done(&mut s, "parts.save", json!({}));
     assert!(!s.has_project(), "no project is made");
-    let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the saved part");
+    let open = s
+        .parts_place()
+        .and_then(|p| p.sheet.as_ref())
+        .expect("the saved part");
     assert_eq!(open.sheet.text("part_number"), "ALONE-1");
     assert_eq!(open.lives, ew_viewmodel::ew_api::parts::Lives::Mine);
     assert!(
@@ -618,7 +621,10 @@ fn another_part_opened_while_a_saves_card_waits_asks_first() {
     done(&mut s, "parts.open", json!({"part": "CARD-1"}));
     fill(&mut s, &[("description", "Contactor")]);
     done(&mut s, "parts.save", json!({}));
-    assert!(s.properties().card().is_some(), "Save of a part the project holds opens its card");
+    assert!(
+        s.properties().card().is_some(),
+        "Save of a part the project holds opens its card"
+    );
     done(&mut s, "parts.open", json!({"part": "CARD-2"}));
     assert!(
         matches!(
@@ -628,7 +634,11 @@ fn another_part_opened_while_a_saves_card_waits_asks_first() {
         "another part asks first"
     );
     let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("a sheet");
-    assert_eq!(open.sheet.text("part_number"), "CARD-1", "the part stays until answered");
+    assert_eq!(
+        open.sheet.text("part_number"),
+        "CARD-1",
+        "the part stays until answered"
+    );
     done(&mut s, "parts.open", json!({"part": "CARD-2", "card": "apply"}));
     assert!(s.properties().card().is_none(), "the card is applied");
     assert!(s.dialog().is_none());

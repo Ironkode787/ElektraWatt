@@ -63,7 +63,6 @@ fn every_dialog(tmp: &Tmp) -> (ShellModel, Vec<Dialog>) {
         },
         // Removing a part from My parts.
         Dialog::ConfirmRemovePart {
-            part: "id:0".into(),
             number: "SW-6".into(),
         },
         // Leaving a part with changes not saved.

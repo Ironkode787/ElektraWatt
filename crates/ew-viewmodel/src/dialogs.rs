@@ -171,7 +171,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         Dialog::Labels(d) => labels_spec(d),
         Dialog::ConfirmJournalDiscard => journal_discard_spec(),
         Dialog::ConfirmPurge { files, .. } => purge_spec(files),
-        Dialog::ConfirmRemovePart { part, number } => remove_part_spec(part, number),
+        Dialog::ConfirmRemovePart { number } => remove_part_spec(number),
         Dialog::ConfirmLeavePart { number, next } => leave_part_spec(number, next.as_ref()),
         Dialog::ConfirmReplaceDxf { dir, folder, files } => replace_dxf_spec(dir, folder, *files),
         // Choose (Enter, the active row) and Cancel; the list and the filters are the dialog's.
@@ -640,7 +640,7 @@ fn purge_spec(files: &[String]) -> DialogSpec {
 
 /// Taking the open part `number` of Parts out of My parts: Cancel the Primary, Remove apart; what goes and what stays
 /// in one sentence.
-fn remove_part_spec(_part: &str, number: &str) -> DialogSpec {
+fn remove_part_spec(number: &str) -> DialogSpec {
     DialogSpec {
         danger: Some(DialogButton::new(
             key!("dialog-remove"),
@@ -656,7 +656,10 @@ fn remove_part_spec(_part: &str, number: &str) -> DialogSpec {
 }
 
 /// Back of Parts with the open part `number`'s changes not saved: Save the Primary, Stay, and Discard apart.
-fn leave_part_spec(number: &str, next: Option<&(&'static str, serde_json::Map<String, Value>)>) -> DialogSpec {
+fn leave_part_spec(
+    number: &str,
+    next: Option<&(&'static str, serde_json::Map<String, Value>)>,
+) -> DialogSpec {
     // Another part opened while the open part's card waits: the action again, the card applied or cancelled first.
     let answer = |back: Value, card: &str| match next {
         None => DialogAnswer::Action("parts.back", back),

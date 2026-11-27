@@ -919,6 +919,7 @@ refusal-part-edit-needs-fork = a copy from a library is forked: give `fork`, the
 refusal-part-edit-no-manufacturer = a part needs a manufacturer
 refusal-part-edit-no-number = a part needs a part number
 refusal-part-edit-starter = A starter part is never changed: make a part of your own from it (Make my own in Parts)
+refusal-part-use-unmoved = A use of the part cannot be moved to its new copy, so nothing is changed: please report it
 refusal-part-edit-local-fork = a project-local copy is edited in place; give no `fork`
 refusal-part-edit-not-object = not a part item: give the part's members as an object
 refusal-part-edit-tech-data-list = the technical data are a list

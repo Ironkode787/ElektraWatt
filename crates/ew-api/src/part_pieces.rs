@@ -66,7 +66,10 @@ pub fn piece_kinds() -> Vec<PieceKind> {
             let words = match words.args() {
                 [TextArg::Ml(m)] => Text::bare(TextArg::Ml(ew_mltext::MlText::from_langs(
                     m.languages()
-                        .filter_map(|l| m.get(l).map(|t| (l.clone(), t.trim_end_matches(pins.as_str()).trim_end().to_owned())))
+                        .filter_map(|l| {
+                            m.get(l)
+                                .map(|t| (l.clone(), t.trim_end_matches(pins.as_str()).trim_end().to_owned()))
+                        })
                         .collect::<Vec<_>>(),
                 ))),
                 _ => words,
