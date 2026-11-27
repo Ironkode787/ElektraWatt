@@ -958,6 +958,7 @@ action-wizard-folder = Een andere map kiezen…
 action-layout-arrange = Schikken en routeren
 tooltip-layout-arrange = Lijn de symbolen van de selectie, of van de pagina, uit en routeer hun draden. U ziet het resultaat voordat er iets verandert.
 action-layout-arrange-tick = Regels van het schikvoorbeeld aan- of uitvinken
+action-layout-route-card = Alle draden opnieuw routeren, of de loop van een regel alleen tonen
 action-layout-arrange-as-is = De pagina tonen zoals hij is
 
 # Doc 09 §3.8: Uitvoer ▸ Lijstkolommen… en Eigen rijen… van de getoonde lijst.

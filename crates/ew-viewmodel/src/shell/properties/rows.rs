@@ -625,6 +625,10 @@ impl ShellModel {
         if matches!(card.origin, CardOrigin::PasteUpdate { .. }) {
             return self.apply_paste_update_card(card);
         }
+        // A cabinet's Route card stores its ways and says how many.
+        if matches!(card.origin, CardOrigin::Cabinet(_)) {
+            return self.apply_cabinet_card(card);
+        }
         // A route card commits its plan and says what it routed.
         if matches!(card.origin, CardOrigin::Route { .. }) {
             return self.apply_route_card(card);

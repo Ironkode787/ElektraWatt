@@ -579,6 +579,24 @@ pub(crate) fn page_type_reason(m: &ShellModel) -> Option<Text> {
     }
 }
 
+/// Route's page (doc 12 §12.5): a page that shows a drawing, or a panel page that shows a cabinet's plate.
+pub(crate) fn route_page(m: &ShellModel) -> Result<(), Text> {
+    let cabinet = || {
+        m.current_folio().is_some_and(|f| {
+            m.project_session()
+                .is_some_and(|s| s.cabinet_of_folio(f).is_some())
+        })
+    };
+    match editable_page(m) {
+        Ok(()) => Ok(()),
+        Err(_) if writable(m).is_ok() && cabinet() => Ok(()),
+        Err(_) if writable(m).is_ok() && page_type_reason(m).is_some() => {
+            Err(key!("reason-route-page").into())
+        }
+        Err(e) => Err(e),
+    }
+}
+
 /// A drawn page of a project that can be changed is on show (the editing tools).
 pub(crate) fn editable_page(m: &ShellModel) -> Result<(), Text> {
     has_pages(m)?;

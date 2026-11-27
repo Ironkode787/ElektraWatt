@@ -1007,6 +1007,7 @@ pub fn card_summary(shell: &ShellModel) -> Option<String> {
         | CardOrigin::TableImport(_)
         | CardOrigin::Route { .. }
         | CardOrigin::Arrange(_)
+        | CardOrigin::Cabinet(_)
         | CardOrigin::PageCopy { .. } => format!(
             "{} · {}",
             shell.table_gesture().map_or_else(

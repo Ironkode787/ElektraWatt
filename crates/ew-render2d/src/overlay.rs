@@ -148,6 +148,8 @@ pub enum ToolToken {
     Measure,
     /// A rubber band.
     RubberBand,
+    /// A mark of the selection's accent: the one way of a Route card a person picked.
+    Selection,
 }
 
 impl Theme {
@@ -158,6 +160,7 @@ impl Theme {
             ToolToken::Snap => self.snap,
             ToolToken::Measure => self.measure,
             ToolToken::RubberBand => self.rubber_band,
+            ToolToken::Selection => self.selection,
         }
     }
 }

@@ -318,6 +318,9 @@ pub enum CardOrigin {
         /// How many wires the plan routes.
         routed: usize,
     },
+    /// Route on a panel page (`layout.route`, doc 12 §12.5): the card of a cabinet's plan in the Preview tab; Apply
+    /// commits its one `layout.route`.
+    Cabinet(Box<crate::shell::cabinet::CabinetCard>),
     /// Page ▸ Copy pages… (`page.copy`, doc 06 §3.6): the card in the Preview tab with its lead line and what the copy
     /// leaves out or continues, one line each in the tab's notices; Apply commits the one `page.copy`.
     PageCopy {
@@ -589,6 +592,7 @@ impl CardOrigin {
             CardOrigin::TableImport(_) => "table-import",
             CardOrigin::Route { .. } => "route",
             CardOrigin::Arrange(_) => "arrange",
+            CardOrigin::Cabinet(_) => "cabinet",
             CardOrigin::PageCopy { .. } => "page-copy",
         }
     }
@@ -618,6 +622,7 @@ impl Card {
         match &self.origin {
             CardOrigin::Route { .. } => strings::text(key!("action-layout-route")),
             CardOrigin::Arrange(_) => strings::text(key!("action-layout-arrange")),
+            CardOrigin::Cabinet(_) => strings::text(key!("action-layout-route")),
             _ => strings::command_title(&self.preview.name),
         }
     }

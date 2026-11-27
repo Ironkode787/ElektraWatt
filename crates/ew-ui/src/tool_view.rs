@@ -80,8 +80,13 @@ pub fn marks(overlay: &Overlay, snapper: &tools::Snapper) -> Vec<ToolMark> {
 }
 
 /// The marks the canvas of `group` shows: the active tool's overlay on the focused group only, and the routes an open
-/// Route card plans, solid in the ghost token over the dashed lines they replace.
-pub fn marks_of(shell: &ShellModel, group: usize) -> Vec<ToolMark> {
+/// Route card plans, solid in the ghost token over the dashed lines they replace; a cabinet's card's ways, the row
+/// `hovered` in the Preview tab alone.
+pub fn marks_of(
+    shell: &ShellModel,
+    group: usize,
+    hovered: Option<ew_viewmodel::ew_api::output::Uuid>,
+) -> Vec<ToolMark> {
     let mut out = if shell.area().map(|a| a.focused) == Some(group)
         && let Some(c) = shell.canvas_of(group)
     {
@@ -99,7 +104,60 @@ pub fn marks_of(shell: &ShellModel, group: usize) -> Vec<ToolMark> {
                 token: ToolToken::Ghost,
             }),
     );
+    out.extend(cabinet_marks(shell, group, hovered));
+    // The ways of the wires at the selected placements, in the selection's accent; one that no longer holds dashed.
+    if let Some(c) = shell.canvas_of(group) {
+        let snapper = &c.page().snapper;
+        out.extend(
+            shell
+                .selected_ways(group)
+                .into_iter()
+                .map(|(points, stale)| ToolMark::Polyline {
+                    points: points.iter().map(|p| snapper.page_to_sheet(*p)).collect(),
+                    dash: if stale { Dash::Dashed } else { Dash::Solid },
+                    token: ToolToken::Selection,
+                }),
+        );
+    }
     out
+}
+
+/// The ways an open cabinet Route card plans, in the ghost token, each in its duct's lane; the row picked or hovered
+/// (`hovered`) shows its way alone, in the selection's accent (doc 12 §12.5).
+fn cabinet_marks(
+    shell: &ShellModel,
+    group: usize,
+    hovered: Option<ew_viewmodel::ew_api::output::Uuid>,
+) -> Vec<ToolMark> {
+    let marks = shell.cabinet_marks(group);
+    let Some(c) = shell.canvas_of(group) else {
+        return Vec::new();
+    };
+    let snapper = &c.page().snapper;
+    let picked: Vec<usize> = marks
+        .ways
+        .iter()
+        .enumerate()
+        .filter(|(i, (_, picked))| {
+            *picked || hovered.is_some_and(|h| shell.cabinet_way_wire(group, *i) == Some(h))
+        })
+        .map(|(i, _)| i)
+        .collect();
+    marks
+        .ways
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| picked.is_empty() || picked.contains(i))
+        .map(|(i, (points, _))| ToolMark::Polyline {
+            points: points.iter().map(|p| snapper.page_to_sheet(*p)).collect(),
+            dash: Dash::Solid,
+            token: if picked.contains(&i) {
+                ToolToken::Selection
+            } else {
+                ToolToken::Ghost
+            },
+        })
+        .collect()
 }
 
 /// The Text tool's binding in the tool options (the tool strip): one choice per [`BINDABLE`] name and "-" for none.

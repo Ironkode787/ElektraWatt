@@ -136,6 +136,7 @@ impl Session {
             plc: crate::part_plc::PlcRows::new_part(),
             cable: crate::part_cable::CableRows::new_cable(),
             drawn_with: None,
+            drawn_faces: Vec::new(),
             fndef: None,
             manufacturer: (original.manufacturer.clone(), Vec::new()),
             original,

@@ -627,13 +627,14 @@ fn declared_row(
 }
 
 /// One cell of a declared table, by its value type: a choice, a check box or a text field, named `name` for
-/// AccessKit.
+/// AccessKit. A pin's Wired at (`face`) names its empty choice "From the drawing" and, while it is empty, shows the edge
+/// the drawing gives the pin (`drawn`) in the secondary colour ("top · drawing", doc 12 §12.5).
 fn table_cell(
     ui: &mut Ui,
     field: &str,
     name: &str,
     ty: &ew_viewmodel::ew_api::output::FieldType,
-    text: &str,
+    (text, drawn): (&str, Option<&str>),
     events: &mut Vec<Event>,
 ) {
     use ew_viewmodel::ew_api::output::FieldType;
@@ -647,17 +648,25 @@ fn table_cell(
                 .into_iter()
                 .chain(options.iter().cloned())
                 .collect();
+            let face = field.ends_with(".face");
             let words = |w: &str| {
-                if w.is_empty() {
+                if w.is_empty() && face {
+                    strings::text(key!("part-face-drawing")).to_owned()
+                } else if w.is_empty() {
                     "\u{2014}".to_owned()
                 } else {
                     strings::field_choice_text("part", field, w)
                 }
             };
+            let selected = match drawn.filter(|d| face && text.is_empty() && !d.is_empty()) {
+                Some(d) => RichText::new(strings::format(key!("part-face-drawn"), &[&words(d)]))
+                    .color(t.text_secondary.color32()),
+                None => RichText::new(words(text)),
+            };
             crate::components::choice(
                 ui,
                 egui::ComboBox::from_id_salt(field)
-                    .selected_text(words(text))
+                    .selected_text(selected)
                     .width(t.size_control * 5.0),
                 |ui| {
                     for c in &choices {
@@ -743,7 +752,10 @@ fn declared_table(
                         let field = format!("{}[{i}].{member}", table.path);
                         let name = format!("{} {}", header(member), i + 1);
                         if editable {
-                            table_cell(ui, &field, &name, ty, text, events);
+                            let drawn = (table.path == "cp_pattern" && *member == "face")
+                                .then(|| d.drawn_faces.get(i).map(String::as_str))
+                                .flatten();
+                            table_cell(ui, &field, &name, ty, (text, drawn), events);
                         } else {
                             // A choice reads in its words.
                             let words = match ty.inner() {

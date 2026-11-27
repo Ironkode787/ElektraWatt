@@ -949,14 +949,31 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// Commits a `layout.*` command built by the host.
+    /// Commits a `layout.*` command built by the host. A commit that leaves ways of the cabinet's wires no longer
+    /// holding says so, with Route (doc 12 §12.5: "The ways of 5 wires no longer hold.").
     fn commit_layout(&mut self, name: &str, params: Value) -> Outcome {
         let cmd = AnyCommand {
             name: name.into(),
             params,
         };
+        let stale = |s: &Self| {
+            s.current_folio()
+                .and_then(|f| s.project_session().and_then(|p| p.cabinet_due(f)))
+                .map_or(0, |(_, stale)| stale)
+        };
+        let before = stale(self);
         let out = self.commit_from_host(&cmd);
         self.tools.layout_announce |= out == Outcome::Done;
+        let after = stale(self);
+        if out == Outcome::Done && after > before {
+            let text = strings::format_count(count_key!("toast-ways-stale"), after);
+            let route = self.session_offer(
+                "route",
+                key!("action-layout-route"),
+                vec![("layout.route", Value::Null)],
+            );
+            self.notify_offer(text, route);
+        }
         out
     }
 

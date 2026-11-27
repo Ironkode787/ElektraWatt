@@ -504,6 +504,11 @@ hud-layout-selected = { $p0 } selected · arrows nudge · { $p1 } deletes
 hud-layout-selected-plate = { $p0 } selected · arrows nudge · { $p1 } rotates · { $p2 } deletes
 hud-layout-selected-rail = { $p0 } selected · arrows nudge · { $p1 } flips · { $p2 } deletes
 hud-layout-place-next = Next: drag a device from Unplaced devices onto the plate, or fill a rail at once
+hud-layout-route-next = Next: Route gives each wire its way through the ducts and its length
+hud-layout-ways-stale = { $p0 ->
+        [one] The way of 1 wire no longer holds: Route gives it a new one
+       *[other] The ways of { $p0 } wires no longer hold: Route gives them new ones
+    }
 hud-list-page = Page { $p0 } of { $p1 } of this list
 hud-list-next = Next page { $p0 }
 hud-list-previous = Previous page { $p0 }
@@ -714,3 +719,28 @@ frame-row-own-frame = This page
 frame-own-frame-give = Give this page its own frame
 frame-row-adopt = Templates
 frame-template = Template
+
+# Route on a panel page: the card of a cabinet's plan (doc 12 §12.5).
+cabinet-route-lead = Route: cabinet { $p0 }. { $p1 }; { $p2 }. Nothing has changed yet.
+cabinet-route-ways = { $p0 ->
+        [one] 1 wire gets a way through the ducts
+       *[other] { $p0 } wires get a way through the ducts
+    }
+cabinet-route-site = { $p0 ->
+        [one] 1 is made on site
+       *[other] { $p0 } are made on site
+    }
+cabinet-route-ducts = Ducts
+cabinet-route-lengths = Lengths
+cabinet-route-typed = Typed by hand
+cabinet-route-site-heading = Made on site
+cabinet-route-without = Without a way
+cabinet-route-duct = { $p0 } · { $p1 } · { $p2 } % of { $p3 } mm²
+cabinet-route-duct-over = { $p0 } · { $p1 } · { $p2 } % · over { $p3 } %
+cabinet-route-typed-row = { $p0 } keeps { $p1 }; Route gives { $p2 }
+cabinet-route-chip = { $p0 } %
+cabinet-route-chip-over = { $p0 } % · over { $p1 } %
+cabinet-route-all = { $p0 ->
+        [one] Route every wire again (1 holds)
+       *[other] Route every wire again ({ $p0 } hold)
+    }

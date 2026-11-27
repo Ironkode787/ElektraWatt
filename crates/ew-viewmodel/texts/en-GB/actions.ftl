@@ -991,6 +991,7 @@ action-wizard-folder = Choose another folder…
 action-layout-arrange = Arrange and route
 tooltip-layout-arrange = Line up the symbols of the selection, or of the page, and route their wires. You see the result before anything changes.
 action-layout-arrange-tick = Tick or untick rows of the arranging preview
+action-layout-route-card = Route every wire again, or show a row's way alone
 action-layout-arrange-as-is = Show the page as it is
 
 # Doc 09 §3.8: Output ▸ List columns… and Rows of your own… of the list on show.

@@ -512,3 +512,15 @@ change here.
   end, rounded up to 515 mm"; "Stale: -X1031 moved. Route gives it a new way"; "No way yet: Route on page 902 gives it
   one, or type its length here") and where it runs (Way: "Duct 1", "direct"); a duct's say its inner area and its fill
   where fullest against the limit; a placement's what it reaches from the plate, and its clearance in front
+- behaviour-change: Route (Draw ▸ Connect) on a panel page that shows a cabinet opens Route's card in the Preview tab:
+  the cabinet's ducts with their fill, each wire's new length (old → new for a way that changes), the typed lengths
+  with what Route gives, the wires made on site and those without a way in words, and the tick Route every wire
+  again; the canvas draws every planned way side by side in its duct and a chip with each duct's fill, a row hovered
+  or clicked shows its way alone; Apply stores the ways in one step ("Routed 41 wires of +CAB."). The panel page's
+  HUD names Route as the next step once every device is placed, a move or turn that leaves ways no longer holding
+  says so in its toast with Route, and a placement selected on the panel page shows the ways of its wires (dashed
+  where they no longer hold). On any other page without a drawing Route is greyed with its reason.
+- behaviour-change: Project properties ▸ Workshop holds Reserve per end, Duct fill limit and Door loop with their
+  defaults (50 mm, 60 %, 300 mm); the part editor's Pins table has the column Wired at (From the drawing, Top,
+  Bottom; an empty cell shows the drawing's edge, "top · drawing"), its Size section the row Clearance in front, a
+  wire part's section the row Outer diameter, and a duct part a section Duct with its inner width and height

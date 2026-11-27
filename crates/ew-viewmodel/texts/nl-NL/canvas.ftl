@@ -457,6 +457,11 @@ hud-layout-selected = { $p0 } geselecteerd · pijltoetsen verschuiven · { $p1 }
 hud-layout-selected-plate = { $p0 } geselecteerd · pijltoetsen verschuiven · { $p1 } draait · { $p2 } verwijdert
 hud-layout-selected-rail = { $p0 } geselecteerd · pijltoetsen verschuiven · { $p1 } keert om · { $p2 } verwijdert
 hud-layout-place-next = Volgende stap: sleep een apparaat uit Ongeplaatste apparaten op de plaat, of vul een rail in één keer
+hud-layout-route-next = Volgende stap: Routeren geeft elke draad zijn loop door de kabelgoot en zijn lengte
+hud-layout-ways-stale = { $p0 ->
+        [one] De loop van 1 draad klopt niet meer: Routeren geeft een nieuwe
+       *[other] De lopen van { $p0 } draden kloppen niet meer: Routeren geeft nieuwe
+    }
 hud-list-page = Pagina { $p0 } van { $p1 } van deze lijst
 hud-list-next = Volgende pagina { $p0 }
 hud-list-previous = Vorige pagina { $p0 }
@@ -666,3 +671,28 @@ frame-row-own-frame = Deze pagina
 frame-own-frame-give = Deze pagina een eigen kader geven
 frame-row-adopt = Sjablonen
 frame-template = Sjabloon
+
+# Route on a panel page: the card of a cabinet's plan (doc 12 §12.5).
+cabinet-route-lead = Routeren: kast { $p0 }. { $p1 }; { $p2 }. Er is nog niets veranderd.
+cabinet-route-ways = { $p0 ->
+        [one] 1 draad krijgt een loop door de kabelgoot
+       *[other] { $p0 } draden krijgen een loop door de kabelgoot
+    }
+cabinet-route-site = { $p0 ->
+        [one] 1 wordt ter plaatse gemaakt
+       *[other] { $p0 } worden ter plaatse gemaakt
+    }
+cabinet-route-ducts = Per kabelgoot
+cabinet-route-lengths = Lengtes
+cabinet-route-typed = Met de hand getypt
+cabinet-route-site-heading = Ter plaatse gemaakt
+cabinet-route-without = Zonder loop
+cabinet-route-duct = { $p0 } · { $p1 } · { $p2 } % van { $p3 } mm²
+cabinet-route-duct-over = { $p0 } · { $p1 } · { $p2 } % · boven { $p3 } %
+cabinet-route-typed-row = { $p0 } houdt { $p1 }; Routeren geeft { $p2 }
+cabinet-route-chip = { $p0 } %
+cabinet-route-chip-over = { $p0 } % · boven { $p1 } %
+cabinet-route-all = { $p0 ->
+        [one] Alle draden opnieuw routeren (1 houdt)
+       *[other] Alle draden opnieuw routeren ({ $p0 } houden)
+    }

@@ -81,6 +81,8 @@ pub enum Shown {
     Bus,
     /// A device of one's own or a new one.
     Plc,
+    /// A duct: its inner size, which a duct's fill reads (doc 12 §8.6).
+    Duct,
 }
 
 const fn row(path: &'static str) -> PartRow {
@@ -119,6 +121,7 @@ pub const PART_SECTIONS: &[PartSection] = &[
                 "csa_max",
                 "max_conductors",
                 "twin_ferrule",
+                "face",
             ],
             hole: false,
         }),
@@ -136,6 +139,7 @@ pub const PART_SECTIONS: &[PartSection] = &[
             row("mech.clearance.bottom"),
             row("mech.clearance.left"),
             row("mech.clearance.right"),
+            row("mech.clearance.front"),
         ],
         table: None,
         shown: Shown::Mounted,
@@ -179,9 +183,19 @@ pub const PART_SECTIONS: &[PartSection] = &[
             row("sections.wire.csa"),
             row("sections.wire.colour"),
             row("sections.wire.class"),
+            size("sections.wire.outer_diameter"),
         ],
         table: None,
         shown: Shown::Own,
+    },
+    PartSection {
+        word: "duct",
+        rows: &[
+            size("sections.duct.inner_width"),
+            size("sections.duct.inner_height"),
+        ],
+        table: None,
+        shown: Shown::Duct,
     },
     PartSection {
         word: "ferrule",
@@ -345,6 +359,7 @@ impl PartDraft {
                 Shown::Cable => kind == PartKind::Cable,
                 Shown::Bus => self.new || self.own || !self.bus.is_empty(),
                 Shown::Plc => (self.new || self.own) && kind == PartKind::Device,
+                Shown::Duct => kind == PartKind::Duct,
             })
             .collect()
     }
@@ -357,7 +372,7 @@ impl PartDraft {
         match part_section(word) {
             Some(s) if s.word == "gland" => self.own || self.new,
             Some(s) if s.shown == Shown::Own => self.own && !self.fork,
-            Some(s) if s.word == "size" || s.word == "front" => self.own || self.new,
+            Some(s) if s.word == "size" || s.word == "front" || s.shown == Shown::Duct => self.own || self.new,
             _ => true,
         }
     }

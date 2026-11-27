@@ -991,6 +991,16 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                             line.push_str(&format!(" \"{}\"", user(r)));
                         }
                     }
+                    // A cabinet's Route card names its origin, its lead and its rows by section.
+                    if let crate::properties::CardOrigin::Cabinet(c) = &card.origin {
+                        line.push_str(&format!(" cabinet \"{}\"", user(&c.lead)));
+                        for (heading, rows) in c.sections() {
+                            line.push_str(&format!(" \"{}\"", user(&heading)));
+                            for (_, words) in rows {
+                                line.push_str(&format!(" \"{}\"", user(&words)));
+                            }
+                        }
+                    }
                     // The Arrange and route card names its origin, its lead, its figures and its rows.
                     if let crate::properties::CardOrigin::Arrange(a) = &card.origin {
                         line.push_str(&format!(

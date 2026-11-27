@@ -249,6 +249,53 @@ fn paste_block(ui: &mut Ui, c: &ew_viewmodel::properties::PasteChoice, events: &
 /// symbols that move and the wires you drew, each with its tick (unticking plans again, `layout.arrange_tick`; the
 /// heading of the wires you drew ticks or unticks them all), what is left as it is (a symbol kept in place with its
 /// pin), the wires without a way, and the hint.
+/// A cabinet's Route card (doc 12 §12.5): its sections, Ducts (one over the limit first), Lengths, Typed by hand, Made on
+/// site and Without a way, each a small tertiary heading over its rows; a row hovered or clicked shows its way alone on
+/// the canvas (a click keeps it); the tick Route every wire again under them.
+fn cabinet_block(ui: &mut Ui, c: &ew_viewmodel::shell::cabinet::CabinetCard, events: &mut Vec<Event>) {
+    let t = components::tokens(ui);
+    let mut hovered = None;
+    for (heading, rows) in c.sections() {
+        ui.add_space(t.space_2);
+        ui.label(crate::components::small_tertiary(&t, &heading));
+        for (wire, words) in rows {
+            let picked = wire.is_some() && wire == c.picked;
+            let text = RichText::new(&words)
+                .font(theme::font(&t.type_small))
+                .color(if picked {
+                    t.accent.color32()
+                } else {
+                    t.text_primary.color32()
+                });
+            let r = ui.add(egui::Label::new(text).wrap().sense(egui::Sense::click()));
+            if let Some(w) = wire {
+                if r.hovered() {
+                    hovered = Some(w);
+                }
+                if r.clicked() {
+                    events.push(Event::Action(
+                        "layout.route_card",
+                        json!({ "wire": w.to_string() }),
+                    ));
+                }
+            }
+        }
+    }
+    ui.ctx()
+        .data_mut(|d| d.insert_temp(egui::Id::unique(CABINET_HOVER), hovered));
+    ui.add_space(t.space_2);
+    let mut on = c.route.all;
+    if ui
+        .checkbox(&mut on, crate::components::small_secondary(&t, c.tick()))
+        .changed()
+    {
+        events.push(Event::Action("layout.route_card", json!({ "all": on })));
+    }
+}
+
+/// The key under which the Preview tab tells the canvas which row of a cabinet's Route card the pointer is on.
+pub(crate) const CABINET_HOVER: &str = "cabinet-route-hover";
+
 fn arrange_block(ui: &mut Ui, a: &ew_viewmodel::properties::ArrangeCard, events: &mut Vec<Event>) {
     let t = components::tokens(ui);
     let small = |ui: &mut Ui, text: &str, colour: Rgba| {
@@ -776,6 +823,10 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 // pane keeps its height and leaves the page in view.
                 if let CardOrigin::Arrange(a) = &card.origin {
                     inset(ui, &mut |ui| arrange_block(ui, a, events));
+                    ui.add_space(t.space_2);
+                }
+                if let CardOrigin::Cabinet(c) = &card.origin {
+                    inset(ui, &mut |ui| cabinet_block(ui, c, events));
                     ui.add_space(t.space_2);
                 }
                 // A route card's connections left unrouted, one row each with its reason.

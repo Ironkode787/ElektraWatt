@@ -636,7 +636,15 @@ impl CanvasHost {
         let pane_px = view.pane_px_whole();
         let transform = plan.as_ref().map_or_else(|| view.transform(), |p| p.transform);
         let selected = shell.selected_rects(group);
-        let tool = crate::tool_view::marks_of(shell, group);
+        let hovered = ui
+            .ctx()
+            .data(|d| {
+                d.get_temp::<Option<ew_viewmodel::ew_api::output::Uuid>>(egui::Id::unique(
+                    crate::preview::CABINET_HOVER,
+                ))
+            })
+            .flatten();
+        let tool = crate::tool_view::marks_of(shell, group, hovered);
         let open = shell.open_cps(group);
         let hover_line = ew_viewmodel::canvas::hover_path(shell, canvas);
         let selected_lines = shell.selected_paths(group);

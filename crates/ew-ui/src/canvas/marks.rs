@@ -85,7 +85,7 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
         return Err(strings::text(key!("reason-no-page")).to_owned());
     };
     let selected = shell.selected_rects(group);
-    let tool = crate::tool_view::marks_of(shell, group);
+    let tool = crate::tool_view::marks_of(shell, group, None);
     let open = shell.open_cps(group);
     let hover_line = ew_viewmodel::canvas::hover_path(shell, canvas);
     let selected_lines = shell.selected_paths(group);

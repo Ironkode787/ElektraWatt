@@ -267,7 +267,8 @@ impl SectionCx<'_, '_> {
 }
 
 /// The rows of the workshop settings that are not set (doc 13 §2.3: Ferrules, Two wires in one clamp, Marker text, Mark
-/// cable cores, Mark jumpers): the value that applies, its default, with the chip "project default".
+/// cable cores, Mark jumpers; doc 12 §12.5: Reserve per end, Duct fill limit, Door loop): the value that applies, its
+/// default, with the chip "project default".
 fn workshop_defaults(built: &mut [Built]) {
     let defaults = [
         (
@@ -288,11 +289,27 @@ fn workshop_defaults(built: &mut [Built]) {
             "project/settings.workshop.device_labels",
             serde_json::to_value(ew_schema::DeviceLabels::default()),
         ),
+        (
+            "project/settings.workshop.reserve",
+            Ok(Value::from(ew_derive::layout::RESERVE.0)),
+        ),
+        (
+            "project/settings.workshop.fill_limit",
+            Ok(Value::from(ew_derive::layout::FILL_LIMIT)),
+        ),
+        (
+            "project/settings.workshop.door_loop",
+            Ok(Value::from(ew_derive::layout::DOOR_LOOP.0)),
+        ),
     ];
     for b in built.iter_mut().filter(|b| b.row.value == RowValue::Absent) {
         if let Some((_, Ok(json))) = defaults.iter().find(|(key, _)| *key == b.row.key) {
             let text = match json {
                 Value::String(word) => word.clone(),
+                // A length in millimetres, as its row prints a value set.
+                Value::Number(n) if b.row.ty == FieldType::Nm => {
+                    format!("{} mm", ew_derive::mm_exact(i128::from(n.as_i64().unwrap_or(0))))
+                }
                 other => other.to_string(),
             };
             b.row.value = RowValue::One {

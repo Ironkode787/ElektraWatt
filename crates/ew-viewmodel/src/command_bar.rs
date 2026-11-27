@@ -1601,7 +1601,35 @@ fn select_prompt(model: &ShellModel, stack: &mut usize, buttons: &mut Vec<HudBut
                 ));
                 strings::format_count(crate::count_key!("hud-layout-cutout"), n)
             }
-            Some(t) => glands(&t, buttons).unwrap_or_else(hint),
+            // The glands that wait first; then, every device placed, Route is the next step while wires have no way
+            // or ways no longer hold (doc 12 §12.5).
+            Some(t) => match glands(&t, buttons) {
+                Some(waiting) => waiting,
+                None if t.unplaced.is_empty() => {
+                    let due = model
+                        .current_folio()
+                        .and_then(|f| model.project_session().and_then(|s| s.cabinet_due(f)));
+                    let route = || {
+                        button(
+                            strings::text(key!("action-layout-route")).to_owned(),
+                            "layout.route",
+                            serde_json::Value::Null,
+                        )
+                    };
+                    match due {
+                        Some((_, stale)) if stale > 0 => {
+                            buttons.push(route());
+                            strings::format_count(crate::count_key!("hud-layout-ways-stale"), stale)
+                        }
+                        Some((missing, _)) if missing > 0 => {
+                            buttons.push(route());
+                            strings::text(key!("hud-layout-route-next")).to_owned()
+                        }
+                        _ => hint(),
+                    }
+                }
+                None => hint(),
+            },
         }
     } else if let Some(list) = model.list_pages(model.page_index()) {
         // A list of more than one page says which page this is, with its way to the pages beside it.

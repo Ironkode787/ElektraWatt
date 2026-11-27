@@ -303,6 +303,14 @@ pub fn plan(ui: &Ui, input: &ChipInput<'_>, canvas: &CanvasModel, shell: &ShellM
     if input.focused {
         preview(&mut placer, input, canvas, shell, &screen);
     }
+    // An open cabinet Route card's chip on each duct: its fill where fullest (doc 12 §12.5).
+    for (at, words) in shell.cabinet_marks(input.group).chips {
+        placer.put_centred(
+            ChipKind::Label,
+            words,
+            screen(canvas.page().snapper.page_to_sheet(at)),
+        );
+    }
     placer.out
 }
 

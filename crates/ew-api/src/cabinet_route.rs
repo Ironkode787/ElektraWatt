@@ -34,6 +34,8 @@ pub struct CardDuct {
     pub limit: u8,
     /// Whether the fullest piece is over the limit.
     pub over: bool,
+    /// Where its chip stands on the page: the middle of its fullest piece (page nm).
+    pub chip: (i64, i64),
 }
 
 /// One wire of Route's card.
@@ -72,8 +74,11 @@ impl CardWire {
 pub struct CardWay {
     /// The wire.
     pub wire: Uuid,
-    /// The points, from the first pin to the other.
+    /// The points, from the first pin to the other, in the surface's frame.
     pub points: Vec<Pt2>,
+    /// The same on the page (page nm), each way in a duct on a lane of its own across the duct's width, so that the
+    /// ways in a duct stand side by side.
+    pub page: Vec<(i64, i64)>,
     /// Whether it crosses into a door.
     pub door: bool,
 }
@@ -133,6 +138,63 @@ impl Session {
         cabinet_of_page(&q, page).map(|(space, _)| space.as_uuid())
     }
 
+    /// The stored ways of the wires at the placements `placements` on the panel page labelled `folio` (doc 12 §12.5: a
+    /// device selected on the panel page shows the ways of its wires): each way's points on the page and whether it no
+    /// longer holds (drawn dashed).
+    pub fn ways_at(&self, folio: &str, placements: &[Uuid]) -> Vec<(Vec<(i64, i64)>, bool)> {
+        let q = self.query();
+        let Some(PageRef::Drawn(page)) = q.get::<PageOrder>(()).by_folio(folio).map(|e| e.page) else {
+            return Vec::new();
+        };
+        let Some(view) = q.get::<crate::output::PageSurfaceView>(page).as_ref().clone() else {
+            return Vec::new();
+        };
+        let records = q.get::<WireRecordSet>(());
+        let mut out = Vec::new();
+        for r in records.iter() {
+            let Some(way) = ew_derive::layout::stored_way(&q, r.wire.id) else {
+                continue;
+            };
+            let at = way.ends.iter().any(|e| {
+                ew_derive::layout::placement_of_function(&q, e.cp.0)
+                    .is_some_and(|p| placements.contains(&p.as_uuid()))
+            });
+            if !at {
+                continue;
+            }
+            let planned = ew_derive::layout::Way {
+                ends: way.ends.clone(),
+                steps: way.way.clone(),
+                run: way.run,
+            };
+            let points = page_points(&q, Some(&view.projection), &planned, |_| 0);
+            let stale = matches!(route_status(&q, &r.wire), RouteStatus::Stale { .. });
+            out.push((points, stale));
+        }
+        out
+    }
+
+    /// What Route has to do on the panel page labelled `folio` (doc 12 §12.5, the HUD's next step): the wires of its
+    /// cabinet Route lays that have no length yet, and those whose way no longer holds; `None` for a page that shows no
+    /// cabinet's plate.
+    pub fn cabinet_due(&self, folio: &str) -> Option<(usize, usize)> {
+        let space = Id::<LayoutSpace>::from_uuid(self.cabinet_of_folio(folio)?);
+        let q = self.query();
+        let wires = ew_derive::layout::cabinet_wires(&q, space);
+        let routed = wires
+            .iter()
+            .filter(|(_, k)| *k == ew_derive::layout::CabinetWire::Routed);
+        let (mut missing, mut stale) = (0, 0);
+        for (r, _) in routed {
+            match r.length {
+                WireLength::Missing => missing += 1,
+                WireLength::Stale { .. } => stale += 1,
+                _ => {}
+            }
+        }
+        Some((missing, stale))
+    }
+
     /// Route on the panel page labelled `folio` (doc 12 §8.5, §12.5): the card of the cabinet's plan and the preview
     /// of the `layout.route` that stores it, which [`Session::commit`] applies in one step; `all` plans every wire of
     /// the cabinet again. `None` for a page that shows no cabinet's plate.
@@ -160,13 +222,79 @@ impl Session {
         };
         let now = self.query();
         let after = self.query_over(preview.candidate());
-        let card = card(&now, &after, space, command, all);
+        let page = match now.get::<PageOrder>(()).by_folio(folio).map(|e| e.page) {
+            Some(PageRef::Drawn(p)) => Some(p),
+            _ => None,
+        };
+        let projection = page
+            .and_then(|p| now.get::<crate::output::PageSurfaceView>(p).as_ref().clone())
+            .map(|v| v.projection);
+        let card = card(&now, &after, space, command, all, projection.as_ref());
         Some(Ok((card, preview)))
     }
 }
 
-/// The card of the plan of `space` on the snapshot `now`, its stored state `after`.
-fn card(now: &Q, after: &Q, space: Id<LayoutSpace>, command: AnyCommand, all: bool) -> CabinetRoute {
+/// A surface point on the page (`(0, 0)` without a projection).
+fn on_page(projection: Option<&ew_scene::panel::Projection>, (u, v): (i128, i128)) -> (i64, i64) {
+    projection.map_or((0, 0), |p| crate::output::panel::page_of_surface(p, (u, v)))
+}
+
+/// A way's points on the page, each duct stretch shifted across its duct by `lane(carrier)`; a direct way across, then
+/// along.
+fn page_points(
+    q: &Q,
+    projection: Option<&ew_scene::panel::Projection>,
+    way: &ew_derive::layout::Way,
+    lane: impl Fn(Id<ew_schema::Carrier>) -> i128,
+) -> Vec<(i64, i64)> {
+    use ew_derive::layout::DuctLine;
+    use ew_schema::WayStep;
+    let at = |p: Pt2| (i128::from(p.x.0), i128::from(p.y.0));
+    let (a, b) = (at(way.ends[0].at), at(way.ends[1].at));
+    let mut pts: Vec<(i128, i128)> = vec![a];
+    let mut any = false;
+    for step in &way.steps {
+        let WayStep::Duct(d) = step else { continue };
+        let Some(line) = DuctLine::of(q, d.carrier) else {
+            continue;
+        };
+        let stretch = line.stretch(i128::from(d.from.0), i128::from(d.to.0));
+        let off = lane(d.carrier);
+        // A horizontal neighbour moves a point up or down, a vertical one left or right.
+        for (i, p) in stretch.iter().enumerate() {
+            let near = [i.checked_sub(1).and_then(|j| stretch.get(j)), stretch.get(i + 1)];
+            let (mut dx, mut dy) = (0, 0);
+            for n in near.into_iter().flatten() {
+                if n.1 == p.1 && n.0 != p.0 {
+                    dy = off;
+                }
+                if n.0 == p.0 && n.1 != p.1 {
+                    dx = off;
+                }
+            }
+            pts.push((p.0 + dx, p.1 + dy));
+        }
+        any = true;
+    }
+    if !any {
+        pts.push((b.0, a.1));
+    }
+    pts.push(b);
+    let mut out: Vec<(i64, i64)> = pts.into_iter().map(|p| on_page(projection, p)).collect();
+    out.dedup();
+    out
+}
+
+/// The card of the plan of `space` on the snapshot `now`, its stored state `after`; its marks on the page of
+/// `projection`.
+fn card(
+    now: &Q,
+    after: &Q,
+    space: Id<LayoutSpace>,
+    command: AnyCommand,
+    all: bool,
+    projection: Option<&ew_scene::panel::Projection>,
+) -> CabinetRoute {
     let scope = if all { RouteScope::All } else { RouteScope::Due };
     let plan = plan_routes(now, space, &scope);
     let surface = ew_derive::layout::plate_of_space(now, space);
@@ -186,6 +314,32 @@ fn card(now: &Q, after: &Q, space: Id<LayoutSpace>, command: AnyCommand, all: bo
         without: Vec::new(),
         ways: Vec::new(),
     };
+    // The lanes: each duct's planned ways side by side across its width, in the plan's order.
+    let mut lanes: std::collections::BTreeMap<
+        Id<ew_schema::Carrier>,
+        Vec<ew_ids::Id<ew_schema::Connection>>,
+    > = std::collections::BTreeMap::new();
+    for w in &plan.wires {
+        if let Planned::Way(way) = &w.planned {
+            for step in &way.steps {
+                if let ew_schema::WayStep::Duct(d) = step {
+                    lanes.entry(d.carrier).or_default().push(w.wire.wire.id);
+                }
+            }
+        }
+    }
+    let width = |c: Id<ew_schema::Carrier>| match now.table::<ew_schema::Carrier>().get(c).map(|c| &c.params)
+    {
+        Some(CarrierParams::Duct(d)) => i128::from(d.width.0),
+        _ => 0,
+    };
+    let lane_of = |wire: ew_ids::Id<ew_schema::Connection>, c: Id<ew_schema::Carrier>| {
+        let all = lanes.get(&c).map_or(&[][..], Vec::as_slice);
+        let (k, n) = (all.iter().position(|w| *w == wire).unwrap_or(0), all.len());
+        let n = i128::try_from(n).unwrap_or(1);
+        let k = i128::try_from(k).unwrap_or(0);
+        width(c) * (2 * k + 2 - (n + 1)) / (2 * (n + 1))
+    };
     for w in &plan.wires {
         let r = &w.wire;
         let row = CardWire {
@@ -202,6 +356,7 @@ fn card(now: &Q, after: &Q, space: Id<LayoutSpace>, command: AnyCommand, all: bo
                 out.ways.push(CardWay {
                     wire: r.wire.id.as_uuid(),
                     points: way_points(now, &way.ends, &way.steps),
+                    page: page_points(now, projection, way, |c| lane_of(r.wire.id, c)),
                     door: way.door(),
                 });
                 if let WireLength::Typed(n) = r.length {
@@ -254,6 +409,13 @@ fn card(now: &Q, after: &Q, space: Id<LayoutSpace>, command: AnyCommand, all: bo
                 continue;
             };
             let (area, inner) = fill.fill();
+            let chip = ew_derive::layout::DuctLine::of(after, c)
+                .and_then(|l| {
+                    let piece = fill.fullest.and_then(|i| fill.pieces.get(i))?;
+                    l.at((piece.from + piece.to) / 2)
+                        .map(|(_, p)| on_page(projection, p))
+                })
+                .unwrap_or_default();
             out.ducts.push(CardDuct {
                 carrier: c.as_uuid(),
                 label: carrier_label(after, c).map(|l| l.label()).unwrap_or_default(),
@@ -266,6 +428,7 @@ fn card(now: &Q, after: &Q, space: Id<LayoutSpace>, command: AnyCommand, all: bo
                 inner_mm2: ew_units::arith::div_round_ties_away(inner, 1_000_000_000_000),
                 limit: fill.limit,
                 over: fill.over(),
+                chip,
             });
         }
         out.ducts.sort_by_key(|d| !d.over);

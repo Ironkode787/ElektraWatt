@@ -124,6 +124,9 @@ impl ShellModel {
         if let crate::properties::CardOrigin::Arrange(a) = &card.origin {
             return Some(a.lead.clone());
         }
+        if let crate::properties::CardOrigin::Cabinet(c) = &card.origin {
+            return Some(c.lead.clone());
+        }
         if let crate::properties::CardOrigin::PageCopy { lead, .. } = &card.origin {
             return Some(lead.clone());
         }

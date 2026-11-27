@@ -142,6 +142,8 @@ mod undo_panel;
 mod wiring;
 // Arrange and route: its preview card and the page it shows.
 mod arrange;
+// Route on a panel page: the card of a cabinet's plan (doc 12 §12.5)
+pub mod cabinet;
 mod workspaces;
 // The Macros and Libraries navigators, Save as macro… and Make variable.
 mod macros;

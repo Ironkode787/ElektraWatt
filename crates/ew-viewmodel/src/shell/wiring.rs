@@ -799,6 +799,15 @@ impl ShellModel {
     /// is in it. A broken route the person drew would change: a preview card with those wires named, and nothing
     /// changes until Apply.
     pub(crate) fn act_layout_route(&mut self) -> Outcome {
+        // On a panel page that shows a cabinet's plate Route lays the cabinet's wires (doc 12 §8.5).
+        if let Some(folio) = self.current_folio().map(str::to_owned)
+            && self
+                .project
+                .as_ref()
+                .is_some_and(|p| p.session.cabinet_of_folio(&folio).is_some())
+        {
+            return self.cabinet_route_card(&folio, false);
+        }
         let ids = self.route_selection_ids();
         // A Route on a selection says so, and how to route the page.
         let selected = ids.len();

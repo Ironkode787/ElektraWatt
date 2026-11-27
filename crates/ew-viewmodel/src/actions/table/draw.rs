@@ -940,11 +940,24 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             Command,
             Menu::Draw,
             &[],
-            editable_page,
+            route_page,
             grp(Group::Connect),
             |s, _| s.act_layout_route(),
         ),
     )),
+    // A cabinet's Route card: its tick Route every wire again, and a row picked to show its way alone.
+    with_params(
+        "all?:bool, wire?:ref",
+        hidden(act(
+            "layout.route_card",
+            Command,
+            Menu::Draw,
+            &[],
+            route_page,
+            None,
+            |s, p| s.act_layout_route_card(p),
+        )),
+    ),
     // Arrange and route beside Route (docs/design/06a-drafting.md §7.1): the selection's symbols, or the page's, put
     // in line with the pins they are wired to within the rules of the page's kind, then routed; always previewed.
     keeps_banner(placed(
