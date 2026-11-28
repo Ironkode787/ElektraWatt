@@ -1114,3 +1114,5 @@ change here.
   table do, by its word and its page ("Door, page 904 · X 360, Y 560 mm from its bottom-left corner, in hole H5";
   "Rail 2 · Mounting plate, page 902 · 100–125 mm from its left end"), where they named it by the cabinet's tag ("on
   the -UC1 door …"); in Dutch the column Because reads "Reden"
+- text-change: Drilling…'s toast names a single surface alone ("… a template and a DXF for Door."), each of them
+  where there are several

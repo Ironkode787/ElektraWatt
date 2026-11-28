@@ -39,11 +39,41 @@ fn drilling_is_greyed_without_holes_and_writes_the_door_s_drawings() {
     assert!(form.fields.iter().any(|f| f.name == "dir"), "the folder");
     s.set_form_field("dir", &dir.to_string_lossy());
     assert_eq!(s.submit_form(), Outcome::Done);
+    // The toast names the surfaces by the words of their rows, each of them where there are several.
+    let words: Vec<&str> = table
+        .rows
+        .iter()
+        .filter_map(|r| r.key.split(" · ").next())
+        .collect();
+    let toast = s.notifications().newest_visible().cloned().expect("a toast");
+    assert!(
+        toast.text.ends_with(&format!(
+            ": a template and a DXF for each of {}.",
+            words.join(", ")
+        )),
+        "{}",
+        toast.text
+    );
+    // The door alone: the toast names it alone.
+    let tick = table.columns[0].0.clone();
+    let rows: Vec<serde_json::Value> = table
+        .rows
+        .iter()
+        .map(|r| {
+            let on = r.key.starts_with("Door · ");
+            json!({ "values": { tick.clone(): if on { ew_viewmodel::shell::TICKED } else { "" } } })
+        })
+        .collect();
+    done(
+        &mut s,
+        "drilling.export",
+        json!({ "surfaces": rows, "template": true, "dxf": true, "dir": tmp.path("door").to_string_lossy() }),
+    );
     let toast = s.notifications().newest_visible().cloned().expect("a toast");
     assert!(
         toast
             .text
-            .ends_with(": a template and a DXF for each of Mounting plate, Door, Bottom."),
+            .ends_with(": a template and a DXF for Door."),
         "{}",
         toast.text
     );

@@ -188,10 +188,15 @@ impl ShellModel {
             .filter(|o| wrote(&o.files.0) || wrote(&o.files.1))
             .map(|o| strings::render(&o.words))
             .collect();
+        // One surface by its word ("for Door"), several as each of them ("for each of Mounting plate, Door").
+        let which = match surfaces.as_slice() {
+            [one] => one.clone(),
+            several => strings::format(key!("drilling-written-each"), &[&several.join(", ")]),
+        };
         let text = strings::format_counted(
             crate::count_key!("toast-drilling-written"),
             files.len(),
-            &[&folder, what, &surfaces.join(", ")],
+            &[&folder, what, &which],
         );
         if self.in_form_of(ACTION) {
             self.dialog = None;

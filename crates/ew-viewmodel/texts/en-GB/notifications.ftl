@@ -600,7 +600,7 @@ toast-list-rows = { $p0 ->
 toast-list-rows-none = The list { $p0 } holds no rows of your own.
 toast-drilling-written = { $p0 ->
         [one] Wrote 1 file to { $p1 }: { $p2 } for { $p3 }
-       *[other] Wrote { $p0 } files to { $p1 }: { $p2 } for each of { $p3 }
+       *[other] Wrote { $p0 } files to { $p1 }: { $p2 } for { $p3 }
     }.
 toast-cabinet-routed = { $p0 ->
         [one] Routed 1 wire of { $p1 }

@@ -552,7 +552,7 @@ toast-list-rows = { $p0 ->
 toast-list-rows-none = De lijst { $p0 } heeft geen eigen rijen.
 toast-drilling-written = { $p0 ->
         [one] 1 bestand geschreven naar { $p1 }: { $p2 } voor { $p3 }
-       *[other] { $p0 } bestanden geschreven naar { $p1 }: { $p2 } voor elk van { $p3 }
+       *[other] { $p0 } bestanden geschreven naar { $p1 }: { $p2 } voor { $p3 }
     }.
 toast-cabinet-routed = { $p0 ->
         [one] 1 draad van { $p1 } gerouteerd

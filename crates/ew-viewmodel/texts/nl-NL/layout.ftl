@@ -397,6 +397,7 @@ drilling-row = { $p0 } · pagina { $p1 } · { $p2 } · { $p3 } · { $p4 }
 drilling-written-both = een boormal en een DXF
 drilling-written-template = een boormal
 drilling-written-dxf = een DXF
+drilling-written-each = elk van { $p0 }
 drilling-holes = { $p0 ->
         [one] 1 gat
        *[other] { $p0 } gaten

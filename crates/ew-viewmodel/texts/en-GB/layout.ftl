@@ -398,6 +398,7 @@ drilling-row = { $p0 } · page { $p1 } · { $p2 } · { $p3 } · { $p4 }
 drilling-written-both = a template and a DXF
 drilling-written-template = a template
 drilling-written-dxf = a DXF
+drilling-written-each = each of { $p0 }
 drilling-holes = { $p0 ->
         [one] 1 hole
        *[other] { $p0 } holes
