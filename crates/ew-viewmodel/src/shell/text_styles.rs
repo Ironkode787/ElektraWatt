@@ -286,6 +286,11 @@ impl ShellModel {
     /// Commits `cmd` in one step; the page's note is `done`, or why it did not commit.
     fn commit_noted(&mut self, cmd: &AnyCommand, done: Option<String>) -> Outcome {
         let out = self.run_commit(cmd);
+        // What the change did besides (a bus symbol drawn in the new sizes, its bus lines following): a toast with Undo.
+        if out == Outcome::Done && !self.tools.commit_notices.is_empty() {
+            let said = self.tools.commit_notices.join("; ");
+            self.notify(strings::sentence_start(&said).into_owned(), true);
+        }
         let note = match &out {
             Outcome::Done => done,
             Outcome::Failed { message } => Some(message.clone()),

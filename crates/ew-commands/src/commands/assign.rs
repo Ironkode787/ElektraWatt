@@ -303,7 +303,7 @@ impl Command for AssignPart {
         }
         // A device's bus symbol drawn by another part: its bus lines follow its sockets, and a line at a socket the new
         // part has not is said.
-        let lost = crate::commands::box_follow::follow_bus_symbols_of(tx, &self.devices)?;
+        let lost = crate::commands::box_follow::follow_bus_symbols_of(tx, &self.devices)?.lost;
         let mut outcome = Outcome::primary((Kind::Device, self.devices[0].cast()));
         if !lost.is_empty() {
             let ends: Vec<ew_l10n::TextArg> = lost

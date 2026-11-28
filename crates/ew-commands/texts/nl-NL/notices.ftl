@@ -144,4 +144,5 @@ notice-valve-function = { $p0 } heeft de ventielfunctie van zijn nieuwe artikel;
 notice-valve-line-gone = de leiding op poort { $p0 } van { $p1 } is vervallen: het nieuwe ventiel heeft geen poort { $p0 }
 notice-fixing-choice-dropped = 1 verplaatst of weggelaten gat op { $p0 } wordt teruggezet: de nieuwe bevestiging zet de gaten elders
 notice-fixing-choices-dropped = { $p1 } verplaatste of weggelaten gaten op { $p0 } worden teruggezet: de nieuwe bevestiging zet de gaten elders
+notice-styles-bus-symbols = bussymbolen in de nieuwe tekstgrootten getekend: { $p0 }, op { $p1 }; buslijnen die hun aansluitingen volgen: { $p2 }
 notice-assign-bus-socket-gone = het nieuwe artikel heeft geen aansluiting voor de buslijn bij { $p0 }: die eindigt waar hij was; verbind hem met een aansluiting

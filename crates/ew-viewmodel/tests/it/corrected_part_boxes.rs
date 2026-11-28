@@ -240,3 +240,64 @@ fn the_save_card_names_each_device_whose_bus_line_follows_its_socket() {
         assert!(ends.contains(&Some(at)), "{:?} ends at {at:?}", line.polyline);
     }
 }
+
+/// The switch SW-6 on bus page 102 with a bus line from its P1 on the top edge to its P4 on the bottom edge: a larger
+/// small data text (Text styles) draws its compartment taller, P4 moves down, and the line follows it. The toast says
+/// so with Undo, one symbol and one line on page 102; Undo puts the socket and the line back.
+#[test]
+fn a_larger_text_style_says_the_bus_symbol_and_the_line_that_follow_it() {
+    let tmp = Tmp::new("styles-bus-symbol");
+    let mut s = switch_drawn(&tmp);
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    done(&mut s, "tool.place", json!({}));
+    done(&mut s, "place.pick", json!({"part": "SW-6"}));
+    let p = grid_point(&s, (10, 10));
+    click_at(&mut s, p);
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    let socket = |s: &ShellModel, port: &str| {
+        tables(s)
+            .cps
+            .iter()
+            .find(|c| c.label.ends_with(&format!(":{port}")))
+            .map(|c| c.at)
+            .unwrap_or_else(|| panic!("{port}"))
+    };
+    let line = |s: &ShellModel| {
+        tables(s)
+            .connections
+            .iter()
+            .find(|c| c.kind == "bus")
+            .expect("the bus line")
+            .polyline
+            .clone()
+    };
+    done(&mut s, "tool.wire", json!({}));
+    for port in ["P1", "P4"] {
+        let at = socket(&s, port);
+        click_at(&mut s, at);
+    }
+    done(&mut s, "ui.dismiss", json!({}));
+    let (p4, before) = (socket(&s, "P4"), line(&s));
+    done(&mut s, "text_styles.open", json!({}));
+    done(
+        &mut s,
+        "text_styles.set",
+        json!({"style": "data.small", "height": "5"}),
+    );
+    assert_eq!(
+        crate::common::toast(&s),
+        "Bus symbols drawn in the new text sizes: 1, on page 102; bus lines that follow their sockets: 1"
+    );
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    let moved = socket(&s, "P4");
+    assert!(moved.1 > p4.1, "P4 moved down: {p4:?} {moved:?}");
+    let after = line(&s);
+    assert!(
+        [after.first(), after.last()].contains(&Some(&moved)),
+        "{after:?} ends at {moved:?}"
+    );
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(socket(&s, "P4"), p4, "Undo puts the socket back");
+    assert_eq!(line(&s), before, "and the line");
+}

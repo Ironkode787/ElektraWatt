@@ -100,7 +100,8 @@ present only on a connector or device with a termination switch (FR-BUS-004).
   (the heights and widths of the styles the page prints its texts in), never from an address or a tag, so typing an
   address moves no socket; a text longer than its room is cut with "…" and stands whole in Properties and the lists.
   Changing a text style on the Text styles page draws every derived bus symbol in the new size, and the bus lines at
-  its sockets follow them in the same step; a symbol of one's own keeps its size.
+  its sockets follow them in the same step, which a toast with Undo says (how many symbols, on which pages, how many
+  lines), and the page's lead text says beforehand; a symbol of one's own keeps its size.
   - **On the page** a device is a representation of the built-in symbol `ew.gen.bus`: its `functions` are the
     device's port functions in the part's interface order, and it carries neither `box` nor `pin_map`; a socket
     stands for connection point k of the function that carries its interface, by the pin map the page draws the

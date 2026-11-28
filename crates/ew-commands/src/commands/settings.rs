@@ -281,8 +281,24 @@ impl SetProjectSettings {
         // A bus symbol derived from its part is sized by the text styles: its bus lines follow its sockets.
         let devices: Vec<ew_ids::Id<ew_schema::Device>> =
             tx.iter::<ew_schema::Device>().into_iter().map(|d| d.id).collect();
-        crate::commands::box_follow::follow_bus_symbols_of(tx, &devices)?;
-        Ok(Outcome::default())
+        let followed = crate::commands::box_follow::follow_bus_symbols_of(tx, &devices)?;
+        let mut outcome = Outcome::default();
+        if !followed.symbols.is_empty() {
+            // Said where the style changed: how many symbols are drawn anew, on which pages, and how many lines followed.
+            let pages: std::collections::BTreeSet<ew_ids::Id<ew_schema::Page>> =
+                followed.symbols.iter().map(|(_, p)| *p).collect();
+            let pages: Vec<ew_l10n::TextArg> = pages
+                .into_iter()
+                .map(|p| crate::words::page(tx, p).into())
+                .collect();
+            outcome.notices.push(text!(
+                "notice-styles-bus-symbols",
+                followed.symbols.len().to_string(),
+                crate::words::comma_list(pages),
+                followed.lines.len().to_string()
+            ));
+        }
+        Ok(outcome)
     }
 }
 
