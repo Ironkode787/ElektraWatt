@@ -108,21 +108,45 @@ pub(super) fn pieces_section(ui: &mut Ui, open: &OpenSheet, editable: bool, even
                     if editable {
                         let mut picked = None;
                         let name = strings::format(key!("parts-piece-what-of"), &[&n]);
-                        components::choice(
+                        // A long list: what is typed at its top narrows it, and Enter takes the first left.
+                        let typed_id = ui.make_persistent_id(("part-piece-what-typed", i));
+                        let shown = components::choice(
                             ui,
                             egui::ComboBox::from_id_salt(("part-piece-what", i))
                                 .selected_text(words(&row.what))
                                 .width(t.size_control * 7.0),
                             |ui| {
-                                for (k, w) in &kinds {
+                                let mut typed: String =
+                                    ui.memory(|m| m.data.get_temp(typed_id)).unwrap_or_default();
+                                let edit = ui.add(
+                                    egui::TextEdit::singleline(&mut typed)
+                                        .hint_text(strings::text(key!("parts-piece-what-type"))),
+                                );
+                                if !edit.has_focus() && typed.is_empty() {
+                                    edit.request_focus();
+                                }
+                                let enter = edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+                                let needle = typed.to_lowercase();
+                                ui.memory_mut(|m| m.data.insert_temp(typed_id, typed));
+                                let mut first = None;
+                                for (k, w) in kinds.iter().filter(|(_, w)| w.to_lowercase().contains(&needle)) {
+                                    first.get_or_insert_with(|| k.clone());
                                     if ui.selectable_label(*k == row.what, w).clicked() {
                                         picked = Some(k.clone());
                                     }
                                 }
+                                if enter && picked.is_none() {
+                                    picked = first;
+                                    ui.close();
+                                }
                             },
-                        )
-                        .response
-                        .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, &name));
+                        );
+                        if !egui::ComboBox::is_open(ui.ctx(), shown.response.id) {
+                            ui.memory_mut(|m| m.data.remove::<String>(typed_id));
+                        }
+                        shown
+                            .response
+                            .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, &name));
                         if let Some(k) = picked {
                             events.push(Event::Action(
                                 "parts.field",

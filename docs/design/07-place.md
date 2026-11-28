@@ -113,7 +113,8 @@ has no pins and is asked for none; a wire has no size in the cabinet.
 colour, a yes or no, a part. The declaration of §2.5 gives each field its word, its kind of value and its check, and
 one renderer per kind of value draws it. Under a field stands, in the tertiary colour, what the datum is for where
 that is not plain ("The strip length the wire list prints"), and in the warning colour what follows while it is
-empty (§5.7). A text that cannot be read is refused under the field as it is typed, in words that name what was
+empty (§5.7): on one line that a field he can change keeps whether or not it has something to say, the whole sentence
+in its tooltip and under Ready for, so that the fields and buttons below never move as a warning comes and goes. A text that cannot be read is refused under the field as it is typed, in words that name what was
 typed and what is expected ("“six” is not a length: type millimetres, such as 6.2"); the field keeps the text.
 
 **A table** is a list member with a column per field (Connection points, Doors, Holes, Comes with, Also sold as): a row is
@@ -124,8 +125,8 @@ stand as one row naming their pins ("1, 3, 5"), which opens to change one of the
 contact data are in the record:
 
 - *Drawn as pieces.* A table **Drawn as**: What it is, Pins, Symbol. What it is offers what a panel builder calls
-  the piece (a coil, a normally open contact, a main contact, a protective device, a lamp, a pushbutton, a motor);
-  Pins are the pin names of that piece, typed; Symbol shows the symbol that draws it and takes another (§5.6). The
+  the piece (a coil, a normally open contact, a main contact, a protective device, a lamp, a pushbutton, a motor),
+  a long list that what is typed at its top narrows; Pins are the pin names of that piece, typed; Symbol shows the symbol that draws it and takes another (§5.6). The
   first row is the piece the device's tag stands at. From a row the place writes the part's pins, the template
   entry and, for a contact, its contact data: no one types a function, a key or a template.
 - *Drawn as a box.* The pins (Name, Carries, and for a box the Edge and the distance from the corner) and, where it
@@ -137,7 +138,8 @@ contact data are in the record:
 - *A cable* is drawn as its cores, which stand in its own group: how many, how they are named (numbers, colours, his
   own names), a cross-section for all or per core, the protective earth core, the shield.
 - A kind that is never drawn (a wire, a ferrule, a marker, a rail, a duct, an enclosure, a plate, an accessory) has
-  no such group, and a line under the pictures says where it is chosen instead.
+  no such group, and a line under the pictures says where it is chosen instead; Ready for reads its pins, where it
+  has them (a plug, a bridge), for its clamps alone and says that the schematic does not draw it.
 
 **In the cabinet** holds the size, how it mounts, what is kept free round it and in front of it, its front (a
 rectangle, or round where the width equals the height, or an outline brought from a drawing, shown as "an outline
@@ -189,12 +191,13 @@ project takes it when a device uses it.
 
 A part of another part is made in passing: where a field takes a part that is not there yet (a cabinet's mounting
 plate, a terminal's end plate), New… beside the field opens that part's sheet over the first, and Save returns to
-the field with it chosen.
+the field with it chosen: New plate… under a cabinet's fields, New part… in each Comes with row.
 
 ### 5.6 The pictures, the drawing and the symbol
 
-**The pictures** show the part as a page draws it: its pieces with their symbols and pins, or its box, and its front
-on its rail with its size. They follow each value as it is typed.
+**The pictures** show the part as a page draws it: its pieces with their symbols and pins (a terminal once per level),
+or its box, and its front on its rail with its size. They follow each value as it is typed; while a text does not
+read or a table row is not filled in yet, Ready for keeps what it said.
 
 **A drawing opens in the middle of the same screen** when a person draws: Draw… on the schematic picture, Arrange…
 on a box, the Symbol cell of a piece, a symbol of the Symbols shelf. The bar goes to its Drawing tab, the list

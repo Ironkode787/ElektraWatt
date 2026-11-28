@@ -1103,7 +1103,13 @@ fn pictures_column(ui: &mut Ui, shell: &ShellModel, place: &PartsPlace, events: 
                 ui.add_space(t.space_4);
             }
             if !stock_view {
+                // A kind that is never drawn (an end plate, a cabinet, a wire) says so, not that no symbol draws it yet.
+                let drawn = open.sheet.sections().contains(&Group::Schematic);
                 picture_card(ui, key!("part-group-schematic"), |ui| {
+                    if !drawn {
+                        ui.label(components::small_secondary(&t, strings::text(key!("parts-not-drawn"))));
+                        return;
+                    }
                     match shell.part_schematic(&open.sheet) {
                         Some((list, size)) => {
                             rendered(
@@ -1413,7 +1419,7 @@ fn identity_cell<'a>(
                 if let Some(c) = crate::parts_sheet::choice(ui, &v, &choices, |w| choice_words(f, w)) {
                     ev.push(Event::Action("parts.field", json!({ "field": f, "value": c })));
                 }
-                crate::parts_sheet::under(ui, e.and_then(|e| under_of(e, f)));
+                crate::parts_sheet::under(ui, e.and_then(|e| under_of(e, f)), editable);
                 return false;
             }
             text_value(ui, v, ev)
@@ -1596,7 +1602,7 @@ fn keep_free(ui: &mut Ui, e: &OpenSheet, editable: bool, events: &mut Vec<Event>
         }
     });
     for (path, _) in sides {
-        crate::parts_sheet::under(ui, field_message(d, path).map(crate::parts_sheet::Under::Error));
+        crate::parts_sheet::under(ui, field_message(d, path).map(crate::parts_sheet::Under::Error), false);
     }
     enter
 }
@@ -1655,7 +1661,7 @@ fn row_cell<'a>(
                         json!({ "field": field, "value": c }),
                     ));
                 }
-                crate::parts_sheet::under(ui, e.and_then(|e| under_of(e, field)));
+                crate::parts_sheet::under(ui, e.and_then(|e| under_of(e, field)), editable);
                 false
             })
         }
@@ -1828,7 +1834,7 @@ fn declared_table(
         ui.label(RichText::new(strings::text(key!("part-table-empty"))).color(t.text_secondary.color32()));
     } else {
         egui::Grid::new(("part-table", table.path))
-            .num_columns(table.columns.len() + 2)
+            .num_columns(table.columns.len() + 3)
             .spacing(vec2(t.space_3, t.space_2))
             .striped(true)
             .show(ui, |ui| {
@@ -1858,6 +1864,17 @@ fn declared_table(
                                 _ => text.clone(),
                             };
                             ui.label(RichText::new(words).color(t.text_secondary.color32()));
+                        }
+                    }
+                    // A part it comes with made in passing (doc 07 §5.5), as a cabinet's plate is: Save returns to
+                    // this row with it named.
+                    if editable && table.path == "accessories" {
+                        let new = strings::text(key!("parts-new-accessory"));
+                        if ui.small_button(new).clicked() {
+                            events.push(Event::Action(
+                                "parts.new",
+                                json!({ "start": "accessory", "for_field": format!("accessories[{i}].part") }),
+                            ));
                         }
                     }
                     if editable && table.key.is_none() {

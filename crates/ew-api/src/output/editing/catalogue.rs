@@ -1291,7 +1291,16 @@ impl Session {
         };
         let mut list = ew_dl::DisplayList::new();
         let (mut x, mut height) = (0i64, 0i64);
-        for entry in &part.function_template {
+        // A terminal of several levels is drawn once per level, as a page draws each level passing through on its own.
+        let levels = if part.kind == ew_schema::PartKind::Terminal {
+            let mut seen: Vec<u8> = part.cp_pattern.iter().map(|c| c.level.unwrap_or(1)).collect();
+            seen.sort_unstable();
+            seen.dedup();
+            seen.len().max(1)
+        } else {
+            1
+        };
+        for entry in (part.function_template.iter()).flat_map(|e| std::iter::repeat_n(e, levels)) {
             let Some(def) = symbol_of(entry) else {
                 continue;
             };

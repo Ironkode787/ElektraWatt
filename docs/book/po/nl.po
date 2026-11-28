@@ -4872,22 +4872,24 @@ msgid ""
 "project's Properties, or in Parts with **Workshop stock** beside the scopes: "
 "the list shows the stock's parts in their order, under a heading per kind "
 "that says the rule (\"Ferrules · the first that fits\"). Drag a row to "
-"another place among its kind to change the order."
+"another place among its kind to change the order; click a row to open its "
+"part."
 msgstr ""
 
-#: src/how-to/choose-parts.md:53
+#: src/how-to/choose-parts.md:54
 msgid ""
 "Open a part of the stock: a line under its heading says where it stands "
 "(\"number 1 of the 13 of its kind\"), with **Up**, **Down** and **Take "
 "out**. A wire, ferrule, marker or gland not in the stock, your own or a "
-"starter part, says so there with **Add to the stock**. Each change is one "
-"step, which **Undo** takes back. **Add from my parts…** shows My parts to "
-"open one of yours; **Add the generic stock** (also Project ▸ Add the generic "
-"stock) adds the starter's ferrules, markers and glands the stock lacks, "
-"after its own parts."
+"starter part, says so there with **Add to the stock**, which puts it first "
+"of its kind: you add a part because you prefer it. Each change is one step, "
+"which **Undo** takes back. **Add from my parts…** shows My parts to open one "
+"of yours; **Add the generic stock** (also Project ▸ Add the generic stock) "
+"adds the starter's ferrules, markers and glands the stock lacks, after its "
+"own parts."
 msgstr ""
 
-#: src/how-to/choose-parts.md:59
+#: src/how-to/choose-parts.md:60
 msgid ""
 "**Use this stock for new projects** keeps the stock, in its order, for every "
 "project you make next; until you use it a new project starts with the "
@@ -4971,27 +4973,29 @@ msgstr ""
 #: src/how-to/panel-layout.md:27
 msgid ""
 "A location that has its enclosure already (made from another page) is not "
-"made twice: with that location chosen, the dialog's button reads **Draw -UC1 "
-"of +CAB1 on this page** and puts its mounting plate on the page. On a page "
+"made twice: with that location chosen, the dialog says which part the "
+"enclosure has and offers no other, and its button reads **Draw -UC1 of +CAB1 "
+"on this page** and puts its mounting plate on the page as it is. On a page "
 "that is not a panel layout page, the button reads **Create and draw on a new "
 "panel layout page** (or **Draw … on a new panel layout page**): it makes the "
 "panel layout page after the page shown and draws the enclosure there. "
 "**Create only** beside it makes the enclosure without drawing it."
 msgstr ""
 "Een locatie die haar kast al heeft (gemaakt vanaf een andere pagina), wordt "
-"niet twee keer gemaakt: met die locatie gekozen luidt de knop van het "
-"venster **Teken -UC1 van +CAB1 op deze pagina** en zet die de montageplaat "
-"op de pagina. Op een pagina die geen paneellayoutpagina is, luidt de knop "
+"niet twee keer gemaakt: met die locatie gekozen zegt het venster welk "
+"artikel de kast heeft en biedt het geen ander aan, en luidt de knop **Teken "
+"-UC1 van +CAB1 op deze pagina** en zet die de montageplaat op de pagina "
+"zoals ze is. Op een pagina die geen paneellayoutpagina is, luidt de knop "
 "**Maken en tekenen op een nieuwe paneellayoutpagina** (of **Teken … op een "
-"nieuwe paneellayoutpagina**): die maakt de paneellayoutpagina na de getoonde "
-"pagina en tekent de kast daar. **Alleen maken** ernaast maakt de kast zonder "
-"haar te tekenen."
+"nieuwe paneellayoutpagina**): die maakt de paneellayoutpagina na de getoonde"
+" pagina en tekent de kast daar. **Alleen maken** ernaast maakt de kast "
+"zonder haar te tekenen."
 
-#: src/how-to/panel-layout.md:33
+#: src/how-to/panel-layout.md:34
 msgid "Rails and ducts"
 msgstr "Rails en kabelgoten"
 
-#: src/how-to/panel-layout.md:35
+#: src/how-to/panel-layout.md:36
 msgid ""
 "Choose **Draw ▸ Layout ▸ Rail** and click the rail's start and end on the "
 "plate (a rail runs across or up and down); the tool's card offers the rail "
@@ -5002,7 +5006,7 @@ msgstr ""
 "het gereedschap biedt het railartikel en de rasterstap aan. Teken zoveel "
 "rails als de kast nodig heeft."
 
-#: src/how-to/panel-layout.md:37
+#: src/how-to/panel-layout.md:38
 msgid ""
 "Choose **Draw ▸ Layout ▸ Duct** and click a duct's first point and each next "
 "point; a double click or `Enter` finishes it (`Esc` cancels it). The card "
@@ -5013,11 +5017,11 @@ msgstr ""
 "(`Esc` annuleert). De kaart vraagt de maat van een kabelgoot als haar "
 "artikel er geen geeft."
 
-#: src/how-to/panel-layout.md:40
+#: src/how-to/panel-layout.md:41
 msgid "Place the devices"
 msgstr "De apparaten plaatsen"
 
-#: src/how-to/panel-layout.md:42
+#: src/how-to/panel-layout.md:43
 msgid ""
 "Show **View ▸ Panels ▸ Navigators ▸ Unplaced devices**. It lists the devices "
 "of the page's location that have no place yet. A device without a location "
@@ -5032,7 +5036,7 @@ msgstr ""
 "lijst Apparaten hun rijen (of hun groep \"(none)\"), klik met de "
 "rechtermuisknop en kies **Locatie…**."
 
-#: src/how-to/panel-layout.md:46
+#: src/how-to/panel-layout.md:47
 msgid ""
 "Drag a device from the list onto a rail, or select its row, press `Enter` "
 "and click the place. On a rail it snaps to its neighbour, the rail's ends or "
@@ -5043,7 +5047,7 @@ msgstr ""
 "einden van de rail of het raster van de plaat; een apparaat dat met "
 "schroeven wordt bevestigd, gaat op de plaat."
 
-#: src/how-to/panel-layout.md:48
+#: src/how-to/panel-layout.md:49
 msgid ""
 "To fill a rail at once, select the rail and choose **Draw ▸ Layout ▸ "
 "Auto-fill rail…**: it lists the cabinet's unplaced devices and the devices "
@@ -5068,11 +5072,11 @@ msgstr ""
 "Ongedaan maken), en een toast zegt wat niet paste. Is er niets te plaatsen, "
 "dan zegt het venster waarom."
 
-#: src/how-to/panel-layout.md:56
+#: src/how-to/panel-layout.md:57
 msgid "Labels and the legend"
 msgstr "Labels en de legenda"
 
-#: src/how-to/panel-layout.md:58
+#: src/how-to/panel-layout.md:59
 msgid ""
 "The page's right-click menu (**Labels: Tags**, **Labels: Item numbers**, "
 "**Labels: Both**, **Labels: Tags or numbers**) and, with nothing selected, "
@@ -5095,7 +5099,7 @@ msgstr ""
 "uit elkaar, boven en onder de rij, met een lijn naar hun apparaat. Op de "
 "eigen layout van de kast laten de kenmerken de locatie van de kast weg."
 
-#: src/how-to/panel-layout.md:64
+#: src/how-to/panel-layout.md:65
 msgid ""
 "A layout without a legend gets one through **Add legend** in the page's "
 "right-click menu (also **Page ▸ Order ▸ Add legend**): in the free space "
@@ -5123,7 +5127,7 @@ msgstr ""
 "legendapagina kiest u als die van elke lijst: **Uitvoer ▸ Lijstkolommen…** "
 "op haar pagina."
 
-#: src/how-to/panel-layout.md:71
+#: src/how-to/panel-layout.md:72
 msgid ""
 "**Follow reference** (`F`) over a device, its tag or its balloon, or with "
 "the device selected, goes to its row on the legend page; a click on a row's "
@@ -5134,7 +5138,7 @@ msgstr ""
 "een klik op het kenmerk van een rij gaat terug naar het apparaat op de "
 "layout, ook in een geëxporteerde PDF."
 
-#: src/how-to/panel-layout.md:73
+#: src/how-to/panel-layout.md:74
 msgid ""
 "A label or balloon can be dragged on its own: one beside its device at once, "
 "one on its device once the device is selected (the label then shows a dashed "
@@ -5150,7 +5154,7 @@ msgstr ""
 "herstellen** in het rechtermuisknopmenu van de pagina zet elk label van de "
 "pagina terug."
 
-#: src/how-to/panel-layout.md:78
+#: src/how-to/panel-layout.md:79
 msgid ""
 "The tools are described one by one in the [tool "
 "reference](../reference/window/tools.md): Place device, Rail and Duct. The "
@@ -7182,33 +7186,47 @@ msgstr ""
 #: src/how-to/own-parts.md:24
 msgid ""
 "Type what the data sheet gives: a terminal's clamps and width, a cable's "
-"cores and outer diameter, a cabinet's size, plate and doors. **Ready for** "
-"on the right says, per feature, what the part still lacks and what follows "
-"from it (for the cabinet layout, a part without its size stands on the "
-"layout as a 20 × 20 mm square marked unknown size); a group of the sheet "
-"that lacks something has a dot in the list of groups. Leave what you do not "
-"know: the part saves without it, and Ready for keeps saying it."
+"cores and outer diameter, a cabinet's size, plate and doors. A part it needs "
+"that you have not made yet, such as a cabinet's mounting plate or the end "
+"plate a terminal comes with, is made in passing: **New plate…** under the "
+"cabinet's fields, **New part…** in a **Comes with** row; **Save** on that "
+"part brings you back with it named. In a long list such as **What it is**, "
+"type to narrow it. **Ready for** on the right says, per feature, what the "
+"part still lacks and what follows from it (for the cabinet layout, a part "
+"without its size stands on the layout as a 20 × 20 mm square marked unknown "
+"size); a group of the sheet that lacks something has a dot in the list of "
+"groups. Leave what you do not know: the part saves without it, and Ready for "
+"keeps saying it."
 msgstr ""
 "Typ wat de datasheet geeft: de klemmen en de breedte van een klem, de aders "
 "en de buitendiameter van een kabel, de maat, de plaat en de deuren van een "
-"kast. **Klaar voor** rechts zegt per functie wat het artikel nog mist en wat "
-"daaruit volgt (voor de kastlayout staat een artikel zonder maat op de layout "
-"als een vierkant van 20 × 20 mm, gemarkeerd als onbekende maat); een groep "
-"van het blad die iets mist, heeft een stip in de lijst van groepen. Laat weg "
-"wat u niet weet: het artikel wordt zonder opgeslagen, en Klaar voor blijft "
-"het zeggen."
+"kast. Een artikel dat het nodig heeft en dat u nog niet hebt gemaakt, zoals "
+"de montageplaat van een kast of de eindplaat waarmee een klem komt, maakt u "
+"tussendoor: **Nieuwe plaat…** onder de velden van de kast, **Nieuw "
+"artikel…** in een rij van **Komt met**; **Opslaan** op dat artikel brengt u "
+"terug met het artikel ingevuld. In een lange lijst zoals **Wat het is** typt"
+" u om de lijst in te korten. **Klaar voor** rechts zegt per functie wat het "
+"artikel nog mist en wat daaruit volgt (voor de kastlayout staat een artikel "
+"zonder maat op de layout als een vierkant van 20 × 20 mm, gemarkeerd als "
+"onbekende maat); een groep van het blad die iets mist, heeft een stip in de "
+"lijst van groepen. Laat weg wat u niet weet: het artikel wordt zonder "
+"opgeslagen, en Klaar voor blijft het zeggen."
 
-#: src/how-to/own-parts.md:29
+#: src/how-to/own-parts.md:32
 msgid ""
 "**Save**. From the part dialog the button reads **Save and use for -102Q1**: "
 "the part goes to the devices you were choosing for, and you are back on the "
-"page."
+"page. A part it names that is only in this project, such as an end plate "
+"that came with a colleague's project, goes into My parts with it, and the "
+"message names it."
 msgstr ""
 "**Opslaan**. Vanuit het artikelvenster luidt de knop **Opslaan en gebruiken "
-"voor -102Q1**: het artikel gaat naar de apparaten waarvoor u koos, en u bent "
-"terug op de pagina."
+"voor -102Q1**: het artikel gaat naar de apparaten waarvoor u koos, en u bent"
+" terug op de pagina. Een artikel dat het noemt en dat alleen in dit project "
+"staat, zoals een eindplaat die met het project van een collega meekwam, gaat"
+" mee naar Mijn artikelen, en het bericht noemt het."
 
-#: src/how-to/own-parts.md:32
+#: src/how-to/own-parts.md:36
 msgid ""
 "A field that does not read is refused under it, in words. Save is refused "
 "only when the part has no maker or no number, or when My parts or the "
@@ -7220,7 +7238,7 @@ msgstr ""
 "of als Mijn artikelen of het project al een artikel van die fabrikant en dat "
 "nummer heeft: open dat dan uit de lijst."
 
-#: src/how-to/own-parts.md:35
+#: src/how-to/own-parts.md:39
 msgid ""
 "**A part like it…**, the card under the others, or **Like this** in the bar "
 "with a part open, starts a new part with everything the other part has but "
@@ -7234,11 +7252,11 @@ msgstr ""
 "doorsneden wordt verkocht, heeft **Opslaan en nog een maat** naast Opslaan: "
 "de volgende maat opent met alles behalve het nummer en de doorsnede."
 
-#: src/how-to/own-parts.md:39
+#: src/how-to/own-parts.md:43
 msgid "A card such as a digital input card"
 msgstr "Een kaart zoals een digitale ingangskaart"
 
-#: src/how-to/own-parts.md:41
+#: src/how-to/own-parts.md:45
 msgid ""
 "Choose **PLC card or station**. Under **PLC**, the role is **Module**; "
 "choose **Channel kind ▸ DI** and type **Channels** `8`."
@@ -7246,7 +7264,7 @@ msgstr ""
 "Kies **PLC-kaart of station**. Onder **PLC** is de rol **Module**; kies "
 "**Kanaalsoort** **DI** en typ bij **Kanalen** `8`."
 
-#: src/how-to/own-parts.md:43
+#: src/how-to/own-parts.md:47
 msgid ""
 "The **Pin pattern** gives the pin of channel n: `{n+1}` gives the pins 1 to "
 "8, `X2:{n+1}` gives X2:1 to X2:8. The line under it shows the first and the "
@@ -7260,7 +7278,7 @@ msgstr ""
 "verkeerd patroon opvalt voordat u opslaat, en de volgende regel de ingangs- "
 "of uitgangsbits die de kaart inneemt."
 
-#: src/how-to/own-parts.md:46
+#: src/how-to/own-parts.md:50
 msgid ""
 "Type the supply pins (**Supply L+ pin**, **Supply M pin**) when the card has "
 "them, and the **Allowed slots** (`1-8, 10`) when the data sheet restricts "
@@ -7270,7 +7288,7 @@ msgstr ""
 "ze heeft, en de **Toegestane slots** (`1-8, 10`) als de datasheet ze "
 "beperkt. **Opslaan**."
 
-#: src/how-to/own-parts.md:48
+#: src/how-to/own-parts.md:52
 msgid ""
 "Place the card beside the CPU from the device browser: it stands as a box "
 "with its pins, joins the project's CPU, and its channels are addressed and "
@@ -7282,7 +7300,7 @@ msgstr ""
 "krijgen hun adressen en worden aan hun pennen gekoppeld. De catalogus van "
 "het rek van een station (**Rek…**) biedt haar aan als module."
 
-#: src/how-to/own-parts.md:52
+#: src/how-to/own-parts.md:56
 msgid ""
 "A part has channels of one kind: a card with 16 inputs and 16 outputs is two "
 "parts, one for each."
@@ -7290,11 +7308,11 @@ msgstr ""
 "Een artikel heeft kanalen van één soort: een kaart met 16 ingangen en 16 "
 "uitgangen zijn twee artikelen, één voor elk."
 
-#: src/how-to/own-parts.md:54
+#: src/how-to/own-parts.md:58
 msgid "A head station such as an IM 152"
 msgstr "Een kopstation zoals een IM 152"
 
-#: src/how-to/own-parts.md:56
+#: src/how-to/own-parts.md:60
 msgid ""
 "Choose **PLC card or station**, then **PLC role ▸ Station**; type the supply "
 "pins and **Most modules** (`32`)."
@@ -7302,7 +7320,7 @@ msgstr ""
 "Kies **PLC-kaart of station**, dan bij de PLC-rol **Station**; typ de "
 "voedingspennen en **Maximaal aantal modules** (`32`)."
 
-#: src/how-to/own-parts.md:57
+#: src/how-to/own-parts.md:61
 msgid ""
 "Under **Network ports**, choose **Add interface**: type the interface `DP`, "
 "choose **Bus ▸ PROFIBUS DP** and **Role ▸ Slave**. Its PROFINET sister has "
@@ -7314,7 +7332,7 @@ msgstr ""
 "PROFINET-zuster heeft de interface `X1`, de bus **PROFINET**, de rol "
 "**Apparaat** en **Poorten** `2`. **Opslaan**."
 
-#: src/how-to/own-parts.md:60
+#: src/how-to/own-parts.md:64
 msgid ""
 "Place it from the device browser on a bus-topology page: it stands there as "
 "its bus symbol with its DP socket, and its supply pins wait for a schematic "
@@ -7333,7 +7351,7 @@ msgstr ""
 "toe in zijn rek (**Rek…** op die rij). Een station dat alleen op de bus "
 "antwoordt, is een kopstation."
 
-#: src/how-to/own-parts.md:66
+#: src/how-to/own-parts.md:70
 msgid ""
 "**New part…** at the foot of a station's catalogue starts the part the rack "
 "asks for: a CPU, a remote station, a valve terminal, a compact device or a "
@@ -7343,11 +7361,11 @@ msgstr ""
 "waar het rek om vraagt: een CPU, een decentraal station, een ventieleiland, "
 "een compact apparaat of een module."
 
-#: src/how-to/own-parts.md:69
+#: src/how-to/own-parts.md:73
 msgid "A switch such as a SCALANCE, or a device on PROFINET"
 msgstr "Een switch zoals een SCALANCE, of een apparaat op PROFINET"
 
-#: src/how-to/own-parts.md:71
+#: src/how-to/own-parts.md:75
 msgid ""
 "Choose **Device drawn as a box**. Under **Network ports**, **Add "
 "interface**: `X1`, **PROFINET**, and the number of **Ports** (sockets) of "
@@ -7357,7 +7375,7 @@ msgstr ""
 "toevoegen**: `X1`, **PROFINET**, en het aantal **Poorten** (aansluitingen) "
 "van de datasheet."
 
-#: src/how-to/own-parts.md:73
+#: src/how-to/own-parts.md:77
 msgid ""
 "An **unmanaged** switch has the role **Passive**: no address, it passes the "
 "net through."
@@ -7365,7 +7383,7 @@ msgstr ""
 "Een **unmanaged** switch heeft de rol **Passief**: geen adres, hij geeft het "
 "net door."
 
-#: src/how-to/own-parts.md:74
+#: src/how-to/own-parts.md:78
 msgid ""
 "A **managed** switch and a drive, an HMI or a gateway have the role "
 "**Device**: one PROFINET name and IP address for the whole interface, "
@@ -7375,7 +7393,7 @@ msgstr ""
 "rol **Apparaat**: één PROFINET-naam en IP-adres voor de hele interface, "
 "hoeveel aansluitingen die ook heeft."
 
-#: src/how-to/own-parts.md:76
+#: src/how-to/own-parts.md:80
 msgid ""
 "**Save**, then place it from the device browser on a bus-topology page with "
 "one click: it stands as its bus symbol, a socket per port, P1, P2 …, "
@@ -7398,7 +7416,7 @@ msgstr ""
 "kolom **Adres**): zijn vak drukt die af, de naam boven het IP-adres, en "
 "\"TBD\" zolang hij open is."
 
-#: src/how-to/own-parts.md:84
+#: src/how-to/own-parts.md:88
 msgid ""
 "To draw it your own way, choose **Make my own from it…** under its picture "
 "**On a bus page**: the symbol opens as a drawing of yours. Drag a socket to "
@@ -7416,7 +7434,7 @@ msgstr ""
 "gebruiken** gaat terug. Als de poorten van het artikel veranderen, noemt de "
 "afbeelding een aansluiting die uw symbool niet tekent."
 
-#: src/how-to/own-parts.md:89
+#: src/how-to/own-parts.md:93
 msgid ""
 "The starter parts hold such parts to begin with: EW-GEN-ESW-5 (unmanaged "
 "switch, 5 ports), EW-GEN-ESW-8 (managed switch, 8 ports) and EW-GEN-PND-1 (a "
@@ -7426,11 +7444,11 @@ msgstr ""
 "EW-GEN-ESW-5 (unmanaged switch, 5 poorten), EW-GEN-ESW-8 (managed switch, 8 "
 "poorten) en EW-GEN-PND-1 (een PROFINET-apparaat, 2 poorten)."
 
-#: src/how-to/own-parts.md:92
+#: src/how-to/own-parts.md:96
 msgid "Change a part"
 msgstr "Een artikel wijzigen"
 
-#: src/how-to/own-parts.md:94
+#: src/how-to/own-parts.md:98
 msgid ""
 "Open the part in Parts: from the list (type a part of its number, maker or "
 "description), or select a device and choose **Project ▸ Parts**, which opens "
@@ -7440,7 +7458,7 @@ msgstr ""
 "fabrikant of beschrijving), of selecteer een apparaat en kies **Project ▸ "
 "Artikelen**, dat op het artikel van het apparaat opent."
 
-#: src/how-to/own-parts.md:96
+#: src/how-to/own-parts.md:100
 msgid ""
 "A part of your own, in My parts or only in this project, opens ready to "
 "change. A starter part or a part of another library is not yours to change: "
@@ -7453,7 +7471,7 @@ msgstr ""
 "eigen maken** begint een eigen artikel met zijn gegevens, dat u onder een "
 "eigen artikelnummer opslaat."
 
-#: src/how-to/own-parts.md:99
+#: src/how-to/own-parts.md:103
 msgid ""
 "Change what you need and **Save**. A part of My parts is saved there as its "
 "next version, and the card beside the sheet lists what changes in words "
@@ -7470,7 +7488,7 @@ msgstr ""
 "erop. Een artikel dat alleen in dit project staat, verandert ter plaatse, "
 "met dezelfde kaart. **Verwerpen** laat vallen wat u typte."
 
-#: src/how-to/own-parts.md:103
+#: src/how-to/own-parts.md:107
 msgid ""
 "A device already drawn follows the correction: its box shows the pins and "
 "sockets the part still has, and its bus port keeps its bus, role and "
@@ -7491,24 +7509,31 @@ msgstr ""
 "rand terug tot het past, zijn draden mee. De kaart noemt elk blok dat "
 "opnieuw wordt getekend en zijn pagina vóór **Toepassen**."
 
-#: src/how-to/own-parts.md:109
+#: src/how-to/own-parts.md:113
 msgid ""
 "A part only in this project has **Keep in my parts** in the bar: it is "
-"written into My parts, and the project's devices take that copy. **Remove** "
-"takes a part of your own out of My parts (it asks first); a project that "
-"uses it keeps its copy. **Back** returns to where you came from."
+"written into My parts with the parts only in this project that it names (its "
+"mounting plate, an end plate it comes with), and the project's devices take "
+"those copies; the message names the parts kept with it. A part is then one "
+"row of the list, **Mine**. **Remove** takes a part of your own out of My "
+"parts (it asks first); a project that uses it keeps its copy. **Back** "
+"returns to where you came from."
 msgstr ""
 "Een artikel dat alleen in dit project staat, heeft **In mijn artikelen "
-"bewaren** in de balk: het wordt in Mijn artikelen geschreven, en de "
-"apparaten van het project nemen die kopie. **Verwijderen** haalt een eigen "
-"artikel uit Mijn artikelen (het vraagt eerst); een project dat het gebruikt, "
-"houdt zijn kopie. **Terug** gaat terug naar waar u vandaan kwam."
+"bewaren** in de balk: het wordt in Mijn artikelen geschreven samen met de "
+"artikelen die het noemt en die alleen in dit project staan (zijn "
+"montageplaat, een eindplaat waarmee het komt), en de apparaten van het "
+"project nemen die kopieën; het bericht noemt de artikelen die mee bewaard "
+"zijn. Het artikel is dan één rij van de lijst, **Van mij**. **Verwijderen** "
+"haalt een eigen artikel uit Mijn artikelen (het vraagt eerst); een project "
+"dat het gebruikt, houdt zijn kopie. **Terug** gaat terug naar waar u vandaan"
+" kwam."
 
-#: src/how-to/own-parts.md:113
+#: src/how-to/own-parts.md:118
 msgid "Bring parts in from a file"
 msgstr "Artikelen uit een bestand binnenhalen"
 
-#: src/how-to/own-parts.md:115
+#: src/how-to/own-parts.md:120
 msgid ""
 "**Import** in the bar of Parts reads a file of parts; **File ▸ Import…** "
 "goes on to Parts for one too."
@@ -7516,7 +7541,7 @@ msgstr ""
 "**Importeren** in de balk van Artikelen leest een bestand met artikelen; "
 "**Bestand ▸ Importeren…** gaat daarvoor ook naar Artikelen."
 
-#: src/how-to/own-parts.md:117
+#: src/how-to/own-parts.md:122
 msgid ""
 "**A table** (CSV or Excel), such as a maker's list or a family of your own "
 "parts: Parts shows **Which column is what**, each column of the file with "
@@ -7555,7 +7580,7 @@ msgstr ""
 "De koppeling wordt opgeslagen onder de naam bij **Opgeslagen als**, en de "
 "volgende tabel van die bron wordt op dezelfde manier gelezen."
 
-#: src/how-to/own-parts.md:128
+#: src/how-to/own-parts.md:133
 msgid ""
 "**An EPLAN parts file** (an EDZ, or a parts XML): before the first EDZ of a "
 "session a notice says that the EPLAN Data Portal's terms restrict its data "
@@ -7570,7 +7595,7 @@ msgstr ""
 "hoeveel er zouden veranderen, en **Ze bijwerken…** toont de gewijzigde "
 "velden voordat er iets verandert."
 
-#: src/how-to/own-parts.md:131
+#: src/how-to/own-parts.md:136
 msgid ""
 "**An outline drawing** (DXF) gives the open part its front outline, as "
 "**Import outline…** does."
@@ -7578,7 +7603,7 @@ msgstr ""
 "**Een maattekening** (DXF) geeft het geopende artikel zijn frontcontour, "
 "zoals **Contour importeren…** doet."
 
-#: src/how-to/own-parts.md:132
+#: src/how-to/own-parts.md:137
 msgid ""
 "**A symbol file**, on the **Symbols** shelf or on the drawing: a "
 "QElectroTech element, an EPLAN symbol file or a DXF drawing opens as a "
@@ -7588,7 +7613,7 @@ msgstr ""
 "QElectroTech-element, een EPLAN-symboolbestand of een DXF-tekening opent als "
 "een eigen tekening."
 
-#: src/how-to/own-parts.md:135
+#: src/how-to/own-parts.md:140
 msgid ""
 "What a table or a parts file brings stands in the list as **This import**: "
 "each row **new**, **changed**, **the same** as the part in My parts, or "
@@ -7609,11 +7634,11 @@ msgstr ""
 "schrijft; een project neemt een artikel als een apparaat het gebruikt. "
 "**Verwerpen** laat de set vallen."
 
-#: src/how-to/own-parts.md:141
+#: src/how-to/own-parts.md:146
 msgid "Change many parts at once"
 msgstr "Veel artikelen tegelijk wijzigen"
 
-#: src/how-to/own-parts.md:143
+#: src/how-to/own-parts.md:148
 msgid ""
 "In the list of Parts, hold **Ctrl** and click each part to take it in or out "
 "of the selection, or hold **Shift** and click to take the rows from the open "
@@ -7623,7 +7648,7 @@ msgstr ""
 "in of uit de selectie te nemen, of houd **Shift** ingedrukt en klik om de "
 "rijen van het geopende artikel tot dat ene te nemen."
 
-#: src/how-to/own-parts.md:145
+#: src/how-to/own-parts.md:150
 msgid ""
 "The sheet shows the fields the parts share: a value they all have, or "
 "**mixed** under a field they differ in. Where they have the same pins, the "
@@ -7634,7 +7659,7 @@ msgstr ""
 "dezelfde pennen hebben, staan ook de cellen van de tabel **Aansluitpunten** "
 "er (\"Pin 1 · Clamp\")."
 
-#: src/how-to/own-parts.md:147
+#: src/how-to/own-parts.md:152
 msgid ""
 "Type a value: it goes to all of them. A field you leave **mixed** stays as "
 "each part has it."
@@ -7642,7 +7667,7 @@ msgstr ""
 "Typ een waarde: ze gaat naar alle artikelen. Een veld dat u **gemengd** "
 "laat, blijft zoals elk artikel het heeft."
 
-#: src/how-to/own-parts.md:148
+#: src/how-to/own-parts.md:153
 msgid ""
 "**Save** saves each part as its next version in My parts. Where the open "
 "project uses them, the card beside the sheet names how many parts and which "
@@ -7656,18 +7681,21 @@ msgstr ""
 "de kopieën van het project erop in één stap, die één keer **Ongedaan maken** "
 "in het project terugdraait (Mijn artikelen houdt wat u opsloeg)."
 
-#: src/how-to/own-parts.md:152
+#: src/how-to/own-parts.md:157
 msgid ""
 "A starter part among them is not yours to change: a line names it, and "
-"**Make my own from** it starts a part of your own from it. A part only in "
-"this project is kept in My parts first (**Keep in my parts**)."
+"**Make my own from** it starts a part of your own from it. Where parts only "
+"in this project are among them, **Save** reads **Keep in my parts and "
+"save**: they are kept in My parts first, and the value you typed goes to "
+"them."
 msgstr ""
 "Een starterartikel ertussen is niet het uwe om te wijzigen: een regel noemt "
 "het, en **Mijn eigen maken van** dat artikel begint er een eigen artikel "
-"mee. Een artikel dat alleen in dit project staat, wordt eerst in Mijn "
-"artikelen bewaard (**In mijn artikelen bewaren**)."
+"mee. Staan er artikelen tussen die alleen in dit project staan, dan luidt "
+"**Opslaan** **In mijn artikelen bewaren en opslaan**: ze worden eerst in "
+"Mijn artikelen bewaard, en de waarde die u typte gaat naar hen."
 
-#: src/how-to/own-parts.md:155
+#: src/how-to/own-parts.md:161
 msgid ""
 "**Export** in the bar of Parts writes the selected parts, or the open one, "
 "as a table (CSV, or Excel for a name ending in `.xlsx`), one column per "
@@ -7686,11 +7714,11 @@ msgstr ""
 "Een tabel die wordt geïmporteerd zoals ze is geëxporteerd, brengt elke rij "
 "als **hetzelfde**."
 
-#: src/how-to/own-parts.md:160
+#: src/how-to/own-parts.md:166
 msgid "A device that is a box with pins"
 msgstr "Een apparaat dat een blok met pennen is"
 
-#: src/how-to/own-parts.md:162
+#: src/how-to/own-parts.md:168
 msgid ""
 "A circuit protector, a power supply, a drive: a device the program has no "
 "symbol for is drawn as a box with its pins on the edges. The part says which "
@@ -7701,7 +7729,7 @@ msgstr ""
 "zijn pennen op de randen. Het artikel zegt welke pennen het heeft en waar ze "
 "staan."
 
-#: src/how-to/own-parts.md:165
+#: src/how-to/own-parts.md:171
 msgid ""
 "Under **On the schematic**, **Pins** lists the part's pins, each with its "
 "name and the potential it carries. **Add pin** adds one, the cross at a "
@@ -7717,7 +7745,7 @@ msgstr ""
 "getekend, neemt de aansluitingen van dat symbool: de groep noemt ze en zegt "
 "dat."
 
-#: src/how-to/own-parts.md:169
+#: src/how-to/own-parts.md:175
 msgid ""
 "Choose **Arrange…**. The box opens as the drawing of Parts: drag each pin "
 "along its edge or onto another edge, drag the box's edges to size it, choose "
@@ -7730,7 +7758,7 @@ msgstr ""
 "artikel ([Het blok van een "
 "artikel](../reference/symbol-editor.md#the-box-of-a-part))."
 
-#: src/how-to/own-parts.md:172
+#: src/how-to/own-parts.md:178
 msgid ""
 "**Draw ▸ Place ▸ Device from part…** then places the part's box with one "
 "click, laid out as you drew it. On the page the box's edges and pins can "
@@ -7753,7 +7781,7 @@ msgstr ""
 "pennamen van de boven- en onderzijde staan een kwartslag gedraaid, van onder "
 "naar boven te lezen; die van de linker- en rechterzijde staan horizontaal."
 
-#: src/how-to/own-parts.md:178
+#: src/how-to/own-parts.md:184
 msgid ""
 "To change the box of a device already drawn, choose **Arrange its box…** in "
 "its menu. Save's card names each box of the part it draws anew, and its "
@@ -7763,11 +7791,11 @@ msgstr ""
 "kast schikken…** in zijn menu. De kaart van Opslaan noemt elk blok van het "
 "artikel dat ze opnieuw tekent, en haar Toepassen tekent ze opnieuw."
 
-#: src/how-to/own-parts.md:181
+#: src/how-to/own-parts.md:187
 msgid "A part drawn with your own symbol"
 msgstr "Een artikel getekend met uw eigen symbool"
 
-#: src/how-to/own-parts.md:183
+#: src/how-to/own-parts.md:189
 msgid ""
 "A piece's **Symbol** cell, under **On the schematic ▸ Drawn as**, offers the "
 "symbols of what the piece is; **Draw a new symbol…** draws one for it, its "
@@ -7786,7 +7814,7 @@ msgstr ""
 "**Nieuw artikel dat ermee getekend wordt…** aan onder zijn naam ([Een "
 "symbool tekenen](../reference/symbol-editor.md))."
 
-#: src/how-to/own-parts.md:188
+#: src/how-to/own-parts.md:194
 msgid ""
 "The PLC exchange with PLC software exports the stations of a configuration "
 "project; a switch or a device without a PLC section is not in the exported "

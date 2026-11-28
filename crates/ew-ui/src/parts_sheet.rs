@@ -111,7 +111,7 @@ pub(crate) fn text_value(ui: &mut Ui, v: Value<'_>, events: &mut Vec<Event>) -> 
             json!({ "field": field, "value": text }),
         ));
     }
-    under(ui, v.under);
+    under(ui, v.under, v.editable);
     enter
 }
 
@@ -262,28 +262,37 @@ pub(crate) fn ringed<R>(ui: &mut Ui, on: bool, body: impl FnOnce(&mut Ui) -> R) 
     inner.inner
 }
 
-// What stands under a field: a warning or an error line with its icon, indented to the value.
-pub(crate) fn under(ui: &mut Ui, under: Option<Under>) {
+// What stands under a field: a warning or an error line with its icon, indented to the value. A field that can be
+// changed (`reserve`) keeps the warning's line whether or not it has something to say, and the warning stays on that
+// one line (its whole sentence in its tooltip, and under Ready for), so the fields and buttons below do not move as a
+// warning comes and goes; an error, which stands while the typed text cannot be read, wraps.
+pub(crate) fn under(ui: &mut Ui, under: Option<Under>, reserve: bool) {
+    let t = theme::current(ui.ctx());
     let Some(u) = under else {
+        if reserve {
+            let h = ui.fonts_mut(|f| f.row_height(&theme::font(&t.type_small))).max(t.icon_sm);
+            ui.allocate_exact_size(vec2(ui.available_width(), h), Sense::hover());
+        }
         return;
     };
-    let t = theme::current(ui.ctx());
-    let (text, colour, icon) = match u {
-        Under::Lacks(s) => (s, t.warning, crate::icons::IconId::alert_triangle),
-        Under::Error(s) => (s, t.error, crate::icons::IconId::alert_circle),
+    let (text, colour, icon, one_line) = match u {
+        Under::Lacks(s) => (s, t.warning, crate::icons::IconId::alert_triangle, reserve),
+        Under::Error(s) => (s, t.error, crate::icons::IconId::alert_circle, false),
     };
     ui.horizontal_top(|ui| {
         ui.add_space(LABEL + t.space_3);
         let (rect, _) = ui.allocate_exact_size(vec2(t.icon_sm, t.icon_sm), Sense::hover());
         crate::icons::paint(ui.painter(), icon, rect, colour.color32(), t.icon_stroke);
-        ui.add(
-            egui::Label::new(
-                RichText::new(text)
-                    .font(theme::font(&t.type_small))
-                    .color(colour.color32()),
-            )
-            .wrap(),
+        let label = egui::Label::new(
+            RichText::new(&text)
+                .font(theme::font(&t.type_small))
+                .color(colour.color32()),
         );
+        if one_line {
+            ui.add(label.truncate()).on_hover_text(&text);
+        } else {
+            ui.add(label.wrap());
+        }
     });
 }
 

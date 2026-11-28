@@ -556,7 +556,8 @@ const IDENTITY: &[Reader] = &[r(Ft::PartsList, Refused, key!("part-says-identity
 const ABOUT: &[Reader] = &[r(Ft::About, Printed, key!("part-says-about"))];
 const PIECES: &[Reader] = &[r(Ft::Placing, Refused, key!("part-says-pieces"))];
 const CONTACTS: &[Reader] = &[r(Ft::ContactImage, Printed, key!("part-says-contacts"))];
-const PINS: &[Reader] = &[r(Ft::Placing, Printed, key!("part-says-pins"))];
+// A part that is not drawn on a schematic page (an end plate, a bridge, a plug) has its pins for its clamps alone.
+const PINS: &[Reader] = &[r_on(Ft::Placing, Printed, key!("part-says-pins"), Has::Drawn)];
 const LEVELS: &[Reader] = &[r(Ft::Terminals, Printed, key!("part-says-levels"))];
 const BOX: &[Reader] = &[r(Ft::Placing, Printed, key!("part-says-box"))];
 const SIZE: &[Reader] = &[
@@ -790,7 +791,7 @@ pub static PART_FIELDS: &[PartField] = &[
         G::Schematic,
         Has::Pinned,
         F(Form::PinGrid),
-        &[r(Ft::Potentials, Printed, key!("part-says-carries"))],
+        &[r_on(Ft::Potentials, Printed, key!("part-says-carries"), Has::Drawn)],
     ),
     f(
         "cp_pattern[].level",

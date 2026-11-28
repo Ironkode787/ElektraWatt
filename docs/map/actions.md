@@ -483,7 +483,7 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `part.favourite` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_part_favourite` `crates/ew-viewmodel/src/shell/part_dialog.rs` | `action-part-favourite`, `reason-part-favourite-local` |
 | `parts.open` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_open` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-open` |
 | `parts.find` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_find` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-find` |
-| `parts.new` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_new` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-new`, `parts-new`, `parts-new-part-with-it`, `parts-new-plate`, `parts-new-title` |
+| `parts.new` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_new` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-new`, `parts-new`, `parts-new-accessory`, `parts-new-part-with-it`, `parts-new-plate`, `parts-new-title` |
 | `parts.field` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_field` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-field` |
 | `parts.row` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_row` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-row` |
 | `parts.export` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_export` `crates/ew-viewmodel/src/shell/parts_many.rs` | `action-parts-export`, `parts-export` |

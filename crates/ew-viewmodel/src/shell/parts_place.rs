@@ -668,7 +668,9 @@ impl ShellModel {
         };
         found.truncate(LIST_ROWS);
         place.found = found;
-        if let Some(open) = &mut place.sheet {
+        if let Some(open) = &mut place.sheet
+            && session.sheet_reads(&open.sheet)
+        {
             open.lacks = session.sheet_lacks(&open.sheet);
             open.ready = session.sheet_ready(&open.sheet);
         }
@@ -1136,9 +1138,9 @@ impl ShellModel {
         if let Some(open) = place.sheet.as_mut() {
             open.changed = true;
             open.error = None;
-            // While a field's text does not read, Ready for stays as it was: it says what the part lacks, not what a
-            // half-typed text would make of it (and the sheet does not jump).
-            if open.sheet.messages.is_empty() {
+            // While a field's text does not read, or a table row is not filled in yet, Ready for stays as it was: it
+            // says what the part lacks, not what the part as it was opened lacks (and the sheet does not jump).
+            if session.sheet_reads(&open.sheet) {
                 open.lacks = session.sheet_lacks(&open.sheet);
                 open.ready = session.sheet_ready(&open.sheet);
             }

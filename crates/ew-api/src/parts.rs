@@ -150,6 +150,16 @@ impl Session {
             .unwrap_or_else(|_| sheet.original.clone())
     }
 
+    /// Whether the open sheet's texts read as a part: where they do not (a field typed wrong, a table row not filled
+    /// in yet), [`Session::sheet_part`] is the part as it was opened, and Ready for keeps what it said.
+    pub fn sheet_reads(&self, sheet: &PartSheet) -> bool {
+        if sheet.new || sheet.own {
+            self.sectioned_item(sheet).is_ok()
+        } else {
+            self.draft_part(sheet).is_ok()
+        }
+    }
+
     /// What the open sheet's part lacks, as Ready for and the fields show it.
     pub fn sheet_lacks(&self, sheet: &PartSheet) -> Vec<Lack> {
         ew_derive::part_fields::lacks(&self.sheet_part(sheet))

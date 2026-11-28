@@ -22,7 +22,10 @@ You need an open project.
    **Description**: these are all a part needs to be saved. A maker your libraries do not have yet is made with the
    part.
 4. Type what the data sheet gives: a terminal's clamps and width, a cable's cores and outer diameter, a cabinet's size,
-   plate and doors. **Ready for** on the right says, per feature, what the part still lacks and what follows from it
+   plate and doors. A part it needs that you have not made yet, such as a cabinet's mounting plate or the end plate a
+   terminal comes with, is made in passing: **New plate…** under the cabinet's fields, **New part…** in a **Comes
+   with** row; **Save** on that part brings you back with it named. In a long list such as **What it is**, type to
+   narrow it. **Ready for** on the right says, per feature, what the part still lacks and what follows from it
    (for the cabinet layout, a part without its size stands on the layout as a 20 × 20 mm square marked unknown size); a
    group of the sheet that lacks something has a dot in the list of groups.
    Leave what you do not know: the part saves without it, and Ready for keeps saying it.
