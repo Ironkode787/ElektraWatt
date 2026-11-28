@@ -26,8 +26,8 @@ use ew_mltext::{Ident, natural_key};
 use ew_model::{AnyKey, Model};
 use ew_rds::Aspect;
 use ew_schema::{
-    Carrier, CarrierKind, CarrierParams, CarrierRef, Device, DeviceAspects, DuctParams, Enclosure,
-    Corner, EnclosureSection, Extra, FnDef, Function, Kind, LayoutSpace, LibCopy, MechData, MountKind,
+    Carrier, CarrierKind, CarrierParams, CarrierRef, Corner, Device, DeviceAspects, DuctParams, Enclosure,
+    EnclosureSection, Extra, FnDef, Function, Kind, LayoutSpace, LibCopy, MechData, MountKind,
     MountingSurface, Open, Page, Part, PartRef, PartUse, Placement, RailParams, Representation, Section,
     Slot, StructureAssignment, StructureNode, SurfaceFeature, SurfaceKind, TagScheme, TagSpec,
 };
@@ -2375,9 +2375,10 @@ impl Command for SetEnclosurePart {
             let datum = (s.datum.clone())
                 .or_else(|| tx.project().settings.workshop.datum.clone())
                 .unwrap_or_default();
-            if let (Some((w0, h0)), Some((w1, h1))) =
-                (ew_derive::layout::sheet_size(&s), ew_derive::layout::sheet_size(&next))
-            {
+            if let (Some((w0, h0)), Some((w1, h1))) = (
+                ew_derive::layout::sheet_size(&s),
+                ew_derive::layout::sheet_size(&next),
+            ) {
                 let (dw, dh) = (w1 - w0, h1 - h0);
                 let (dx, dy) = match datum {
                     Corner::BottomRight => (dw, Nm::ZERO),
@@ -2399,7 +2400,12 @@ impl Command for SetEnclosurePart {
 
 /// Moves what stands on surface `surface` by `(dx, dy)` in its frame: each carrier's path, each placement on the
 /// surface itself (one on a rail goes with the rail) and each hole or gland of the surface.
-fn shift_on_surface(tx: &mut TxBuilder<'_>, surface: Id<MountingSurface>, dx: Nm, dy: Nm) -> Result<(), CmdError> {
+fn shift_on_surface(
+    tx: &mut TxBuilder<'_>,
+    surface: Id<MountingSurface>,
+    dx: Nm,
+    dy: Nm,
+) -> Result<(), CmdError> {
     let moved = |p: Pt2| Pt2::new(Nm(p.x.0 + dx.0), Nm(p.y.0 + dy.0));
     let carriers: Vec<Id<Carrier>> = (tx.iter::<Carrier>().into_iter())
         .filter(|c| c.surface == surface)

@@ -338,7 +338,9 @@ impl ShellModel {
                 Outcome::Failed { message } => message.clone(),
                 Outcome::Done => String::new(),
             };
-            let names: Vec<&str> = std::iter::once(title).chain(save.with.iter().map(String::as_str)).collect();
+            let names: Vec<&str> = std::iter::once(title)
+                .chain(save.with.iter().map(String::as_str))
+                .collect();
             let message = strings::format(key!("parts-saved-project-refused"), &[&names.join(", "), &why]);
             self.parts_refresh();
             return Ok(Outcome::Failed { message });

@@ -159,7 +159,10 @@ fn keeps_every_place(datum: &str) {
     let sizes_before = sizes(&s);
     let plan = give(&mut s, larger);
     assert!(!plan.sizes.is_empty(), "the card names the sizes that change");
-    assert!(plan.datum.is_some(), "the card says from which corner the places are kept");
+    assert!(
+        plan.datum.is_some(),
+        "the card says from which corner the places are kept"
+    );
     assert!(
         plan.outside.is_empty(),
         "nothing lies outside a larger cabinet: {:?}",
@@ -170,9 +173,17 @@ fn keeps_every_place(datum: &str) {
         sizes_before,
         "the surfaces took the larger cabinet's size"
     );
-    assert_eq!(positions(&s), before, "larger, datum {datum}: every place as it was");
+    assert_eq!(
+        positions(&s),
+        before,
+        "larger, datum {datum}: every place as it was"
+    );
     let plan = give(&mut s, smaller);
-    assert_eq!(positions(&s), before, "smaller, datum {datum}: every place as it was");
+    assert_eq!(
+        positions(&s),
+        before,
+        "smaller, datum {datum}: every place as it was"
+    );
     assert!(
         !plan.outside.is_empty(),
         "the card names what no longer lies inside its surface"

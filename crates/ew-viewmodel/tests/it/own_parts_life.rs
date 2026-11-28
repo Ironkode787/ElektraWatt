@@ -1250,13 +1250,24 @@ fn the_strip_editor_takes_a_kept_part_by_its_number() {
 fn a_wires_part_row_takes_a_kept_part_by_its_number() {
     let tmp = Tmp::new("life-m2-wire");
     let mut s = tmp.sample_in(Mode::Headless, true, "102");
-    project_parts(&mut s, &tmp, "EX-WR-1,Example,EX-WR-1,wire,,Wire 1.5 BU,m,,,,,,,,,,,\n");
+    project_parts(
+        &mut s,
+        &tmp,
+        "EX-WR-1,Example,EX-WR-1,wire,,Wire 1.5 BU,m,,,,,,,,,,,\n",
+    );
     done(&mut s, "parts.open", json!({"part": "EX-WR-1"}));
     done(&mut s, "parts.keep", json!({}));
     done(&mut s, "parts.back", json!({}));
     done(&mut s, "page.goto", json!({"folio": "102"}));
-    done(&mut s, "select.set", json!({"refs": ["wire:-102F1:2 -> -X1021:1/a"]}));
-    let out = s.dispatch("props.set", &json!({"row": "connection/overrides.wire_part", "value": "EX-WR-1"}));
+    done(
+        &mut s,
+        "select.set",
+        json!({"refs": ["wire:-102F1:2 -> -X1021:1/a"]}),
+    );
+    let out = s.dispatch(
+        "props.set",
+        &json!({"row": "connection/overrides.wire_part", "value": "EX-WR-1"}),
+    );
     assert_eq!(out, Outcome::Done, "{}", said(&s));
     let text = s.describe();
     assert!(text.contains("EX-WR-1"), "the wire takes his part: {text}");
