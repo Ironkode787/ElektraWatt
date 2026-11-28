@@ -487,13 +487,13 @@ fn port_pin(q: &Q, function: Id<Function>, signal: &str) -> Option<CpRef> {
     })
 }
 
-/// The station address as a drawing prints it (FR-BUS-006): "Node TBD" for the open item, "Node " and
-/// the address of [`net_address_text`] otherwise ("Node 3", "Node cpx-1 192.168.0.10"); `None` for a port without
-/// an address and for an address form of a newer format.
-pub fn bus_address_text(port: &BusPort) -> Option<String> {
+/// The station address as a drawing prints it (FR-BUS-006), a text by key in the page's language: "Node TBD" for the
+/// open item, "Node " and the address of [`net_address_text`] otherwise ("Node 3", "Node cpx-1 192.168.0.10"); `None`
+/// for a port without an address and for an address form of a newer format.
+pub fn bus_address_text(port: &BusPort) -> Option<ew_l10n::Text> {
     match &port.address {
-        AddrValue::Tbd => Some("Node TBD".to_owned()),
-        AddrValue::Value(a) => net_address_text(a).map(|t| format!("Node {t}")),
+        AddrValue::Tbd => Some(text!("bus-node-tbd")),
+        AddrValue::Value(a) => net_address_text(a).map(|t| text!("bus-node", t)),
         AddrValue::NotApplicable | AddrValue::Unknown(_) => None,
     }
 }

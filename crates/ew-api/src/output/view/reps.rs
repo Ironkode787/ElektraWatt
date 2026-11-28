@@ -408,7 +408,8 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
             SlotKind::BusAddress => f
                 .as_ref()
                 .and_then(|f| f.bus_port.as_ref())
-                .and_then(ew_derive::bus_address_text),
+                .and_then(ew_derive::bus_address_text)
+                .map(|t| crate::output::print::in_print_language(&t, ew_derive::print_language(q).as_ref())),
             SlotKind::BusTermination => f
                 .as_ref()
                 .and_then(|f| f.bus_port.as_ref())

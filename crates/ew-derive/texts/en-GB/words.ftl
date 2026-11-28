@@ -336,3 +336,7 @@ corner-in-sentence-bottom-right = bottom-right
 corner-in-sentence-top-left = top-left
 corner-in-sentence-top-right = top-right
 hole-table-heading = { $p0 }, page { $p1 }, { $p2 }, measured from the { $p3 } corner
+
+## A bus station's address as a drawing prints it, its address after the word
+bus-node = Node { $p0 }
+bus-node-tbd = Node TBD

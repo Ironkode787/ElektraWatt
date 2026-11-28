@@ -332,3 +332,7 @@ corner-in-sentence-bottom-right = rechtsonder
 corner-in-sentence-top-left = linksboven
 corner-in-sentence-top-right = rechtsboven
 hole-table-heading = { $p0 }, pagina { $p1 }, { $p2 }, gemeten vanaf de hoek { $p3 }
+
+## A bus station's address as a drawing prints it, its address after the word
+bus-node = Knooppunt { $p0 }
+bus-node-tbd = Knooppunt TBD

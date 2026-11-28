@@ -898,3 +898,5 @@ change here.
 - behaviour-change: Edit frame's Properties write the paper's size, a cell's size and the title block's height as every
   length of Properties is written, the shortest millimetres with the project's decimal separator ("420 × 297 mm",
   "18"), where they printed one decimal with a point ("420.0 × 297.0 mm")
+- text-change: a bus station's address on a page of a Dutch project reads "Knooppunt 3" ("Knooppunt TBD" while it is
+  open); it printed the English "Node 3"

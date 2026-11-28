@@ -155,7 +155,7 @@ fn the_port_texts() {
     let text = |s: &Session| {
         let q = s.query();
         let port = q.functions().get(station).unwrap().bus_port.clone().unwrap();
-        (bus_address_text(&port), bus_termination_text(&port))
+        (bus_address_text(&port).map(|t| t.to_string()), bus_termination_text(&port))
     };
     assert_eq!(
         text(&s),
@@ -213,4 +213,20 @@ fn ac31_the_bus_checks_on_the_sample() {
         finding.message(),
         "worded in Dutch"
     );
+}
+
+/// A station's address on a page is a text by key: "Node 3" in English, "Knooppunt 3" in Dutch, TBD in both.
+#[test]
+fn the_station_address_is_worded_in_the_page_s_language() {
+    let mut s = common::sample();
+    let station = port(&s, "-201K1");
+    let words = |s: &Session, lang: &str| {
+        let q = s.query();
+        let port = q.functions().get(station).unwrap().bus_port.clone().unwrap();
+        bus_address_text(&port).map(|t| ew_api::catalogue().text_or_english(&t, lang))
+    };
+    assert_eq!(words(&s, "en-GB").as_deref(), Some("Node 3"));
+    assert_eq!(words(&s, "nl-NL").as_deref(), Some("Knooppunt 3"));
+    set_port(&mut s, station, "bus_port.address", "tbd");
+    assert_eq!(words(&s, "nl-NL").as_deref(), Some("Knooppunt TBD"));
 }
