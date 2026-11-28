@@ -328,9 +328,11 @@ joins and the wire part. A project without a wire list opens Report block… on 
 
 ### Open assembly lists
 
-In the Workshop group. Shows the first page of the project's assembly lists: per terminal strip first where it goes
-on its rail and how long it is, then every item in the order the fitter mounts it (end brackets, terminals with their
-part, colour and marker, end plates), then its bridges. A project without assembly lists opens Report block… on them.
+In the Workshop group. Shows the first page of the project's assembly lists: per rail where it lies and everything
+on it from its start with its width and its place, then per terminal strip where it goes on its rail and how long it
+is, then every item in the order the fitter mounts it (end brackets, terminals with their part, colour and marker, end
+plates), then its bridges; the devices in the door or on the plate without a rail with their centres and holes. A
+project without assembly lists opens Report block… on them.
 
 ### Open cut list
 

@@ -1,9 +1,9 @@
 # Manufacturing outputs: the workshop lists
 
 A chapter of [Manufacturing outputs](13-manufacturing-outputs.md): what the panel builder hands his fitter beside
-the wire list. Per strip what to mount in which order (§6), for the cabinet what to cut (§9.3), and what to order of
-the parts a wire consumes (§3.6). The parts these lists print, their accessories and variants and the project's
-workshop stock are [07](07-symbols-parts-macros.md) §2.5; the wire records, the end treatments and the markers they
+the wire list. Where every device goes and per strip what to mount in which order (§6), for the cabinet what to cut
+(§9.3), and what to order of the parts a wire consumes (§3.6). The parts these lists print, their accessories and
+variants and the project's workshop stock are [07](07-symbols-parts-macros.md) §2.5; the wire records, the end treatments and the markers they
 count are §2 to §5 of [13](13-manufacturing-outputs.md).
 
 **Where they are in the window.** The Output tab's Workshop group holds Assembly lists, Cut list and Consumables. Each
@@ -47,17 +47,46 @@ after "≈" when one of them is such a length, beside the wires without a length
 length"). Whether a length is exact is asked in one place, the wire record's length, which the wire list's "≈" reads
 as well.
 
-## 6. Terminal-strip assembly lists
+## 6. Assembly lists
 
 ### 6.1 Content (FR-MFG-016)
 
-`assembly_list` (list kind `assembly_list`) prints, per strip, the order the fitter mounts it in. Its rows come from
-`assembly_rows(strip)` of `ew-derive`, which reads `strip_layout` and `part_accessories`
-([07](07-symbols-parts-macros.md) §2.5, [12](12-panel-layout.md) §3.4) and the strip's bridges (`strip_bridges`);
-the strips stand in the order of their first segment's page, then by tag.
+`assembly_list` (list kind `assembly_list`) prints where every device goes and, per strip, the order the fitter
+mounts it in. Its rows come from `ew-derive`: `rail_assembly(rail)` and `surface_items(surface)` (where a device
+stands, from the layout's own positions: `rail_occupancy` with the end brackets a strip takes, `placement_geometry`
+and `surface_features`; [12](12-panel-layout.md) §2.6), `unplaced(space)`, and `assembly_rows(strip)`, which reads
+`strip_layout` and `part_accessories` ([07](07-symbols-parts-macros.md) §2.5, [12](12-panel-layout.md) §3.4) and the
+strip's bridges (`strip_bridges`). No position is computed a second time: the list, the page and the hole table read
+the same queries.
 
-**What he reads first** is the strip's heading row: its tag, where it goes and how long it is, as one text with
-arguments ("-X1011 · on rail 1 from 0 to 48.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm with its end
+**Every position is measured as the hole table measures** ([13-drilling](13-drilling.md) §9.2): from the surface's
+datum corner, and along a rail from **its start, the end nearest that corner** (the left end of a rail that runs across
+under a left corner, the lower end of one that runs up under a bottom corner). The rail's heading says which end that
+is, and a strip's heading and a device's place on the rework list (§3.5 of [13](13-manufacturing-outputs.md)) measure
+from the same end.
+
+**The order of the blocks.** For each surface a layout page shows, in the order of its first such page:
+
+1. **each rail** in its surface's legend order, as a block of its own: a heading with the rail, its surface and page,
+   its cut length, where it lies and which end its positions start from ("Rail 1 · Mounting plate, page 902 · cut to
+   470 mm · its centre line at Y 580 mm, from X 25 to 495 mm, measured from the bottom-left corner · positions from
+   its left end"), a row with the rail's part, then **everything on it in mounting order from its start**: each device
+   with its tag, its part, its width and where it stands (from–to in mm, "48.2–102.2"), a strip as one row that names
+   its own block, and a Gap row for every space between two items, before the first ("from the rail's start") and
+   after the last ("to the rail's end");
+2. **the blocks of the strips on that rail**, in the order they stand on it;
+3. **the devices placed on the surface without a rail** (in the door, on the plate), under a heading with the surface,
+   its page, how it is seen and its datum corner: each with its tag, its part, its width, its centre ("X 270, Y 480")
+   and the holes it sits in by the hole table's numbers ("in hole H3"), in the order of their tags.
+
+Then the strips on no rail, in the order of their first segment's page, then by tag; then, per cabinet, **the devices
+not placed** (`unplaced`) under "Not placed in the layout of +CAB", each with "place missing" in its Position cell. A
+device without a width says "width missing", and its Position the centre of the placeholder the page draws ("centre
+at 437.2"). A block that chooses its strips (Report block…) lists those strips and the rails they stand on, and no
+surface or cabinet block.
+
+**A strip's block: what he reads first** is the strip's heading row: its tag, where it goes and how long it is, as one
+text with arguments ("-X1011 · on rail 1 from 0 to 48.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm with its end
 brackets"). A strip on no rail says "on no rail"; a strip turned on its rail says that its first terminal stands at
 the right. A strip stands on its rail as a whole: the heading names its placement on the rail that comes first in
 the legend's order, and a heading per piece comes with placing a strip in pieces
@@ -71,14 +100,15 @@ terminal it follows), the end bracket after it.
 | Column | Holds |
 |---|---|
 | Pos | 1, 2, … in mounting order |
-| Item | End bracket, Terminal, End plate, Partition plate, Marker carrier, Cover (the accessory's kind), Accessory |
+| Item | Rail, Device, Strip, Gap; in a strip's block End bracket, Terminal, End plate, Partition plate, Marker carrier, Cover (the accessory's kind), Accessory |
+| Device | a device's or a strip's tag in a rail's or a surface's block |
 | Terminal | the terminal's designation; a block's levels print once |
 | Part number, Description | the part's, the variant's where it gives its own (07 §2.5) |
 | Colour | the technical value `colour`: the device's own, else its variant's, else its part's |
 | Width | the item's width in millimetres; a part without one prints "width missing" and the heading's length says "at least" |
+| Position mm | on a rail from–to from its start ("0–48.2"), on a surface the centre ("X 137.5, Y 622.5"), "place missing" for a device not placed |
 | Marker | the terminal marker's text (§5.3) |
-| Note | spare, or spare (fed); for an accessory the part it comes with ("with EW-GEN-TRM-2") or "added" for the strip's own |
-
+| Note | spare, or spare (fed); for an accessory the part it comes with ("with EW-GEN-TRM-2") or "added" for the strip's own; a strip's row in a rail's block names its block; a device on a surface its holes; a gap at a rail's start or end says so |
 **Then the bridges**, under a heading row Bridges: one row per bridge group, its name, the terminals it joins
 ("1 to 4"), its pole count and its part. A bridge is never a wire, a wire record or a machine row (FR-TRM-007). A
 placeholder part prints TBD and blocks release (FR-CHK-034).

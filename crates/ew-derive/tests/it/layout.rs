@@ -385,3 +385,66 @@ proptest::proptest! {
         proptest::prop_assert_eq!(mcb_at(s_um, true), r);
     }
 }
+
+/// Where a device stands (doc 13 §6.1): on a rail drawn from its right end every position is measured from its left
+/// end, the end nearest the bottom-left datum corner, as the hole table measures; a device on the surface itself by its
+/// footprint's centre. The rail's list and a device's place say the same.
+#[test]
+fn a_rail_is_measured_from_the_end_nearest_the_datum_corner() {
+    use ew_derive::layout::{DevicePlace, RailStart, device_places, rail_assembly};
+    let mut fx = fixture(false);
+    // RAIL_H the other way round, (500, 0) → (0, 0): D_MCB at 400 mm from that end, the unknown device at 200 mm.
+    fx.record(RAIL_H)["path"] = json!([[mm(500), 0], [0, 0]]);
+    fx.record(PL_MCB)["pose"] = pose([mm(400), 0], 0);
+    fx.record(PL_UNKNOWN)["pose"] = pose([mm(200), 0], 0);
+    let m = fx.build();
+    let q = Q::new(&m);
+    let n = |v: i64| i128::from(mm(v));
+    let rail = rail_assembly(&q, id(RAIL_H)).expect("a rail");
+    assert_eq!(
+        (rail.start, rail.ends, rail.across),
+        (RailStart::Left, (0, n(500)), 0)
+    );
+    let items: Vec<_> = rail
+        .items
+        .iter()
+        .map(|i| (i.device, i.from, i.to, i.unknown))
+        .collect();
+    assert_eq!(
+        items,
+        [
+            (id(D_MCB), n(91), n(109), false),
+            (id(D_UNKNOWN), n(290), n(310), true)
+        ]
+    );
+    match device_places(&q, id(D_MCB)).as_slice() {
+        [
+            DevicePlace::Rail {
+                from,
+                to,
+                start,
+                number,
+                ..
+            },
+        ] => {
+            assert_eq!(
+                (*from, *to, *start, *number),
+                (n(91), n(109), RailStart::Left, rail.number)
+            );
+        }
+        other => panic!("{other:?}"),
+    }
+    // The heater, turned 270° with its origin at (200, 300): its footprint (200, 250) to (320, 300).
+    assert_eq!(
+        device_places(&q, id(D_SCREW)),
+        [DevicePlace::Surface {
+            surface: id(SURFACE),
+            at: (n(260), n(275)),
+            holes: Vec::new()
+        }]
+    );
+    assert!(
+        device_places(&q, id(D_BARE)).is_empty(),
+        "a device not placed has no place"
+    );
+}

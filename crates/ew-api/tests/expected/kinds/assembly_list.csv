@@ -1,34 +1,67 @@
-row,Pos,Item,Terminal,Part number,Description,Colour,Width mm,Marker,Note
-heading,-X1011 · on rail 1 from 0 to 48.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm with its end brackets,,,,,,,,
-data,1,End bracket,,EW-GEN-EB-1,End bracket for TS 35,,10,,with EW-GEN-TRM-1
-data,2,Terminal,L1,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,L1,
-data,3,Terminal,L2,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,L2,
-data,4,Terminal,L3,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,L3,
-data,5,Terminal,N,EW-GEN-TRM-1-BU,"Feed-through terminal, blue",BU,5.2,N,
-data,6,Terminal,PE,EW-GEN-TRM-2,Protective earth terminal,GNYE,5.2,PE,
-data,7,End plate,,EW-GEN-EP-1,End plate for 5.2 mm feed-through and PE terminals,,2.2,,"with EW-GEN-TRM-1, EW-GEN-TRM-2"
-data,8,End bracket,,EW-GEN-EB-1,End bracket for TS 35,,10,,with EW-GEN-TRM-1
-heading,-X1021 · on rail 1 from 216.2 to 280 mm · rail cut to 470 mm · 8 terminals · 63.8 mm with its end brackets,,,,,,,,
-data,1,End bracket,,EW-GEN-EB-1,End bracket for TS 35,,10,,with EW-GEN-TRM-1
-data,2,Terminal,1,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,1,
-data,3,Terminal,2,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,2,
-data,4,Terminal,3,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,3,
-data,5,Terminal,4,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,4,
-data,6,Terminal,5,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,5,
-data,7,Terminal,6,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,6,
-data,8,Terminal,7,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,7,
-data,9,Terminal,8,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,8,
-data,10,End plate,,EW-GEN-EP-1,End plate for 5.2 mm feed-through and PE terminals,,2.2,,with EW-GEN-TRM-1
-data,11,End bracket,,EW-GEN-EB-1,End bracket for TS 35,,10,,with EW-GEN-TRM-1
-heading,Bridges of -X1021,,,,,,,,
-data,,Bridge BR1,1 to 4,EW-GEN-BRG-4,"Plug-in bridge, 4 poles, for 5.2 mm terminals",,,,4 poles
-data,,Bridge BR2,5 to 8,EW-GEN-BRG-4,"Plug-in bridge, 4 poles, for 5.2 mm terminals",,,,4 poles
-heading,-X1031 · on rail 1 from 379 to 427.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm with its end brackets,,,,,,,,
-data,1,End bracket,,EW-GEN-EB-1,End bracket for TS 35,,10,,with EW-GEN-TRM-1
-data,2,Terminal,U,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,U,
-data,3,Terminal,V,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,V,
-data,4,Terminal,W,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,W,
-data,5,Terminal,PE,EW-GEN-TRM-2,Protective earth terminal,GNYE,5.2,PE,
-data,6,Terminal,SH,EW-GEN-TRM-2,Protective earth terminal,GNYE,5.2,SH,
-data,7,End plate,,EW-GEN-EP-1,End plate for 5.2 mm feed-through and PE terminals,,2.2,,"with EW-GEN-TRM-1, EW-GEN-TRM-2"
-data,8,End bracket,,EW-GEN-EB-1,End bracket for TS 35,,10,,with EW-GEN-TRM-1
+row,Pos,Item,Device,Terminal,Part number,Description,Colour,Width mm,Position mm,Marker,Note
+heading,"Rail 1 · Mounting plate, page 902 · cut to 470 mm · its centre line at Y 580 mm, from X 25 to 495 mm, measured from the bottom-left corner · positions from its left end",,,,,,,,,,
+data,,Rail,,,EW-GEN-RAIL-1,DIN rail TS 35 × 7.5,,,,,
+data,1,Strip,-X1011,,,,,48.2,0–48.2,,see -X1011 below
+data,2,Device,-101Q1,,EW-GEN-SW-3,"Main switch, 3 poles",,54,48.2–102.2,,
+data,3,Device,-101F1,,EW-GEN-MCB-4,"Miniature circuit breaker, 2 poles",,36,102.2–138.2,,
+data,4,Device,-101G1,,EW-GEN-PSU-1,"Power supply unit, AC to DC",,60,138.2–198.2,,
+data,5,Device,-102F1,,EW-GEN-MCB-1,"Miniature circuit breaker, 1 pole",,18,198.2–216.2,,
+data,6,Strip,-X1021,,,,,63.8,216.2–280,,see -X1021 below
+data,7,Device,-102Q1,,EW-GEN-CON-1,Contactor with three main contacts and one auxiliary normally open contact,,45,280–325,,
+data,8,Device,-103F1,,EW-GEN-MCB-3,"Miniature circuit breaker, 3 poles",,54,325–379,,
+data,9,Strip,-X1031,,,,,48.2,379–427.2,,see -X1031 below
+data,10,Device,-201X1,,EW-GEN-AIR-1,Air supply: service unit G1/4 with shut-off valve and filter regulator,,width missing,centre at 437.2,,
+data,11,Device,-201X2,,EW-GEN-SIL-1,Silencer G1/8,,width missing,centre at 457.2,,
+data,,Gap,,,,,,2.8,467.2–470,,to the rail's end
+heading,-X1011 · on rail 1 from 0 to 48.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm with its end brackets,,,,,,,,,,
+data,1,End bracket,,,EW-GEN-EB-1,End bracket for TS 35,,10,,,with EW-GEN-TRM-1
+data,2,Terminal,,L1,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,,L1,
+data,3,Terminal,,L2,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,,L2,
+data,4,Terminal,,L3,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,,L3,
+data,5,Terminal,,N,EW-GEN-TRM-1-BU,"Feed-through terminal, blue",BU,5.2,,N,
+data,6,Terminal,,PE,EW-GEN-TRM-2,Protective earth terminal,GNYE,5.2,,PE,
+data,7,End plate,,,EW-GEN-EP-1,End plate for 5.2 mm feed-through and PE terminals,,2.2,,,"with EW-GEN-TRM-1, EW-GEN-TRM-2"
+data,8,End bracket,,,EW-GEN-EB-1,End bracket for TS 35,,10,,,with EW-GEN-TRM-1
+heading,-X1021 · on rail 1 from 216.2 to 280 mm · rail cut to 470 mm · 8 terminals · 63.8 mm with its end brackets,,,,,,,,,,
+data,1,End bracket,,,EW-GEN-EB-1,End bracket for TS 35,,10,,,with EW-GEN-TRM-1
+data,2,Terminal,,1,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,,1,
+data,3,Terminal,,2,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,,2,
+data,4,Terminal,,3,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,,3,
+data,5,Terminal,,4,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,,4,
+data,6,Terminal,,5,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,,5,
+data,7,Terminal,,6,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,,6,
+data,8,Terminal,,7,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,,7,
+data,9,Terminal,,8,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,,8,
+data,10,End plate,,,EW-GEN-EP-1,End plate for 5.2 mm feed-through and PE terminals,,2.2,,,with EW-GEN-TRM-1
+data,11,End bracket,,,EW-GEN-EB-1,End bracket for TS 35,,10,,,with EW-GEN-TRM-1
+heading,Bridges of -X1021,,,,,,,,,,
+data,,Bridge BR1,,1 to 4,EW-GEN-BRG-4,"Plug-in bridge, 4 poles, for 5.2 mm terminals",,,,,4 poles
+data,,Bridge BR2,,5 to 8,EW-GEN-BRG-4,"Plug-in bridge, 4 poles, for 5.2 mm terminals",,,,,4 poles
+heading,-X1031 · on rail 1 from 379 to 427.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm with its end brackets,,,,,,,,,,
+data,1,End bracket,,,EW-GEN-EB-1,End bracket for TS 35,,10,,,with EW-GEN-TRM-1
+data,2,Terminal,,U,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,,U,
+data,3,Terminal,,V,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,,V,
+data,4,Terminal,,W,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,,W,
+data,5,Terminal,,PE,EW-GEN-TRM-2,Protective earth terminal,GNYE,5.2,,PE,
+data,6,Terminal,,SH,EW-GEN-TRM-2,Protective earth terminal,GNYE,5.2,,SH,
+data,7,End plate,,,EW-GEN-EP-1,End plate for 5.2 mm feed-through and PE terminals,,2.2,,,"with EW-GEN-TRM-1, EW-GEN-TRM-2"
+data,8,End bracket,,,EW-GEN-EB-1,End bracket for TS 35,,10,,,with EW-GEN-TRM-1
+heading,"Rail 2 · Mounting plate, page 902 · cut to 470 mm · its centre line at Y 270 mm, from X 25 to 495 mm, measured from the bottom-left corner · positions from its left end",,,,,,,,,,
+data,,Rail,,,EW-GEN-RAIL-1,DIN rail TS 35 × 7.5,,,,,
+data,1,Device,-104A1,,EW-GEN-CPU-2,"PLC CPU with PROFINET and PROFIBUS DP interfaces, without on-board I/O",,100,0–100,,
+data,2,Device,-104A1-A1,,EW-GEN-DI-1,"PLC digital input card, 8 channels",,25,100–125,,
+data,3,Device,-104A1-A2,,EW-GEN-DO-1,"PLC digital output card, 8 channels",,25,125–150,,
+data,4,Device,-201K1,,EW-GEN-VTM-1,"Valve terminal with PROFIBUS DP bus node, 4 valve positions, 8 outputs",,40,150–190,,
+data,5,Device,-201K1-Q1,,EW-GEN-VLV-3,"Solenoid valve 5/2 for a valve terminal, spring return",,width missing,centre at 200,,
+data,6,Device,-201K1-Q2,,EW-GEN-VLV-3,"Solenoid valve 5/2 for a valve terminal, spring return",,width missing,centre at 220,,
+data,7,Device,-201K1-Q3,,EW-GEN-VLV-3,"Solenoid valve 5/2 for a valve terminal, spring return",,width missing,centre at 240,,
+data,8,Device,-201K1-Q4,,EW-GEN-VLV-3,"Solenoid valve 5/2 for a valve terminal, spring return",,width missing,centre at 260,,
+data,9,Device,-201X3,,EW-GEN-SIL-1,Silencer G1/8,,width missing,centre at 280,,
+data,,Gap,,,,,,180,290–470,,to the rail's end
+heading,"Door, page 904, seen from outside · devices without a rail, their centres measured from the bottom-left corner",,,,,,,,,,
+data,1,Device,-101Q1,,EW-GEN-HDL-1,Door coupling handle for a main switch,,65,"X 137.5, Y 622.5",,"in holes H1, H2, H8"
+data,2,Device,-102E1,,EW-GEN-LMP-1,Pilot lamp,,30,"X 240, Y 560",,in hole H7
+data,3,Device,-102S1,,EW-GEN-PB-1,Pushbutton with one normally open contact,,30,"X 270, Y 480",,in hole H3
+data,4,Device,-102S2,,EW-GEN-PB-2,Pushbutton with one normally closed contact,,30,"X 330, Y 480",,in hole H4
+data,5,Device,-104E1,,EW-GEN-LMP-3,"Signal lamp, green",,30,"X 300, Y 560",,in hole H6
+data,6,Device,-104E2,,EW-GEN-LMP-2,"Signal lamp, red",,30,"X 360, Y 560",,in hole H5

@@ -60,6 +60,8 @@ mod legend;
 // Where a placed device's pins stand (doc 12 §8.1)
 mod pins;
 mod pose;
+// Where a device stands: per rail, per surface, per device (doc 13 §6.1)
+mod mounting;
 // The layout queries (doc 12 §2.6)
 mod queries;
 // The surfaces of a cabinet (doc 12 §2.8)
@@ -91,6 +93,10 @@ pub use legend::{
     CarrierLabel, CarrierLabelKind, CarrierOrder, LegendItem, LegendRow, cabinet_name, carrier_label,
     carrier_labels, carrier_length, carrier_order, carriers_in_order, layout_legend, legend_layout_page,
     location_text, metres_of_nm, page_surface, surface_pages,
+};
+pub(crate) use mounting::from_rail_start;
+pub use mounting::{
+    DevicePlace, Mounted, OnSurface, RailAssembly, RailStart, device_places, rail_assembly, surface_items,
 };
 pub use pins::{PinSpot, PinSpots, PinSpotsV, drawn_face, in_door, pin_face, placement_of_function, reach};
 pub use pose::{PoseError, PoseOn, Quarter, check_pose, clip_offset, plate_frame, rehome_pose};

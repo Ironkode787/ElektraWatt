@@ -17,7 +17,7 @@ spreadsheet, the package and the machine file, so they cannot disagree.
 3. [The wire list](#3-the-wire-list)
 4. [End treatments](#4-end-treatments)
 5. [Markers and labels](13-markers-labels.md#5-markers-and-labels)
-6. [Terminal-strip assembly lists](13-workshop-lists.md#6-terminal-strip-assembly-lists), with the
+6. [Assembly lists](13-workshop-lists.md#6-assembly-lists), with the
    consumables summary (§3.6) and the cut lists (§9.3) in [the workshop lists](13-workshop-lists.md)
 7. [Export profiles](13-package.md#7-export-profiles)
 8. [The production package](13-package.md#8-the-production-package)
@@ -374,7 +374,7 @@ numbers before and after a change that a preview lists ([16](16-ux-ui.md) §7.6)
 
 | Action | When | The Change cell |
 |---|---|---|
-| Remove device, Remove terminal, Remove cable | a device label, terminal marker or cable marker of the release is gone | — |
+| Remove device, Remove terminal, Remove cable | a device label, terminal marker or cable marker of the release is gone | a device: where it stood in the release (below); else — |
 | Pull | a wire of the release is gone | — |
 | Replace | a kept wire changed its cross-section, colour or wire part | `size 1.5 → 2.5 mm²` and every other change |
 | Move end | an end of a kept wire lands on another CP | `end -104A1-A1:2 → -104A1-A1:4` and the markers that follow |
@@ -382,12 +382,29 @@ numbers before and after a change that a preview lists ([16](16-ux-ui.md) §7.6)
 | Check length | the length changed | `length 600 → 650 mm` |
 | Re-mark | a marker's text changed | `marker at -101Q1:1: -X1011:L1 → -X1012:L1` |
 | Re-label | a device, terminal, strip or cable label's text changed | the old and the new text |
-| Mount device, Add terminal, Add cable | a device label, terminal marker or cable marker is new | — |
+| Mount device, Add terminal, Add cable | a device label, terminal marker or cable marker is new | a device: where it goes (below), "place missing" where the layout gives a device it holds none; else — |
 | Add | a wire is new | — |
 
 A row with several changes takes the first action of the table that applies and lists every change. The columns are
 Action, the wire list's printed columns but Pages (§3.1: No., From, CP, To, CP, Colour, mm², Length, From end, To end,
-From marker, To marker) and Change; a pulled wire prints as the release had it, every other row as it is now.
+From marker, To marker), Change and Because; a pulled wire prints as the release had it, every other row as it is now.
+
+**Where a device goes or stood** is said in the words of the assembly list ([the workshop
+lists](13-workshop-lists.md) §6.1), from `device_places` in the state the row prints: "on rail 2 of the -UC1 mounting
+plate, 100 to 125 mm from its left end", "on the -UC1 door at X 360, Y 560 mm from its bottom-left corner, in hole
+H5", one place per placement.
+
+**Because** says why a row is there where nobody changed its wire by name, a thing of its own beside the change:
+`ReworkItem::reasons`, which `ew-derive` derives from the two states, never from the commands that were run. A row a
+person made by name (a size set on the wire's own connection, an end or a length set by hand, a wire moved) has an
+empty Because cell. The reasons:
+
+| Row | Because |
+|---|---|
+| Replace: a size or a colour that is not set on the wire's own connection | "its size is set on a connection it shares with 104.4", "its potential 24V sets its size", "the project's wiring rules give its size", "its cable -103W1 gives its size" |
+| Re-make end on a clamp whose other wires changed, the wire's own size kept | "its twin ferrule's partner 104.9 at -104A1:M is pulled", "… changed size", "… no longer lands on -104A1:M", "104.7 now lands on -104A1:M as well"; where none of them changed, "the workshop's settings or the clamp's part give this end another treatment" |
+| Move end off a device that is gone | "-104E2 is removed" |
+| Check length of a length no person typed | "Route laid its way again", "its way no longer holds: …" (the stale way's reason, [12-3d](12-3d-routing-thermal.md) §8.5), "its way was laid for the wiring of the release: Route lays it again" |
 
 **What it does not report**: a wire that only moved on a page or took another route, a new number while no marker
 changes (with destination marking a renumber needs no work; a twin ferrule is compared by its partner wire, not by the
@@ -514,7 +531,7 @@ In [markers and labels](13-markers-labels.md) §5: marking (§5.1), the marker t
 
 ---
 
-## 6. Terminal-strip assembly lists
+## 6. Assembly lists
 
 In [the workshop lists](13-workshop-lists.md) §6: the content (§6.1), the rail cut length (§6.2) and what the check
 says (§6.3).

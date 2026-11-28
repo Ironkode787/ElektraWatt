@@ -19,6 +19,7 @@ column-cable-type = Cable type
 column-category = Category
 column-change = Change
 column-changed-pages = Changed pages
+column-reason = Because
 column-channel = Channel
 column-checker = Checker
 column-class = Class
@@ -113,6 +114,7 @@ column-pieces = Pieces
 column-port = Port
 column-pos = Pos
 column-position = Position
+column-position-mm = Position mm
 column-potential = Potential
 column-potential-type = Potential type
 column-pressure = Pressure
@@ -358,6 +360,25 @@ cell-spare-fed = spare (fed)
 cell-added = added
 cell-with = with { $p0 }
 cell-width-missing = width missing
+cell-rail-heading = { $rail } · { $surface }, page { $folio }{ $cut ->
+        [none] {""}
+       *[other] {" · "}cut to { $cut } mm
+    } · its centre line at { $axis } { $across } mm, from { $along } { $lo } to { $hi } mm, measured from the { $corner } corner · positions from its { $start }
+cell-rail = Rail
+cell-strip = Strip
+cell-strip-block = see { $p0 } below
+cell-gap = Gap
+cell-gap-from-start = from the rail's start
+cell-gap-to-end = to the rail's end
+cell-surface-heading = { $p0 }, page { $p1 }, { $p2 } · devices without a rail, their centres measured from the { $p3 } corner
+cell-at-xy = X { $p0 }, Y { $p1 }
+cell-centre-at = centre at { $p0 }
+cell-in-holes = { $count ->
+        [one] in hole { $holes }
+       *[other] in holes { $holes }
+    }
+cell-unplaced-heading = Not placed in the layout of { $p0 }: no paper gives these a place yet
+cell-not-placed = place missing
 cell-bridges-of = Bridges of { $p0 }
 cell-bridge-label = Bridge { $p0 }
 cell-terminals-from-to = { $p0 } to { $p1 }

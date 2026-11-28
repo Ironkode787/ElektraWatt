@@ -126,7 +126,7 @@ fn a_corrected_end_plate_is_counted_listed_and_drawn_by_its_own_copy() {
     let rows = strip_rows(&s, "-X1031");
     assert!(
         rows.iter()
-            .any(|l| l.starts_with("data,7,End plate,,OWN-EP-3,") && l.contains(",3,,")),
+            .any(|l| l.starts_with("data,7,End plate,,,OWN-EP-3,") && l.contains(",3,,")),
         "{rows:#?}"
     );
     // The strip on the panel page: 0.8 mm wider, the corrected plate's 3 mm in place of 2.2 mm.
@@ -210,7 +210,7 @@ fn a_terminal_of_ones_own_brings_an_end_plate_of_ones_own() {
     let rows = strip_rows(&s, "-X1031");
     assert!(
         rows.iter()
-            .any(|l| l.contains(",End plate,,OWN-EP,") && l.contains(",1.5,,")),
+            .any(|l| l.contains(",End plate,,,OWN-EP,") && l.contains(",1.5,,")),
         "{rows:#?}"
     );
     assert!(!rows.iter().any(|l| l.contains("EW-GEN-EP-1")), "{rows:#?}");

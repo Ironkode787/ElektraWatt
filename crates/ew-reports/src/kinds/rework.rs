@@ -4,6 +4,7 @@
 //! The rework list's rows (doc 13 §3.5). No registered kind: it compares two states, the release and now, so it is
 //! made when a person asks for it and is never a page of the set.
 
+use ew_derive::layout::Mountable;
 use ew_derive::{Q, ReworkAction, ReworkItem, ReworkSubject};
 
 use super::conn::Wires;
@@ -13,8 +14,9 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 
 /// The rows of the rework list between the release `base` and `now` (`ew_derive::rework`): Action, the wire list's
 /// printed columns but Pages (`ReportKindDef::printed`: a rework row is a wire to pull or lay, not a place in the
-/// drawing set) with their cells (a pulled wire as the release had it, every other row as it is now) and Change, the
-/// row's changes in words.
+/// drawing set) with their cells (a pulled wire as the release had it, every other row as it is now), Change, the
+/// row's changes in words (for a device that goes in or comes out, where it stands), and Because, why the row is there
+/// where nobody changed its wire by name.
 pub fn rework_rows(base: &Q, now: &Q, items: &[ReworkItem]) -> RowSet {
     let list = WireList.columns();
     let picked: Vec<usize> = (WireList.printed().unwrap_or_default().iter())
@@ -24,6 +26,7 @@ pub fn rework_rows(base: &Q, now: &Q, items: &[ReworkItem]) -> RowSet {
     let mut columns = vec![ColumnDef::new("action", CellType::Text, text!("column-action")).weighted(10)];
     columns.extend(picked.iter().map(|i| list[*i].clone()));
     columns.push(ColumnDef::new("change", CellType::Text, text!("column-change")).weighted(30));
+    columns.push(ColumnDef::new("reason", CellType::Text, text!("column-reason")).weighted(20));
     let (base_wires, now_wires) = (Wires::of(base), Wires::of(now));
     let mut set = RowSet::new(columns);
     set.rows = items
@@ -42,10 +45,29 @@ pub fn rework_rows(base: &Q, now: &Q, items: &[ReworkItem]) -> RowSet {
             } else {
                 (now, &now_wires)
             };
-            let change = if item.changes.is_empty() {
+            // A device to mount that the layout gives no place says the lack, as the assembly list does.
+            let unplaced = match (&item.subject, item.action) {
+                (ReworkSubject::Label(_, ew_derive::LabelTarget::Device(d)), ReworkAction::MountDevice) => {
+                    item.places.is_empty() && q.get::<Mountable>(*d).is_mountable()
+                }
+                _ => false,
+            };
+            let change = if !item.places.is_empty() {
+                Cell::Text(crate::words::in_languages_measured(
+                    q,
+                    &ew_derive::text::device_places(q, &item.places),
+                ))
+            } else if unplaced {
+                words(&text!("cell-not-placed"))
+            } else if item.changes.is_empty() {
                 Cell::Empty
             } else {
                 words(&ew_derive::text::rework_changes(&item.changes))
+            };
+            let reason = if item.reasons.is_empty() {
+                Cell::Empty
+            } else {
+                words(&ew_derive::text::rework_reasons(now, &item.reasons))
             };
             let action = words(&ew_derive::text::rework_action(item.action));
             match &item.subject {
@@ -54,6 +76,7 @@ pub fn rework_rows(base: &Q, now: &Q, items: &[ReworkItem]) -> RowSet {
                     let mut cells = vec![action];
                     cells.extend(picked.iter().map(|i| wire.cells[*i].clone()));
                     cells.push(change);
+                    cells.push(reason);
                     let mut row = Row::data(RowId::entity(record.wire.id), cells);
                     row.sources = wire.sources;
                     row
@@ -69,6 +92,7 @@ pub fn rework_rows(base: &Q, now: &Q, items: &[ReworkItem]) -> RowSet {
                         _ => Cell::Empty,
                     }));
                     cells.push(change);
+                    cells.push(reason);
                     let id = RowId(vec![
                         RowKey::Name("label".to_owned()),
                         RowKey::Index(u32::try_from(n).unwrap_or(0)),

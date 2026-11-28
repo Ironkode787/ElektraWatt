@@ -420,6 +420,7 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/layout/holes.rs` |  | The holes of a surface (doc 12-3d §10): the sizes the named holes are made at ([`HOLE_SIZES`]), how a hole is made ([`made`]), a rail's and a duct's fixing holes ([`carrier_fixings`]) and [`SurfaceFeatures`], every hole of a surface with its owners, numbered in drilling order. |
 | `src/layout/legend.rs` |  | The layout legend of a mounting surface (doc 12 §5.4), the surface a panel page shows, and the legend order of carriers that the BOM's carrier lines share (part 4). |
 | `src/layout/mod.rs` |  | The layout's pure geometry (doc 12 §2.1–§2.4, §3.3): carrier paths, the mount-kind compatibility table and the pose validator, shared by the `layout.*` commands (`ew-commands`) and part 5's EW-LAY-010. |
+| `src/layout/mounting.rs` |  | Where a device stands (doc 13 §6.1): per rail what stands on it in mounting order ([`rail_assembly`]), per surface the devices placed on it without a rail with the holes they sit in ([`surface_items`]), and every place of one device ([`device_places`]), which the rework list names. |
 | `src/layout/pins.rs` |  | `pin_spots(p)`: where the pins of a placed device stand on its surface, the way out of each and its height (doc 12 §8.1). |
 | `src/layout/pose.rs` |  | Poses on carriers (doc 12 §2.3): quarter turns about `w`, the degrees of freedom per carrier kind, the surface pose equivalent to a rail pose and the frame of a plate centred in its enclosure. |
 | `src/layout/queries.rs` | large | The layout queries of the MVP (doc 12 §2.6): `mountable(dev)`, `unplaced(space)`, `placement_geometry(p)`, `rail_occupancy(carrier)`, `layout_label(p)` (D10's text) and `carrier_geometry(carrier)`. |
@@ -922,7 +923,7 @@ Built-in report row queries (a user SQL report gives an empty row set marked not
 | `src/arrange.rs` |  | Manual selection, sorting and grouping of report rows (doc 09 §3.3, FR-REP-027, FR-I18N-010). |
 | `src/csv.rs` |  | The CSV text of a report block's rows (doc 09 §1.3; `ew export cables\|bom`). |
 | `src/kind.rs` |  | The report-kind registry (doc 09 §2.4): each built-in kind is a registered Rust row query with a column schema. |
-| `src/kinds/assembly_list.rs` |  | `assembly_list`: per strip the order the fitter mounts it in (doc 13 §6.1, FR-MFG-016), from `ew_derive::assembly_rows`. |
+| `src/kinds/assembly_list.rs` |  | `assembly_list`: where every device goes and per strip the order the fitter mounts it in (doc 13 §6.1, FR-MFG-016), from `ew_derive::layout::rail_assembly`, `surface_items` and `ew_derive::assembly_rows`. |
 | `src/kinds/cable_overview.rs` |  | `cable_overview_diagrams`: the cable overview and the per-cable core lists (FR-REP-012, FR-REP-013; folio 906 of the standard layout). |
 | `src/kinds/conn.rs` |  | What the connectivity kinds (`wire_list`, `potential_overview`, `terminal_diagram`, `cable_overview_diagrams`) share: the project's physical wires with their effective properties, wire ends as cells, terminal bridges and the cell formatting of wire properties. |
 | `src/kinds/consumables.rs` |  | `consumables`: what to order of what the wires consume, beside the parts list (doc 13 §3.6, FR-MFG-049), from `ew_derive::consumable_rows`. |

@@ -18,7 +18,7 @@ use crate::accessories::{StripBracket, strip_bracket};
 use crate::cut_list::cut_to;
 use crate::layout::{
     BracketRole, CarrierLabelKind, GroupAccessories, Quarter, RailOccupancy, StripItemKind, StripLayout,
-    carrier_label, carrier_length, carrier_order, places_strip,
+    carrier_label, carrier_length, carrier_order, from_rail_start, places_strip,
 };
 
 /// What one row of a strip's mounting order is.
@@ -48,7 +48,8 @@ pub struct OnRail {
     pub rail: Id<Carrier>,
     /// The rail's number among its surface's rails (doc 12 §5.4: "Rail 1").
     pub number: u32,
-    /// Where the strip starts with its end brackets, in nanometres from the rail's start.
+    /// Where the strip starts with its end brackets, in nanometres from the rail's start: the end nearest its
+    /// surface's datum corner ([`crate::layout::RailStart`]), as the rail's own block measures.
     pub from: i128,
     /// Where it ends with its end brackets.
     pub to: i128,
@@ -139,12 +140,20 @@ fn on_rail(
     let number = carrier_label(q, rail)
         .filter(|l| l.kind == CarrierLabelKind::Rail)
         .map_or(0, |l| l.n);
+    let (from, to) = from_rail_start(
+        q,
+        rail,
+        (
+            before.map_or(o.s0, |b| b.s0.min(o.s0)),
+            after.map_or(o.s1, |b| b.s1.max(o.s1)),
+        ),
+    );
     Some((
         OnRail {
             rail,
             number,
-            from: before.map_or(o.s0, |b| b.s0.min(o.s0)),
-            to: after.map_or(o.s1, |b| b.s1.max(o.s1)),
+            from,
+            to,
             cut: carrier_length(q, rail).map(|l| cut_to(q, l)),
             turned: flipped,
             abuts,

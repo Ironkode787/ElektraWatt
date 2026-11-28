@@ -46,21 +46,29 @@ impl ReportKindDef for HoleTable {
 
     fn rows(&self, q: &Q, _block: &ReportBlock) -> RowSet {
         let mut set = RowSet::new(self.columns());
-        let order = q.get::<DrawnPageOrder>(());
-        let mut listed = Vec::new();
-        for entry in &order.entries {
-            let PageRef::Drawn(page) = entry.page else {
-                continue;
-            };
-            let Some(surface) = ew_derive::layout::page_surface(q, page).filter(|s| !listed.contains(s))
-            else {
-                continue;
-            };
-            listed.push(surface);
-            surface_rows(q, surface, &entry.folio, &mut set);
+        for (surface, folio) in surfaces_in_page_order(q) {
+            surface_rows(q, surface, &folio, &mut set);
         }
         set
     }
+}
+
+/// Each surface a layout page shows, in the order of its first such page, with that page's folio: the order of the
+/// hole table and of the assembly list's rails.
+pub(super) fn surfaces_in_page_order(q: &Q) -> Vec<(ew_ids::Id<MountingSurface>, String)> {
+    let order = q.get::<DrawnPageOrder>(());
+    let mut listed: Vec<(ew_ids::Id<MountingSurface>, String)> = Vec::new();
+    for entry in &order.entries {
+        let PageRef::Drawn(page) = entry.page else {
+            continue;
+        };
+        if let Some(surface) = ew_derive::layout::page_surface(q, page)
+            && !listed.iter().any(|(s, _)| *s == surface)
+        {
+            listed.push((surface, entry.folio.clone()));
+        }
+    }
+    listed
 }
 
 /// The heading and the hole rows of `surface`, whose first layout page is `folio`.

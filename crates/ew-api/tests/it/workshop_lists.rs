@@ -111,7 +111,7 @@ fn a_strip_whose_end_plate_was_left_off_is_ew_mfg_020_and_its_fix_adds_one() {
     let rows = x1031(&s);
     assert!(
         rows.iter()
-            .any(|l| l.starts_with("data,7,End plate,,EW-GEN-EP-1,") && l.ends_with(",added")),
+            .any(|l| l.starts_with("data,7,End plate,,,EW-GEN-EP-1,") && l.ends_with(",added")),
         "{rows:#?}"
     );
 }
@@ -158,7 +158,7 @@ fn a_bridge_without_a_part_is_ew_mfg_021_and_prints_tbd() {
     assert!(
         lines(&s, "assembly_list")
             .iter()
-            .any(|l| l.starts_with("data,,Bridge BR1,1 to 4,TBD,")),
+            .any(|l| l.starts_with("data,,Bridge BR1,,1 to 4,TBD,")),
         "the assembly list"
     );
     assert!(
@@ -438,7 +438,7 @@ fn the_assembly_heading_says_against_turned_on_no_rail_and_at_least() {
         "{x1011:#?}"
     );
     assert!(
-        x1011[1].starts_with("data,1,Terminal,L1,"),
+        x1011[1].starts_with("data,1,Terminal,,L1,"),
         "no end bracket of its own before it: {x1011:#?}"
     );
     let x1021 = strip_rows(&s, "-X1021");
@@ -450,7 +450,7 @@ fn the_assembly_heading_says_against_turned_on_no_rail_and_at_least() {
         .iter()
         .filter_map(|l| {
             let cells: Vec<&str> = l.split(',').collect();
-            (cells.get(2) == Some(&"Terminal")).then(|| cells[3])
+            (cells.get(2) == Some(&"Terminal")).then(|| cells[4])
         })
         .collect();
     assert_eq!(terminals, ["8", "7", "6", "5", "4", "3", "2", "1"], "{x1021:#?}");
@@ -470,7 +470,8 @@ fn the_assembly_heading_says_against_turned_on_no_rail_and_at_least() {
     });
     let x1031 = strip_rows(&s, "-X1031");
     assert_eq!(
-        x1031[0], "heading,-X1031 · on no rail · 5 terminals · at least 43 mm with its end brackets,,,,,,,,",
+        x1031[0],
+        "heading,-X1031 · on no rail · 5 terminals · at least 43 mm with its end brackets,,,,,,,,,,",
         "{x1031:#?}"
     );
     assert!(x1031[1].starts_with("data,1,End bracket,"), "{x1031:#?}");
@@ -481,7 +482,7 @@ fn the_assembly_heading_says_against_turned_on_no_rail_and_at_least() {
     assert!(
         x1031
             .iter()
-            .any(|l| l.starts_with("data,7,Terminal,SH,") && l.contains(",width missing,")),
+            .any(|l| l.starts_with("data,7,Terminal,,SH,") && l.contains(",width missing,")),
         "{x1031:#?}"
     );
 }

@@ -378,7 +378,7 @@ fn a_release_whose_archive_is_missing_is_said_so() {
 }
 
 /// An end kept on its CP but made another way is re-made: 101.1's To end at -101Q1:1, a ferrule in the release, set
-/// bare by hand now.
+/// bare by hand now. A person made it by name, so its Because cell is empty.
 #[test]
 fn an_end_made_another_way_is_re_made() {
     let base = ew_testdir::Tmp::new("ew-rework-remake");
@@ -405,9 +405,8 @@ fn an_end_made_another_way_is_re_made() {
         .expect("the archive opens");
     let csv = now.rework_csv(&rework);
     assert!(
-        csv.lines()
-            .any(|l| l.starts_with("data,Re-make end,101.1,")
-                && l.ends_with("at -101Q1:1: ferrule 1.5 BK → bare")),
+        csv.lines().any(|l| l.starts_with("data,Re-make end,101.1,")
+            && l.ends_with("at -101Q1:1: ferrule 1.5 BK → bare,")),
         "{csv}"
     );
 }
@@ -483,4 +482,67 @@ fn the_labels_for_the_changes_hold_a_new_strips_marker() {
     assert!(String::from_utf8_lossy(&strips.bytes).contains(&tag), "{tag}");
     let added = of(ew_derive::LabelSet::TerminalMarkers).expect("the terminal markers");
     assert_eq!(added.count, terminals.len(), "the new terminals' markers");
+}
+
+/// A row a person did not make by name says why (doc 13 §3.5): 101.16 made 1.5 mm² on its own connection, as its
+/// Size cell would, is a Replace without a reason, and 104.8, its twin ferrule's partner at -104A1:L+, is re-made
+/// because of it. 104.8 has no connection of its own: set on the one it shares with 104.4, the size reaches both, and
+/// 104.8's row says so.
+#[test]
+fn a_consequence_says_why_it_is_there() {
+    let base = ew_testdir::Tmp::new("ew-rework-reason");
+    let dir = released_copy(&base);
+    let sample = common::sample();
+    let shared = wire(&sample, "104.8");
+    let thicker = sample
+        .query()
+        .get::<ew_derive::WireRecordSet>(())
+        .iter()
+        .find(|r| r.number.as_deref() == Some("101.16"))
+        .and_then(|r| r.own().first().copied())
+        .expect("101.16 has a connection of its own");
+    drop(sample);
+    let (now, csv) = resized(&dir, thicker);
+    drop(now);
+    let row = |csv: &str, no: &str| {
+        csv.lines()
+            .find(|l| l.split(',').nth(2) == Some(no))
+            .unwrap_or_else(|| panic!("no row of {no}: {csv}"))
+            .to_owned()
+    };
+    let by_hand = row(&csv, "101.16");
+    assert!(
+        by_hand.starts_with("data,Replace,101.16,") && by_hand.ends_with(','),
+        "{by_hand}"
+    );
+    let partner = row(&csv, "104.8");
+    assert!(
+        partner.starts_with("data,Re-make end,104.8,")
+            && partner.ends_with(",its twin ferrule's partner 101.16 at -104A1:L+ changed size"),
+        "{partner}"
+    );
+    let (_, csv) = resized(&dir, shared);
+    let follows = row(&csv, "104.8");
+    assert!(
+        follows.ends_with(",its size is set on a connection it shares with 104.4"),
+        "{follows}"
+    );
+}
+
+/// The sample with the connection `c` made 1.5 mm², and its rework list against the release in `dir` as CSV.
+fn resized(dir: &Path, thicker: Id<Connection>) -> (Session, String) {
+    let (project, mut records, lib) = common::sample_records();
+    for r in &mut records {
+        if let Record::Connection(c) = r
+            && c.id == thicker
+        {
+            c.overrides.csa = Some(ew_schema::Csa::Mm2(Dec3(1_500)));
+        }
+    }
+    let now = common::session_of(project, records, lib);
+    let rework = now
+        .rework(&ReworkBase::File(archive_of(dir)))
+        .expect("the archive opens");
+    let csv = now.rework_csv(&rework);
+    (now, csv)
 }

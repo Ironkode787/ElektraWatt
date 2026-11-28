@@ -209,6 +209,23 @@ rework-change-remark = merker op { $p0 }: { $p1 } → { $p2 }
 rework-change-relabel = { $p0 } → { $p1 }
 rework-change-length = lengte { $p0 } → { $p1 }
 rework-changes-between = { "; " }
+rework-reason-partner-pulled = de partner van zijn twinhuls, { $p0 } op { $p1 }, is uitgetrokken
+rework-reason-partner-resized = de partner van zijn twinhuls, { $p0 } op { $p1 }, heeft een andere doorsnede
+rework-reason-partner-left = de partner van zijn twinhuls, { $p0 }, komt niet meer op { $p1 }
+rework-reason-joined = { $p0 } komt nu ook op { $p1 }
+rework-reason-end-rule = de instellingen van de werkplaats of het artikel van de klem geven dit einde een andere afwerking
+rework-reason-device-gone = { $p0 } is verwijderd
+rework-reason-size-shared = zijn doorsnede staat op een verbinding die hij deelt met { $p0 }
+rework-reason-colour-shared = zijn kleur staat op een verbinding die hij deelt met { $p0 }
+rework-reason-size-potential = zijn potentiaal { $p0 } bepaalt zijn doorsnede
+rework-reason-colour-potential = zijn potentiaal { $p0 } bepaalt zijn kleur
+rework-reason-size-rules = de bedradingsregels van het project geven zijn doorsnede
+rework-reason-colour-rules = de bedradingsregels van het project geven zijn kleur
+rework-reason-size-cable = zijn kabel { $p0 } geeft zijn doorsnede
+rework-reason-colour-cable = zijn kabel { $p0 } geeft zijn kleur
+rework-reason-way-gone = zijn loop was gelegd voor de bedrading van de vrijgave: Routeren legt hem opnieuw
+rework-reason-rerouted = Routeren heeft zijn loop opnieuw gelegd
+rework-reason-way-stale = zijn loop klopt niet meer: { $p0 }
 
 ## An end's treatment, as the wire list's end cell prints it (doc 13 §4.4)
 
@@ -332,6 +349,17 @@ corner-in-sentence-bottom-right = rechtsonder
 corner-in-sentence-top-left = linksboven
 corner-in-sentence-top-right = rechtsboven
 hole-table-heading = { $p0 }, pagina { $p1 }, { $p2 }, gemeten vanaf de hoek { $p3 }
+
+## Waar een apparaat staat (doc 13 §6.1)
+
+rail-start-left = linkeruiteinde
+rail-start-right = rechteruiteinde
+rail-start-bottom = onderste uiteinde
+rail-start-top = bovenste uiteinde
+place-on-rail = op { $p0 } van de { $p1 }, { $p2 } tot { $p3 } mm vanaf het { $p4 }
+place-on-surface = op de { $p0 } op X { $p1 }, Y { $p2 } mm vanaf de hoek { $p3 }{ $p4 }
+place-hole = , in gat { $p0 }
+place-holes = , in gaten { $p0 }
 
 ## A bus station's address as a drawing prints it, its address after the word
 bus-node = Knooppunt { $p0 }

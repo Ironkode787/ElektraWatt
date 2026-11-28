@@ -1,7 +1,7 @@
 # Print the workshop's lists
 
 The workshop builds the cabinet from five lists beside the drawings: the wire list, the fitter's sheet; the assembly
-list of each terminal strip; the cut list of rails, ducts, cables, wires and tubes; the consumables to order; and,
+lists, where every device goes and how each terminal strip is mounted; the cut list of rails, ducts, cables, wires and tubes; the consumables to order; and,
 after a release, the rework list. Each is made from the project and follows it when it changes: you type nothing into
 a list.
 
@@ -23,10 +23,16 @@ the Output tab.
 
 ## The assembly lists, the cut list and the consumables
 
-4. Choose **Output ▸ Workshop ▸ Open assembly lists**. Each strip starts with a line that says where it goes and how long
-   it is, such as "-X1011 · on rail 1 from 0 to 48.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm with its end
-   brackets", then every item in the order the fitter mounts it: end bracket, terminals with their part, colour and
-   marker, end plate, end bracket; then its bridges.
+4. Choose **Output ▸ Workshop ▸ Open assembly lists**. Each rail comes first with a line that says where it lies and
+   which end its positions are measured from, such as "Rail 1 · Mounting plate, page 902 · cut to 470 mm · its centre
+   line at Y 580 mm, from X 25 to 495 mm, measured from the bottom-left corner · positions from its left end", then
+   everything on it in the order the fitter mounts it, each device with its part, its width and where it stands
+   ("48.2–102.2"), the gaps between them, and each strip as one row. The strips on that rail follow, each with a line
+   that says where it goes and how long it is, such as "-X1011 · on rail 1 from 0 to 48.2 mm · rail cut to 470 mm · 5
+   terminals · 48.2 mm with its end brackets", then every item in mounting order: end bracket, terminals with their
+   part, colour and marker, end plate, end bracket; then its bridges. A device in the door or on the plate without a
+   rail is listed under its surface with its centre ("X 270, Y 480", measured as the hole table measures) and the hole
+   it sits in ("in hole H3"); a device the layout does not place yet is listed last with "place missing".
 5. Choose **Output ▸ Workshop ▸ Open cut list**. Under Rails, Ducts, Cables, Wires and Tubes it lists each piece to cut
    with its part or its size and colour, what it is for, the pieces, the piece length and the total. Each piece is
    rounded up to **Cut to** (5 mm unless the project sets another); a wire is as long as the wire list says.
@@ -47,7 +53,10 @@ the Output tab.
    project; **Compare with** chooses another release, and **Archive file…** an archive file.
 10. A line counts the work, then one row per thing the fitter does, in the order he does it: Pull, Replace, Move end,
     Re-make end, Check length, Re-mark, Re-label, Remove device, Mount device, Add and the others, each with what
-    changes. "Not listed: wires that only moved on a page or took another route, and a new wire number."
+    changes. Mount device and Remove device say where the device goes or stood, in the words of the assembly lists. A
+    row that follows from another change says why under **Because**, such as "its twin ferrule's partner 104.8
+    at -104A1:L+ changed size". "Not listed: wires that only moved on a page or took another route, and a new wire
+    number."
 11. **Export…** writes the rework list as an Excel file or a CSV; **Labels for these changes…** opens Labels… on the
     labels the list names. A project without a release says "This project has no released revision yet: the rework
     list compares with a release. Release it on the Check tab, or choose an archive file."

@@ -19,6 +19,7 @@ column-cable-type = Kabeltype
 column-category = Categorie
 column-change = Wijziging
 column-changed-pages = Gewijzigde pagina's
+column-reason = Omdat
 column-channel = Kanaal
 column-checker = Controleur
 column-class = Klasse
@@ -113,6 +114,7 @@ column-pieces = Stuks
 column-port = Poort
 column-pos = Pos
 column-position = Positie
+column-position-mm = Positie mm
 column-potential = Potentiaal
 column-potential-type = Potentiaaltype
 column-pressure = Druk
@@ -355,6 +357,25 @@ cell-spare-fed = reserve (gevoed)
 cell-added = toegevoegd
 cell-with = bij { $p0 }
 cell-width-missing = breedte ontbreekt
+cell-rail-heading = { $rail } · { $surface }, pagina { $folio }{ $cut ->
+        [none] {""}
+       *[other] {" · "}afgezaagd op { $cut } mm
+    } · hartlijn op { $axis } { $across } mm, van { $along } { $lo } tot { $hi } mm, gemeten vanaf de hoek { $corner } · posities vanaf het { $start }
+cell-rail = Rail
+cell-strip = Klemmenstrook
+cell-strip-block = zie { $p0 } hieronder
+cell-gap = Tussenruimte
+cell-gap-from-start = vanaf het begin van de rail
+cell-gap-to-end = tot het eind van de rail
+cell-surface-heading = { $p0 }, pagina { $p1 }, { $p2 } · apparaten zonder rail, hun midden gemeten vanaf de hoek { $p3 }
+cell-at-xy = X { $p0 }, Y { $p1 }
+cell-centre-at = midden op { $p0 }
+cell-in-holes = { $count ->
+        [one] in gat { $holes }
+       *[other] in gaten { $holes }
+    }
+cell-unplaced-heading = Niet geplaatst in de layout van { $p0 }: geen papier geeft deze een plaats
+cell-not-placed = plaats ontbreekt
 cell-bridges-of = Bruggen van { $p0 }
 cell-bridge-label = Brug { $p0 }
 cell-terminals-from-to = { $p0 } t/m { $p1 }

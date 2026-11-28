@@ -213,6 +213,23 @@ rework-change-remark = marker at { $p0 }: { $p1 } → { $p2 }
 rework-change-relabel = { $p0 } → { $p1 }
 rework-change-length = length { $p0 } → { $p1 }
 rework-changes-between = { "; " }
+rework-reason-partner-pulled = its twin ferrule's partner { $p0 } at { $p1 } is pulled
+rework-reason-partner-resized = its twin ferrule's partner { $p0 } at { $p1 } changed size
+rework-reason-partner-left = its twin ferrule's partner { $p0 } no longer lands on { $p1 }
+rework-reason-joined = { $p0 } now lands on { $p1 } as well
+rework-reason-end-rule = the workshop's settings or the clamp's part give this end another treatment
+rework-reason-device-gone = { $p0 } is removed
+rework-reason-size-shared = its size is set on a connection it shares with { $p0 }
+rework-reason-colour-shared = its colour is set on a connection it shares with { $p0 }
+rework-reason-size-potential = its potential { $p0 } sets its size
+rework-reason-colour-potential = its potential { $p0 } sets its colour
+rework-reason-size-rules = the project's wiring rules give its size
+rework-reason-colour-rules = the project's wiring rules give its colour
+rework-reason-size-cable = its cable { $p0 } gives its size
+rework-reason-colour-cable = its cable { $p0 } gives its colour
+rework-reason-way-gone = its way was laid for the wiring of the release: Route lays it again
+rework-reason-rerouted = Route laid its way again
+rework-reason-way-stale = its way no longer holds: { $p0 }
 
 ## An end's treatment, as the wire list's end cell prints it (doc 13 §4.4)
 
@@ -336,6 +353,17 @@ corner-in-sentence-bottom-right = bottom-right
 corner-in-sentence-top-left = top-left
 corner-in-sentence-top-right = top-right
 hole-table-heading = { $p0 }, page { $p1 }, { $p2 }, measured from the { $p3 } corner
+
+## Where a device stands (doc 13 §6.1)
+
+rail-start-left = left end
+rail-start-right = right end
+rail-start-bottom = lower end
+rail-start-top = upper end
+place-on-rail = on { $p0 } of the { $p1 }, { $p2 } to { $p3 } mm from its { $p4 }
+place-on-surface = on the { $p0 } at X { $p1 }, Y { $p2 } mm from its { $p3 } corner{ $p4 }
+place-hole = , in hole { $p0 }
+place-holes = , in holes { $p0 }
 
 ## A bus station's address as a drawing prints it, its address after the word
 bus-node = Node { $p0 }

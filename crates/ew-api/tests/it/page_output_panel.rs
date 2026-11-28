@@ -17,7 +17,7 @@
 //!   none scaled; -102F1 turned inside its 3.6 mm footprint; the full mode; a 6 mm part takes a leader.
 //! - `the_title_block_reads_the_scale_and_a_new_scale_writes_no_layout_record`: "Panel layout · Scale 1:5", the
 //!   TOC row unchanged; 1:10 changes no layout record and keeps the label height.
-//! - `a_move_rebuilds_only_902s_placement_label_and_carrier_layers_and_a_footprint_picks_its_placement`: the memo
+//! - `a_move_rebuilds_902s_layers_and_the_assembly_lists_and_a_footprint_picks_its_placement`: the memo
 //!   counts and the pick.
 //!
 //! The display lists are in page coordinates; 902's frame maps the page to paper (its `page_to_sheet`), and the
@@ -925,12 +925,14 @@ fn pick(entities: &[(EntityRef, Rect)], at: Pt2) -> Option<EntityRef> {
     best.map(|(_, e)| e)
 }
 
-/// A `layout.move` of -101G1 runs only 902's placements, labels and carriers layers again (the carriers are cut
-/// around the labels, so they read the labels' fit), and the second export equals the cold one; a press at a
-/// footprint's centre picks its placement. Without the sample's stored ways: with them, the move stales the ways of
-/// -101G1's wires, and the lists that print their lengths with "≈" rebuild their tables as well.
+/// A `layout.move` of -101G1 runs 902's placements, labels and carriers layers again (the carriers are cut around the
+/// labels, so they read the labels' fit) and the tables of the assembly lists, which print where -101G1 stands; the
+/// gap the move opens on rail 1 is a row more there, so the page order is read again, and with it the labels of the
+/// drawn pages. No other layer runs, and the second export equals the cold one; a press at a footprint's centre picks
+/// its placement. Without the sample's stored ways: with them, the move stales the ways of -101G1's wires, and the
+/// lists that print their lengths with "≈" rebuild their tables as well.
 #[test]
-fn a_move_rebuilds_only_902s_placement_label_and_carrier_layers_and_a_footprint_picks_its_placement() {
+fn a_move_rebuilds_902s_layers_and_the_assembly_lists_and_a_footprint_picks_its_placement() {
     let mut s = common::sample_without_ways();
     // The pick, as the sample places them (the moved -101G1 below overlaps its neighbours).
     let q = s.query();
@@ -971,12 +973,28 @@ fn a_move_rebuilds_only_902s_placement_label_and_carrier_layers_and_a_footprint_
         "the memoised export equals the cold one"
     );
     let runs = layer_runs(&s);
+    let q = s.query();
+    let drawn_pages = u64::try_from(q.pages().ids().count()).expect("a count");
+    let assembly = q
+        .report_blocks()
+        .iter()
+        .find(|(_, b)| b.source == ew_schema::ReportSource::Kind(ew_schema::ReportKind::AssemblyList))
+        .map(|(id, _)| id)
+        .expect("the assembly lists");
+    let assembly_pages = q
+        .get::<PageOrder>(())
+        .entries
+        .iter()
+        .filter(|e| matches!(e.page, PageRef::Generated { block, .. } if block == assembly))
+        .count();
+    let assembly_pages = u64::try_from(assembly_pages).expect("a count");
+    drop(q);
     let expected: BTreeMap<&str, u64> = BTreeMap::from([
         (FrameLayer::FAMILY, 0),
         (SymbolsLayer::FAMILY, 0),
         (WiresLayer::FAMILY, 0),
-        (LabelsLayer::FAMILY, 1),
-        (TablesLayer::FAMILY, 0),
+        (LabelsLayer::FAMILY, drawn_pages),
+        (TablesLayer::FAMILY, assembly_pages),
         (SurfaceLayer::FAMILY, 0),
         (CarriersLayer::FAMILY, 1),
         (PlacementsLayer::FAMILY, 1),

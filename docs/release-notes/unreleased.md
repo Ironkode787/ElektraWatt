@@ -1035,3 +1035,15 @@ change here.
 - api-add: `Session::revision_standing` (with `RevisionStanding`) is the one reading of the current revision and its
   state; `Session::door_judgements` gives each enclosure's closed-door verdict; a preview line of a wire's way carries
   `words`
+- behaviour-change: the assembly lists say where every device goes: each rail is a block of its own before the strips
+  on it (its part, its cut length, where it lies measured from its surface's datum corner, and everything on it in
+  mounting order from the end nearest that corner, with its width, its place from–to in mm and the gaps between, a
+  strip as one row); the devices in the door or on the plate without a rail are listed under their surface with their
+  centres and the holes they sit in, and a device the layout does not place yet as "place missing". The list gains the
+  columns Device and Position mm, and a strip's heading measures from the same end of its rail
+- behaviour-change: the rework list's Mount device and Remove device rows say where the device goes or stood (its rail
+  and place on it, or its surface, centre and hole), and a new column Because says why a row is there where nobody
+  changed its wire by name: a twin ferrule's partner that changed, a size set where the wire shares a connection, a
+  removed device, a way that Route laid again
+- api-break: `ew_derive::ReworkItem` gains `reasons` and `places`; `OnRail::from` and `to` measure from the rail's end
+  nearest its surface's datum corner

@@ -505,6 +505,62 @@ pub fn rework_changes(changes: &[ReworkChange]) -> Text {
     ))
 }
 
+/// Why a row of the rework list is there (doc 13 §3.5): "its twin ferrule's partner 104.4 at -104A1:L+ changed size",
+/// "-104E2 is removed", "its potential 24V sets its size". `now` is the project as it is, which a stale way names.
+pub fn rework_reason(now: &crate::Q, reason: &crate::ReworkReason) -> Text {
+    use crate::{FollowedFrom, ReworkReason};
+    match reason {
+        ReworkReason::PartnerPulled { at, partner } => {
+            text!("rework-reason-partner-pulled", partner.clone(), at.clone())
+        }
+        ReworkReason::PartnerResized { at, partner } => {
+            text!("rework-reason-partner-resized", partner.clone(), at.clone())
+        }
+        ReworkReason::PartnerLeft { at, partner } => {
+            text!("rework-reason-partner-left", partner.clone(), at.clone())
+        }
+        ReworkReason::Joined { at, wire } => text!("rework-reason-joined", wire.clone(), at.clone()),
+        ReworkReason::EndRule => text!("rework-reason-end-rule"),
+        ReworkReason::DeviceGone(tag) => text!("rework-reason-device-gone", tag.clone()),
+        ReworkReason::Follows { size, from } => match (size, from) {
+            (true, FollowedFrom::Shared(w)) => text!("rework-reason-size-shared", w.join(", ")),
+            (false, FollowedFrom::Shared(w)) => text!("rework-reason-colour-shared", w.join(", ")),
+            (true, FollowedFrom::Potential(p)) => text!("rework-reason-size-potential", p.clone()),
+            (false, FollowedFrom::Potential(p)) => text!("rework-reason-colour-potential", p.clone()),
+            (true, FollowedFrom::Rules) => text!("rework-reason-size-rules"),
+            (false, FollowedFrom::Rules) => text!("rework-reason-colour-rules"),
+            (true, FollowedFrom::Cable(c)) => text!("rework-reason-size-cable", c.clone()),
+            (false, FollowedFrom::Cable(c)) => text!("rework-reason-colour-cable", c.clone()),
+        },
+        ReworkReason::WayGone => text!("rework-reason-way-gone"),
+        ReworkReason::Rerouted => text!("rework-reason-rerouted"),
+        ReworkReason::WayStale(why) => text!("rework-reason-way-stale", stale_why(now, *why)),
+    }
+}
+
+/// A row's reasons in words, joined as its changes are ([`rework_reason`]).
+pub fn rework_reasons(now: &crate::Q, reasons: &[crate::ReworkReason]) -> Text {
+    let between = || text!("rework-changes-between");
+    Text::bare(ew_l10n::List::new(
+        reasons
+            .iter()
+            .map(|r| TextArg::from(rework_reason(now, r)))
+            .collect(),
+        between(),
+        between(),
+    ))
+}
+
+/// A device's places in words, joined as a row's changes are ([`device_place`]).
+pub fn device_places(q: &crate::Q, places: &[crate::layout::DevicePlace]) -> Text {
+    let between = || text!("rework-changes-between");
+    Text::bare(ew_l10n::List::new(
+        places.iter().map(|p| TextArg::from(device_place(q, p))).collect(),
+        between(),
+        between(),
+    ))
+}
+
 /// Where a cable's or a tube's length comes from: "typed", "from part", "missing" (a source of a newer format too).
 pub fn length_source(source: &LengthSource) -> Text {
     match source {
@@ -1189,6 +1245,72 @@ pub fn hole_table_heading(surface: Text, folio: &str, seen: Text, corner: &Corne
         seen,
         corner_in_sentence(corner)
     )
+}
+
+/// The end of a rail its positions are measured from, inside a sentence: "left end", "lower end".
+pub fn rail_start(s: crate::layout::RailStart) -> Text {
+    use crate::layout::RailStart;
+    match s {
+        RailStart::Left => text!("rail-start-left"),
+        RailStart::Right => text!("rail-start-right"),
+        RailStart::Bottom => text!("rail-start-bottom"),
+        RailStart::Top => text!("rail-start-top"),
+    }
+}
+
+/// The holes a device sits in, after its place: ", in hole H5", ", in holes H1, H2, H8"; empty for none.
+pub fn place_holes(holes: &[u32]) -> Text {
+    let numbers = holes
+        .iter()
+        .map(|n| format!("H{n}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    match holes.len() {
+        0 => Text::bare(TextArg::Plain(String::new())),
+        1 => text!("place-hole", numbers),
+        _ => text!("place-holes", numbers),
+    }
+}
+
+/// A place of a device in the layout (doc 13 §6.1), as the rework list's Mount device and Remove device rows name it:
+/// "on rail 2 of the -UC1 mounting plate, 25 to 70 mm from its left end", "on the -UC1 door at X 360, Y 560 mm from
+/// its bottom-left corner, in hole H5".
+pub fn device_place(q: &crate::Q, place: &crate::layout::DevicePlace) -> Text {
+    use crate::layout::DevicePlace;
+    match place {
+        DevicePlace::Rail {
+            surface,
+            number,
+            start,
+            from,
+            to,
+        } => text!(
+            "place-on-rail",
+            carrier_in_sentence(crate::layout::CarrierLabel {
+                kind: crate::layout::CarrierLabelKind::Rail,
+                n: *number,
+            }),
+            surface_words(q, *surface),
+            mm_tenth_short(*from),
+            mm_tenth_short(*to),
+            rail_start(*start)
+        ),
+        DevicePlace::Surface { surface, at, holes } => {
+            let corner = q
+                .table::<ew_schema::MountingSurface>()
+                .get(*surface)
+                .map(|s| crate::layout::surface_datum(q, s))
+                .unwrap_or_default();
+            text!(
+                "place-on-surface",
+                surface_words(q, *surface),
+                mm_tenth_short(at.0),
+                mm_tenth_short(at.1),
+                corner_in_sentence(&corner),
+                place_holes(holes)
+            )
+        }
+    }
 }
 
 /// Why a hole's text does not parse ([`ew_schema::Hole::parse`]), as the sheet's Holes table and the forms that
