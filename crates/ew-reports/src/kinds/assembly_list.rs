@@ -62,14 +62,14 @@ impl ReportKindDef for AssemblyList {
             ColumnDef::new("pos", CellType::Number, text!("column-pos")).weighted(3),
             ColumnDef::new("item", CellType::Text, text!("column-item")).weighted(9),
             ColumnDef::new("device", CellType::Ident, text!("column-device")).weighted(8),
-            ColumnDef::new("terminal", CellType::Ident, text!("column-terminal")).weighted(6),
+            ColumnDef::new("terminal", CellType::Ident, text!("column-terminal")).weighted(5),
             ColumnDef::new("part_number", CellType::Ident, text!("column-part-number")).weighted(12),
-            ColumnDef::new("description", CellType::Text, text!("column-description")).weighted(38),
+            ColumnDef::new("description", CellType::Text, text!("column-description")).weighted(34),
             ColumnDef::new("colour", CellType::Ident, text!("column-colour")).weighted(5),
-            ColumnDef::new("width", CellType::Qty, text!("column-width-mm")).weighted(6),
-            ColumnDef::new("position", CellType::Text, text!("column-position-mm")).weighted(9),
-            ColumnDef::new("marker", CellType::Ident, text!("column-marker")).weighted(6),
-            ColumnDef::new("note", CellType::Text, text!("column-note")).weighted(14),
+            ColumnDef::new("width", CellType::Qty, text!("column-width-mm")).weighted(10),
+            ColumnDef::new("position", CellType::Text, text!("column-position-mm")).weighted(10),
+            ColumnDef::new("marker", CellType::Ident, text!("column-marker")).weighted(5),
+            ColumnDef::new("note", CellType::Text, text!("column-note")).weighted(17),
         ]
     }
 
