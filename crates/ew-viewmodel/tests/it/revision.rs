@@ -1051,7 +1051,11 @@ fn a_file_that_is_no_archive_is_said_so_in_the_windows_language() {
     done(&mut s, "view.language", json!({ "value": "nl" }));
     let junk = tmp.0.join("V1.0.ewarchive");
     std::fs::write(&junk, b"not an archive").expect("written");
-    done(&mut s, "rework.archive", json!({ "path": junk.to_string_lossy() }));
+    done(
+        &mut s,
+        "rework.archive",
+        json!({ "path": junk.to_string_lossy() }),
+    );
     let text = dialog_text(&mut s);
     assert!(
         text.contains("  note \"Het bestand is geen vrijgavearchief van ElektraWatt, of het is beschadigd"),

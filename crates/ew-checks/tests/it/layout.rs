@@ -314,7 +314,10 @@ fn a_further_part_of_a_placed_device_is_a_warning_in_release() {
     assert_eq!(lay.len(), 1, "the handle: {lay:#?}");
     assert_eq!(lay[0].severity, Severity::Warning, "refuses no release");
     assert!(
-        report.findings.iter().all(|f| f.severity != Severity::Error || !f.rule.starts_with("EW-LAY-")),
+        report
+            .findings
+            .iter()
+            .all(|f| f.severity != Severity::Error || !f.rule.starts_with("EW-LAY-")),
         "{:#?}",
         report.findings
     );
