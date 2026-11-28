@@ -182,6 +182,7 @@ pub use forms::{FormDialog, FormField, FormRow, FormTable, TICK, TICKED};
 pub use navigation::{Focus, ListPages, RECENT_PAGES, SessionCalls};
 pub use navigators::{Chip, DragSource, FindingLook, MAX_CHIPS, ShownRow};
 pub use parts::{MapColumn, MapKind, PartsMap, row_changes, row_chip, row_reason, row_sentence};
+pub use revision::RevisionStep;
 pub use row_ops::NavRename;
 pub use supply_potential::{SupplyPanel, SupplyRow};
 pub use tools::SnapIndicator;
@@ -1838,7 +1839,15 @@ impl ShellModel {
             log.len() - 1
         });
         let page_toasts = self.symbol_editor().is_none().then(|| self.notes.newest_serial());
+        let (rev, released) = (self.revision(), self.released_label());
         let outcome = self.dispatch_unlogged(action, params);
+        // The first change after a release opens the next revision (doc 15 §5.3): said where the change is made.
+        if let Some(last) = released
+            && self.revision() != rev
+            && let Some(open) = self.open_revision_label()
+        {
+            self.notify_revision_opened(&open, &last);
+        }
         // The page's toasts leave the screen when the symbol editor takes the window: they speak of the page,
         // and their Undo would act there; the log keeps them.
         if let Some(last) = page_toasts

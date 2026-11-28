@@ -184,6 +184,8 @@ pub enum Group {
     Numbering,
     /// Check: highlights.
     Trace,
+    /// Check: the revision: its author, its sign-off, its release, the revisions, the rework list.
+    Revision,
     /// Output: the PDF.
     Pdf,
     /// Output: report blocks and generated pages.
@@ -208,7 +210,7 @@ pub enum Group {
 
 impl Group {
     /// Every group, in bar order.
-    pub const ALL: [Group; 39] = [
+    pub const ALL: [Group; 40] = [
         Group::Project,
         Group::Parts,
         Group::Standards,
@@ -238,6 +240,7 @@ impl Group {
         Group::Findings,
         Group::Numbering,
         Group::Trace,
+        Group::Revision,
         Group::Pdf,
         Group::Reports,
         Group::Lists,
@@ -270,7 +273,7 @@ impl Group {
             Group::Tubes | Group::FluidPlace | Group::Media | Group::FluidLists | Group::FluidWorkspace => {
                 Tab::Fluid
             }
-            Group::Run | Group::Findings | Group::Numbering | Group::Trace => Tab::Check,
+            Group::Run | Group::Findings | Group::Numbering | Group::Trace | Group::Revision => Tab::Check,
             Group::Pdf | Group::Reports | Group::Lists | Group::Workshop | Group::Jobs => Tab::Output,
             Group::Zoom | Group::Show | Group::Panels | Group::Layout | Group::Appearance => Tab::View,
         }
@@ -307,6 +310,7 @@ impl Group {
             Group::Findings => "findings",
             Group::Numbering => "numbering",
             Group::Trace => "trace",
+            Group::Revision => "revision",
             Group::Pdf => "pdf",
             Group::Reports => "reports",
             Group::Lists => "lists",

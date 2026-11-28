@@ -13,7 +13,7 @@
 //! empty, and while a job runs the job field. Without a project the page and save fields are left
 //! out; without a canvas the cursor, zoom and grid. These text fields stay the transcripts' `status` member.
 //!
-//! The window's status bar and the describe line follow the order of [`bar`] instead: the state at the left, then
+//! The window's status bar and the describe line follow the order of [`bar`] instead: the state and the revision at the left, then
 //! a card waiting for Apply, the findings, the job, the selection, the cursor, the grid, the zoom, the save state, the renderer and the
 //! notifications, each with its emphasis.
 
@@ -324,6 +324,9 @@ pub fn fields(model: &ShellModel, hide_job: bool) -> Vec<String> {
 pub enum StatusKind {
     /// The state at the left: `Ready`.
     State,
+    /// Where the project's revision stands, beside the state: "V1.0 released 20-11-2026", "V2.0 open · 3 pages
+    /// changed since V1.0", "V1.0 open"; a click opens the revision overview.
+    Revision,
     /// What F1 opens for what the pointer rests on ("F1: Wires"), while it rests on something.
     Help,
     /// A card in the Preview tab that waits for Apply: "1 change waits for Apply"; a click brings the Preview forward.
@@ -355,6 +358,7 @@ impl StatusKind {
     pub fn word(self) -> &'static str {
         match self {
             StatusKind::State => "state",
+            StatusKind::Revision => "revision",
             StatusKind::Help => "help",
             StatusKind::Waiting => "waiting",
             StatusKind::Findings => "findings",
@@ -446,7 +450,35 @@ pub fn waiting_text(model: &ShellModel) -> Option<String> {
     })
 }
 
-/// The status bar of `model` (doc 16a §5.8): the state at the left, then in this order the waiting card
+/// The revision field's words in full and short (doc 16a §5.8): "V2.0 open · 3 pages changed since V1.0" and
+/// "V2.0 open", "V1.0 released 20-11-2026" both; the short words stand where the bar is too narrow for the full ones.
+/// `None` without a project or a revision.
+pub fn revision_words(model: &ShellModel) -> Option<(String, String)> {
+    use ew_api::RevisionStanding as S;
+    Some(match model.revision_standing()? {
+        S::Released { label, on } => {
+            let text = match on {
+                Some(on) => strings::format(key!("status-revision-released"), &[&label, &on]),
+                None => strings::format(key!("status-revision-released-undated"), &[&label]),
+            };
+            (text.clone(), text)
+        }
+        S::Open { label, since } => {
+            let short = strings::format(key!("status-revision-open"), &[&label]);
+            let full = match since {
+                Some((last, pages)) => strings::format_counted(
+                    count_key!("status-revision-changed"),
+                    pages,
+                    &[&label, &last],
+                ),
+                None => short.clone(),
+            };
+            (full, short)
+        }
+    })
+}
+
+/// The status bar of `model` (doc 16a §5.8): the state and the revision ([`revision_words`]) at the left, then in this order the waiting card
 /// ([`waiting_text`]), the findings, the job, the selection, the cursor, the grid, the zoom, the save state, the
 /// renderer and the notifications, each only when it applies. The tool's hint is the HUD's (part 2); the page and the language fields left the bar. `hide_job` leaves
 /// the job field out (a job younger than 200 ms).
@@ -528,6 +560,12 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
         .or_else(|| model.refusal_shown())
         .unwrap_or_else(|| strings::text(key!("status-ready")));
     let mut out = vec![field(StatusKind::State, state.to_owned(), Tone::Normal)];
+    if let Some((full, _)) = revision_words(model) {
+        out.push(StatusField {
+            tip: strings::text(key!("status-revision-tip")).to_owned(),
+            ..field(StatusKind::Revision, full, Tone::Normal)
+        });
+    }
     out.extend(help);
     if model.project_name().is_some() {
         if let Some(text) = waiting_text(model) {

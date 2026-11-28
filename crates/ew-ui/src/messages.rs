@@ -201,12 +201,13 @@ fn count_badge(ui: &mut Ui, t: &Tokens, severity: Severity, count: usize) {
     );
 }
 
-/// "<n> <Word>" of a severity, singular for one ("1 Warning", "3 Warnings"): a count chip's word.
+/// "<n> <Word>" of a severity, singular for one ("1 Warning", "3 Warnings"): a count chip's word. Pending findings say
+/// what they are ("2 pending findings"; the tooltip says when they count).
 pub(crate) fn count_words(severity: Severity, n: usize) -> String {
-    // Pending findings count under one word, as the Messages header counts them ("2 Pending").
-    let words = if severity == Severity::Pending {
-        strings::text(key!("badge-pending"))
-    } else if n == 1 {
+    if severity == Severity::Pending {
+        return strings::format_count(ew_viewmodel::count_key!("props-findings-pending"), n);
+    }
+    let words = if n == 1 {
         severity.word()
     } else {
         strings::text(match severity {

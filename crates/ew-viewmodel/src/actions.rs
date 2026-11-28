@@ -147,8 +147,6 @@ pub enum Submenu {
     CommandTab,
     /// Draw, Connect, Bond: one item per bond kind of `bond.create` (G-PP triage row 7).
     Bond,
-    /// Check, Revision: Approve, Release, Withdraw, Set author and the incomplete release.
-    Revision,
     /// View, Language: one item per UI language, under its own name.
     Language,
     /// View, Minimum text size: off, then one item per size of `MIN_FONT_CHOICES`.
@@ -218,7 +216,6 @@ impl Submenu {
             Submenu::WireMarkers => key!("submenu-wire-markers"),
             Submenu::Bond => key!("submenu-bond"),
             Submenu::CommandTab => key!("submenu-command-tab"),
-            Submenu::Revision => key!("submenu-revision"),
             Submenu::Language => key!("submenu-language"),
             Submenu::MinFont => key!("submenu-min-font"),
             Submenu::Tutorials => key!("submenu-tutorials"),
@@ -864,7 +861,6 @@ mod tests {
             Submenu::Graphic,
             Submenu::WireMarkers,
             Submenu::Bond,
-            Submenu::Revision,
             Submenu::Language,
             Submenu::MinFont,
             Submenu::Tutorials,

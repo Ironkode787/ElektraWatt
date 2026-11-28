@@ -11,7 +11,7 @@
 use super::Seg::{self, C, L, M, Q, Z};
 
 /// The number of icons in the table.
-pub const COUNT: usize = 160;
+pub const COUNT: usize = 163;
 
 /// One icon of the table, named by its key in `snake_case` (`ew_` for the project's own glyphs).
 #[allow(non_camel_case_types, missing_docs)]
@@ -170,6 +170,9 @@ pub enum IconId {
     transfer_out,
     trash,
     typography,
+    user_check,
+    user_edit,
+    versions,
     wand,
     wave_sine,
     wind,
@@ -335,6 +338,9 @@ impl IconId {
         IconId::transfer_out,
         IconId::trash,
         IconId::typography,
+        IconId::user_check,
+        IconId::user_edit,
+        IconId::versions,
         IconId::wand,
         IconId::wave_sine,
         IconId::wind,
@@ -500,6 +506,9 @@ pub const KEYS: [&str; COUNT] = [
     "transfer-out",
     "trash",
     "typography",
+    "user-check",
+    "user-edit",
+    "versions",
     "wand",
     "wave-sine",
     "wind",
@@ -3357,6 +3366,56 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(11.0, 4.0),
         L(13.0, 4.0),
         L(20.0, 20.0),
+    ],
+    // user-check
+    &[
+        M(8.0, 7.0),
+        C(8.0, 9.209, 9.791, 11.0, 12.0, 11.0),
+        C(14.209, 11.0, 16.0, 9.209, 16.0, 7.0),
+        C(16.0, 4.791, 14.209, 3.0, 12.0, 3.0),
+        C(9.791, 3.0, 8.0, 4.791, 8.0, 7.0),
+        M(6.0, 21.0),
+        L(6.0, 19.0),
+        C(6.0, 16.791, 7.791, 15.0, 10.0, 15.0),
+        L(14.0, 15.0),
+        M(15.0, 19.0),
+        L(17.0, 21.0),
+        L(21.0, 17.0),
+    ],
+    // user-edit
+    &[
+        M(8.0, 7.0),
+        C(8.0, 9.209, 9.791, 11.0, 12.0, 11.0),
+        C(14.209, 11.0, 16.0, 9.209, 16.0, 7.0),
+        C(16.0, 4.791, 14.209, 3.0, 12.0, 3.0),
+        C(9.791, 3.0, 8.0, 4.791, 8.0, 7.0),
+        M(6.0, 21.0),
+        L(6.0, 19.0),
+        C(6.0, 16.791, 7.791, 15.0, 10.0, 15.0),
+        L(13.5, 15.0),
+        M(18.42, 15.61),
+        C(19.24, 14.79, 20.57, 14.79, 21.39, 15.61),
+        C(22.21, 16.43, 22.21, 17.76, 21.39, 18.58),
+        L(18.0, 22.0),
+        L(15.0, 22.0),
+        L(15.0, 19.0),
+        L(18.42, 15.61),
+    ],
+    // versions
+    &[
+        M(10.0, 7.0),
+        C(10.0, 5.895, 10.895, 5.0, 12.0, 5.0),
+        L(18.0, 5.0),
+        C(19.105, 5.0, 20.0, 5.895, 20.0, 7.0),
+        L(20.0, 17.0),
+        C(20.0, 18.105, 19.105, 19.0, 18.0, 19.0),
+        L(12.0, 19.0),
+        C(10.895, 19.0, 10.0, 18.105, 10.0, 17.0),
+        L(10.0, 7.0),
+        M(7.0, 7.0),
+        L(7.0, 17.0),
+        M(4.0, 8.0),
+        L(4.0, 16.0),
     ],
     // wand
     &[

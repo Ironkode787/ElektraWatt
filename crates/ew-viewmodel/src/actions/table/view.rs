@@ -434,20 +434,23 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     // Output ▸ Workshop ▸ Rework list…: what the fitter changes since a release (doc 13 §3.5); the dialog's Archive
-    // file… and Export….
+    // file… and Export…; its second place is the Check tab's Revision group, beside the release it compares with.
     with_params(
         "revision?:text",
-        placed(
-            place(Group::Workshop, 6, CommandSize::Small, None),
-            "refresh",
-            act(
-                "rework.show",
-                View,
-                Menu::Output,
-                &[],
-                project_open,
-                None,
-                |s, p| s.act_rework_show(p),
+        placed_also(
+            place(Group::Revision, 5, CommandSize::Small, None),
+            placed(
+                place(Group::Workshop, 6, CommandSize::Small, None),
+                "refresh",
+                act(
+                    "rework.show",
+                    View,
+                    Menu::Output,
+                    &[],
+                    project_open,
+                    None,
+                    |s, p| s.act_rework_show(p),
+                ),
             ),
         ),
     ),

@@ -203,10 +203,56 @@ pub fn role_name(role: &PartyRole) -> String {
         .unwrap_or_else(|| "a role of a newer format".to_owned())
 }
 
+/// Where the project's revision stands (the status bar's revision field, doc 16a §5.8).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum RevisionStanding {
+    /// The current revision is released: its label and its release date as the project writes dates.
+    Released {
+        /// The label (`V1.0`).
+        label: String,
+        /// The release date (`20-11-2026`); `None` where the record has none.
+        on: Option<String>,
+    },
+    /// The current revision is open: its label, and the last release with the number of pages changed since it
+    /// (doc 15 §5.6 `changed_now`); `None` for a project never released.
+    Open {
+        /// The open label (`V2.0`).
+        label: String,
+        /// The last released label and the pages changed since it.
+        since: Option<(String, usize)>,
+    },
+}
+
 impl Session {
     /// The open revision's label, if the project has an open revision.
     pub fn open_revision_label(&self) -> Option<String> {
         ew_derive::open_revision(&self.query()).map(|r| r.label.as_str().to_owned())
+    }
+
+    /// Where the project's revision stands; `None` for a project without revisions.
+    pub fn revision_standing(&self) -> Option<RevisionStanding> {
+        let q = self.query();
+        if let Some(open) = ew_derive::open_revision(&q) {
+            let since = ew_derive::last_released_revision(&q).map(|last| {
+                let changed = crate::output::changed_pages(&q, &open).len();
+                (last.label.as_str().to_owned(), changed)
+            });
+            return Some(RevisionStanding::Open {
+                label: open.label.as_str().to_owned(),
+                since,
+            });
+        }
+        let current = ew_derive::current_revision(&q)?;
+        let label = current.label.as_str().to_owned();
+        Some(match current.state {
+            ew_schema::RevisionState::Released => RevisionStanding::Released {
+                label,
+                on: current
+                    .date
+                    .map(|d| q.project().settings.formatting.date_format().format(d)),
+            },
+            _ => RevisionStanding::Open { label, since: None },
+        })
     }
 
     /// The open revision with its author's and its checker's party roles, when set (the revision

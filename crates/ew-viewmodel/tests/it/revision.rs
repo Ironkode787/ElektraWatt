@@ -759,7 +759,7 @@ fn ruling1_the_revision_refusals_read_in_words() {
     assert_eq!(
         dialog_text(&mut s),
         "dialog \"Approve revision V1.0\"\n  label \"The release gate cannot run: the project has unsaved changes; \
-         save it first.\"\n  button \"Close\""
+         save it first.\"\n  button \"Save and go on\"\n  button \"Close\""
     );
     done(&mut s, "revision.approve", json!({ "cancel": true }));
     done(&mut s, "file.save", json!({}));
@@ -1061,5 +1061,79 @@ fn a_file_that_is_no_archive_is_said_so_in_the_windows_language() {
         text.contains("  note \"Het bestand is geen vrijgavearchief van ElektraWatt, of het is beschadigd"),
         "{text}"
     );
+    s.shutdown();
+}
+
+/// The text of the status bar's revision field, empty without one.
+fn revision_field(shell: &ShellModel) -> String {
+    ew_viewmodel::status::bar(shell, false)
+        .into_iter()
+        .find(|f| f.kind == ew_viewmodel::status::StatusKind::Revision)
+        .map(|f| f.text)
+        .unwrap_or_default()
+}
+
+/// The window says where the revision stands and where its commands are: the status bar names it ("V1.0 open",
+/// "V1.0 released …", "V2.0 open · … since V1.0"), the Check tab holds its group, the first change after the release
+/// says once that it opens the next revision, and a release refused for unsaved changes offers Save and go on.
+#[test]
+fn the_window_says_where_the_revision_stands_and_offers_its_steps() {
+    let tmp = Tmp::new("revision-stands");
+    let dir = fixture_copy(&tmp);
+    let mut s = opened(|| ShellModel::new(Mode::Gui, config(&tmp)), &dir);
+    assert_eq!(revision_field(&s), "V1.0 open");
+    let check = ew_viewmodel::command_bar::command_bar_of(&s, ew_viewmodel::command_bar::Tab::Check);
+    let group = check
+        .groups
+        .iter()
+        .find(|g| g.group == ew_viewmodel::command_bar::Group::Revision)
+        .expect("the Check tab's Revision group");
+    let ids: Vec<&str> = group.buttons.iter().map(|b| b.id).collect();
+    assert_eq!(
+        ids,
+        [
+            "revision.set_author",
+            "revision.approve",
+            "revision.release",
+            "lists.revisions",
+            "rework.show"
+        ]
+    );
+
+    done(&mut s, "revision.approve", json!({ "typed": "V1.0" }));
+    done(&mut s, "revision.approve", json!({ "confirm": true, "date": DATE }));
+    done(&mut s, "revision.release", json!({ "typed": "V1.0" }));
+    done(&mut s, "revision.release", json!({ "confirm": true, "date": DATE }));
+    assert!(revision_field(&s).starts_with("V1.0 released "), "{}", revision_field(&s));
+
+    let opened = "This change opens revision V2.0: V1.0 stays as released.";
+    let said = |s: &ShellModel| s.notifications().entries().filter(|n| n.text == opened).count();
+    assert_eq!(said(&s), 0);
+    done(&mut s, "navigator.show", json!({"kind": "connections"}));
+    done(&mut s, "navigator.table", json!({"kind": "connections", "on": true}));
+    for length in ["650", "700"] {
+        done(
+            &mut s,
+            "table.set",
+            json!({"kind": "connections", "column": "length", "value": length, "rows": ["1.1"]}),
+        );
+    }
+    assert_eq!(said(&s), 1, "said once, at the change that opened V2.0");
+    let field = revision_field(&s);
+    assert!(field.starts_with("V2.0 open · ") && field.ends_with(" since V1.0"), "{field}");
+
+    // Release with unsaved changes names the step and offers it.
+    done(&mut s, "revision.release", json!({}));
+    let d = s.dialog().cloned().unwrap();
+    let r = spec(&d, &s);
+    assert_eq!(r.primary.label, "Save and go on");
+    assert_eq!(
+        r.primary.answer,
+        DialogAnswer::Action("revision.release", json!({ "save": true }))
+    );
+    done(&mut s, "revision.release", json!({ "save": true }));
+    assert!(!s.is_dirty(), "saved");
+    assert_eq!(form(&s).0, "revision.release", "the release's dialog again");
+    assert_ne!(spec(&s.dialog().cloned().unwrap(), &s).primary.label, "Save and go on");
     s.shutdown();
 }

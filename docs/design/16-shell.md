@@ -428,7 +428,7 @@ holds.
 | Canvas | Canvas tabs with chips; the white sheet on the surround; toasts at the canvas pane's top right; the **tool options card** at the page view's top left while a tool with fields runs. |
 | HUD | One status node centred on the page-view pane, with the active tool, the quick tools, the prompt and the zoom control; on the inverse surface. |
 | Bottom dock | Messages, Find, Jobs, History and Preview, closed by default, each with an empty state. |
-| Status bar | The state at the left; findings, job, selection, cursor, grid, zoom, save state ("Saved", "Unsaved changes", "Read-only"), renderer and notifications at the right (16a §5.8). |
+| Status bar | The state and the revision ("V1.0 released 20-11-2026") at the left; findings, job, selection, cursor, grid, zoom, save state ("Saved", "Unsaved changes", "Read-only"), renderer and notifications at the right (16a §5.8). |
 
 F6 cycles command bar, navigator, canvas and Properties (and History while it is shown). The headless describe output
 has the `commandbar` section and the `hud` line; the dock tabs' restyle and the Properties filter for more

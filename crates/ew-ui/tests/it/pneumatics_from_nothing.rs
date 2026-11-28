@@ -1138,7 +1138,7 @@ fn autoconnect_never_joins_an_exhaust_to_a_working_port() {
     d.shell_mut().shutdown();
 }
 
-/// Clicks the Properties header's finding chip (its accessible name `<n> Warning…` or `<n> Pending…`) and answers the
+/// Clicks the Properties header's finding chip (its accessible name `<n> Warning…` or `<n> pending finding…`) and answers the
 /// finding rows Messages shows then.
 fn chip_findings(d: &mut Driver) -> Vec<String> {
     d.input(&Input::Hover { at: (1000, 600) });
@@ -1148,7 +1148,7 @@ fn chip_findings(d: &mut Driver) -> Vec<String> {
         .into_iter()
         .find(|(l, _)| {
             l.split_once(' ').is_some_and(|(n, rest)| {
-                n.parse::<u32>().is_ok() && (rest.starts_with("Warning") || rest.starts_with("Pending"))
+                n.parse::<u32>().is_ok() && (rest.starts_with("Warning") || rest.starts_with("pending finding"))
             })
         })
         .map(|(_, at)| at)

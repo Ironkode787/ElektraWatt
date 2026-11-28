@@ -15,6 +15,7 @@ confirm-export-dxf-replace-text = { $p0 ->
 dialog-replace = Replace
 dialog-close = Close
 dialog-save = Save
+dialog-save-go-on = Save and go on
 dialog-discard = Discard
 dialog-cancel = Cancel
 dialog-go = Go

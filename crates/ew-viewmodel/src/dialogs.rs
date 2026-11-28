@@ -1214,7 +1214,26 @@ fn revision_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogS
         };
     }
     if !can_confirm {
-        return base;
+        // A dialog that names its step offers it: Save and go on, Set revision author….
+        return match model.revision_step() {
+            Some(crate::shell::RevisionStep::Save) => DialogSpec {
+                primary: DialogButton::new(
+                    key!("dialog-save-go-on"),
+                    DialogAnswer::Action(form.action, json!({ "save": true })),
+                ),
+                secondary: vec![close()],
+                ..base
+            },
+            Some(crate::shell::RevisionStep::SetAuthor) => DialogSpec {
+                primary: DialogButton::new(
+                    key!("action-revision-set-author"),
+                    DialogAnswer::Action("revision.set_author", json!({})),
+                ),
+                secondary: vec![close()],
+                ..base
+            },
+            None => base,
+        };
     }
     if form.action == "revision.release" {
         return DialogSpec {

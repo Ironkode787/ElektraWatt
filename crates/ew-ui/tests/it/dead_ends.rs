@@ -149,8 +149,8 @@ fn ctrl_a_on_the_page_selects_everything_it_draws() {
     d.shell_mut().shutdown();
 }
 
-/// The count of the first label that starts with a number and ends with `word` ("9 Pending", "9 pending on this
-/// page").
+/// The count of the first label that starts with a number and ends with `word` ("9 pending findings", "9 pending on
+/// this page").
 fn count_before(d: &Driver, word: &str) -> Option<usize> {
     d.labels().into_iter().find_map(|(l, _)| {
         let (n, rest) = l.split_once(' ')?;
@@ -183,7 +183,7 @@ fn a_pages_pending_badge_counts_what_the_status_bar_counts() {
     let bar = count_before(&d, "pending on this page")
         .unwrap_or_else(|| panic!("the status bar's count: {:?}", d.labels()));
     assert!(bar > 0);
-    assert_eq!(count_before(&d, "Pending"), Some(bar), "{:?}", d.labels());
+    assert_eq!(count_before(&d, "pending finding"), Some(bar), "{:?}", d.labels());
     d.shell_mut().shutdown();
 }
 

@@ -12,41 +12,84 @@ use super::super::*;
 pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // Check ▸ Revision, the revision dialogs; each answered by its own action with parameters
     // (`confirm` submits the `HumanOnly` command, only from the window a person drives).
-    // In the order of the workflow: the author, the sign-off, the release, a withdrawal.
+    // In the order of the workflow: the author, the sign-off, the release, the revisions, a withdrawal. The Check
+    // tab's Revision group holds the first four and the Rework list's second place; the app menu's group the rest.
     with_params(
         "role?:text, confirm?:bool, cancel?:bool",
-        act(
-            "revision.set_author",
-            Command,
-            Menu::Check,
-            &[],
-            open_revision,
-            sub(Menu::Check, Submenu::Revision, true),
-            |s, p| s.act_revision_set_author(p),
+        placed(
+            place(
+                Group::Revision,
+                1,
+                CommandSize::Small,
+                Some(key!("bar-revision-set-author")),
+            ),
+            "user-edit",
+            act(
+                "revision.set_author",
+                Command,
+                Menu::Check,
+                &[],
+                open_revision,
+                None,
+                |s, p| s.act_revision_set_author(p),
+            ),
         ),
     ),
     with_params(
-        "role?:text, typed?:text, date?:text, confirm?:bool, cancel?:bool",
-        act(
-            "revision.approve",
-            Command,
-            Menu::Check,
-            &[],
-            open_revision,
-            sub(Menu::Check, Submenu::Revision, true),
-            |s, p| s.act_revision_approve(p),
+        "role?:text, typed?:text, date?:text, save?:bool, confirm?:bool, cancel?:bool",
+        placed(
+            place(
+                Group::Revision,
+                2,
+                CommandSize::Small,
+                Some(key!("bar-revision-approve")),
+            ),
+            "user-check",
+            act(
+                "revision.approve",
+                Command,
+                Menu::Check,
+                &[],
+                open_revision,
+                None,
+                |s, p| s.act_revision_approve(p),
+            ),
         ),
     ),
     with_params(
-        "typed?:text, git?:bool, date?:text, confirm?:bool, cancel?:bool",
+        "typed?:text, git?:bool, date?:text, save?:bool, confirm?:bool, cancel?:bool",
+        placed(
+            place(
+                Group::Revision,
+                3,
+                CommandSize::Large,
+                Some(key!("bar-revision-release")),
+            ),
+            "lock",
+            act(
+                "revision.release",
+                Command,
+                Menu::Check,
+                &[],
+                open_revision,
+                None,
+                |s, p| s.act_revision_release(p),
+            ),
+        ),
+    ),
+    // Check ▸ Revision ▸ Revisions: the revision overview, every revision with its date and what changed (the status
+    // bar's revision field opens it too); a project without one gets Report block… on that kind.
+    placed(
+        place(Group::Revision, 4, CommandSize::Small, None),
+        "versions",
         act(
-            "revision.release",
-            Command,
+            "lists.revisions",
+            View,
             Menu::Check,
             &[],
-            open_revision,
-            sub(Menu::Check, Submenu::Revision, true),
-            |s, p| s.act_revision_release(p),
+            project_open,
+            None,
+            |s, _| s.act_lists_revisions(),
         ),
     ),
     with_params(
@@ -57,7 +100,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             Menu::Check,
             &[],
             released_revision,
-            sub(Menu::Check, Submenu::Revision, true),
+            grp(Group::Revision),
             |s, p| s.act_revision_withdraw(p),
         ),
     ),
@@ -69,7 +112,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             Menu::Check,
             &[],
             incomplete_release,
-            sub(Menu::Check, Submenu::Revision, true),
+            grp(Group::Revision),
             |s, p| s.act_revision_incomplete(p),
         ),
     ),

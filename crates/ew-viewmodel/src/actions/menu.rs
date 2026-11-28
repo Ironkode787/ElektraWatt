@@ -313,7 +313,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
         Submenu::PageNavigator => page_navigator_items(metas, model),
         // One checked item per navigator; the message panel has its own item, View ▸ Messages.
         Submenu::Navigators => navigator_items(meta, model),
-        Submenu::Pan | Submenu::Revision => metas.iter().map(|m| item_of(m, model)).collect(),
+        Submenu::Pan => metas.iter().map(|m| item_of(m, model)).collect(),
         // One item per UI language, under its own name.
         Submenu::Language => strings::languages()
             .into_iter()

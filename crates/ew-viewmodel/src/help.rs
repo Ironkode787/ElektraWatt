@@ -312,6 +312,8 @@ fn own_topic(action: &str) -> Option<&'static str> {
         "file.open_sample" => "sample-project",
         "file.import_qet" | "file.import" | "file.import_qet_apply" => "import-qet",
         "file.discard_journal" => "recovery",
+        // The revision group's dialogs share their section of the dialogs page.
+        a if a.starts_with("revision.") => "revisions",
         "tools.palette" => "command-palette",
         "tools.company_standard" => "company-standard-wizard",
         "help.shortcuts" => "keyboard-shortcuts",

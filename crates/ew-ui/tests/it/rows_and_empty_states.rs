@@ -113,8 +113,8 @@ fn the_pending_chips_and_the_messages_header_say_what_they_count() {
         settle(&mut h);
         // The page's chip: the pending findings of what the page draws, as many as the status bar counts.
         let pending = |l: &str| {
-            l.split_once(" Pending: EW-")
-                .is_some_and(|(n, _)| n.parse::<usize>().is_ok())
+            l.split_once(" pending finding")
+                .is_some_and(|(n, rest)| n.parse::<usize>().is_ok() && rest.trim_start_matches('s').starts_with(": EW-"))
         };
         let chip = h
             .get_all_by_role(egui::Role::Button)
@@ -132,7 +132,7 @@ fn the_pending_chips_and_the_messages_header_say_what_they_count() {
             .accesskit_node()
             .label()
             .and_then(|l| {
-                l.split_once(" Pending: ")
+                l.split_once(": ")
                     .map(|(_, f)| f.replace("; EW-", "\nEW-"))
             })
             .expect("the chip names its findings");

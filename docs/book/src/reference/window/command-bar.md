@@ -304,6 +304,14 @@ Marks the thing of the selected row of a list (a potential, a wire, a medium) on
 
 Removes every highlight from the pages.
 
+### Revisions
+
+In the Revision group, beside **Set author**, **Approve** and **Release** ([the revision dialogs](dialogs.md#revisions))
+and **Rework list** ([Rework list…](#rework-list)). Shows the first page of the project's revision overview: every
+revision with its date, its author and checker and the pages it changed. A project without one opens Report block… on
+it. The status bar names the revision at its left, such as "V1.0 released 20-11-2026" or "V2.0 open · 3 pages changed
+since V1.0", and a click on it does the same.
+
 ## Output
 
 ### Export DXF…

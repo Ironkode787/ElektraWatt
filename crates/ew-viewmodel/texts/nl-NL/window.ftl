@@ -151,6 +151,14 @@ status-findings-pending = { $p0 ->
 status-renderer-why = Het tekenvlak tekent op de CPU
 status-bar-saved = Opgeslagen
 status-bar-unsaved = Niet-opgeslagen wijzigingen
+status-revision-released = { $p0 } vrijgegeven { $p1 }
+status-revision-released-undated = { $p0 } vrijgegeven
+status-revision-open = { $p0 } open
+status-revision-changed = { $p0 ->
+        [one] { $p1 } open · 1 pagina gewijzigd sinds { $p2 }
+       *[other] { $p1 } open · { $p0 } pagina's gewijzigd sinds { $p2 }
+    }
+status-revision-tip = De revisie van het project: klik voor elke revisie met haar datum en wat er veranderde
 splitter-name = { $p0 } en { $p1 } van grootte veranderen
 bar-rail = Rail
 bar-duct = Kabelgoot
@@ -163,6 +171,9 @@ status-driver-missing = Samenvoegdriver niet ingesteld
 status-driver-tip = Samenvoegdriver instellen: git voegt de bestanden van dit project dan per record samen
 bar-cable = Kabel
 bar-report = Rapport
+bar-revision-set-author = Auteur instellen
+bar-revision-approve = Goedkeuren
+bar-revision-release = Vrijgeven
 
 # A card that waits for Apply, in the status bar and on the Preview tab.
 status-waiting = { $p0 ->

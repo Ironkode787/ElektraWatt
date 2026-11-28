@@ -78,6 +78,23 @@ pub(crate) struct RevisionState {
     date: Option<String>,
     /// The incomplete release the open offer is about (the found archive's facts).
     pub(crate) incomplete: Option<IncompleteRelease>,
+    /// The step a blocked dialog names and offers beside Close: Save for unsaved changes, Set revision author for a
+    /// revision without one.
+    pub(crate) step: Option<RevisionStep>,
+}
+
+/// The step a revision dialog that cannot go on offers, as it names it.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum RevisionStep {
+    /// "Save and go on": the gate reads the saved project, and it is not saved.
+    Save,
+    /// "Set revision author…": the revision has no author yet.
+    SetAuthor,
+}
+
+/// The step a gate that cannot run offers: Save where saving lets it run.
+fn gate_step(e: &GateError) -> Option<RevisionStep> {
+    matches!(e, GateError::Unsaved | GateError::NoManifest | GateError::Digest(_)).then_some(RevisionStep::Save)
 }
 
 impl RevisionState {
@@ -333,6 +350,54 @@ impl ShellModel {
         self.project.as_ref()?.session.open_revision_label()
     }
 
+    /// Where the open project's revision stands (`Session::revision_standing`): the status bar's revision field.
+    pub fn revision_standing(&self) -> Option<ew_api::RevisionStanding> {
+        self.project.as_ref()?.session.revision_standing()
+    }
+
+    /// The label of the released revision while the project has no open one: the release the next change leaves as it
+    /// is; `None` otherwise.
+    pub(super) fn released_label(&self) -> Option<String> {
+        let session = &self.project.as_ref()?.session;
+        if session.open_revision_label().is_some() {
+            return None;
+        }
+        match session.revision_standing()? {
+            ew_api::RevisionStanding::Released { label, .. } => Some(label),
+            ew_api::RevisionStanding::Open { .. } => None,
+        }
+    }
+
+    /// The toast of the change that opened revision `open` after the release `last`: "This change opens revision
+    /// V2.0: V1.0 stays as released", with Revisions.
+    pub(super) fn notify_revision_opened(&mut self, open: &str, last: &str) {
+        let text = strings::format(key!("toast-revision-opened"), &[open, last]);
+        let offer = self.session_validity().map(|v| {
+            crate::notifications::Offer::steps(
+                "revisions",
+                key!("action-lists-revisions"),
+                v,
+                vec![("lists.revisions", Value::Object(Map::new()))],
+            )
+        });
+        self.notes
+            .push(crate::notifications::Note::new("revision", text).offering([offer]));
+    }
+
+    /// `lists.revisions` (Check ▸ Revision ▸ Revisions, and a click on the status bar's revision field): the first page
+    /// of the project's revision overview, every revision with its date and what changed; else, in the window, Report
+    /// block… on that kind, whose Create makes it.
+    pub(crate) fn act_lists_revisions(&mut self) -> Outcome {
+        const KIND: &str = "revision_overview";
+        match self.list_folio(&[KIND]) {
+            Some(folio) => self.open_list(&folio),
+            None if self.mode == super::Mode::Gui => {
+                self.act_report_block_new(&Map::from_iter([("kind".to_owned(), Value::from(KIND))]))
+            }
+            None => Outcome::refused(key!("reason-no-revision-overview")),
+        }
+    }
+
     /// The labels of the open project's released revisions that are not withdrawn.
     pub fn released_labels(&self) -> Vec<String> {
         self.project
@@ -364,6 +429,11 @@ impl ShellModel {
             self.revision.label.as_str(),
             !self.revision.blocked,
         ))
+    }
+
+    /// The step the open revision dialog offers beside Close, while it cannot go on.
+    pub fn revision_step(&self) -> Option<RevisionStep> {
+        self.revision.step.filter(|_| self.in_revision_form() && self.revision.blocked)
     }
 
     /// What the incomplete-release offer lets the person do: complete the release with the archive, discard the
@@ -467,7 +537,8 @@ impl ShellModel {
         );
     }
 
-    /// The shared start of every revision action: a writable project, the `cancel` parameter, and the date the window
+    /// The shared start of every revision action: a writable project, the `cancel` parameter, `save` (Save and go on: the
+    /// project saved, the form opened again on it), and the date the window
     /// passed (kept for the confirm). `Some` when the action is done.
     fn revision_start(&mut self, action: &str, p: &Map<String, Value>) -> Option<Outcome> {
         if !self.has_project() {
@@ -483,6 +554,20 @@ impl ShellModel {
                     self.dialog = None;
                 }
                 return Some(Outcome::Done);
+            }
+            Ok(false) => {}
+        }
+        // Save and go on: the project saved, the dialog opens again on it.
+        match super::jobs::bool_param(p, "save", false) {
+            Err(e) => return Some(e),
+            Ok(true) => {
+                let saved = self.save_project();
+                if saved != Outcome::Done {
+                    return Some(saved);
+                }
+                if self.in_form_of(action) {
+                    self.dialog = None;
+                }
             }
             Ok(false) => {}
         }
@@ -544,6 +629,7 @@ impl ShellModel {
         self.revision.body.clear();
         self.revision.list.clear();
         self.revision.blocked = false;
+        self.revision.step = None;
     }
 
     /// Opens a revision form.
@@ -610,7 +696,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // Approve revision
 
-    /// `revision.approve {role?, typed?, date?, confirm?, cancel?}` (Check ▸ Revision ▸ Approve revision…): the checker's
+    /// `revision.approve {role?, typed?, date?, save?, confirm?, cancel?}` (Check ▸ Revision ▸ Approve revision…): the checker's
     /// sign-off on the open revision (`revision.approve` through `Session::approve_as`). The form shows the gate's
     /// result on the saved project (refused while any error other than EW-REL-001 is open, and without an author), the
     /// safety waivers the sign-off acknowledges, the checker's role and the label typed to confirm; the approval is
@@ -700,9 +786,16 @@ impl ShellModel {
         let mut body = Vec::new();
         let mut list = Vec::new();
         let mut blocked = true;
+        let mut step = None;
         match (&author, gate) {
-            (None, _) => body.push(strings::format(key!("revision-no-author"), &[label])),
-            (_, Err(e)) => body.push(strings::format(key!("revision-gate-error"), &[&gate_words(&e)])),
+            (None, _) => {
+                body.push(strings::format(key!("revision-no-author"), &[label]));
+                step = Some(RevisionStep::SetAuthor);
+            }
+            (_, Err(e)) => {
+                body.push(strings::format(key!("revision-gate-error"), &[&gate_words(&e)]));
+                step = gate_step(&e);
+            }
             (Some(author), Ok(gate)) => {
                 let blockers = gate.approval_blockers();
                 if blockers.is_empty() {
@@ -748,6 +841,7 @@ impl ShellModel {
         self.revision.body = body;
         self.revision.list = list;
         self.revision.blocked = blocked;
+        self.revision.step = step;
         self.open_revision_form(
             APPROVE,
             key!("revision-approve-title"),
@@ -759,7 +853,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // Release revision
 
-    /// `revision.release {typed?, git?, date?, confirm?, cancel?}` (Check ▸ Revision ▸ Release revision…): the atomic
+    /// `revision.release {typed?, git?, date?, save?, confirm?, cancel?}` (Check ▸ Revision ▸ Release revision…): the atomic
     /// release of the open revision (doc 05 §14.1, `Session::release_as`). The form lists the gate's blockers (then it
     /// only closes), or the six steps with the archive and the git tag; the label is typed to confirm, and in a git
     /// repository the commit and the tag are agreed to. Cancel is the Primary; Release is the destructive button. An
@@ -875,6 +969,10 @@ impl ShellModel {
         };
         let mut list = Vec::new();
         let mut fields = Vec::new();
+        let step = match &judged {
+            Err(ReleaseError::Gate(e)) => gate_step(e),
+            _ => None,
+        };
         let (body, blocked) = match judged {
             Ok(plan) => {
                 list = self.release_steps(label, &plan);
@@ -919,6 +1017,7 @@ impl ShellModel {
         self.revision.body = body;
         self.revision.list = list;
         self.revision.blocked = blocked;
+        self.revision.step = step;
         self.open_revision_form(
             RELEASE,
             key!("revision-release-title"),

@@ -295,7 +295,7 @@ pub use package::{
     NoLength, NoLengthWhy, Package, PackageAsk, PackageError, PackageJob, PackageLack, PackageMember,
     PackagePlan, PlannedMember, write_package,
 };
-pub use release::{Approval, ApproveError, FOUR_EYES_RULE, Gate, GateError, role_name};
+pub use release::{Approval, ApproveError, FOUR_EYES_RULE, Gate, GateError, RevisionStanding, role_name};
 pub use release_run::{
     ArchiveOpenError, Discarded, IncompleteRelease, OpenedArchive, ReleaseContext, ReleaseError,
     ReleaseOptions, ReleasePlan, ReleaseTrouble, Released, TroubleKind,

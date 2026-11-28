@@ -12,6 +12,10 @@ props-refused-no-command = This value is set by the program as the item was made
 props-filter-hint = Filter properties
 props-finding-tip = { $p0 }: { $p1 }
 props-findings-count = { $p0 } { $p1 }
+props-findings-pending = { $p0 ->
+        [one] 1 pending finding
+       *[other] { $p0 } pending findings
+    }
 props-findings-chip = { $p0 }: { $p1 }
 props-action-edit = Edit
 props-action-clear = Clear

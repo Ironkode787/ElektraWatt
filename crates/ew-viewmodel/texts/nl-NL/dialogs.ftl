@@ -15,6 +15,7 @@ confirm-export-dxf-replace-text = { $p0 ->
 dialog-replace = Vervangen
 dialog-close = Sluiten
 dialog-save = Opslaan
+dialog-save-go-on = Opslaan en doorgaan
 dialog-discard = Verwerpen
 dialog-cancel = Annuleren
 dialog-go = Ga

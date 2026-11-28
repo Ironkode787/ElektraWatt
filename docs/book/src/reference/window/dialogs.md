@@ -46,7 +46,8 @@ refused while a title block prints the field, naming the pages.
 
 ## Revisions
 
-The revision dialogs of **Check ▸ Revision**. A revision is one issue of the drawing set. **Set revision author…**
+The revision dialogs of **Check ▸ Revision**, the Check tab's Revision group (the app menu's Check ▸ Revision holds
+them too). A revision is one issue of the drawing set. **Set revision author…**
 names who drew it, **Approve revision…** is the checker's sign-off of the saved project, and **Release revision…**
 issues it: the release gate first runs the checks of the project's check level on the saved project and lists what
 blocks the release. **Withdraw revision…** takes a released revision back, with a reason. **Settle the incomplete

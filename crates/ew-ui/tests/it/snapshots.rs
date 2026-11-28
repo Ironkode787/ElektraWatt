@@ -1533,8 +1533,9 @@ fn the_properties_header_with_many_findings_in_light() {
                     let a = n.accesskit_node();
                     a.label().or_else(|| a.value())
                 })
-                // Findings pending on the editing page count as one Pending chip, as the Messages pane counts them.
-                .filter(|l| l.contains(" Warnings: ") || l.contains(" Errors: ") || l.contains(" Pending: "))
+                // Findings pending on the editing page count as one chip of pending findings, as the Messages pane
+                // counts them.
+                .filter(|l| l.contains(" Warnings: ") || l.contains(" Errors: ") || l.contains(" pending finding"))
                 .collect()
         };
         assert!(!chips.is_empty() && chips.len() <= 3, "{chips:?}");

@@ -13,6 +13,10 @@ props-refused-no-command = Deze waarde zet het programma zoals het element is ge
 props-filter-hint = Eigenschappen filteren
 props-finding-tip = { $p0 }: { $p1 }
 props-findings-count = { $p0 } { $p1 }
+props-findings-pending = { $p0 ->
+        [one] 1 wachtende bevinding
+       *[other] { $p0 } wachtende bevindingen
+    }
 props-findings-chip = { $p0 }: { $p1 }
 props-action-edit = Bewerken
 props-action-clear = Wissen

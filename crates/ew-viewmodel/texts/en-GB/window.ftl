@@ -173,6 +173,14 @@ status-findings-pending = { $p0 ->
 status-renderer-why = The canvas draws on the CPU
 status-bar-saved = Saved
 status-bar-unsaved = Unsaved changes
+status-revision-released = { $p0 } released { $p1 }
+status-revision-released-undated = { $p0 } released
+status-revision-open = { $p0 } open
+status-revision-changed = { $p0 ->
+        [one] { $p1 } open · 1 page changed since { $p2 }
+       *[other] { $p1 } open · { $p0 } pages changed since { $p2 }
+    }
+status-revision-tip = The project's revision: click for every revision with its date and what changed
 splitter-name = Resize { $p0 } and { $p1 }
 bar-rail = Rail
 bar-duct = Duct
@@ -185,6 +193,9 @@ status-driver-missing = Merge driver not configured
 status-driver-tip = Set up merge driver: git then merges this project's files record by record
 bar-cable = Cable
 bar-report = Report
+bar-revision-set-author = Set author
+bar-revision-approve = Approve
+bar-revision-release = Release
 
 # A card that waits for Apply, in the status bar and on the Preview tab.
 status-waiting = { $p0 ->

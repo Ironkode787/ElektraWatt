@@ -516,6 +516,7 @@ error-revision-role = Choose a role.
 error-revision-reason = Give the reason for the withdrawal.
 error-revision-unknown = { $p0 } is not a released revision of this project.
 error-revision-git = Tick “Commit and tag in git”: the project folder is in a git repository, and the release commits it and creates the tag { $p0 }.
+reason-no-revision-overview = The project has no revision overview yet: add one with Report block… (Revision overview).
 error-revision-person = This needs a person at the window: a revision is approved, released, withdrawn or given its author only by a confirmation made there, never by a script, a replay or a plugin.
 error-revision-approve = The approval was refused: { $p0 }.
 error-revision-release = The release was refused: { $p0 }.

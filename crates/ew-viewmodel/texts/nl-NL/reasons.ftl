@@ -485,6 +485,7 @@ error-revision-role = Kies een rol.
 error-revision-reason = Geef de reden van de intrekking.
 error-revision-unknown = { $p0 } is geen vrijgegeven revisie van dit project.
 error-revision-git = Vink “Committen en taggen in git” aan: de projectmap staat in een git-repository, en de vrijgave commit haar en maakt de tag { $p0 }.
+reason-no-revision-overview = Het project heeft nog geen revisieoverzicht: voeg er een toe met Rapportblok… (Revisieoverzicht).
 error-revision-person = Dit vraagt om een persoon aan het venster: een revisie wordt alleen goedgekeurd, vrijgegeven, ingetrokken of van een auteur voorzien door een bevestiging daar, nooit door een script, een herhaling of een plug-in.
 error-revision-approve = De goedkeuring is geweigerd: { $p0 }.
 error-revision-release = De vrijgave is geweigerd: { $p0 }.

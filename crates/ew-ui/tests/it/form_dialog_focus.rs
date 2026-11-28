@@ -196,18 +196,21 @@ fn check_form(h: &mut Harness<'_, App>, action: &str, params: Value) -> String {
             .map(|x| x.value.clone())
             .collect()
     };
+    let unsaved = h.state().shell().is_dirty();
     h.key_press(Key::Enter);
     settle(h);
     if let Some(Dialog::Form(after)) = h.state().shell().dialog()
         && after.action == action
     {
+        // A release refused for unsaved changes offers Save and go on: Enter saves and opens it again.
+        let saved = unsaved && !h.state().shell().is_dirty();
         assert!(
-            after.error.as_ref().is_some_and(|e| !e.is_empty()),
+            saved || after.error.as_ref().is_some_and(|e| !e.is_empty()),
             "{action}: Enter neither submitted the form nor said why"
         );
         assert_eq!(toggles(after), toggles(&form), "{action}: no check box toggled");
         // The refusal's line above the footer leaves the focus where it was: the Primary pressed keeps it.
-        if !form.fields.iter().any(|f| f.is_text()) {
+        if !saved && !form.fields.iter().any(|f| f.is_text()) {
             assert!(
                 support::off_chrome(h, &primary).is_some_and(|n| n.accesskit_node().is_focused()),
                 "{action}: the Primary {primary} keeps the focus after the refusal"

@@ -27,6 +27,13 @@ With a project open the window shows the page list, the page view and the status
 page read-only. `Page Down` and `Page Up` move between pages, `Ctrl+G` goes to a folio, `Ctrl+Z` and `Ctrl+Shift+Z`
 undo and redo, `Ctrl+S` saves and `Ctrl+Shift+S` saves under a new name.
 
+The status bar says at its left where the project's revision stands: "V1.0 open" for a project never released, "V1.0
+released 20-11-2026" after a release, and "V2.0 open · 3 pages changed since V1.0" once a change opened the next
+revision. That first change says so in a toast, "This change opens revision V2.0: V1.0 stays as released", with
+**Revisions**, which shows the revision overview, as a click on the status bar's revision does. The revision's
+commands are the Check tab's Revision group: **Set author**, **Approve**, **Release**, **Revisions** and **Rework
+list**.
+
 ## Sample project
 
 **File, Open sample project** opens the sample project read-only, so that nothing is written into the installation.
