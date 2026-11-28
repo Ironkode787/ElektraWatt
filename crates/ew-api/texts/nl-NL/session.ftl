@@ -857,6 +857,13 @@ package-holds-assembly-list = { $count ->
         [one] 1 klemmenstrook
        *[many] { $n } klemmenstroken
     }
+package-holds-assembly-rails = waar elk apparaat komt: { $count ->
+        [one] 1 rail
+       *[many] { $n } rails
+    }, { $count2 ->
+        [one] 1 klemmenstrook
+       *[many] { $m } klemmenstroken
+    }
 package-holds-hole-table = { $count ->
         [one] 1 vlak
        *[many] { $n } vlakken

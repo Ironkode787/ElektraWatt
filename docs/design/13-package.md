@@ -87,7 +87,7 @@ In the project's language, in a folder per kind; the sample's names (drawing num
 | Contents (`contents`) | `Contents.txt` | what the package is for, the revision, whether it is a draft and why, what the check found (§8.6), how many wires have no length and why, apart from the check what the files lack of the workshop stock and of its parts' data (§8.5), how to read the papers (the wire list's first page's lines, without how a marker of two lines is written there, [13](13-manufacturing-outputs.md) §3.1), and each file with what it is for | — |
 | Drawings (`pages`) | `SAMPLE-E V1.0 drawings.pdf` | every page in page order as one PDF, the list pages among them; a draft's pages carry the draft mark (§8.4) | Export PDF |
 | Wire list (`wire_list`) | `Lists/SAMPLE-E Wire list.xlsx` | every wire with the columns its page prints ([13](13-manufacturing-outputs.md) §3.1): each end's treatment, part, strip length and marker among them; a wire without a length prints "—" as on the page | the list's Excel export |
-| Assembly lists (`assembly_list`) | `Lists/SAMPLE-E Assembly lists.xlsx` | per strip, what to mount in order | the list's Excel export |
+| Assembly lists (`assembly_list`) | `Lists/SAMPLE-E Assembly lists.xlsx` | where each device goes, rail by rail and on each surface, and per strip what to mount in order ([the workshop lists](13-workshop-lists.md) §6.1) | the list's Excel export |
 | Cut list (`cut_list`) | `Lists/SAMPLE-E Cut list.xlsx` | rails, ducts, cables, wires and tubes to cut | the list's Excel export |
 | Consumables (`consumables`) | `Lists/SAMPLE-E Consumables.xlsx` | wire, ferrules and markers to order | the list's Excel export |
 | Hole table (`hole_table`) | `Lists/SAMPLE-E Hole table.xlsx` | every hole of every surface | the list's Excel export |
@@ -180,8 +180,8 @@ drawings for drilling". Greyed in a project without pages: "This project has no 
 The dialog **"Package for the workshop"** has two panes, so that what the check found is always in view; it is as
 wide as the print pre-dialog (`size.dialog.preview`: 1248 px at 1920, [16a](16a-design-language.md) §6.12):
 
-- **Left, What goes in**: one row per member of §8.2, a tick, its words, what it holds ("54 wires, 2 bridges"; "3
-  strips"; "6 files, 149 labels"; "3 surfaces · 3 templates on A4 and 3 DXF") and its form; on the label files' row
+- **Left, What goes in**: one row per member of §8.2, a tick, its words, what it holds ("54 wires, 2 bridges"; "where
+  each device goes: 2 rails, 3 strips", "3 strips" without a rail; "6 files, 149 labels"; "3 surfaces · 3 templates on A4 and 3 DXF") and its form; on the label files' row
   the profile's summary with Change… (§7.3). Every row is ticked. A row says what its member lacks of part data, with
   the way to it: "Cable markers: no marker part in the stock marks cables" with **Workshop stock…** (Parts narrowed to
   the stock, [07](07-place.md) §5.10), where a person adds a marker of his own (kind Marker: Marks cables, Lines,

@@ -649,13 +649,25 @@ impl Session {
                 q.get::<WireRecordSet>(()).len(),
                 ew_reports::kinds::bridge_count(q),
             ),
-            Some(K::AssemblyList) => counted(
-                key!("package-holds-assembly-list"),
-                q.devices()
+            Some(K::AssemblyList) => {
+                // Where each device goes, by its rails' blocks (doc 13 §6.1), and the strips; a project without a
+                // layout has no rail, and the list holds its strips alone.
+                let strips = q
+                    .devices()
                     .iter()
                     .filter(|(_, d)| d.aspects.strip.is_some())
-                    .count(),
-            ),
+                    .count();
+                let rails = q
+                    .table::<ew_schema::Carrier>()
+                    .iter()
+                    .filter(|(_, c)| c.kind == ew_schema::CarrierKind::Rail)
+                    .count();
+                if rails == 0 {
+                    counted(key!("package-holds-assembly-list"), strips)
+                } else {
+                    counted2(key!("package-holds-assembly-rails"), rails, strips)
+                }
+            }
             Some(K::HoleTable) => {
                 let surfaces = self.drilling_surfaces(ew_derive::layout::Paper::A4);
                 let holes: usize = surfaces.iter().map(|s| s.holes).sum();

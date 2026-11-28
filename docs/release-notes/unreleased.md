@@ -1107,3 +1107,6 @@ change here.
 - behaviour-change: Labels… with **Changed since** a release lists under each ticked file the labels it will print,
   one line each, what it is for and what it says ("102.10 at -X1021:3/a · -102S3:13", "-102S3 · -102S3"), in the
   window's language
+- text-change: the package's dialog and Contents say of the assembly lists where each device goes with their rails
+  and strips ("Where each device goes: 2 rails, 3 strips"), where they said "3 strips"; a project without a rail says
+  its strips as before

@@ -489,6 +489,20 @@ fn a_project_without_a_layout_counts_its_wires_without_a_length() {
         )),
         "{contents}"
     );
+    // Without a rail the assembly list holds the strips alone; the sample's says where each device goes as well.
+    let line = |c: &str| {
+        c.lines()
+            .find(|l| l.contains("Assembly lists.xlsx"))
+            .map(str::to_owned)
+            .unwrap_or_default()
+    };
+    assert!(line(&contents).ends_with(" strips."), "{contents}");
+    let (_, sample) = package(&common::sample(), &ask());
+    let sample = String::from_utf8(entry(&sample, |n| n == "Contents.txt").data.clone()).expect("UTF-8");
+    assert!(
+        line(&sample).contains("Where each device goes: ") && line(&sample).contains(" rails, "),
+        "{sample}"
+    );
 }
 
 /// What the wire list and the label files need of the workshop stock and do not find is said under their rows and in

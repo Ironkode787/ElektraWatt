@@ -872,6 +872,13 @@ package-holds-assembly-list = { $count ->
         [one] 1 strip
        *[many] { $n } strips
     }
+package-holds-assembly-rails = where each device goes: { $count ->
+        [one] 1 rail
+       *[many] { $n } rails
+    }, { $count2 ->
+        [one] 1 strip
+       *[many] { $m } strips
+    }
 package-holds-hole-table = { $count ->
         [one] 1 surface
        *[many] { $n } surfaces
