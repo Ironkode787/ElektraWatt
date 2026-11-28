@@ -332,9 +332,9 @@ toast-dismiss = Dismiss
 toast-name = Notification
 announce-copied = Copied { $p0 } records
 toast-copied = { $p0 ->
-        [one] Copied 1 item. { $p1 } hangs the copy on the pointer; a click puts it down.
-       *[other] Copied { $p0 } items. { $p1 } hangs the copy on the pointer; a click puts it down.
-    }
+        [one] Copied 1 item
+       *[other] Copied { $p0 } items
+    }. { $p1 } hangs the copy on the pointer; a click puts it down.
 banner-paste-refused = Not pasted: { $p0 }
 notices-title = Third-party notices
 notices-generated-missing = The notices of the Rust crates are generated for every release (THIRD-PARTY-NOTICES.txt next to the application); this build has none.

@@ -601,6 +601,7 @@ print-stamp-scaled = scaled { $p0 } %
 column-interface = Interface
 column-address = Address
 column-termination = Termination
+column-listed-in = Listed in
 column-role = Role
 column-logical-net = Logical net
 column-physical-net = Physical net

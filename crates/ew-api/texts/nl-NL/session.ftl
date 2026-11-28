@@ -590,6 +590,7 @@ print-stamp-scaled = geschaald op { $p0 } %
 column-interface = Interface
 column-address = Adres
 column-termination = Afsluiting
+column-listed-in = Staat in
 column-role = Rol
 column-logical-net = Logisch net
 column-physical-net = Fysiek net

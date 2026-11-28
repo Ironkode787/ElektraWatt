@@ -17,12 +17,14 @@ use ew_derive::short_tag;
 
 /// The bus navigator's columns (FR-UI-006) with the keys of their labels: a port row's device, interface, bus, role,
 /// address, termination and nets. The address and termination, which are edited here, follow the port's name, so that
-/// a table at the default rail width shows them.
-pub(super) const BUS_COLUMNS: [(&str, &str); 8] = [
+/// a table at the default rail width shows them; then where the row stands (a port stands once in its logical net and
+/// once in its physical net's segment, so the table says which row is which).
+pub(super) const BUS_COLUMNS: [(&str, &str); 9] = [
     ("device", key!("choice-device")),
     ("interface", key!("column-interface")),
     ("address", key!("column-address")),
     ("termination", key!("column-termination")),
+    ("listed_in", key!("column-listed-in")),
     ("bus", key!("choice-bus")),
     ("role", key!("column-role")),
     ("logical_net", key!("column-logical-net")),
@@ -77,7 +79,12 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
     let pnets = q.table::<PhysicalNet>();
     let name_of = |n: &dyn std::fmt::Display| n.to_string();
     // A port's row: `<device> <interface>` with the cells of `BUS_COLUMNS`.
-    let port_row = |b: &mut Builder, parent: u32, f: Id<Function>, mut badges: Vec<String>| -> Option<u32> {
+    let port_row = |b: &mut Builder,
+                    parent: u32,
+                    f: Id<Function>,
+                    mut badges: Vec<String>,
+                    listed_in: &str|
+     -> Option<u32> {
         let func = functions.get(f)?;
         let port = func.bus_port.as_ref()?;
         // The PLC its device belongs to, or that it belongs to none; its menu gives it to one.
@@ -102,6 +109,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
             interface.clone(),
             address,
             termination.to_owned(),
+            listed_in.to_owned(),
             ew_derive::bus_word(&port.bus).to_owned(),
             port_role_word(&port.role).to_owned(),
             port.logical_net
@@ -179,12 +187,12 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
                 } else {
                     Vec::new()
                 };
-                port_row(b, node, *f, badges);
+                port_row(b, node, *f, badges, "logical net");
             }
             // A switch or a plug the net runs through stands in the net, as what it is (doc 10 §2.7).
             for f in &members.through {
                 netted.insert(*f);
-                port_row(b, node, *f, vec!["passes through".to_owned()]);
+                port_row(b, node, *f, vec!["passes through".to_owned()], "logical net");
             }
         }
     }
@@ -244,7 +252,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
                                 Some(OnOff::Off) => badges.push("not terminated".to_owned()),
                                 _ => {}
                             }
-                            if port_row(b, s, *f, badges).is_none() {
+                            if port_row(b, s, *f, badges, "physical net").is_none() {
                                 // An external interruption point at an end: by its device's tag, else by its name.
                                 let label = functions
                                     .get(*f)
@@ -305,7 +313,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
     if !loose.is_empty() {
         let g = group(b, None, NavRole::Section, "ports:none", text!("nav-bus-no-net"));
         for (_, f) in loose {
-            port_row(b, g, f, Vec::new());
+            port_row(b, g, f, Vec::new(), "no net");
         }
     }
     // The interfaces a part gives a device that nothing draws yet (doc 10 §2.7): a row each, keyed
