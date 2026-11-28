@@ -270,3 +270,44 @@ fn a_part_without_a_field_the_package_reads_offers_edit_part_at_the_field() {
     assert_eq!(open.field, Some("sections.ferrule.sleeve"));
     s.shutdown();
 }
+
+/// A fix of one of the dialog's findings (Mark not used on an open connection point of a pushbutton placed here) shows
+/// its card in front of the dialog; once applied, the dialog is back, read again: that finding has nothing left to
+/// mend (it reads "marked not used"), a member left out stays out.
+#[test]
+fn the_dialog_comes_back_after_a_fix_without_the_finding_it_mended() {
+    let tmp = Tmp::new("package-fix-back");
+    let mut s = tmp.sample_in(Mode::Gui, true, "102");
+    common::place_free_button(&mut s);
+    done(&mut s, "package.export", json!({}));
+    done(
+        &mut s,
+        "package.tick",
+        json!({ "member": "drilling", "on": false }),
+    );
+    let finding = package(&s)
+        .findings
+        .iter()
+        .find(|f| f.fix.as_deref() == Some("Mark not used"))
+        .cloned()
+        .expect("an open connection point with Mark not used");
+    done(&mut s, "package.fix", json!({ "key": finding.key }));
+    assert!(s.properties().card().is_some(), "the fix's card");
+    assert!(s.dialog().is_none(), "the card stands in front");
+    done(&mut s, "preview.apply", json!({}));
+    assert!(
+        matches!(s.dialog(), Some(Dialog::Package(_))),
+        "the dialog is back"
+    );
+    // What the fix mended reads as done: no open connection point of it left to mark.
+    assert!(
+        !package(&s)
+            .findings
+            .iter()
+            .any(|f| f.key == finding.key && f.fix.is_some()),
+        "{:?}",
+        package(&s).findings.iter().map(|f| f.message.clone()).collect::<Vec<_>>()
+    );
+    assert!(package(&s).left_out().contains(&"drilling"));
+    s.shutdown();
+}

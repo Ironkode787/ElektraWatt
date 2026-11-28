@@ -192,7 +192,10 @@ wide as the print pre-dialog (`size.dialog.preview`: 1248 px at 1920, [16a](16a-
 - **Right, Before it goes to the workshop**: the check's line, "Ready: nothing stands in the way." or "3 things: 1
   stops a release, 2 are warnings.", and under it every finding of the check, those that stop a release first, each
   with its rule's message, **Show** (its wires or devices listed under it, by their numbers and tags) and its fix as a
-  button (Route for a way or a length, as in Messages), which closes the dialog and runs the fix. Wires without a
+  button (Route for a way or a length, Mark not used, as in Messages), which runs the fix: a fix with a card of its
+  own (Mark not used) stands in front of the dialog, and once the card is applied or cancelled the dialog is back,
+  read again, the finding mended no longer offering its fix and the choices made kept; a fix that leads elsewhere
+  (Route's card of the cabinet, Edit part… in Parts) closes the dialog. Wires without a
   length are named here ("2 wires of +CAB have no length: Route gives them one, or type it", Show lists 105.1 and
   105.2), as are the stale ones. **Open Messages** closes the dialog and opens the Messages pane.
 - **Right, Revision**: "V1.0 is open, not released: the package is a draft, and every page says so." or "V1.0,

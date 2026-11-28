@@ -496,8 +496,10 @@ impl ShellModel {
         }
     }
 
-    /// `package.fix {key}`: closes the dialog and runs the quick fix of the release check's finding `key`, as Messages'
-    /// fix runs it.
+    /// `package.fix {key}`: runs the quick fix of the release check's finding `key`, as Messages' fix runs it. The fix's
+    /// card (Mark not used) stands in front of the dialog; once it is applied or cancelled the dialog comes back, read
+    /// again: the finding the fix mended is gone, the choices made stay ([`ShellModel::return_to_package`]). A fix that
+    /// leads elsewhere (Edit part… to Parts, Route's card of the cabinet) closes the dialog.
     pub(crate) fn act_package_fix(&mut self, p: &Map<String, Value>) -> Outcome {
         let key = match string_param(p, "key") {
             Ok(Some(k)) => k.to_owned(),
@@ -521,10 +523,51 @@ impl ShellModel {
         else {
             return failed(key!("error-bad-param"), &["key"]);
         };
-        if matches!(self.dialog, Some(Dialog::Package(_))) {
-            self.dialog = None;
+        let old = match self.dialog.take() {
+            Some(Dialog::Package(d)) => Some(*d),
+            other => {
+                self.dialog = other;
+                None
+            }
+        };
+        let out = self.run_finding_fix(finding);
+        let fix_card = self
+            .properties()
+            .card()
+            .is_some_and(|c| matches!(c.origin, crate::properties::CardOrigin::QuickFix { .. }));
+        if out == Outcome::Done && fix_card {
+            self.package_after_fix = old;
         }
-        self.run_finding_fix(finding)
+        out
+    }
+
+    /// After a dispatch: a package fix's card gone (applied or cancelled), the package dialog it came from opens again,
+    /// its findings read again and its choices kept.
+    pub(super) fn return_to_package(&mut self) {
+        let card = self
+            .properties()
+            .card()
+            .is_some_and(|c| matches!(c.origin, crate::properties::CardOrigin::QuickFix { .. }));
+        if self.project.is_none() {
+            self.package_after_fix = None;
+            return;
+        }
+        if card || self.dialog.is_some() {
+            return;
+        }
+        let Some(old) = self.package_after_fix.take() else {
+            return;
+        };
+        let reopened = self
+            .package_ask(&Map::new())
+            .ok()
+            .and_then(|ask| self.package_dialog(&ask, Some(old.path.clone()), Some(&old)));
+        if let Some(d) = reopened {
+            self.dialog = Some(Dialog::Package(Box::new(PackageDialog {
+                personal: old.personal,
+                ..d
+            })));
+        }
     }
 
     /// `package.messages` (the dialog's Open Messages): closes the dialog and opens the Messages pane.

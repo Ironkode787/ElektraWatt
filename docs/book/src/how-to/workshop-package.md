@@ -51,7 +51,8 @@ holes of the cabinet's surfaces ([Place devices in the door, and make holes and 
 11. On the right, always in view, **Before it goes to the workshop** shows the release check: "Ready: nothing stands
     in the way.", or what stands, such as "3 things: 1 stops a release, 2 are warnings.". An error stops only a package
     of a released revision; a warning or an info is shown and stops nothing. **Show** lists a finding's wires or
-    devices, its button mends it, and **Open Messages** shows them all.
+    devices, its button mends it, and **Open Messages** shows them all. A fix with a preview of its own, such as
+    **Mark not used**, shows it in front of the dialog; apply it, and the dialog is back with the finding mended.
 12. A wire without a length stops nothing. The right pane and the package's contents name the wires without a length
     and say why, such as "3 wires have no length: one end of each is made on site", or that Route gives a wire of the
     cabinet one.

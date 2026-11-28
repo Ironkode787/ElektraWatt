@@ -927,6 +927,9 @@ pub struct ShellModel {
     /// per group of tabs.
     #[allow(clippy::type_complexity)]
     station_cache: std::cell::RefCell<Vec<(station::StationKey, std::sync::Arc<station::StationShown>)>>,
+    /// The package dialog a fix of one of its findings left for the fix's card, which opens again once that card is
+    /// gone ([`ShellModel::return_to_package`]).
+    package_after_fix: Option<package::PackageDialog>,
     /// The project's settings rows the command search finds by their words, kept for the project session and the
     /// revision they were read for ([`palette::SettingRow`]): read once per change, not once per frame.
     #[allow(clippy::type_complexity)]
@@ -1370,6 +1373,7 @@ impl ShellModel {
             offer_cache: std::cell::RefCell::new(None),
             rack_cache: std::cell::RefCell::default(),
             settings_cache: std::cell::RefCell::new(None),
+            package_after_fix: None,
             station_cache: std::cell::RefCell::new(Vec::new()),
             marks_cache: std::cell::RefCell::new(None),
             last_station: None,
@@ -1853,6 +1857,8 @@ impl ShellModel {
         {
             self.notify_revision_opened(&open, &last);
         }
+        // A package fix's card gone, its dialog comes back.
+        self.return_to_package();
         // The page's toasts leave the screen when the symbol editor takes the window: they speak of the page,
         // and their Undo would act there; the log keeps them.
         if let Some(last) = page_toasts
