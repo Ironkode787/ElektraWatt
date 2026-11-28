@@ -159,9 +159,10 @@ impl ShellModel {
         self.with_online(|o| o.conflict.clone()).unwrap_or_default()
     }
 
-    /// The open error findings of the online report of the current revision, each as its fingerprint and its message
-    /// in the UI language (the check is memoised in the session's store, as [`Self::with_online`]'s is).
-    pub(super) fn open_errors(&self) -> Vec<(String, String)> {
+    /// The open error findings of the online report of the current revision, each as its fingerprint, its message in
+    /// the UI language and whether it is an open item, something still to be given (a bus address TBD), not a fault
+    /// (the check is memoised in the session's store, as [`Self::with_online`]'s is).
+    pub(super) fn open_errors(&self) -> Vec<(String, String, bool)> {
         let Some(project) = &self.project else {
             return Vec::new();
         };
@@ -178,6 +179,7 @@ impl ShellModel {
                 (
                     f.fingerprint.to_string(),
                     ew_api::checks::messages::render(f, lang),
+                    ew_api::checks::open_item_of(f).is_some(),
                 )
             })
             .collect()

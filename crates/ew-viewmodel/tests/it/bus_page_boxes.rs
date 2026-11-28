@@ -248,3 +248,54 @@ fn draw_as_one_symbol_replaces_a_device_s_boxes_and_its_line_follows_the_socket(
     done(&mut s, "select.set", json!({"ids": [other.id.to_string()]}));
     assert_eq!(refused(&mut s, "bus.one_symbol", json!({})), "reason-not-bus-box");
 }
+
+/// A bus line drawn from a station whose address is still to be given is no error of the line: the toast says what is
+/// still to be given, in the information tone, and the check keeps the finding.
+#[test]
+fn a_bus_line_to_a_station_without_its_address_says_what_is_still_to_be_given() {
+    let tmp = Tmp::new("ports-address-to-give");
+    let mut s = actual_size(&tmp, "105");
+    let area = ew_viewmodel::tools::ip::drawing_area(s.canvas().unwrap().page()).expect("the frame");
+    let before = symbols(&s);
+    let k = |s: &ShellModel, x: i64| s.canvas().unwrap().page().snapper.grid_index_of(x);
+    done(&mut s, "tool.place", json!({}));
+    done(&mut s, "place.pick", json!({"part": "EW-GEN-CPU-2"}));
+    let (right, foot) = (k(&s, area[2]), k(&s, area[3]));
+    let near = grid_point(&s, (right - 2, foot - 8));
+    cursor(&mut s, near);
+    done(&mut s, "canvas.activate", json!({}));
+    done(&mut s, "ui.dismiss", json!({}));
+    let placed = symbols(&s)
+        .into_iter()
+        .find(|r| !before.iter().any(|b| b.id == r.id))
+        .expect("the new controller");
+    let t = tables(&s);
+    let port = |rep: ew_viewmodel::ew_api::output::Uuid, name: &str| {
+        t.cps
+            .iter()
+            .find(|c| c.rep == rep && c.label.ends_with(name))
+            .map(|c| c.at)
+    };
+    let held = before.iter().find(|r| r.functions.len() == 2).expect("-104A1").id;
+    let (Some(from), Some(to)) = (port(placed.id, ":A"), port(held, ":A")) else {
+        panic!("the two PROFIBUS ports: {:?}", t.cps.iter().map(|c| c.label.clone()).collect::<Vec<_>>());
+    };
+    done(&mut s, "tool.wire", json!({}));
+    crate::common::click_at(&mut s, from);
+    crate::common::click_at(&mut s, to);
+    let said: Vec<_> = s
+        .notifications()
+        .entries()
+        .map(|n| (n.text.clone(), n.tone()))
+        .collect();
+    assert!(
+        said.iter()
+            .any(|(t, tone)| t.starts_with("Still to be given: ") && *tone == ew_viewmodel::notifications::NoteTone::Info),
+        "{said:?}"
+    );
+    assert!(
+        !said.iter().any(|(t, _)| t.starts_with("The wire makes an error")),
+        "no error of the line: {said:?}"
+    );
+    s.shutdown();
+}

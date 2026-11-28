@@ -481,6 +481,7 @@ toast-route-applied = { $p0 ->
     }.
 toast-route-nothing = Niets te routeren: geen draad zou beter lopen.
 toast-wire-error = De draad geeft een fout: { $p0 }.
+toast-wire-to-give = Nog te geven: { $p0 }.
 toast-route-done-selected = { $p0 ->
         [one] 1 geselecteerde draad gerouteerd: { $p1 }
        *[other] { $p0 } geselecteerde draden gerouteerd: { $p1 }

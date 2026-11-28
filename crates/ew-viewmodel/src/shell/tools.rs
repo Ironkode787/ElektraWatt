@@ -869,19 +869,29 @@ impl ShellModel {
     }
 
     /// A drawn wire that brought an error finding says so at once, in the finding's words, with Undo, in the error's
-    /// tone: the findings that were not open before it (`before`).
-    fn say_wire_errors(&mut self, before: &[(String, String)]) {
-        let new: Vec<String> = self
+    /// tone: the findings that were not open before it (`before`). What is only still to be given (an open item: a bus
+    /// address TBD while the devices are wired first) is no error of the wire: it is said as a notice, in the
+    /// information tone, without Undo; the check keeps the finding.
+    fn say_wire_errors(&mut self, before: &[(String, String, bool)]) {
+        let (open, new): (Vec<_>, Vec<_>) = self
             .open_errors()
             .into_iter()
-            .filter(|(f, _)| !before.iter().any(|(b, _)| b == f))
-            .map(|(_, message)| message.trim_end_matches('.').to_owned())
-            .collect();
+            .filter(|(f, _, _)| !before.iter().any(|(b, _, _)| b == f))
+            .partition(|(_, _, open)| *open);
+        let words = |list: Vec<(String, String, bool)>| -> Vec<String> {
+            list.into_iter()
+                .map(|(_, message, _)| message.trim_end_matches('.').to_owned())
+                .collect()
+        };
+        let (open, new) = (words(open), words(new));
         if !new.is_empty() {
             let text = strings::format(key!("toast-wire-error"), &[&new.join("; ")]);
             let undo = self.undo_offer();
             self.notes
                 .push(Note::new("edit", text).offering([undo]).toned(NoteTone::Error));
+        } else if !open.is_empty() {
+            let text = strings::format(key!("toast-wire-to-give"), &[&open.join("; ")]);
+            self.notes.push(Note::new("to-give", text).toned(NoteTone::Info));
         }
     }
 
