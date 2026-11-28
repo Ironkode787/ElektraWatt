@@ -905,7 +905,9 @@ impl Session {
         }
         // What the new versions name, and in turn what a lacking document they name names (an end plate's maker).
         let mut named: BTreeSet<Uuid> = pairs.iter().flat_map(|(_, new)| named_items(new)).collect();
-        let is_named = |d: &LibDocument, named: &BTreeSet<Uuid>| identity(d).is_some_and(|(_, c, ..)| named.contains(&c));
+        let is_named = |d: &LibDocument, named: &BTreeSet<Uuid>| {
+            identity(d).is_some_and(|(_, c, ..)| named.contains(&c))
+        };
         loop {
             let more: Vec<Uuid> = (lacking.iter())
                 .filter(|d| is_named(d, &named))

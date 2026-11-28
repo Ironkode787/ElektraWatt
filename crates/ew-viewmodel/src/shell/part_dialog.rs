@@ -799,7 +799,11 @@ fn declared_changes(
                 .collect();
             let rows = |v: &Value| -> String {
                 let items = at(v, table);
-                let items = items.as_ref().and_then(Value::as_array).cloned().unwrap_or_default();
+                let items = items
+                    .as_ref()
+                    .and_then(Value::as_array)
+                    .cloned()
+                    .unwrap_or_default();
                 items
                     .iter()
                     .map(|item| {
@@ -827,7 +831,11 @@ fn declared_changes(
                 v.map(|v| field_value_words(session, f.path, &v))
                     .unwrap_or_default()
             };
-            out.push((strings::text(Key::run_time(f.word)).to_owned(), words(x), words(y)));
+            out.push((
+                strings::text(Key::run_time(f.word)).to_owned(),
+                words(x),
+                words(y),
+            ));
         }
     }
     out

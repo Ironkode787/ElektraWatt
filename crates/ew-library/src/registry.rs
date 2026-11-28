@@ -425,7 +425,14 @@ pub fn closure_refs(doc: &LibDocument) -> Vec<(Uuid, Uuid, String)> {
             out.extend(c.item.macros.iter().map(|m| r(&m.macro_ref)));
             out.extend(c.item.accessories.iter().map(|a| r(&a.part)));
             // A cabinet's mounting plate (doc 07 §3.1) comes with the cabinet.
-            out.extend(c.item.sections.enclosure.as_ref().and_then(|e| e.plate.as_ref()).map(r));
+            out.extend(
+                c.item
+                    .sections
+                    .enclosure
+                    .as_ref()
+                    .and_then(|e| e.plate.as_ref())
+                    .map(r),
+            );
             out.push(r(&c.item.manufacturer));
             out
         }

@@ -1393,10 +1393,7 @@ impl ShellModel {
                 if named.is_none_or(|o| o.part != copy) {
                     return self.form_failed(
                         ACTION,
-                        strings::format(
-                            key!("error-enclosure-other-part"),
-                            &[&tag, &code, &number, &part],
-                        ),
+                        strings::format(key!("error-enclosure-other-part"), &[&tag, &code, &number, &part]),
                     );
                 }
             }
@@ -1642,8 +1639,8 @@ impl ShellModel {
     /// location without one.
     fn enclosure_part(&self, location: &str) -> Option<(Uuid, String)> {
         let project = self.project.as_ref()?;
-        let (.., part) = (project.session.location_enclosures().into_iter())
-            .find(|(l, ..)| l.to_string() == location)?;
+        let (.., part) =
+            (project.session.location_enclosures().into_iter()).find(|(l, ..)| l.to_string() == location)?;
         let copy = part?;
         let offer = (project.session.layout_part_offers("enclosure").into_iter()).find(|o| o.part == copy)?;
         Some((copy, offer.number))
@@ -1653,7 +1650,8 @@ impl ShellModel {
     /// chosen, where it has one (the dialog draws it as it is); else every enclosure part, the project's copies first,
     /// with no choice made.
     pub(super) fn enclosure_part_choices(&self, location: &str) -> (Vec<(String, String)>, Option<String>) {
-        let parts = (self.project.as_ref()).map_or_else(Vec::new, |p| p.session.layout_part_offers("enclosure"));
+        let parts =
+            (self.project.as_ref()).map_or_else(Vec::new, |p| p.session.layout_part_offers("enclosure"));
         let held = self.enclosure_part(location).map(|(copy, _)| copy);
         let options = (parts.iter())
             .filter(|o| held.is_none_or(|c| o.part == c))

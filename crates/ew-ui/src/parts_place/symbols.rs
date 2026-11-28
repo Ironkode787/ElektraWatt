@@ -125,11 +125,13 @@ pub(super) fn pieces_section(ui: &mut Ui, open: &OpenSheet, editable: bool, even
                                 if !edit.has_focus() && typed.is_empty() {
                                     edit.request_focus();
                                 }
-                                let enter = edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+                                let enter =
+                                    edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
                                 let needle = typed.to_lowercase();
                                 ui.memory_mut(|m| m.data.insert_temp(typed_id, typed));
                                 let mut first = None;
-                                for (k, w) in kinds.iter().filter(|(_, w)| w.to_lowercase().contains(&needle)) {
+                                for (k, w) in kinds.iter().filter(|(_, w)| w.to_lowercase().contains(&needle))
+                                {
                                     first.get_or_insert_with(|| k.clone());
                                     if ui.selectable_label(*k == row.what, w).clicked() {
                                         picked = Some(k.clone());

@@ -791,7 +791,12 @@ pub static PART_FIELDS: &[PartField] = &[
         G::Schematic,
         Has::Pinned,
         F(Form::PinGrid),
-        &[r_on(Ft::Potentials, Printed, key!("part-says-carries"), Has::Drawn)],
+        &[r_on(
+            Ft::Potentials,
+            Printed,
+            key!("part-says-carries"),
+            Has::Drawn,
+        )],
     ),
     f(
         "cp_pattern[].level",

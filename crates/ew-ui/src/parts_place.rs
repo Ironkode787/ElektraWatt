@@ -1107,7 +1107,10 @@ fn pictures_column(ui: &mut Ui, shell: &ShellModel, place: &PartsPlace, events: 
                 let drawn = open.sheet.sections().contains(&Group::Schematic);
                 picture_card(ui, key!("part-group-schematic"), |ui| {
                     if !drawn {
-                        ui.label(components::small_secondary(&t, strings::text(key!("parts-not-drawn"))));
+                        ui.label(components::small_secondary(
+                            &t,
+                            strings::text(key!("parts-not-drawn")),
+                        ));
                         return;
                     }
                     match shell.part_schematic(&open.sheet) {
@@ -1602,7 +1605,11 @@ fn keep_free(ui: &mut Ui, e: &OpenSheet, editable: bool, events: &mut Vec<Event>
         }
     });
     for (path, _) in sides {
-        crate::parts_sheet::under(ui, field_message(d, path).map(crate::parts_sheet::Under::Error), false);
+        crate::parts_sheet::under(
+            ui,
+            field_message(d, path).map(crate::parts_sheet::Under::Error),
+            false,
+        );
     }
     enter
 }

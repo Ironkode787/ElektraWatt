@@ -61,9 +61,7 @@ impl Command for KeepPart {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let pairs: Vec<(String, Id<Part>, Id<Part>)> = std::iter::once((String::new(), self.from, self.to))
-            .chain(
-                (self.also.iter().enumerate()).map(|(i, k)| (format!("/also/{i}"), k.from, k.to)),
-            )
+            .chain((self.also.iter().enumerate()).map(|(i, k)| (format!("/also/{i}"), k.from, k.to)))
             .collect();
         let missing = |at: String, copy: Id<Part>| {
             CmdError::invalid_params(

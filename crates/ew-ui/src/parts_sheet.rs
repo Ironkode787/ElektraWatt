@@ -270,7 +270,9 @@ pub(crate) fn under(ui: &mut Ui, under: Option<Under>, reserve: bool) {
     let t = theme::current(ui.ctx());
     let Some(u) = under else {
         if reserve {
-            let h = ui.fonts_mut(|f| f.row_height(&theme::font(&t.type_small))).max(t.icon_sm);
+            let h = ui
+                .fonts_mut(|f| f.row_height(&theme::font(&t.type_small)))
+                .max(t.icon_sm);
             ui.allocate_exact_size(vec2(ui.available_width(), h), Sense::hover());
         }
         return;

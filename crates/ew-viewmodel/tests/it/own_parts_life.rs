@@ -71,9 +71,9 @@ fn said(s: &ShellModel) -> String {
 /// No text a person reads holds a UUID, a version requirement or the error of a library that holds nothing.
 #[track_caller]
 fn no_identifier(text: &str) {
-    let uuid = text.split(|c: char| !c.is_ascii_hexdigit() && c != '-').any(|w| {
-        w.len() == 36 && w.chars().filter(|c| *c == '-').count() == 4
-    });
+    let uuid = text
+        .split(|c: char| !c.is_ascii_hexdigit() && c != '-')
+        .any(|w| w.len() == 36 && w.chars().filter(|c| *c == '-').count() == 4);
     assert!(!uuid, "an identifier: {text}");
     for raw in ["@*", "@^", "no installed library holds it", "Version req"] {
         assert!(!text.contains(raw), "{raw}: {text}");
@@ -160,7 +160,12 @@ fn a_terminal_is_kept_with_the_end_plate_it_comes_with() {
             ("accessories[0].kind", "end_plate"),
         ],
     );
-    assert_eq!(s.dispatch("parts.save", &json!({})), Outcome::Done, "{}", said(&s));
+    assert_eq!(
+        s.dispatch("parts.save", &json!({})),
+        Outcome::Done,
+        "{}",
+        said(&s)
+    );
     assert_eq!(open(&s), ("EX-TB-2L".to_owned(), Lives::Mine));
     assert_eq!(
         toast(&s),
@@ -171,7 +176,11 @@ fn a_terminal_is_kept_with_the_end_plate_it_comes_with() {
     no_identifier(&said(&s));
     for number in ["EX-TB-2L", "EX-EP-1"] {
         done(&mut s, "parts.open", json!({"part": number}));
-        assert_ne!(s.dispatch("parts.keep", &json!({})), Outcome::Done, "{number} is his already");
+        assert_ne!(
+            s.dispatch("parts.keep", &json!({})),
+            Outcome::Done,
+            "{number} is his already"
+        );
     }
     // A terminal only in this project that comes with the end plate, now his: Keep in my parts keeps it, and it names
     // the end plate of My parts.
@@ -187,7 +196,12 @@ fn a_terminal_is_kept_with_the_end_plate_it_comes_with() {
     );
     done(&mut s, "parts.save", json!({}));
     done(&mut s, "preview.apply", json!({}));
-    assert_eq!(s.dispatch("parts.keep", &json!({})), Outcome::Done, "{}", said(&s));
+    assert_eq!(
+        s.dispatch("parts.keep", &json!({})),
+        Outcome::Done,
+        "{}",
+        said(&s)
+    );
     assert_eq!(open(&s), ("EX-TB-1".to_owned(), Lives::Mine));
     one_row_mine(&mut s, "EX-TB-1");
     one_row_mine(&mut s, "EX-EP-1");
@@ -214,12 +228,14 @@ fn keep_in_my_parts_keeps_the_parts_it_names_only_here() {
     );
     done(&mut s, "parts.save", json!({}));
     done(&mut s, "preview.apply", json!({}));
-    assert_eq!(s.dispatch("parts.keep", &json!({})), Outcome::Done, "{}", said(&s));
-    assert_eq!(open(&s), ("EX-TB-1".to_owned(), Lives::Mine));
     assert_eq!(
-        toast(&s),
-        "EX-TB-1 is kept in My parts with Example EX-EP-1."
+        s.dispatch("parts.keep", &json!({})),
+        Outcome::Done,
+        "{}",
+        said(&s)
     );
+    assert_eq!(open(&s), ("EX-TB-1".to_owned(), Lives::Mine));
+    assert_eq!(toast(&s), "EX-TB-1 is kept in My parts with Example EX-EP-1.");
     one_row_mine(&mut s, "EX-TB-1");
     one_row_mine(&mut s, "EX-EP-1");
     no_identifier(&said(&s));
@@ -248,7 +264,12 @@ fn a_terminal_like_the_first_saves_as_the_first_did() {
     done(&mut s, "parts.save", json!({}));
     done(&mut s, "parts.new", json!({"like": true}));
     fill(&mut s, &[("part_number", "EX-TB-2L-B")]);
-    assert_eq!(s.dispatch("parts.save", &json!({})), Outcome::Done, "{}", said(&s));
+    assert_eq!(
+        s.dispatch("parts.save", &json!({})),
+        Outcome::Done,
+        "{}",
+        said(&s)
+    );
     assert_eq!(open(&s), ("EX-TB-2L-B".to_owned(), Lives::Mine));
     one_row_mine(&mut s, "EX-TB-2L-B");
     one_row_mine(&mut s, "EX-EP-1");
@@ -280,7 +301,12 @@ fn several_terminals_only_here_take_one_value_and_are_kept() {
     fill(&mut s, &[("mech.mount_kind", "ts35x15")]);
     let label = s.parts_place().unwrap().save_label();
     assert_eq!(label, "Keep in my parts and save");
-    assert_eq!(s.dispatch("parts.save", &json!({})), Outcome::Done, "{}", said(&s));
+    assert_eq!(
+        s.dispatch("parts.save", &json!({})),
+        Outcome::Done,
+        "{}",
+        said(&s)
+    );
     if s.properties().card().is_some() {
         done(&mut s, "preview.apply", json!({}));
     }
@@ -307,7 +333,10 @@ fn the_terminals_of_a_strip_take_his_terminal_with_its_end_plate() {
     let mut s = tmp.empty_shell(Mode::Gui);
     done(&mut s, "parts.open", json!({}));
     for (start, fields) in [
-        ("accessory", &[("manufacturer", "Example"), ("part_number", "EX-EP-9")][..]),
+        (
+            "accessory",
+            &[("manufacturer", "Example"), ("part_number", "EX-EP-9")][..],
+        ),
         (
             "terminal",
             &[
@@ -326,10 +355,19 @@ fn the_terminals_of_a_strip_take_his_terminal_with_its_end_plate() {
     ] {
         done(&mut s, "parts.new", json!({"start": start}));
         fill(&mut s, fields);
-        assert_eq!(s.dispatch("parts.save", &json!({})), Outcome::Done, "{}", said(&s));
+        assert_eq!(
+            s.dispatch("parts.save", &json!({})),
+            Outcome::Done,
+            "{}",
+            said(&s)
+        );
         assert_eq!(open(&s).1, Lives::Mine);
         let number = open(&s).0;
-        assert_eq!(rows(&mut s, &number, "mine"), [Lives::Mine], "{number} in My parts");
+        assert_eq!(
+            rows(&mut s, &number, "mine"),
+            [Lives::Mine],
+            "{number} in My parts"
+        );
     }
     done(&mut s, "parts.back", json!({}));
     let dir = tmp.sample_copy();
@@ -396,12 +434,15 @@ fn create_enclosure_on_a_location_with_one_offers_no_part_it_ignores() {
     done(&mut s, "layout.enclosure_new", json!({}));
     let form = common::form(&s);
     let location = form.fields.iter().find(|f| f.name == "location").unwrap();
-    let held = s
-        .enclosure_choice()
-        .expect("the location has its enclosure");
+    let held = s.enclosure_choice().expect("the location has its enclosure");
     assert!(held.0.starts_with("Draw -UC1 of "), "{held:?}");
     let part = form.fields.iter().find(|f| f.name == "part").unwrap();
-    assert_eq!(part.options.len(), 1, "only the part -UC1 has: {:?}", part.options);
+    assert_eq!(
+        part.options.len(),
+        1,
+        "only the part -UC1 has: {:?}",
+        part.options
+    );
     assert!(
         part.options[0].1.starts_with("EW-GEN-ENC-1"),
         "{:?} for {}",
@@ -422,7 +463,10 @@ fn create_enclosure_on_a_location_with_one_offers_no_part_it_ignores() {
         "layout.enclosure_new",
         &json!({"location": code, "part": "EX-CAB-8"}),
     );
-    assert!(matches!(out, Outcome::Refused { .. } | Outcome::Failed { .. }), "{out:?}");
+    assert!(
+        matches!(out, Outcome::Refused { .. } | Outcome::Failed { .. }),
+        "{out:?}"
+    );
     s.shutdown();
 }
 
@@ -452,7 +496,11 @@ fn his_ferrule_added_to_the_stock_stands_first_of_its_kind() {
         .filter(|f| f.offer.kind == "ferrule")
         .map(|f| f.offer.part_number.clone())
         .collect();
-    assert_eq!(ferrules.first().map(String::as_str), Some("EX-FER-1.5"), "{ferrules:?}");
+    assert_eq!(
+        ferrules.first().map(String::as_str),
+        Some("EX-FER-1.5"),
+        "{ferrules:?}"
+    );
     let second = place
         .found
         .iter()
@@ -494,7 +542,10 @@ fn comes_with_makes_its_part_in_passing() {
         "parts.new",
         json!({"start": "accessory", "for_field": "accessories[0].part"}),
     );
-    fill(&mut s, &[("manufacturer", "Example"), ("part_number", "EX-EP-2L")]);
+    fill(
+        &mut s,
+        &[("manufacturer", "Example"), ("part_number", "EX-EP-2L")],
+    );
     let lacks: Vec<Feature> = (s.parts_place().and_then(|p| p.sheet.as_ref()))
         .map(|o| o.lacks.iter().map(|l| l.feature).collect())
         .unwrap_or_default();
@@ -506,16 +557,34 @@ fn comes_with_makes_its_part_in_passing() {
         .and_then(|o| o.ready.iter().find(|r| r.feature == Feature::Placing).cloned())
         .expect("the schematic's row");
     assert!(
-        matches!(placing.state, ew_viewmodel::ew_api::part_fields::Readiness::NotHere(_)),
+        matches!(
+            placing.state,
+            ew_viewmodel::ew_api::part_fields::Readiness::NotHere(_)
+        ),
         "{placing:?}"
     );
     done(&mut s, "parts.save", json!({}));
-    let o = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the terminal again");
+    let o = s
+        .parts_place()
+        .and_then(|p| p.sheet.as_ref())
+        .expect("the terminal again");
     assert_eq!(o.sheet.text("part_number"), "EX-TB-2L");
-    let named = o.sheet.table("accessories").and_then(|t| t.rows.first()).and_then(|r| r.first());
+    let named = o
+        .sheet
+        .table("accessories")
+        .and_then(|t| t.rows.first())
+        .and_then(|r| r.first());
     assert_eq!(named.map(String::as_str), Some("EX-EP-2L"), "the row names it");
-    fill(&mut s, &[("accessories[0].qty", "1"), ("accessories[0].per", "strip")]);
-    assert_eq!(s.dispatch("parts.save", &json!({})), Outcome::Done, "{}", said(&s));
+    fill(
+        &mut s,
+        &[("accessories[0].qty", "1"), ("accessories[0].per", "strip")],
+    );
+    assert_eq!(
+        s.dispatch("parts.save", &json!({})),
+        Outcome::Done,
+        "{}",
+        said(&s)
+    );
     one_row_mine(&mut s, "EX-TB-2L");
     one_row_mine(&mut s, "EX-EP-2L");
     s.shutdown();
@@ -532,11 +601,17 @@ fn a_two_level_terminal_shows_its_levels_and_ready_for_holds() {
     fill(&mut s, &[("manufacturer", "Example"), ("part_number", "EX-TB-L")]);
     let width = |s: &ShellModel| {
         let o = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the sheet");
-        s.part_schematic(&o.sheet).map(|(_, size)| size.0.0).expect("a picture")
+        s.part_schematic(&o.sheet)
+            .map(|(_, size)| size.0.0)
+            .expect("a picture")
     };
     let one = width(&s);
     fill(&mut s, &[("levels", "2")]);
-    assert!(width(&s) > one, "two levels are drawn: {} against {one}", width(&s));
+    assert!(
+        width(&s) > one,
+        "two levels are drawn: {} against {one}",
+        width(&s)
+    );
     let placing = |s: &ShellModel| {
         (s.parts_place().and_then(|p| p.sheet.as_ref()))
             .and_then(|o| o.ready.iter().find(|r| r.feature == Feature::Placing).cloned())
@@ -575,7 +650,16 @@ fn his_terminals_update_brings_the_end_plate_it_comes_with() {
         ],
     );
     done(&mut s, "parts.save", json!({}));
-    assert_eq!(s.dispatch("preview.apply", &json!({})), Outcome::Done, "{}", said(&s));
-    assert_eq!(rows(&mut s, "EX-EP-7", "project"), [Lives::Mine], "the end plate came with it");
+    assert_eq!(
+        s.dispatch("preview.apply", &json!({})),
+        Outcome::Done,
+        "{}",
+        said(&s)
+    );
+    assert_eq!(
+        rows(&mut s, "EX-EP-7", "project"),
+        [Lives::Mine],
+        "the end plate came with it"
+    );
     s.shutdown();
 }

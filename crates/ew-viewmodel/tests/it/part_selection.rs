@@ -250,7 +250,11 @@ fn favourites_and_recent_persist() {
     let mut s = writable(&tmp);
     // A part of the project's own, which no library holds (the sample's parts are all library copies; a part made in
     // Parts goes to My parts): OWN-1, as a colleague's project carries it.
-    common::import_parts(&mut s, &tmp, "OWN-1,Own,OWN-1,device,,Own part,piece,,,,,,,,,,,\n");
+    common::import_parts(
+        &mut s,
+        &tmp,
+        "OWN-1,Own,OWN-1,device,,Own part,piece,,,,,,,,,,,\n",
+    );
     select(&mut s, "-101F2");
     done(&mut s, "part.choose", json!({}));
     let vlv = item_text(&s, "EW-GEN-VLV-1");

@@ -293,8 +293,10 @@ impl Session {
         // A part kept before is in My parts already: said in words, as a new part of its maker and number is.
         let mine = self.libraries().documents(lib, Kind::Part);
         if let Some(c) = held.iter().find(|c| {
-            mine.iter()
-                .any(|d| d.copy_meta().is_some_and(|m| m.item_id.as_uuid() == c.item_id.as_uuid()))
+            mine.iter().any(|d| {
+                d.copy_meta()
+                    .is_some_and(|m| m.item_id.as_uuid() == c.item_id.as_uuid())
+            })
         }) {
             let maker = ew_derive::manufacturer_name(&self.query(), &c.item.manufacturer);
             return Err(PartDraftError::Field(message(
@@ -310,7 +312,8 @@ impl Session {
             tos.push(v5::lib_copy_id::<Part>(lib, item).as_uuid());
         }
         // The parts named beside them are said; the parts asked for are not.
-        kept.with.retain(|(item, _)| !held.iter().any(|c| c.item_id.as_uuid() == *item));
+        kept.with
+            .retain(|(item, _)| !held.iter().any(|c| c.item_id.as_uuid() == *item));
         let refs: Vec<_> = held.iter().map(|c| lib_ref(lib, c.item_id.as_uuid())).collect();
         let copies = self.write_kept(lib, &kept, &refs)?;
         let mut moves = kept.moves.clone();
@@ -329,10 +332,19 @@ impl Session {
     /// aside) that names a copy only in this project at that item kept in My parts `lib`, keeping it into `kept` with
     /// what it names in turn ([`Session::keep_item`]). A reference to an installed library stays as it is; one that
     /// names nothing the project holds stays too, and the closure then says so.
-    pub(crate) fn keep_named(&self, value: &mut Value, lib: Uuid, kept: &mut Kept) -> Result<(), PartDraftError> {
+    pub(crate) fn keep_named(
+        &self,
+        value: &mut Value,
+        lib: Uuid,
+        kept: &mut Kept,
+    ) -> Result<(), PartDraftError> {
         match value {
             Value::Object(m) => {
-                let uuid = |k: &str| m.get(k).and_then(Value::as_str).and_then(|s| s.parse::<Uuid>().ok());
+                let uuid = |k: &str| {
+                    m.get(k)
+                        .and_then(Value::as_str)
+                        .and_then(|s| s.parse::<Uuid>().ok())
+                };
                 if let (Some(library), Some(item), Some(_)) =
                     (uuid("library"), uuid("item"), m.get("version_req"))
                 {
@@ -399,7 +411,10 @@ impl Session {
         let kind = doc.kind().unwrap_or(Kind::Part);
         let copy = doc.copy_meta().map(|c| (c.id, c.version.to_owned()));
         let mine = self.libraries().documents(lib, kind);
-        if let Some(c) = mine.iter().find_map(|d| d.copy_meta().filter(|c| c.item_id.as_uuid() == item)) {
+        if let Some(c) = mine
+            .iter()
+            .find_map(|d| d.copy_meta().filter(|c| c.item_id.as_uuid() == item))
+        {
             if let (LibDocument::Part(_), Some((from, _))) = (&doc, &copy) {
                 kept.moves.push((*from, c.id));
             }
@@ -432,7 +447,8 @@ impl Session {
                 new.item.manufacturer = self.my_maker(lib, &maker, &mut kept.written)?;
                 let new = crate::part_new::finish(new, LibDocument::Part);
                 kept.moves.push((c.id.as_uuid(), new.id.as_uuid()));
-                kept.with.push((item, format!("{maker} {number}").trim().to_owned()));
+                kept.with
+                    .push((item, format!("{maker} {number}").trim().to_owned()));
                 kept.written.push(LibDocument::Part(new));
             }
             LibDocument::Symbol(c) => {

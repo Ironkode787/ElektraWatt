@@ -1419,7 +1419,9 @@ impl ShellModel {
         let out = self.run_commit(&kept.command);
         if out == Outcome::Done {
             self.libraries_changed();
-            let to = kept.command.params["to"].as_str().and_then(|s| s.parse::<Uuid>().ok());
+            let to = kept.command.params["to"]
+                .as_str()
+                .and_then(|s| s.parse::<Uuid>().ok());
             if let (Some(session), Some(to)) = (self.parts_session(), to)
                 && let Ok(sheet) = session.part_draft(to)
             {

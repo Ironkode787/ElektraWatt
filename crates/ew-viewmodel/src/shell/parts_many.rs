@@ -320,7 +320,11 @@ impl ShellModel {
         };
         let devices = plan.devices.iter().map(|d| self.tag_of(d.as_uuid())).collect();
         let session = self.parts_session();
-        let fields = plan.copies.iter().flat_map(|c| card_fields(session, &c.fields)).collect();
+        let fields = plan
+            .copies
+            .iter()
+            .flat_map(|c| card_fields(session, &c.fields))
+            .collect();
         let card = PartCard {
             title: strings::format_count(crate::count_key!("parts-many-title"), count),
             fields,
@@ -366,9 +370,10 @@ impl ShellModel {
             Ok(k) => k,
             Err(e) => {
                 let out = draft_refusal(e);
-                if let (Outcome::Failed { message }, Some(m)) =
-                    (&out, self.parts.as_deref_mut().and_then(|p| p.many.as_deref_mut()))
-                {
+                if let (Outcome::Failed { message }, Some(m)) = (
+                    &out,
+                    self.parts.as_deref_mut().and_then(|p| p.many.as_deref_mut()),
+                ) {
                     m.error = Some(message.clone());
                 }
                 return out;
