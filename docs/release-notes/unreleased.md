@@ -1104,3 +1104,6 @@ change here.
 - behaviour-change: EW-POT-010 counts a shop wire's end and the field wire that joins it on site as one conductor, as
   it counted their twin ferrule before, so a clamp that took the pair raises no new error and a project that released
   before releases as it did
+- behaviour-change: Labels… with **Changed since** a release lists under each ticked file the labels it will print,
+  one line each, what it is for and what it says ("102.10 at -X1021:3/a · -102S3:13", "-102S3 · -102S3"), in the
+  window's language

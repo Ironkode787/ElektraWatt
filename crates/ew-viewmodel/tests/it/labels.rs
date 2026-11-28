@@ -236,6 +236,61 @@ fn label_file_columns_keep_what_this_build_does_not_know() {
     );
 }
 
+/// "Changed since V1.0" lists the labels it will print before a person prints them (doc 13-markers-labels §5.4): the
+/// sample released as V1.0, then -102S1 tagged -102S7, lists the new device label by its device and the wire markers
+/// that now name -102S7 by their wire and end, each as the label file holds it.
+#[test]
+fn changed_since_a_release_lists_the_labels_it_will_print() {
+    let tmp = Tmp::new("labels-changed-since");
+    let mut s = tmp.sample_in(ew_viewmodel::shell::Mode::Gui, true, "101");
+    done(&mut s, "revision.set_author", json!({ "role": "author", "confirm": true }));
+    done(&mut s, "file.save", json!({}));
+    done(&mut s, "revision.approve", json!({ "role": "customer", "typed": "V1.0" }));
+    done(
+        &mut s,
+        "revision.approve",
+        json!({ "confirm": true, "date": "2026-11-20" }),
+    );
+    done(&mut s, "revision.release", json!({ "typed": "V1.0" }));
+    done(
+        &mut s,
+        "revision.release",
+        json!({ "confirm": true, "date": "2026-11-20" }),
+    );
+    done(&mut s, "select.set", json!({ "refs": ["tag:-102S1"] }));
+    done(
+        &mut s,
+        "props.set",
+        json!({ "row": "device/tag.counter", "value": "7" }),
+    );
+    done(&mut s, "labels.show", json!({ "since": "V1.0" }));
+    let printed: Vec<(String, Vec<String>)> = labels(&s)
+        .printed()
+        .into_iter()
+        .map(|(file, names)| (file, names.to_vec()))
+        .collect();
+    let of = |file: &str| {
+        printed
+            .iter()
+            .find(|(f, _)| f.contains(file))
+            .map(|(_, n)| n.clone())
+            .unwrap_or_else(|| panic!("no {file} file: {printed:?}"))
+    };
+    assert!(
+        of("Device labels").iter().any(|n| n == "-102S7 · -102S7"),
+        "{printed:?}"
+    );
+    let wires = of("Wire markers");
+    assert!(
+        !wires.is_empty()
+            && wires
+                .iter()
+                .all(|n| n.contains(" at ") && n.contains(" · ") && n.contains("-102S7")),
+        "each by its wire and end, naming -102S7: {wires:?}"
+    );
+    s.shutdown();
+}
+
 /// Where "Changed since a release" cannot be chosen, its place says why: the sample has no released revision; a
 /// project released whose archive is not beside it says that, as the rework list does.
 #[test]

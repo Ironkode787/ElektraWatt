@@ -106,11 +106,10 @@ impl LabelsDialog {
     }
 }
 
-/// The labels the file `f` will print, by name, in the window's language: the one call to the label files' names
-/// (`ew_api::LabelFile::names`, which the outputs' branch adds). Until that branch is joined it lists none, and Labels…
-/// shows no list.
-fn label_names(_f: &ew_api::LabelFile) -> Vec<String> {
-    Vec::new()
+/// The labels the file `f` will print, by name, in the window's language (`ew_api::LabelFile::names`): what each is
+/// for and what it says, one line per label in the file's order.
+fn label_names(f: &ew_api::LabelFile) -> Vec<String> {
+    f.names(Some(strings::locale()))
 }
 
 /// The files of `d` left unticked, each by its label set and marker part, which a change of the file's form keeps.
