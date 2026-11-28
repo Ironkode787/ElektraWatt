@@ -176,10 +176,12 @@ status-bar-unsaved = Unsaved changes
 status-revision-released = { $p0 } released { $p1 }
 status-revision-released-undated = { $p0 } released
 status-revision-open = { $p0 } open
-status-revision-unchanged = { $p0 } open · no page changed since { $p1 }
+status-revision-approved = { $p0 } approved
+status-revision-unknown = { $p0 } · a state of a newer version
+status-revision-unchanged = { $p0 } · no page changed since { $p1 }
 status-revision-changed = { $p0 ->
-        [one] { $p1 } open · 1 page changed since { $p2 }
-       *[other] { $p1 } open · { $p0 } pages changed since { $p2 }
+        [one] { $p1 } · 1 page changed since { $p2 }
+       *[other] { $p1 } · { $p0 } pages changed since { $p2 }
     }
 status-revision-tip = The project's revision: click for every revision with its date and what changed
 splitter-name = Resize { $p0 } and { $p1 }

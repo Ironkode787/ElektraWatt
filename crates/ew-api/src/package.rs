@@ -222,8 +222,11 @@ pub struct PackagePlan {
     /// The revision's label: the open one's for a draft, the released one's for a release package; `None` without a
     /// revision.
     pub revision: Option<String>,
-    /// For a release package (the last revision released and none open), its release date as the project writes a
-    /// date ("28-11-2026"); `None` for a draft.
+    /// Whether the package is the release's: the current revision is released and none is open
+    /// ([`crate::RevisionStanding::Released`]); else it is a draft.
+    pub release: bool,
+    /// For a release package, its release day as the project writes a date ("28-11-2026"); `None` for a draft and for a
+    /// release whose revision records no day.
     pub released_on: Option<String>,
     /// The release check (doc 13-package §8.6): what stood, errors first.
     pub check: checks::CheckReport,
@@ -245,7 +248,7 @@ pub struct PackagePlan {
 impl PackagePlan {
     /// Whether the package is a draft: a revision is open, or there is none.
     pub fn draft(&self) -> bool {
-        self.released_on.is_none()
+        !self.release
     }
 
     /// The open errors of the release check: each stops a release package.
@@ -411,28 +414,6 @@ fn iso(d: PdfDate) -> String {
     format!("{:04}-{:02}-{:02}", d.year, d.month, d.day)
 }
 
-/// The revision a package is made of: its label and, for a release package, its release date.
-fn revision_of(q: &Q) -> (Option<String>, Option<ew_schema::Date>) {
-    if let Some(open) = ew_derive::open_revision(q) {
-        return (Some(open.label.as_str().to_owned()), None);
-    }
-    match ew_derive::current_revision(q) {
-        Some(r) if r.state == ew_schema::RevisionState::Released => (
-            Some(r.label.as_str().to_owned()),
-            Some(r.date.unwrap_or_else(|| model_day(q))),
-        ),
-        Some(r) => (Some(r.label.as_str().to_owned()), None),
-        None => (None, None),
-    }
-}
-
-/// The model's date as a day.
-fn model_day(q: &Q) -> ew_schema::Date {
-    let d = crate::output::model_date(q);
-    ew_schema::Date::new(d.year, d.month, d.day)
-        .unwrap_or_else(|_| ew_schema::Date::new(1980, 1, 1).expect("a date"))
-}
-
 /// The wires without a length that holds, by why: an end made on site; not laid yet, per cabinet as EW-MFG-001 counts
 /// them (the cabinet's wires that Route lays), then those of no cabinet; every one in a project without a panel layout;
 /// a way that no longer holds.
@@ -527,7 +508,14 @@ impl Session {
     pub fn package_plan(&self, ask: &PackageAsk) -> PackagePlan {
         let q = self.query();
         let lang = print_language(&q);
-        let (revision, released) = revision_of(&q);
+        // The revision as the status bar names it (`Session::revision_standing`): a release package carries its
+        // release day where the revision has one; a package of an undated release is dated as a draft is.
+        let standing = self.revision_standing();
+        let revision = standing.as_ref().map(|s| s.label().to_owned());
+        let (release, released) = match standing {
+            Some(crate::RevisionStanding::Released { on, .. }) => (true, on),
+            _ => (false, None),
+        };
         let date = released.map_or_else(
             || ask.date.unwrap_or_else(|| crate::output::model_date(&q)),
             |d| PdfDate::ymd(d.year(), d.month(), d.day()),
@@ -546,12 +534,13 @@ impl Session {
             .map(|p| ew_derive::text_in(&p.name, lang.as_ref()).to_owned())
             .collect();
         let name = drawing_and_revision(&q, revision.as_deref());
-        let file = if released.is_some() {
+        let file = if release {
             text!("package-file-name", name, iso(date))
         } else {
             text!("package-file-name-draft", name, iso(date))
         };
         PackagePlan {
+            release,
             released_on: released.map(|d| q.project().settings.formatting.date_format().format(d)),
             revision,
             check,
@@ -1001,7 +990,10 @@ fn contents_txt(
     lines.push(words(&match (&plan.revision, plan.draft()) {
         (Some(label), true) if plan.undated => text!("package-contents-undated", label.clone()),
         (None, _) if plan.undated => text!("package-contents-undated-none"),
-        (Some(label), false) => text!("package-contents-released-on", label.clone(), date),
+        (Some(label), false) if plan.released_on.is_some() => {
+            text!("package-contents-released-on", label.clone(), date)
+        }
+        (Some(label), false) => text!("package-contents-released-undated", label.clone()),
         (Some(label), true) => text!("package-contents-made-on", label.clone(), date),
         (None, _) => text!("package-contents-made-on-none", date),
     }));
@@ -1182,7 +1174,7 @@ fn manifest_json(
         revision: ManifestRevision {
             label: plan.revision.clone(),
             state: if plan.draft() { "open" } else { "released" },
-            released_on: (!plan.draft()).then(|| iso(plan.date)),
+            released_on: plan.released_on.is_some().then(|| iso(plan.date)),
         },
         draft: plan.draft(),
         personal_data: if omit_personal { "left_out" } else { "kept" },

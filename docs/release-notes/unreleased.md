@@ -952,3 +952,48 @@ change here.
   change for its shields: the shield's row loses the size, the colour and the ferrules it was given and its ends print
   bare, a core that shared a twin ferrule with the shield gets a ferrule of its own, the consumables count the
   shield's ferrules no more, and the cable's marker no longer names the shield's colour
+- behaviour-change: a selected hole, stud or gland shows its Properties (it said "Object no longer exists"): its place
+  from the surface's datum, its size, its kind and a read-only Made row (by hand, or for the gland of a cable, with
+  **Select the cable**); the record kind word is "hole", where it was "surface feature"
+- behaviour-change: the status bar shows where the project's revision stands, always: "V1.0 open", "V1.0 approved",
+  "V2.0 open · 3 pages changed since V1.0", "V1.0 released 20-11-2026", "V1.0 released" where the release records no
+  day; a click opens the revision overview. A script's `ui.describe` and every transcript line of a project with a
+  revision carry this field
+- behaviour-change: the Check tab has a **Revision** group (Set revision author…, Approve…, Release…, Revisions…,
+  Rework list…), each greyed with its reason; the Revision submenu it replaces is gone
+- api-add: `lists.revisions` opens the project's revision overview page, or in the window Report block… on that kind
+  where the project has none
+- api-add: `revision.approve` and `revision.release` take `save`: the project is saved, then the dialog opens again
+  (its **Save and go on**); a project in an older format asks its upgrade question first and stays at it
+- behaviour-change: the first change after a release says once, where it is made, "This change opens revision V2.0:
+  V1.0 stays as released", with **Revisions**; opening or making another project says nothing
+- text-change: the Properties badge of pending findings reads "3 pending findings", where it read "3 Pending"
+- behaviour-change: a message that names a panel of the left rail ("drag a device from Unplaced devices") carries a
+  button that opens that panel
+- behaviour-change: the command search finds pages by their folio, title or kind ("panel", "door"), panels by their
+  names and the rows of Project properties by their words ("rail fixing", "hole pitch"), each saying what it is; a
+  setting ranks a step below a command of as good a match; `#` finds among the pages what the plain search finds
+- behaviour-change: a door's page says in its strip when the closed door cannot be judged, with how many devices lack
+  a depth and **Edit part…** on the first (a project of 0.3.5 shows it at once), and the check's message says when the
+  door closes over what stands behind it
+- behaviour-change: the package's dialog comes back after a fix of one of its findings, read again, its choices kept;
+  a release whose revision records no release day makes a release package whose Contents says so, not a day made up
+- behaviour-change: Labels… says why **Changed since a release** cannot be chosen: no release yet, or the reason the
+  release's archive is not found, as the Rework list says it
+- behaviour-change: every row of Route's preview names its wire ("101.4: a way through duct 1, 595 mm"; a changed way
+  "… 610 mm (was 595 mm)"; "103.2: its way is removed, the wire is unfinished"), where it named the record's kind; a
+  long reason is cut short, whole on hover
+- behaviour-change: the Properties filter shows a matched group's rows under it, never its head alone
+- text-change: the shop's hole settings read "Holes at most … apart"; Add hole's Size says its unit and an example;
+  "Draw one like it…" reads "Draw a symbol like this one…"
+- behaviour-change: a station placed on a bus-topology page leaves the view on the page, with a message that offers
+  **Rack…**, where its rack opened in a tab; a bus line drawn to a device whose address is still to be given is a
+  notice of what is still to be given, not an error
+- behaviour-change: the Bus panel's table has the column **Listed in**, fifth: a port on a drawn bus line stands twice,
+  under its logical net and under its physical net's segment, and the column says which row is which
+- behaviour-change: Ctrl+C says what it copied and that Ctrl+V hangs the copy on the pointer
+- behaviour-change: `notifications.run` may leave out `entry`: it then runs the action of the newest message that
+  offers it, the button of the message in front
+- api-add: `Session::revision_standing` (with `RevisionStanding`) is the one reading of the current revision and its
+  state; `Session::door_judgements` gives each enclosure's closed-door verdict; a preview line of a wire's way carries
+  `words`

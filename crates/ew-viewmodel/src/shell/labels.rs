@@ -45,6 +45,8 @@ pub struct LabelFileRow {
     pub count: usize,
     /// Whether Export writes it.
     pub on: bool,
+    /// The labels it will print, by name ("101.1 at -X1011:L1 · -101Q1:1"), in the file's order ([`label_names`]).
+    pub labels: Vec<String>,
 }
 
 /// The Labels… dialog.
@@ -52,6 +54,9 @@ pub struct LabelFileRow {
 pub struct LabelsDialog {
     /// The releases whose archive is found, newest first, each with its words.
     pub releases: Vec<(ReworkRelease, String)>,
+    /// Why "Changed since a release" cannot be chosen, where no release's archive is found: the reason the rework list
+    /// gives (`Session::why_no_release`), so that both say the same; its place in the choice says it.
+    pub since_note: Option<String>,
     /// Which labels.
     pub which: Which,
     /// The files, or why there are none, in words.
@@ -65,12 +70,28 @@ pub struct LabelsDialog {
 }
 
 impl LabelsDialog {
-    /// Why "Changed since a release" cannot be chosen, where it cannot: the project has no released revision whose
-    /// archive is found. Its place in the choice says it.
-    pub fn since_note(&self) -> Option<&'static str> {
-        self.releases
-            .is_empty()
-            .then(|| strings::text(key!("labels-no-release")))
+    /// What a choice of "Changed since …" will print, before a person prints it: each ticked file that holds labels,
+    /// by its label set and marker part, with its labels by name. Empty for every label, which the counts say.
+    pub fn printed(&self) -> Vec<(String, &[String])> {
+        if self.which == Which::All {
+            return Vec::new();
+        }
+        self.files
+            .iter()
+            .flatten()
+            .filter(|f| f.on && !f.labels.is_empty())
+            .map(|f| {
+                let file = if f.marker_part.is_empty() {
+                    f.set.clone()
+                } else {
+                    format!("{} {}", f.set, f.marker_part)
+                };
+                (
+                    strings::format(key!("labels-prints"), &[&file]),
+                    f.labels.as_slice(),
+                )
+            })
+            .collect()
     }
 
     /// The scope of the session's label files.
@@ -83,6 +104,13 @@ impl LabelsDialog {
             Which::File(path) => LabelScope::Changes(ReworkBase::File(path.clone())),
         }
     }
+}
+
+/// The labels the file `f` will print, by name, in the window's language: the one call to the label files' names
+/// (`ew_api::LabelFile::names`, which the outputs' branch adds). Until that branch is joined it lists none, and Labels…
+/// shows no list.
+fn label_names(_f: &ew_api::LabelFile) -> Vec<String> {
+    Vec::new()
 }
 
 /// The files of `d` left unticked, each by its label set and marker part, which a change of the file's form keeps.
@@ -220,8 +248,18 @@ impl ShellModel {
             (_, Ok(Some(path))) => Which::File(PathBuf::from(path)),
             _ => open.unwrap_or(Which::All),
         };
+        let since_note = match &self.project {
+            Some(project) if releases.is_empty() => Some(match project.session.why_no_release() {
+                ew_api::ReworkError::NoRelease | ew_api::ReworkError::NotReleased(_) => {
+                    strings::text(key!("labels-no-release")).to_owned()
+                }
+                e => strings::format(key!("labels-since-unavailable"), &[&super::rework::reason(&e)]),
+            }),
+            _ => None,
+        };
         let mut d = LabelsDialog {
             releases,
+            since_note,
             which,
             files: Ok(Vec::new()),
             profile: String::new(),
@@ -262,12 +300,14 @@ impl ShellModel {
                     .into_iter()
                     .map(|f| {
                         let set = strings::render(&ew_api::label_set_text(f.set));
+                        let labels = label_names(&f);
                         let marker_part = f.marker_part.unwrap_or_default();
                         LabelFileRow {
                             on: !off.contains(&(set.clone(), marker_part.clone())),
                             set,
                             marker_part,
                             count: f.count,
+                            labels,
                             name: f.name,
                         }
                     })
@@ -508,5 +548,46 @@ impl ShellModel {
             });
         }
         out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn row(set: &str, on: bool, labels: &[&str]) -> LabelFileRow {
+        LabelFileRow {
+            name: format!("{set}.csv"),
+            set: set.to_owned(),
+            marker_part: "EW-GEN-MRK-1".to_owned(),
+            count: labels.len(),
+            on,
+            labels: labels.iter().map(|l| (*l).to_owned()).collect(),
+        }
+    }
+
+    /// "Changed since …" lists what it will print, file by file, the ticked files only; every label lists nothing.
+    #[test]
+    fn changed_since_a_release_lists_what_it_will_print() {
+        assert!(strings::set_locale("en"));
+        let mut d = LabelsDialog {
+            releases: Vec::new(),
+            since_note: None,
+            which: Which::File(PathBuf::from("V1.0.ewarchive")),
+            files: Ok(vec![
+                row("Wire markers", true, &["101.1 at -X1011:L1", "101.1 at -101Q1:1"]),
+                row("Device labels", false, &["-101Q1"]),
+                row("Terminal markers", true, &[]),
+            ]),
+            profile: String::new(),
+            misfits: Vec::new(),
+            show_misfits: false,
+        };
+        let printed = d.printed();
+        assert_eq!(printed.len(), 1, "the ticked file with labels");
+        assert_eq!(printed[0].0, "Wire markers EW-GEN-MRK-1 prints:");
+        assert_eq!(printed[0].1, ["101.1 at -X1011:L1", "101.1 at -101Q1:1"]);
+        d.which = Which::All;
+        assert!(d.printed().is_empty());
     }
 }

@@ -203,24 +203,50 @@ pub fn role_name(role: &PartyRole) -> String {
         .unwrap_or_else(|| "a role of a newer format".to_owned())
 }
 
-/// Where the project's revision stands (the status bar's revision field, doc 16a §5.8).
+/// Where the project's revision stands: the one reading of the current revision and its state that the status bar's
+/// revision field (doc 16a §5.8), the package's dialog and its Contents (doc 13-package §8.5) take.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum RevisionStanding {
-    /// The current revision is released: its label and its release date as the project writes dates.
+    /// The current revision is released: its label and the day it was released ([`release_day`]).
     Released {
         /// The label (`V1.0`).
         label: String,
-        /// The release date (`20-11-2026`); `None` where the record has none.
-        on: Option<String>,
+        /// The release day; `None` where neither its release record nor the revision has one.
+        on: Option<Date>,
     },
-    /// The current revision is open: its label, and the last release with the number of pages changed since it
-    /// (doc 15 §5.6 `changed_now`); `None` for a project never released.
+    /// The current revision is open: its label, whether it is approved, and the last release with the number of pages
+    /// changed since it (doc 15 §5.6 `changed_now`); `None` for a project never released.
     Open {
         /// The open label (`V2.0`).
         label: String,
+        /// Signed off on the saved content as it is now (doc 15 §5.4): approved, the release is the next step. An
+        /// edit after the sign-off, saved or not, makes it open again.
+        approved: bool,
         /// The last released label and the pages changed since it.
         since: Option<(String, usize)>,
     },
+    /// The current revision has a state of a newer format: its label only; it is neither open nor released here.
+    Unknown {
+        /// The label.
+        label: String,
+    },
+}
+
+impl RevisionStanding {
+    /// The current revision's label.
+    pub fn label(&self) -> &str {
+        match self {
+            RevisionStanding::Released { label, .. }
+            | RevisionStanding::Open { label, .. }
+            | RevisionStanding::Unknown { label } => label,
+        }
+    }
+}
+
+/// The day the released revision `r` was released: its release record's day, else its own date (a historic release,
+/// released before the project came to EW); `None` where neither is set.
+pub(crate) fn release_day(r: &Revision) -> Option<Date> {
+    r.release.as_ref().and_then(|rel| rel.released_on).or(r.date)
 }
 
 impl Session {
@@ -237,8 +263,11 @@ impl Session {
                 let changed = crate::output::changed_pages(&q, &open).len();
                 (last.label.as_str().to_owned(), changed)
             });
+            let signed = open.sign_off.as_ref().and_then(|s| s.content_digest);
+            let approved = signed.is_some_and(|d| self.content_digest().is_ok_and(|(now, _)| now == d));
             return Some(RevisionStanding::Open {
                 label: open.label.as_str().to_owned(),
+                approved,
                 since,
             });
         }
@@ -247,11 +276,9 @@ impl Session {
         Some(match current.state {
             ew_schema::RevisionState::Released => RevisionStanding::Released {
                 label,
-                on: current
-                    .date
-                    .map(|d| q.project().settings.formatting.date_format().format(d)),
+                on: release_day(&current),
             },
-            _ => RevisionStanding::Open { label, since: None },
+            _ => RevisionStanding::Unknown { label },
         })
     }
 

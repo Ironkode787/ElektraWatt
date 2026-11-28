@@ -24,6 +24,21 @@ fn the_search_finds_a_page_by_its_kind_and_a_setting_by_its_words() {
         .find(|e| e.run == PaletteRun::Page("902".to_owned()))
         .expect("the panel layout's page");
     assert_eq!(layout.breadcrumb, "Page · Panel layout");
+    // `#` finds among the pages what the plain search finds: one matcher.
+    let pages = |entries: Vec<ew_viewmodel::actions::PaletteEntry>| -> Vec<PaletteRun> {
+        entries
+            .into_iter()
+            .filter(|e| matches!(e.run, PaletteRun::Page(_)))
+            .map(|e| e.run)
+            .collect()
+    };
+    let plain = pages(entries);
+    s.set_palette_query("#panel");
+    let mut hashed = pages(s.palette_entries());
+    let mut plain_sorted = plain.clone();
+    plain_sorted.sort_by_key(|r| format!("{r:?}"));
+    hashed.sort_by_key(|r| format!("{r:?}"));
+    assert_eq!(hashed, plain_sorted);
 
     s.set_palette_query("rail fixing");
     let entries = s.palette_entries();

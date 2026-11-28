@@ -50,6 +50,41 @@ fn sort(ranked: &mut [Ranked]) {
     });
 }
 
+/// A page as the search lists it, and how well `query` finds it: by its folio, its title (weighing 0.9) or its kind in
+/// words (0.9: "panel" finds 902 Panel layout, "door" the door's page); `None` where none aligns. The plain search and
+/// `#` both read it; its line says that it is a page and of what kind ("Page · Panel layout").
+fn page_hit(query: &str, row: &PageRow) -> Option<(i64, PaletteEntry)> {
+    let kind = serde_json::to_value(&row.kind)
+        .ok()
+        .and_then(|v| v.as_str().map(strings::choice_text))
+        .unwrap_or_default();
+    let best = [
+        score(query, &row.folio).map(|s| 10 * i64::from(s)),
+        score(query, &row.title).map(|s| 9 * i64::from(s)),
+        score(query, &kind).map(|s| 9 * i64::from(s)),
+    ]
+    .into_iter()
+    .flatten()
+    .max()?;
+    let label = if row.title.is_empty() {
+        row.folio.clone()
+    } else {
+        format!("{} {}", row.folio, row.title)
+    };
+    Some((
+        best,
+        PaletteEntry {
+            run: PaletteRun::Page(row.folio.clone()),
+            label,
+            id: row.folio.clone(),
+            shortcut: String::new(),
+            enabled: true,
+            reason: None,
+            breadcrumb: strings::format(key!("palette-page-of-kind"), &[&kind]),
+        },
+    ))
+}
+
 impl ShellModel {
     /// Sets the text of the palette's field and selects its first entry (an open parameter form closes).
     pub fn set_palette_query(&mut self, query: &str) {
@@ -274,34 +309,14 @@ impl ShellModel {
         entries
     }
 
-    /// The pages the search finds by their folio, title or kind in words ("panel" finds 902 Panel layout, "door" the
-    /// door's page), ranked as an action is, each saying that it is a page and of what kind ("Page · Panel layout").
+    /// The pages the search finds among its hits, ranked as an action is ([`page_hit`]).
     fn page_hits(&self, query: &str) -> Vec<Ranked> {
         self.page_rows()
             .iter()
-            .filter_map(|row| {
-                let kind = serde_json::to_value(&row.kind)
-                    .ok()
-                    .and_then(|v| v.as_str().map(strings::choice_text))
-                    .unwrap_or_default();
-                let label = if row.title.is_empty() {
-                    row.folio.clone()
-                } else {
-                    format!("{} {}", row.folio, row.title)
-                };
-                let rank = rank(query, &label, [kind.as_str()], &row.folio, 0, true)?;
-                Some(Ranked {
-                    entry: PaletteEntry {
-                        run: PaletteRun::Page(row.folio.clone()),
-                        label,
-                        id: row.folio.clone(),
-                        shortcut: String::new(),
-                        enabled: true,
-                        reason: None,
-                        breadcrumb: strings::format(key!("palette-page-of-kind"), &[&kind]),
-                    },
-                    rank,
-                })
+            .filter_map(|row| page_hit(query, row))
+            .map(|(score, entry)| Ranked {
+                entry,
+                rank: score + 100,
             })
             .collect()
     }
@@ -437,40 +452,15 @@ impl ShellModel {
         ranked.into_iter().map(|(_, _, e)| e).collect()
     }
 
-    /// `#`: the pages whose folio or title the query aligns with, the exact folio first, then by the better of the two
-    /// scores (the title weighs 0.9), then in page order.
+    /// `#`: the pages the query finds ([`page_hit`], as the plain search finds them), the exact folio first, then by
+    /// score, then in page order.
     fn page_entries(&self, query: &str) -> Vec<PaletteEntry> {
-        let mut ranked: Vec<(bool, i64, usize, PaletteEntry)> = Vec::new();
-        for (pos, row) in self.page_rows().iter().enumerate() {
-            let folio = score(query, &row.folio).map(|s| 10 * i64::from(s));
-            let title = score(query, &row.title).map(|s| 9 * i64::from(s));
-            let Some(best) = folio.into_iter().chain(title).max() else {
-                continue;
-            };
-            let label = if row.title.is_empty() {
-                row.folio.clone()
-            } else {
-                format!("{} {}", row.folio, row.title)
-            };
-            ranked.push((
-                row.folio == query,
-                best,
-                pos,
-                PaletteEntry {
-                    run: PaletteRun::Page(row.folio.clone()),
-                    label,
-                    id: row.folio.clone(),
-                    shortcut: String::new(),
-                    enabled: true,
-                    reason: None,
-                    breadcrumb: row
-                        .section
-                        .as_ref()
-                        .map(|(n, t)| format!("{n} {t}"))
-                        .unwrap_or_default(),
-                },
-            ));
-        }
+        let mut ranked: Vec<(bool, i64, usize, PaletteEntry)> = self
+            .page_rows()
+            .iter()
+            .enumerate()
+            .filter_map(|(pos, row)| page_hit(query, row).map(|(best, e)| (row.folio == query, best, pos, e)))
+            .collect();
         ranked.sort_by(|a, b| b.0.cmp(&a.0).then(b.1.cmp(&a.1)).then(a.2.cmp(&b.2)));
         ranked.into_iter().map(|(.., e)| e).collect()
     }

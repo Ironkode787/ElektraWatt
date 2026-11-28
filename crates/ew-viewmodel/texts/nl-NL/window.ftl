@@ -154,10 +154,12 @@ status-bar-unsaved = Niet-opgeslagen wijzigingen
 status-revision-released = { $p0 } vrijgegeven { $p1 }
 status-revision-released-undated = { $p0 } vrijgegeven
 status-revision-open = { $p0 } open
-status-revision-unchanged = { $p0 } open · geen pagina gewijzigd sinds { $p1 }
+status-revision-approved = { $p0 } goedgekeurd
+status-revision-unknown = { $p0 } · een status van een nieuwere versie
+status-revision-unchanged = { $p0 } · geen pagina gewijzigd sinds { $p1 }
 status-revision-changed = { $p0 ->
-        [one] { $p1 } open · 1 pagina gewijzigd sinds { $p2 }
-       *[other] { $p1 } open · { $p0 } pagina's gewijzigd sinds { $p2 }
+        [one] { $p1 } · 1 pagina gewijzigd sinds { $p2 }
+       *[other] { $p1 } · { $p0 } pagina's gewijzigd sinds { $p2 }
     }
 status-revision-tip = De revisie van het project: klik voor elke revisie met haar datum en wat er veranderde
 splitter-name = { $p0 } en { $p1 } van grootte veranderen

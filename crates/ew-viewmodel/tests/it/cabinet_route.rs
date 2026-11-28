@@ -398,3 +398,50 @@ fn routes_preview_names_the_wire_on_every_row() {
     );
     shell.shutdown();
 }
+
+/// A way Route changes reads its new way and the length it had: -X1031 50 mm along its rail, Route's preview names each
+/// changed wire with its new length and "(was … mm)", never the way before the change as if it stayed.
+#[test]
+fn routes_preview_says_a_changed_way_with_its_old_length() {
+    let tmp = Tmp::new("vm-cabinet-route-changed");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "902");
+    let (session, _) = ew_api::Session::open_read_only(&tmp.sample_copy(), "test").expect("the sample");
+    let x1031 = session.resolve_reference("tag:-X1031").expect("-X1031").to_string();
+    drop(session);
+    let line = std::fs::read_dir(tmp.sample_copy().join("layout"))
+        .expect("the layout")
+        .flat_map(|f| {
+            let text = std::fs::read_to_string(f.expect("a file").path()).expect("a record file");
+            text.lines().map(str::to_owned).collect::<Vec<_>>()
+        })
+        .find(|l| l.contains("\"$k\":\"placement\"") && l.contains(&format!("\"device\":\"{x1031}\"")))
+        .expect("-X1031 placed");
+    let record: serde_json::Value = serde_json::from_str(&line).expect("a record");
+    let x = record["pose"]["t"][0].as_i64().expect("its place");
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "layout.move", "params": {
+            "placement": record["id"],
+            "pose": {"t": [x + 50_000_000, 0, 0], "q": [0, 0, 0, 1_000_000_000]},
+            "mode": "free",
+        }}),
+    );
+    if shell.properties().card().is_some() {
+        done(&mut shell, "preview.apply", json!({}));
+    }
+    done(&mut shell, "layout.route", json!({}));
+    let rows: Vec<String> = shell
+        .preview_pane()
+        .entities()
+        .iter()
+        .filter(|e| e.kind == "committed_route" && e.change == "changed")
+        .map(|e| ew_viewmodel::preview::change_line(e)[2].clone())
+        .collect();
+    assert!(!rows.is_empty(), "Route changes the ways of -X1031's wires");
+    assert!(
+        rows.iter().any(|r| r.contains(" mm (was ") && r.ends_with(" mm)")),
+        "{rows:?}"
+    );
+    shell.shutdown();
+}

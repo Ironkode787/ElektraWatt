@@ -3223,13 +3223,14 @@ msgstr ""
 #: src/how-to/application-window.md:30
 msgid ""
 "The status bar says at its left where the project's revision stands: \"V1.0 "
-"open\" for a project never released, \"V1.0 released 20-11-2026\" after a "
-"release, and \"V2.0 open · 3 pages changed since V1.0\" once a change opened "
-"the next revision. That first change says so in a toast, \"This change opens "
-"revision V2.0: V1.0 stays as released\", with **Revisions**, which shows the "
-"revision overview, as a click on the status bar's revision does. The "
-"revision's commands are the Check tab's Revision group: **Set author**, "
-"**Approve**, **Release**, **Revisions** and **Rework list**."
+"open\" for a project never released, \"V1.0 approved\" once the checker "
+"approved it, \"V1.0 released 20-11-2026\" after a release, and \"V2.0 open · "
+"3 pages changed since V1.0\" once a change opened the next revision. That "
+"first change says so in a toast, \"This change opens revision V2.0: V1.0 "
+"stays as released\", with **Revisions**, which shows the revision overview, "
+"as a click on the status bar's revision does. The revision's commands are "
+"the Check tab's Revision group: **Set author**, **Approve**, **Release**, "
+"**Revisions** and **Rework list**."
 msgstr ""
 
 #: src/how-to/application-window.md:37
@@ -6083,16 +6084,21 @@ msgstr ""
 #: src/how-to/workshop-package.md:16
 msgid ""
 "Under **Labels**, choose **Every label**, or, after a release, only those "
-"changed since it (**Changed since V1.0**). Before the first release that "
-"choice says so: \"Changed since a release: none yet, the project has no "
-"released revision\"."
+"changed since it (**Changed since V1.0**). Where it cannot be chosen, its "
+"place says why: before the first release \"Changed since a release: none "
+"yet, the project has no released revision\", and after one whose archive is "
+"not beside the project, that the archive is not found, as the Rework list "
+"says it."
 msgstr ""
 "Kies onder **Labels** **Alle labels**, of, na een vrijgave, alleen de labels "
-"die sinds die vrijgave zijn gewijzigd (**Gewijzigd sinds V1.0**). Voor de "
-"eerste vrijgave zegt die keuze dat: \"Gewijzigd sinds een vrijgave: nog "
-"geen, het project heeft geen vrijgegeven revisie\"."
+"die sinds die vrijgave zijn gewijzigd (**Gewijzigd sinds V1.0**). Waar die "
+"keuze niet kan, zegt haar plaats waarom: voor de eerste vrijgave "
+"\"Gewijzigd sinds een vrijgave: nog geen, het project heeft geen "
+"vrijgegeven revisie\", en na een vrijgave waarvan het archief niet naast "
+"het project staat, dat het archief niet gevonden is, zoals de wijzigingslijst "
+"het zegt."
 
-#: src/how-to/workshop-package.md:19
+#: src/how-to/workshop-package.md:20
 msgid ""
 "The line **Label file** says the form of the files and their columns, such "
 "as \"Excel · Text 1, Text 2, Text 3, Copies, For\". **Change…** sets, for "
@@ -6108,7 +6114,7 @@ msgstr ""
 "kolommen** zet de algemene terug. Uw labelprogramma importeert het "
 "Excel-bestand en koppelt zijn kolommen één keer."
 
-#: src/how-to/workshop-package.md:23
+#: src/how-to/workshop-package.md:24
 msgid ""
 "A line such as \"1 label does not fit its marker part\" counts the labels "
 "too long for their marker; **Show** lists them."
@@ -6116,7 +6122,7 @@ msgstr ""
 "Een regel zoals \"1 label past niet op zijn merkerartikel\" telt de labels "
 "die te lang zijn voor hun merker; **Tonen** noemt ze."
 
-#: src/how-to/workshop-package.md:25
+#: src/how-to/workshop-package.md:26
 msgid ""
 "Untick the files you do not need and choose **Export…**, then the folder. "
 "The toast says, for example, \"Wrote 6 label files to …\". A CSV writes each "
@@ -6130,11 +6136,11 @@ msgstr ""
 "spreadsheet geopend, wordt een waarde die begint met `-`, `+` of `=` als "
 "formule gelezen, dus open daar het Excel-bestand."
 
-#: src/how-to/workshop-package.md:29
+#: src/how-to/workshop-package.md:30
 msgid "The drawings for drilling"
 msgstr "De boortekeningen"
 
-#: src/how-to/workshop-package.md:31
+#: src/how-to/workshop-package.md:32
 msgid ""
 "Choose **Output ▸ Workshop ▸ Drilling…** (greyed with \"No surface of this "
 "project has holes yet.\" while no surface has any). The form \"Export the "
@@ -6148,7 +6154,7 @@ msgstr ""
 "pagina, zijn gaten en de bladen die zijn boormal nodig heeft, zoals \"Deur · "
 "pagina 904 · 8 gaten · 5 bladen\", met een vinkje."
 
-#: src/how-to/workshop-package.md:34
+#: src/how-to/workshop-package.md:35
 msgid ""
 "Choose **Template to print at full size (PDF)**, **DXF for a machine** or "
 "both, the **Paper** (A4 or A3) and the **Folder** (Drilling, beside the "
@@ -6162,7 +6168,7 @@ msgstr ""
 "zoals `+CAB Door template.pdf` en `+CAB Door.dxf` in het Engelse "
 "voorbeeldproject; de toast zegt \"6 bestanden geschreven naar …\"."
 
-#: src/how-to/workshop-package.md:37
+#: src/how-to/workshop-package.md:38
 msgid ""
 "Print a template at actual size, not fitted to the page, and measure its 100 "
 "mm bar. Tape the sheets together at their crosses, lay the template's two "
@@ -6176,11 +6182,11 @@ msgstr ""
 "elk gat. De DXF heeft zijn 0,0 in de hoek waarvandaan de gaten van het vlak "
 "worden gemeten, en een laag voor elke manier om een gat te maken."
 
-#: src/how-to/workshop-package.md:41
+#: src/how-to/workshop-package.md:42
 msgid "The package"
 msgstr "Het pakket"
 
-#: src/how-to/workshop-package.md:43
+#: src/how-to/workshop-package.md:44
 msgid ""
 "Choose **Output ▸ Workshop ▸ Package…** (the command bar's button reads "
 "Package). The dialog \"Package for the workshop\" has two panes."
@@ -6188,7 +6194,7 @@ msgstr ""
 "Kies **Uitvoer ▸ Werkplaats ▸ Pakket…** (op de knop in de opdrachtbalk staat "
 "Pakket). Het venster \"Pakket voor de werkplaats\" heeft twee delen."
 
-#: src/how-to/workshop-package.md:45
+#: src/how-to/workshop-package.md:46
 msgid ""
 "On the left, **What goes in**: the drawings, the wire list, the assembly "
 "lists, the cut list, the consumables, the hole table, the label files and "
@@ -6213,7 +6219,7 @@ msgstr ""
 "adereindhuls, met **Artikel bewerken…**, dat dat artikel in Artikelen bij "
 "het veld opent; **Wijzigen…** wijzigt de vorm van het labelbestand."
 
-#: src/how-to/workshop-package.md:52
+#: src/how-to/workshop-package.md:53
 msgid ""
 "On the right, always in view, **Before it goes to the workshop** shows the "
 "release check: \"Ready: nothing stands in the way.\", or what stands, such "
@@ -6234,7 +6240,7 @@ msgstr ""
 "zoals **Markeren als niet gebruikt**, toont dat voor het venster; pas het "
 "toe, en het venster is terug met de bevinding hersteld."
 
-#: src/how-to/workshop-package.md:57
+#: src/how-to/workshop-package.md:58
 msgid ""
 "A wire without a length stops nothing. The right pane and the package's "
 "contents name the wires without a length and say why, such as \"3 wires have "
@@ -6246,7 +6252,7 @@ msgstr ""
 "hebben geen lengte: van elk wordt één einde ter plaatse gemaakt\", of dat "
 "Routeren een draad van de kast er een geeft."
 
-#: src/how-to/workshop-package.md:60
+#: src/how-to/workshop-package.md:61
 msgid ""
 "Below, the revision decides draft or release. While a revision is open, such "
 "as \"V1.0 is open, not released.\", the package is a draft: \"The package is "
@@ -6261,7 +6267,7 @@ msgstr ""
 "manifest en het inhoudsbestand.\" Het pakket van een vrijgegeven revisie "
 "draagt geen markering, en een tweede pakket ervan is hetzelfde bestand."
 
-#: src/how-to/workshop-package.md:64
+#: src/how-to/workshop-package.md:65
 msgid ""
 "To hand the package to someone outside the company, tick **Without personal "
 "data**: it leaves out the name and the address of each party marked as "
@@ -6274,7 +6280,7 @@ msgstr ""
 "zonder zo'n partij zegt \"Geen partij van dit project is gemarkeerd als "
 "persoonsgegevens (Projecteigenschappen ▸ Partijen)\"."
 
-#: src/how-to/workshop-package.md:67
+#: src/how-to/workshop-package.md:68
 msgid ""
 "Under **File**, **Choose…** sets where the ZIP goes, such as `SAMPLE-E V1.0 "
 "draft package.zip`. Choose **Write draft package** (or **Write package** for "
@@ -6288,11 +6294,11 @@ msgstr ""
 "wordt eerst gevraagd (\"… bestaat al. Vervangen?\"). Het pakket wordt "
 "geschreven als taak, en de toast noemt het bestand met **In map tonen**."
 
-#: src/how-to/workshop-package.md:71
+#: src/how-to/workshop-package.md:72
 msgid "What the shop finds in the ZIP"
 msgstr "Wat de werkplaats in het ZIP-bestand vindt"
 
-#: src/how-to/workshop-package.md:73
+#: src/how-to/workshop-package.md:74
 msgid ""
 "At the top, `Contents.txt`, which says the revision, whether it is a draft, "
 "what the release check found, which wires have no length and why, what the "
@@ -6305,7 +6311,7 @@ msgstr ""
 "van haar artikelen, en wat elk bestand is; en de tekeningen als één PDF, "
 "elke pagina in paginavolgorde."
 
-#: src/how-to/workshop-package.md:76
+#: src/how-to/workshop-package.md:77
 msgid ""
 "In `Lists`, each workshop list as an Excel file; in `Labels`, the label "
 "files; in `Drilling`, the template and the DXF of each surface with holes; "
@@ -6317,7 +6323,7 @@ msgstr ""
 "DXF. Daarnaast `manifest.json`, dezelfde lijst voor een programma, met een "
 "SHA-256 van elk bestand."
 
-#: src/how-to/workshop-package.md:79
+#: src/how-to/workshop-package.md:80
 msgid ""
 "The same three exports run on the command line: `ew export labels`, `ew "
 "export drilling` and `ew export package` ([Use the command line on the "

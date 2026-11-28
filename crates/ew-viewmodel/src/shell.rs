@@ -927,9 +927,9 @@ pub struct ShellModel {
     /// per group of tabs.
     #[allow(clippy::type_complexity)]
     station_cache: std::cell::RefCell<Vec<(station::StationKey, std::sync::Arc<station::StationShown>)>>,
-    /// The package dialog a fix of one of its findings left for the fix's card, which opens again once that card is
-    /// gone ([`ShellModel::return_to_package`]).
-    package_after_fix: Option<package::PackageDialog>,
+    /// The package dialog a fix of one of its findings left for the fix's card, with the project epoch it was opened
+    /// on, which opens again once that card is gone ([`ShellModel::return_to_package`]).
+    package_after_fix: Option<(u64, package::PackageDialog)>,
     /// The project's settings rows the command search finds by their words, kept for the project session and the
     /// revision they were read for ([`palette::SettingRow`]): read once per change, not once per frame.
     #[allow(clippy::type_complexity)]
@@ -1848,10 +1848,12 @@ impl ShellModel {
             log.len() - 1
         });
         let page_toasts = self.symbol_editor().is_none().then(|| self.notes.newest_serial());
-        let (rev, released) = (self.revision(), self.released_label());
+        let (epoch, rev, released) = (self.project_epoch(), self.revision(), self.released_label());
         let outcome = self.dispatch_unlogged(action, params);
-        // The first change after a release opens the next revision (doc 15 §5.3): said where the change is made.
+        // The first change after a release opens the next revision (doc 15 §5.3): said where the change is made, of
+        // the same project (another project opened, or this one opened again, is a new epoch and says nothing).
         if let Some(last) = released
+            && self.project_epoch() == epoch
             && self.revision() != rev
             && let Some(open) = self.open_revision_label()
         {

@@ -681,6 +681,8 @@ hole-cable-select = Select the cable
 ## A wire's way as a preview names it (Route's card, the history)
 preview-route-way = { $p0 }: a way through { $p1 }, { $p2 }
 preview-route-way-plain = { $p0 }: a way of { $p1 }
+preview-route-way-was = { $p0 }: a way through { $p1 }, { $p2 } (was { $p3 })
+preview-route-way-plain-was = { $p0 }: a way of { $p1 } (was { $p2 })
 preview-route-unfinished = { $p0 }: its way is removed, the wire is unfinished
 preview-route-replaced = { $p0 }: its old way gives way to its new one
 
@@ -906,6 +908,7 @@ package-about-template = { $count ->
     } of A4, to print at 100 %.
 package-contents-file = Contents.txt
 package-contents-released-on = Package for the workshop, revision { $p0 }, released on { $p1 }
+package-contents-released-undated = Package for the workshop, revision { $p0 }, released; the revision records no release day
 package-contents-made-on = Package for the workshop, revision { $p0 }, made on { $p1 }
 package-contents-made-on-none = Package for the workshop, made on { $p0 }
 package-contents-undated = Package for the workshop, revision { $p0 }; the project carries no date

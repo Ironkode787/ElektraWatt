@@ -64,7 +64,7 @@ pub(crate) fn body(ui: &mut Ui, d: &LabelsDialog, events: &mut Vec<Event>) {
                         }
                     }
                     // Without a release its place says why it cannot be chosen.
-                    if let Some(note) = d.since_note() {
+                    if let Some(note) = d.since_note.as_deref() {
                         ui.add_enabled(false, egui::Button::selectable(false, note))
                             .disabled_tip(note);
                     }
@@ -124,6 +124,23 @@ pub(crate) fn body(ui: &mut Ui, d: &LabelsDialog, events: &mut Vec<Event>) {
                     }
                 });
         });
+    // What "Changed since …" will print, file by file, before a person prints it.
+    let printed = d.printed();
+    if !printed.is_empty() {
+        ui.add_space(t.space_2);
+        egui::ScrollArea::vertical()
+            .id_salt("labels-printed")
+            .max_height(room)
+            .auto_shrink([false, true])
+            .show(ui, |ui| {
+                for (file, labels) in printed {
+                    ui.label(components::small_secondary(&t, file).strong());
+                    for l in labels {
+                        ui.label(components::body(&t, l));
+                    }
+                }
+            });
+    }
     if !d.misfits.is_empty() {
         ui.add_space(t.space_2);
         ui.horizontal(|ui| {

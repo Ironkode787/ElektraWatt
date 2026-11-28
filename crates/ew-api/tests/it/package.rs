@@ -601,3 +601,80 @@ fn a_project_without_a_date_says_so_in_contents() {
     // A date given by the caller is named as before.
     assert!(!s.package_plan(&ask()).undated);
 }
+
+/// The revision and its state have one reading (`Session::revision_standing`), which the package takes: never released
+/// (V1.0 open, a draft); released with its day (a release package of that day); released with no day recorded (a
+/// release package that says so, not a day made up); a state of a newer format (neither open nor released: a draft).
+/// The open revision after a release and the approved one are the window's tests (`revision.rs`): they need a saved
+/// project.
+#[test]
+fn the_revision_stands_once_for_the_status_bar_and_the_package() {
+    use ew_api::RevisionStanding as S;
+    let never = common::sample();
+    assert_eq!(
+        never.revision_standing(),
+        Some(S::Open {
+            label: "V1.0".to_owned(),
+            approved: false,
+            since: None
+        })
+    );
+    assert!(never.package_plan(&ask()).draft());
+
+    let dated = released(|_, _| {}, true);
+    let day = Date::new(2026, 11, 28).expect("a date");
+    assert_eq!(
+        dated.revision_standing(),
+        Some(S::Released {
+            label: "V1.0".to_owned(),
+            on: Some(day)
+        })
+    );
+    let plan = dated.package_plan(&ask());
+    assert!(!plan.draft() && plan.released_on.is_some());
+
+    let undated = released(
+        |_, records| {
+            for r in records.iter_mut() {
+                if let Record::Revision(rev) = r {
+                    rev.date = None;
+                }
+            }
+        },
+        true,
+    );
+    assert_eq!(
+        undated.revision_standing(),
+        Some(S::Released {
+            label: "V1.0".to_owned(),
+            on: None
+        })
+    );
+    let plan = undated.package_plan(&ask());
+    assert!(!plan.draft() && plan.released_on.is_none(), "a release, its day not made up");
+    let (_, entries) = package(&undated, &ask());
+    let contents = String::from_utf8(entry(&entries, |n| n == "Contents.txt").data.clone()).expect("UTF-8");
+    assert!(
+        contents.contains("revision V1.0, released; the revision records no release day"),
+        "{contents}"
+    );
+
+    let newer = released(
+        |_, records| {
+            for r in records.iter_mut() {
+                if let Record::Revision(rev) = r {
+                    rev.state = RevisionState::Unknown(serde_json::json!("checked"));
+                }
+            }
+        },
+        true,
+    );
+    assert_eq!(
+        newer.revision_standing(),
+        Some(S::Unknown {
+            label: "V1.0".to_owned()
+        })
+    );
+    let plan = newer.package_plan(&ask());
+    assert!(plan.draft() && plan.revision.as_deref() == Some("V1.0"));
+}

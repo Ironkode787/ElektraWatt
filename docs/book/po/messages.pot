@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-28T05:42:08Z\n"
+"POT-Creation-Date: 2026-11-28T06:19:45Z\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2371,13 +2371,14 @@ msgstr ""
 #: src/how-to/application-window.md:30
 msgid ""
 "The status bar says at its left where the project's revision stands: \"V1.0 "
-"open\" for a project never released, \"V1.0 released 20-11-2026\" after a "
-"release, and \"V2.0 open · 3 pages changed since V1.0\" once a change opened "
-"the next revision. That first change says so in a toast, \"This change opens "
-"revision V2.0: V1.0 stays as released\", with **Revisions**, which shows the "
-"revision overview, as a click on the status bar's revision does. The "
-"revision's commands are the Check tab's Revision group: **Set author**, "
-"**Approve**, **Release**, **Revisions** and **Rework list**."
+"open\" for a project never released, \"V1.0 approved\" once the checker "
+"approved it, \"V1.0 released 20-11-2026\" after a release, and \"V2.0 open · "
+"3 pages changed since V1.0\" once a change opened the next revision. That "
+"first change says so in a toast, \"This change opens revision V2.0: V1.0 "
+"stays as released\", with **Revisions**, which shows the revision overview, "
+"as a click on the status bar's revision does. The revision's commands are "
+"the Check tab's Revision group: **Set author**, **Approve**, **Release**, "
+"**Revisions** and **Rework list**."
 msgstr ""
 
 #: src/how-to/application-window.md:37
@@ -4612,12 +4613,14 @@ msgstr ""
 #: src/how-to/workshop-package.md:16
 msgid ""
 "Under **Labels**, choose **Every label**, or, after a release, only those "
-"changed since it (**Changed since V1.0**). Before the first release that "
-"choice says so: \"Changed since a release: none yet, the project has no "
-"released revision\"."
+"changed since it (**Changed since V1.0**). Where it cannot be chosen, its "
+"place says why: before the first release \"Changed since a release: none "
+"yet, the project has no released revision\", and after one whose archive is "
+"not beside the project, that the archive is not found, as the Rework list "
+"says it."
 msgstr ""
 
-#: src/how-to/workshop-package.md:19
+#: src/how-to/workshop-package.md:20
 msgid ""
 "The line **Label file** says the form of the files and their columns, such "
 "as \"Excel · Text 1, Text 2, Text 3, Copies, For\". **Change…** sets, for "
@@ -4627,13 +4630,13 @@ msgid ""
 "once."
 msgstr ""
 
-#: src/how-to/workshop-package.md:23
+#: src/how-to/workshop-package.md:24
 msgid ""
 "A line such as \"1 label does not fit its marker part\" counts the labels "
 "too long for their marker; **Show** lists them."
 msgstr ""
 
-#: src/how-to/workshop-package.md:25
+#: src/how-to/workshop-package.md:26
 msgid ""
 "Untick the files you do not need and choose **Export…**, then the folder. "
 "The toast says, for example, \"Wrote 6 label files to …\". A CSV writes each "
@@ -4642,11 +4645,11 @@ msgid ""
 "there."
 msgstr ""
 
-#: src/how-to/workshop-package.md:29
+#: src/how-to/workshop-package.md:30
 msgid "The drawings for drilling"
 msgstr ""
 
-#: src/how-to/workshop-package.md:31
+#: src/how-to/workshop-package.md:32
 msgid ""
 "Choose **Output ▸ Workshop ▸ Drilling…** (greyed with \"No surface of this "
 "project has holes yet.\" while no surface has any). The form \"Export the "
@@ -4655,7 +4658,7 @@ msgid ""
 "· 8 holes · 5 sheets\", with a tick."
 msgstr ""
 
-#: src/how-to/workshop-package.md:34
+#: src/how-to/workshop-package.md:35
 msgid ""
 "Choose **Template to print at full size (PDF)**, **DXF for a machine** or "
 "both, the **Paper** (A4 or A3) and the **Folder** (Drilling, beside the "
@@ -4664,7 +4667,7 @@ msgid ""
 "…\"."
 msgstr ""
 
-#: src/how-to/workshop-package.md:37
+#: src/how-to/workshop-package.md:38
 msgid ""
 "Print a template at actual size, not fitted to the page, and measure its 100 "
 "mm bar. Tape the sheets together at their crosses, lay the template's two "
@@ -4673,17 +4676,17 @@ msgid ""
 "for each way of making a hole."
 msgstr ""
 
-#: src/how-to/workshop-package.md:41
+#: src/how-to/workshop-package.md:42
 msgid "The package"
 msgstr ""
 
-#: src/how-to/workshop-package.md:43
+#: src/how-to/workshop-package.md:44
 msgid ""
 "Choose **Output ▸ Workshop ▸ Package…** (the command bar's button reads "
 "Package). The dialog \"Package for the workshop\" has two panes."
 msgstr ""
 
-#: src/how-to/workshop-package.md:45
+#: src/how-to/workshop-package.md:46
 msgid ""
 "On the left, **What goes in**: the drawings, the wire list, the assembly "
 "lists, the cut list, the consumables, the hole table, the label files and "
@@ -4697,7 +4700,7 @@ msgid ""
 "at the field; **Change…** changes the label file's form."
 msgstr ""
 
-#: src/how-to/workshop-package.md:52
+#: src/how-to/workshop-package.md:53
 msgid ""
 "On the right, always in view, **Before it goes to the workshop** shows the "
 "release check: \"Ready: nothing stands in the way.\", or what stands, such "
@@ -4709,7 +4712,7 @@ msgid ""
 "dialog is back with the finding mended."
 msgstr ""
 
-#: src/how-to/workshop-package.md:57
+#: src/how-to/workshop-package.md:58
 msgid ""
 "A wire without a length stops nothing. The right pane and the package's "
 "contents name the wires without a length and say why, such as \"3 wires have "
@@ -4717,7 +4720,7 @@ msgid ""
 "the cabinet one."
 msgstr ""
 
-#: src/how-to/workshop-package.md:60
+#: src/how-to/workshop-package.md:61
 msgid ""
 "Below, the revision decides draft or release. While a revision is open, such "
 "as \"V1.0 is open, not released.\", the package is a draft: \"The package is "
@@ -4726,7 +4729,7 @@ msgid ""
 "carries no mark, and a second package of it is the same file."
 msgstr ""
 
-#: src/how-to/workshop-package.md:64
+#: src/how-to/workshop-package.md:65
 msgid ""
 "To hand the package to someone outside the company, tick **Without personal "
 "data**: it leaves out the name and the address of each party marked as "
@@ -4734,7 +4737,7 @@ msgid ""
 "project is marked as personal data (Project properties ▸ Parties)\"."
 msgstr ""
 
-#: src/how-to/workshop-package.md:67
+#: src/how-to/workshop-package.md:68
 msgid ""
 "Under **File**, **Choose…** sets where the ZIP goes, such as `SAMPLE-E V1.0 "
 "draft package.zip`. Choose **Write draft package** (or **Write package** for "
@@ -4743,11 +4746,11 @@ msgid ""
 "**Show in folder**."
 msgstr ""
 
-#: src/how-to/workshop-package.md:71
+#: src/how-to/workshop-package.md:72
 msgid "What the shop finds in the ZIP"
 msgstr ""
 
-#: src/how-to/workshop-package.md:73
+#: src/how-to/workshop-package.md:74
 msgid ""
 "At the top, `Contents.txt`, which says the revision, whether it is a draft, "
 "what the release check found, which wires have no length and why, what the "
@@ -4755,7 +4758,7 @@ msgid ""
 "is; and the drawings as one PDF, every page in page order."
 msgstr ""
 
-#: src/how-to/workshop-package.md:76
+#: src/how-to/workshop-package.md:77
 msgid ""
 "In `Lists`, each workshop list as an Excel file; in `Labels`, the label "
 "files; in `Drilling`, the template and the DXF of each surface with holes; "
@@ -4763,7 +4766,7 @@ msgid ""
 "file."
 msgstr ""
 
-#: src/how-to/workshop-package.md:79
+#: src/how-to/workshop-package.md:80
 msgid ""
 "The same three exports run on the command line: `ew export labels`, `ew "
 "export drilling` and `ew export package` ([Use the command line on the "

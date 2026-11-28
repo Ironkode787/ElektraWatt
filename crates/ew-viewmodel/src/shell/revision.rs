@@ -362,13 +362,13 @@ impl ShellModel {
     /// The label of the released revision while the project has no open one: the release the next change leaves as it
     /// is; `None` otherwise.
     pub(super) fn released_label(&self) -> Option<String> {
-        let session = &self.project.as_ref()?.session;
-        if session.open_revision_label().is_some() {
+        // An open revision first, cheaply: every dispatch asks, and the standing of an open one counts changed pages.
+        if self.open_revision_label().is_some() {
             return None;
         }
-        match session.revision_standing()? {
+        match self.revision_standing()? {
             ew_api::RevisionStanding::Released { label, .. } => Some(label),
-            ew_api::RevisionStanding::Open { .. } => None,
+            ew_api::RevisionStanding::Open { .. } | ew_api::RevisionStanding::Unknown { .. } => None,
         }
     }
 
@@ -563,12 +563,13 @@ impl ShellModel {
             }
             Ok(false) => {}
         }
-        // Save and go on: the project saved, the dialog opens again on it.
+        // Save and go on: the project saved, the dialog opens again on it. A save that asks first (the upgrade of an
+        // older format) leaves its question in front: answered, the project is saved, and the step is taken again.
         match super::jobs::bool_param(p, "save", false) {
             Err(e) => return Some(e),
             Ok(true) => {
                 let saved = self.save_project();
-                if saved != Outcome::Done {
+                if saved != Outcome::Done || self.is_dirty() {
                     return Some(saved);
                 }
                 if self.in_form_of(action) {

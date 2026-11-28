@@ -144,7 +144,7 @@ impl Session {
             .iter()
             .filter(|(_, r)| r.state == RevisionState::Released)
             .map(|(id, r)| {
-                let released_on = r.release.as_ref().and_then(|rel| rel.released_on).or(r.date);
+                let released_on = crate::release::release_day(r);
                 let release = ReworkRelease {
                     revision: id,
                     label: r.label.as_str().to_owned(),

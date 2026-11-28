@@ -219,12 +219,14 @@ labels-all = Alle labels
 labels-since = Gewijzigd sinds { $p0 }
 labels-archive = Gewijzigd sinds het archief { $p0 }
 labels-no-release = Gewijzigd sinds een vrijgave: nog geen, het project heeft geen vrijgegeven revisie
+labels-since-unavailable = Gewijzigd sinds een vrijgave: { $p0 }
 labels-profile = Labelbestand
 labels-change = Wijzigen…
 labels-file = Bestand
 labels-set = Labelset
 labels-marker-part = Merkerartikel
 labels-count = Labels
+labels-prints = { $p0 } drukt af:
 labels-misfits = { $p0 ->
         [one] 1 label past niet op zijn merkerartikel
        *[other] { $p0 } labels passen niet op hun merkerartikel
@@ -266,6 +268,7 @@ package-chip-released = Vrijgegeven
 package-revision-open = { $p0 } is open, niet vrijgegeven.
 package-revision-none = Het project heeft geen revisie.
 package-revision-released = { $p0 }, vrijgegeven op { $p1 }.
+package-revision-released-undated = { $p0 }, vrijgegeven; de revisie vermeldt geen dag van vrijgave.
 package-revision-draft-note = Het pakket is een concept: op elke pagina van de tekeningen staat "{ $p0 }", en dat zeggen ook het manifest en het inhoudsbestand.
 package-revision-released-note = Het pakket is dat van de vrijgave: geen pagina draagt een merkteken, en een tweede pakket van { $p0 } is hetzelfde bestand.
 package-mark = Concept { $p0 }: niet vrijgegeven

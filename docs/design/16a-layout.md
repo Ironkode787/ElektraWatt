@@ -128,7 +128,7 @@ place (`ActionMeta::also`), which is no tool and arms nothing. Tests:
 (the workspace switch in the tab row above does the same) and Addresses ▾ a small one, so PLC keeps within 1920 in the
 pseudo-locale.
 
-The command bar is as above: a tab row with the app button, quick access (Save, Undo, Redo), the tabs, the workspace switch and the command search; a command row with groups of large, small and split buttons, More and the next step. Ctrl+F1 collapses the bar to 33 px; Alt alone or F10 opens the app menu. The fields of the Interruption point, Text, Wire annotation and Structure box tools (the name, the binding) are a floating **tool options card** at the page view's top left, shown only while one of those tools runs. Each of its text fields commits when it is left changed (Enter, Tab, a click elsewhere or the pointer going back to the sheet), never per keystroke; Escape leaves the field without committing and the tool stays. The command search lists, among the commands, the left rail's panels by their names ("PLC" shows the PLC panel), the pages by folio, title and kind in words ("panel" finds the panel layouts, "door" the door's page; the hit says "Page · Panel layout") and the rows of Project properties by their words and the rows they stand under ("rail fixing"; the hit says "Project properties · Workshop", and Enter shows the project's sheet filtered to the row). Commands with no registry action yet are listed by name and drawn nowhere. F6 cycles command bar, navigator, canvas, Properties (and History while it is shown).
+The command bar is as above: a tab row with the app button, quick access (Save, Undo, Redo), the tabs, the workspace switch and the command search; a command row with groups of large, small and split buttons, More and the next step. Ctrl+F1 collapses the bar to 33 px; Alt alone or F10 opens the app menu. The fields of the Interruption point, Text, Wire annotation and Structure box tools (the name, the binding) are a floating **tool options card** at the page view's top left, shown only while one of those tools runs. Each of its text fields commits when it is left changed (Enter, Tab, a click elsewhere or the pointer going back to the sheet), never per keystroke; Escape leaves the field without committing and the tool stays. The command search lists, among the commands, the left rail's panels by their names ("PLC" shows the PLC panel), the pages by folio, title and kind in words ("panel" finds the panel layouts, "door" the door's page; the hit says "Page · Panel layout"; `#` finds among the pages by the same one matcher) and the rows of Project properties by their words and the rows they stand under ("rail fixing"; the hit says "Project properties · Workshop", and Enter shows the project's sheet filtered to the row). Commands with no registry action yet are listed by name and drawn nowhere. F6 cycles command bar, navigator, canvas, Properties (and History while it is shown).
 
 ### 5.3 The tabs
 
@@ -336,8 +336,11 @@ it, and more at 1920 × 1080. A share the user dragged stands.
 1-px `color.border.default` line, `space.3` gutters. Each field is 22 px high with `space.3` padding and `radius.sm`,
 text in `color.text.secondary` with an optional 16-px icon `space.icon` before it, and the hover overlay when it
 is clickable. Left: the **state** ("Ready", or the running command's name), then the **revision**, while the project
-has one: the `versions` icon and where the revision stands, "V1.0 released 20-11-2026", "V2.0 open · 3 pages changed
-since V1.0" (the pages of doc 15 §5.6's `changed_now`) or "V1.0 open" for a project never released; a click opens the
+has one: the `versions` icon and where the revision stands (`Session::revision_standing`, the one reading the package
+and its Contents take too), "V1.0 released 20-11-2026" ("V1.0 released" where the release records no day), "V2.0 open ·
+3 pages changed since V1.0" (the pages of doc 15 §5.6's `changed_now`), "V1.0 open" for a project never released,
+"V1.0 approved" while its sign-off holds for the saved content (an edit makes it open again), or "V1.0 · a state of a
+newer version" for a state this version does not know; a click opens the
 revision overview (Check ▸ Revision ▸ Revisions). At 1920 × 1080 it shows whole; in a window too narrow for every
 field's words it shows its short words, "V2.0 open", the whole in its tooltip. The tool prompt is in the HUD (§5.5).
 Right, in this order:

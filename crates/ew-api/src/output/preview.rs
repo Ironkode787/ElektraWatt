@@ -98,15 +98,16 @@ fn entity(change: &EntityChange, current: &Q, candidate: Option<&Q>) -> PreviewE
     }
 }
 
-/// A wire's way (`committed_route` `id`) in words, by its wire: an added or changed one "101.4: a way through duct 1,
-/// 595 mm" (from `candidate` for an added one); a removed one "103.2: its way is removed, the wire is unfinished" where
-/// the result has no way for the wire, else "…: its old way gives way to its new one".
+/// A wire's way (`committed_route` `id`) in words, by its wire: an added one "101.4: a way through duct 1, 595 mm", a
+/// changed one its new way with the old length "… 610 mm (was 595 mm)", both read from `candidate`, the result; a
+/// removed one "103.2: its way is removed, the wire is unfinished" where the result has no way for the wire, else "…:
+/// its old way gives way to its new one".
 fn route_words(change: ChangeKind, id: Uuid, current: &Q, candidate: Option<&Q>) -> Option<crate::Text> {
     use ew_schema::{CommittedRoute, WayStep};
     let route_id = ew_ids::Id::<CommittedRoute>::from_uuid(id);
     let q = match (change, candidate) {
-        (ChangeKind::Added, Some(c)) => c,
-        _ => current,
+        (ChangeKind::Removed, _) | (_, None) => current,
+        (_, Some(c)) => c,
     };
     let route = q.table::<CommittedRoute>().get(route_id)?.clone();
     let wire = record_title(q, route.wire.as_uuid(), None)?;
@@ -124,6 +125,12 @@ fn route_words(change: ChangeKind, id: Uuid, current: &Q, candidate: Option<&Q>)
     }
     let comma = super::layout_edit::comma(q);
     let run = ew_derive::text::mm_with_unit(i128::from(route.run.0), comma);
+    // A changed way says the length it had, where that changed.
+    let was = (change == ChangeKind::Changed)
+        .then(|| current.table::<CommittedRoute>().get(route_id).map(|r| r.run))
+        .flatten()
+        .filter(|old| *old != route.run)
+        .map(|old| ew_derive::text::mm_with_unit(i128::from(old.0), comma));
     let mut ducts = Vec::new();
     for step in &route.way {
         if let WayStep::Duct(s) = step
@@ -137,15 +144,20 @@ fn route_words(change: ChangeKind, id: Uuid, current: &Q, candidate: Option<&Q>)
         .filter_map(|c| ew_derive::layout::carrier_label(q, *c))
         .map(|l| ew_l10n::TextArg::Text(ew_derive::text::carrier_label(l)))
         .collect();
-    Some(if names.is_empty() {
-        text!("preview-route-way-plain", wire, run)
-    } else {
-        let through = ew_l10n::TextArg::List(ew_l10n::List::new(
-            names,
-            ew_derive::text!("part-fields-between"),
-            ew_derive::text!("part-fields-and"),
-        ));
-        text!("preview-route-way", wire, through, run)
+    Some(match (names.is_empty(), was) {
+        (true, None) => text!("preview-route-way-plain", wire, run),
+        (true, Some(was)) => text!("preview-route-way-plain-was", wire, run, was),
+        (false, was) => {
+            let through = ew_l10n::TextArg::List(ew_l10n::List::new(
+                names,
+                ew_derive::text!("part-fields-between"),
+                ew_derive::text!("part-fields-and"),
+            ));
+            match was {
+                None => text!("preview-route-way", wire, through, run),
+                Some(was) => text!("preview-route-way-was", wire, through, run, was),
+            }
+        }
     })
 }
 
@@ -190,14 +202,15 @@ fn entity_order(a: &PreviewEntity, b: &PreviewEntity) -> Ordering {
 impl Session {
     /// The records `preview` changes, one per `EntityChange` of [`Preview::diff`], labelled by the
     /// property grid's rule (an added record by the candidate model's), in the order change (`added`, `changed`,
-    /// `removed`), kind, label in natural order, ID. One call per card.
+    /// `removed`), kind, label in natural order, ID. One call per card. The candidate model is read where a record is
+    /// added, or where a wire's way changes (its line says the new way) or goes (whether the wire keeps one).
     pub fn preview_entities(&self, preview: &Preview) -> Vec<PreviewEntity> {
         let current = self.query();
         let candidate = preview
             .diff()
             .changes
             .iter()
-            .any(|c| c.change == ChangeKind::Added)
+            .any(|c| c.change == ChangeKind::Added || c.key().0 == ew_schema::Kind::CommittedRoute)
             .then(|| self.query_over(preview.candidate()));
         entities_of(preview.diff(), &current, candidate.as_ref())
     }

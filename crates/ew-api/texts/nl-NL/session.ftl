@@ -666,6 +666,8 @@ hole-cable-select = Selecteer de kabel
 ## De loop van een draad zoals een voorbeeld hem noemt (de kaart van Routeren, de geschiedenis)
 preview-route-way = { $p0 }: een loop door { $p1 }, { $p2 }
 preview-route-way-plain = { $p0 }: een loop van { $p1 }
+preview-route-way-was = { $p0 }: een loop door { $p1 }, { $p2 } (was { $p3 })
+preview-route-way-plain-was = { $p0 }: een loop van { $p1 } (was { $p2 })
 preview-route-unfinished = { $p0 }: zijn loop vervalt, de draad is niet af
 preview-route-replaced = { $p0 }: zijn oude loop maakt plaats voor de nieuwe
 
@@ -891,6 +893,7 @@ package-about-template = { $count ->
     } A4, af te drukken op 100 %.
 package-contents-file = Inhoud.txt
 package-contents-released-on = Pakket voor de werkplaats, revisie { $p0 }, vrijgegeven op { $p1 }
+package-contents-released-undated = Pakket voor de werkplaats, revisie { $p0 }, vrijgegeven; de revisie vermeldt geen dag van vrijgave
 package-contents-made-on = Pakket voor de werkplaats, revisie { $p0 }, gemaakt op { $p1 }
 package-contents-made-on-none = Pakket voor de werkplaats, gemaakt op { $p0 }
 package-contents-undated = Pakket voor de werkplaats, revisie { $p0 }; het project heeft geen datum

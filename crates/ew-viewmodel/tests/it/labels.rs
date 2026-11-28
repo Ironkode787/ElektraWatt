@@ -8,7 +8,7 @@
 
 use crate::common;
 
-use common::{Tmp, done, refused};
+use common::{Tmp, copy_dir, done, refused};
 use ew_viewmodel::shell::Dialog;
 use ew_viewmodel::shell::labels::LabelsDialog;
 use serde_json::json;
@@ -236,20 +236,42 @@ fn label_file_columns_keep_what_this_build_does_not_know() {
     );
 }
 
-/// Where "Changed since a release" cannot be chosen, its place says why: the sample has no released revision.
+/// Where "Changed since a release" cannot be chosen, its place says why: the sample has no released revision; a
+/// project released whose archive is not beside it says that, as the rework list does.
 #[test]
 fn changed_since_a_release_says_why_it_cannot_be_chosen() {
     let tmp = Tmp::new("labels-no-release");
     let mut s = tmp.sample_in(ew_viewmodel::shell::Mode::Gui, true, "101");
     done(&mut s, "labels.show", json!({}));
     assert_eq!(
-        labels(&s).since_note(),
+        labels(&s).since_note.as_deref(),
         Some("Changed since a release: none yet, the project has no released revision")
     );
     assert!(
         s.describe()
             .contains("  note \"Changed since a release: none yet, the project has no released revision\""),
         "the dialog's text says it"
+    );
+    s.shutdown();
+
+    let dir = tmp.0.join("release-min");
+    copy_dir(std::path::Path::new(ew_testdir::RELEASE_MIN), &dir);
+    let mut s = tmp.empty_shell(ew_viewmodel::shell::Mode::Gui);
+    done(&mut s, "file.open", json!({ "dir": dir.to_string_lossy() }));
+    for (action, step) in [
+        ("revision.approve", json!({ "typed": "V1.0" })),
+        ("revision.approve", json!({ "confirm": true, "date": "2026-10-30" })),
+        ("revision.release", json!({ "typed": "V1.0" })),
+        ("revision.release", json!({ "confirm": true, "date": "2026-10-30" })),
+    ] {
+        done(&mut s, action, step);
+    }
+    std::fs::remove_dir_all(tmp.0.join("release-min.ew-archive")).expect("the archive moved away");
+    done(&mut s, "labels.show", json!({}));
+    let note = labels(&s).since_note.clone().unwrap_or_default();
+    assert!(
+        note.starts_with("Changed since a release: V1.0 is released, but its archive, "),
+        "{note}"
     );
     s.shutdown();
 }

@@ -1106,6 +1106,8 @@ fn the_window_says_where_the_revision_stands_and_offers_its_steps() {
         "revision.approve",
         json!({ "confirm": true, "date": DATE }),
     );
+    // Approved: the release is the next step, and the field says so.
+    assert_eq!(revision_field(&s), "V1.0 approved");
     done(&mut s, "revision.release", json!({ "typed": "V1.0" }));
     done(
         &mut s,
@@ -1153,6 +1155,96 @@ fn the_window_says_where_the_revision_stands_and_offers_its_steps() {
     done(&mut s, "revision.release", json!({ "save": true }));
     assert!(!s.is_dirty(), "saved");
     assert_eq!(form(&s).0, "revision.release", "the release's dialog again");
+    assert_ne!(
+        spec(&s.dialog().cloned().unwrap(), &s).primary.label,
+        "Save and go on"
+    );
+    s.shutdown();
+}
+
+/// The toast of the first change after a release speaks of this project only: opening another project with an open
+/// revision, making a new one, opening the released one again or a step that changes nothing says nothing; a change of
+/// the released project then says it once.
+#[test]
+fn the_next_revision_toast_speaks_of_this_project_only() {
+    let tmp = Tmp::new("revision-opened-this");
+    let dir = fixture_copy(&tmp);
+    let other = tmp.0.join("other.ew");
+    copy_dir(Path::new(RELEASE_MIN), &other);
+    let mut s = opened(|| ShellModel::new(Mode::Gui, config(&tmp)), &dir);
+    done(&mut s, "revision.approve", json!({ "typed": "V1.0" }));
+    done(&mut s, "revision.approve", json!({ "confirm": true, "date": DATE }));
+    done(&mut s, "revision.release", json!({ "typed": "V1.0" }));
+    done(&mut s, "revision.release", json!({ "confirm": true, "date": DATE }));
+    let said = |s: &ShellModel| {
+        s.notifications()
+            .entries()
+            .filter(|n| n.text.starts_with("This change opens revision"))
+            .count()
+    };
+    let open = |s: &mut ShellModel, dir: &Path| {
+        done(s, "file.open", json!({ "dir": dir.to_string_lossy(), "discard": true }));
+    };
+    open(&mut s, &other);
+    assert_eq!(said(&s), 0, "another project opened");
+    open(&mut s, &dir);
+    done(&mut s, "file.new", json!({ "dir": tmp.0.join("new.ew").to_string_lossy() }));
+    assert_eq!(said(&s), 0, "a new project made");
+    open(&mut s, &dir);
+    assert_eq!(said(&s), 0, "the released project opened again");
+    done(&mut s, "navigator.show", json!({"kind": "connections"}));
+    done(&mut s, "navigator.table", json!({"kind": "connections", "on": true}));
+    assert_eq!(said(&s), 0, "a step that changes nothing");
+    done(
+        &mut s,
+        "table.set",
+        json!({"kind": "connections", "column": "length", "value": "650", "rows": ["1.1"]}),
+    );
+    assert_eq!(said(&s), 1, "the change of the released project");
+    s.shutdown();
+}
+
+fn same(value: Value) -> Result<Value, ew_api::MigrationError> {
+    Ok(value)
+}
+
+/// A chain from the test format `0.0` to this one that changes nothing but the stamp.
+static CHAIN: ew_api::Migrations = ew_api::Migrations {
+    kinds: &[],
+    formats: &[ew_api::FormatStep {
+        from: "0.0",
+        to: "0.1",
+        manifest: same,
+        record: same,
+    }],
+};
+
+/// Save and go on on a project of an older format: the upgrade question comes first and stays in front (the revision's
+/// dialog never covers it); answered, the project is saved, and Approve then opens without a step before it.
+#[test]
+fn save_and_go_on_asks_the_upgrade_first() {
+    let tmp = Tmp::new("revision-save-upgrade");
+    let dir = fixture_copy(&tmp);
+    let manifest = std::fs::read_to_string(dir.join("manifest.json")).unwrap();
+    let old = manifest
+        .replace("\"format\": \"0.1\"", "\"format\": \"0.0\"")
+        .replace("\"min_reader\": \"0.1\"", "\"min_reader\": \"0.0\"");
+    assert_ne!(old, manifest);
+    std::fs::write(dir.join("manifest.json"), old).unwrap();
+    let mut s = Box::new(ShellModel::new(Mode::Gui, config(&tmp)));
+    s.set_migrations_for_tests(Some(&CHAIN));
+    done(&mut s, "file.open", json!({ "dir": dir.to_string_lossy() }));
+    assert!(s.is_dirty(), "a migrated project differs from its files");
+    done(&mut s, "revision.approve", json!({ "save": true }));
+    assert!(
+        matches!(s.dialog(), Some(Dialog::ConfirmUpgrade { .. })),
+        "{:?}",
+        s.dialog()
+    );
+    done(&mut s, "file.upgrade", json!({}));
+    assert!(!s.is_dirty(), "saved");
+    done(&mut s, "revision.approve", json!({}));
+    assert_eq!(form(&s).0, "revision.approve");
     assert_ne!(
         spec(&s.dialog().cloned().unwrap(), &s).primary.label,
         "Save and go on"

@@ -315,3 +315,34 @@ fn the_dialog_comes_back_after_a_fix_without_the_finding_it_mended() {
     assert!(package(&s).left_out().contains(&"drilling"));
     s.shutdown();
 }
+
+/// The dialog a fix left for its card belongs to its project: another project opened while the card stands (or the
+/// same one opened again) never brings it back, with the old project's path and choices.
+#[test]
+fn the_dialog_left_for_a_fix_stays_with_its_project() {
+    let tmp = Tmp::new("package-fix-other");
+    let mut s = tmp.sample_in(Mode::Gui, true, "102");
+    common::place_free_button(&mut s);
+    done(&mut s, "package.export", json!({}));
+    let finding = package(&s)
+        .findings
+        .iter()
+        .find(|f| f.fix.as_deref() == Some("Mark not used"))
+        .cloned()
+        .expect("an open connection point with Mark not used");
+    done(&mut s, "package.fix", json!({ "key": finding.key }));
+    assert!(s.properties().card().is_some(), "the fix's card");
+    let dir = tmp.sample_copy();
+    done(
+        &mut s,
+        "file.open",
+        json!({ "dir": dir.to_string_lossy(), "discard": true }),
+    );
+    done(&mut s, "page.goto", json!({ "folio": "101" }));
+    assert!(
+        !matches!(s.dialog(), Some(Dialog::Package(_))),
+        "{:?}",
+        s.dialog()
+    );
+    s.shutdown();
+}

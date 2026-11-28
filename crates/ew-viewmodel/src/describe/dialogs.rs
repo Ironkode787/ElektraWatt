@@ -212,7 +212,7 @@ pub(super) fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                 crate::shell::labels::Which::File(_) => "since archive file".to_owned(),
             };
             lines.push(format!("  labels {which}"));
-            if let Some(note) = d.since_note() {
+            if let Some(note) = &d.since_note {
                 lines.push(format!("  note \"{note}\""));
             }
             lines.push(format!("  profile \"{}\"", d.profile));
@@ -227,6 +227,12 @@ pub(super) fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                             f.count,
                             f.name
                         ));
+                    }
+                    for (file, labels) in d.printed() {
+                        lines.push(format!("  prints \"{file}\""));
+                        for l in labels {
+                            lines.push(format!("    label \"{l}\""));
+                        }
                     }
                     if !d.misfits.is_empty() {
                         lines.push(format!("  misfits {}", d.misfits.len()));

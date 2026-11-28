@@ -70,7 +70,7 @@ code editors.
 |---|---|---|
 | none or `>` | actions, by label, aliases and ID | "renum" → Renumber devices… Ctrl+Shift+N |
 | `@` | objects: tags, part numbers, potentials, wire IDs (find index) | "@-102F" → -102F1, -102F2 |
-| `#` | pages by folio or title | "#pneu" → 106, 200 |
+| `#` | pages by folio, title or kind, as the plain search finds them | "#pneu" → 106, 200; "#panel" → 902, 904, 905 |
 | `:` | a cell in the project's xref format | ":103-A1" opens folio 103 with A1 centred (FR-UI-039) |
 | `?` | help topics and rule IDs | "?EW-POT-013" |
 

@@ -224,12 +224,14 @@ labels-all = Every label
 labels-since = Changed since { $p0 }
 labels-archive = Changed since the archive { $p0 }
 labels-no-release = Changed since a release: none yet, the project has no released revision
+labels-since-unavailable = Changed since a release: { $p0 }
 labels-profile = Label file
 labels-change = Change…
 labels-file = File
 labels-set = Label set
 labels-marker-part = Marker part
 labels-count = Labels
+labels-prints = { $p0 } prints:
 labels-misfits = { $p0 ->
         [one] 1 label does not fit its marker part
        *[other] { $p0 } labels do not fit their marker part
@@ -271,6 +273,7 @@ package-chip-released = Released
 package-revision-open = { $p0 } is open, not released.
 package-revision-none = The project has no revision.
 package-revision-released = { $p0 }, released on { $p1 }.
+package-revision-released-undated = { $p0 }, released; the revision records no release day.
 package-revision-draft-note = The package is a draft: every page of the drawings says "{ $p0 }", and so do its manifest and Contents.
 package-revision-released-note = The package is the release's: no page carries a mark, and a second package of { $p0 } is the same file.
 package-mark = Draft { $p0 }: not released

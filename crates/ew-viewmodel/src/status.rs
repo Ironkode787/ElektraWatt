@@ -457,23 +457,35 @@ pub fn revision_words(model: &ShellModel) -> Option<(String, String)> {
     use ew_api::RevisionStanding as S;
     Some(match model.revision_standing()? {
         S::Released { label, on } => {
-            let text = match on {
+            let text = match on.map(|d| model.date_format().format(d)) {
                 Some(on) => strings::format(key!("status-revision-released"), &[&label, &on]),
                 None => strings::format(key!("status-revision-released-undated"), &[&label]),
             };
             (text.clone(), text)
         }
-        S::Open { label, since } => {
-            let short = strings::format(key!("status-revision-open"), &[&label]);
+        S::Open {
+            label,
+            approved,
+            since,
+        } => {
+            let short = if approved {
+                strings::format(key!("status-revision-approved"), &[&label])
+            } else {
+                strings::format(key!("status-revision-open"), &[&label])
+            };
             let full = match since {
                 // A change no page prints (a wire's length) opens the revision and changes no page.
-                Some((last, 0)) => strings::format(key!("status-revision-unchanged"), &[&label, &last]),
+                Some((last, 0)) => strings::format(key!("status-revision-unchanged"), &[&short, &last]),
                 Some((last, pages)) => {
-                    strings::format_counted(count_key!("status-revision-changed"), pages, &[&label, &last])
+                    strings::format_counted(count_key!("status-revision-changed"), pages, &[&short, &last])
                 }
                 None => short.clone(),
             };
             (full, short)
+        }
+        S::Unknown { label } => {
+            let text = strings::format(key!("status-revision-unknown"), &[&label]);
+            (text.clone(), text)
         }
     })
 }

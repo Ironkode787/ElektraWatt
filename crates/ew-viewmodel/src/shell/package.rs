@@ -282,6 +282,10 @@ impl ShellModel {
                 strings::format(key!("package-revision-released"), &[l, on]),
                 strings::format(key!("package-revision-released-note"), &[l]),
             ),
+            (Some(l), None) if plan.release => (
+                strings::format(key!("package-revision-released-undated"), &[l]),
+                strings::format(key!("package-revision-released-note"), &[l]),
+            ),
             (Some(l), None) => (
                 strings::format(key!("package-revision-open"), &[l]),
                 strings::format(key!("package-revision-draft-note"), &[&mark(l)]),
@@ -536,7 +540,7 @@ impl ShellModel {
             .card()
             .is_some_and(|c| matches!(c.origin, crate::properties::CardOrigin::QuickFix { .. }));
         if out == Outcome::Done && fix_card {
-            self.package_after_fix = old;
+            self.package_after_fix = self.project_epoch().zip(old);
         }
         out
     }
@@ -548,14 +552,16 @@ impl ShellModel {
             .properties()
             .card()
             .is_some_and(|c| matches!(c.origin, crate::properties::CardOrigin::QuickFix { .. }));
-        if self.project.is_none() {
+        // The dialog belongs to the project it was opened on: another project (or this one opened again, a new epoch)
+        // drops it.
+        if self.package_after_fix.as_ref().map(|(e, _)| *e) != self.project_epoch() {
             self.package_after_fix = None;
             return;
         }
         if card || self.dialog.is_some() {
             return;
         }
-        let Some(old) = self.package_after_fix.take() else {
+        let Some((_, old)) = self.package_after_fix.take() else {
             return;
         };
         let reopened = self
