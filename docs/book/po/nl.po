@@ -5805,17 +5805,18 @@ msgstr ""
 #: src/how-to/workshop-lists.md:3
 msgid ""
 "The workshop builds the cabinet from five lists beside the drawings: the "
-"wire list, the fitter's sheet; the assembly list of each terminal strip; the "
-"cut list of rails, ducts, cables, wires and tubes; the consumables to order; "
-"and, after a release, the rework list. Each is made from the project and "
-"follows it when it changes: you type nothing into a list."
+"wire list, the fitter's sheet; the assembly lists, where every device goes "
+"and how each terminal strip is mounted; the cut list of rails, ducts, "
+"cables, wires and tubes; the consumables to order; and, after a release, the "
+"rework list. Each is made from the project and follows it when it changes: "
+"you type nothing into a list."
 msgstr ""
 "De werkplaats bouwt de kast met vijf lijsten naast de tekeningen: de "
-"draadlijst, het blad van de monteur; de montagelijst van elke klemmenstrook; "
-"de afkortlijst van rails, kabelgoten, kabels, draden en slangen; de "
-"verbruiksmaterialen om te bestellen; en, na een vrijgave, de "
-"wijzigingslijst. Elke lijst wordt uit het project gemaakt en volgt het als "
-"het verandert: u typt niets in een lijst."
+"draadlijst, het blad van de monteur; de montagelijsten, waar elk apparaat "
+"komt en hoe elke klemmenstrook gemonteerd wordt; de afkortlijst van rails, "
+"kabelgoten, kabels, draden en slangen; de verbruiksmaterialen om te "
+"bestellen; en, na een vrijgave, de wijzigingslijst. Elke lijst komt uit het "
+"project en volgt het als het verandert: u typt niets in een lijst."
 
 #: src/how-to/workshop-lists.md:8
 msgid ""
@@ -5839,37 +5840,42 @@ msgstr "De draadlijst"
 #: src/how-to/workshop-lists.md:15
 msgid ""
 "Choose **Output ▸ Workshop ▸ Open wire list**. The first page of the "
-"project's wire list opens (907 on the sample): per wire its number, its two "
-"ends with their pins or clamps, its colour, its size, its length, what goes "
-"on each end (such as \"ferrule 1.5 BK\", or \"twin 2.5 BU · 101.6\" where "
-"two wires share a twin ferrule), the marker of each end and its pages. A "
-"device in the door prints \"(door)\" after its tag, a cable's core prints "
-"its cable and core (such as \"-101W1 BN\") and \"cable\" for its length, and "
-"a wire without a length prints \"—\"."
+"project's wire list opens (907 on the sample) with a few lines on how to "
+"read the papers: what the length holds, what a marker says, which side of a "
+"terminal is the field, where each label goes and in which order to work. "
+"Then each wire on two lines, its From end above its To end: its number, "
+"colour, size and length, and for each end its device or terminal with its "
+"pin or clamp, what goes on it (such as \"ferrule 1.5 BK\", or \"twin 2.5 BU "
+"· 101.6\" where two wires share a twin ferrule), that ferrule's part, the "
+"strip length and the marker. A device in the door prints \"(door)\" after "
+"its tag, a cable's core prints its cable and core (such as \"-101W1 BN\") "
+"and \"cable\" for its length, and a wire without a length prints \"—\"."
 msgstr ""
 "Kies **Uitvoer ▸ Werkplaats ▸ Draadlijst openen**. De eerste pagina van de "
-"draadlijst van het project opent (907 bij het voorbeeld): per draad zijn "
-"nummer, zijn twee einden met hun aansluitpunten of klemmen, zijn aderkleur, "
-"zijn doorsnede, zijn lengte, wat op elk einde komt (zoals \"ferrule 1.5 "
+"draadlijst van het project opent (907 bij het voorbeeld) met een paar regels "
+"over hoe u de papieren leest: wat de lengte bevat, wat een merker zegt, "
+"welke zijde van een klem het veld is, waar elk label komt en in welke "
+"volgorde u werkt. Daarna elke draad op twee regels, zijn begin boven zijn "
+"eind: zijn nummer, aderkleur, doorsnede en lengte, en per einde zijn "
+"apparaat of klem met zijn aansluitpunt, wat erop komt (zoals \"ferrule 1.5 "
 "BK\", of \"twin 2.5 BU · 101.6\" waar twee draden een twin-adereindhuls "
-"delen), de merker van elk einde en zijn pagina's. Een apparaat in de deur "
-"drukt \"(door)\" af na zijn kenmerk, een ader van een kabel drukt zijn kabel "
-"en ader af (zoals \"-101W1 BN\") en \"cable\" als lengte, en een draad "
-"zonder lengte drukt \"—\" af; dit zijn de woorden van het Engelse "
-"voorbeeldproject."
+"delen), het artikel van die huls, de striplengte en de merker. Een apparaat "
+"in de deur drukt \"(door)\" af na zijn kenmerk, een ader van een kabel drukt "
+"zijn kabel en ader af (zoals \"-101W1 BN\") en \"cable\" als lengte, en een "
+"draad zonder lengte drukt \"—\" af."
 
-#: src/how-to/workshop-lists.md:20
+#: src/how-to/workshop-lists.md:22
 msgid ""
 "To print the engineering columns as well, choose **Output ▸ List columns…** "
-"on the list's page and tick them: Potential, Source, Via, Wire part, Length "
-"from, and the parts and strip lengths of the ends."
+"on the list's page and tick them: Potential, Source, Via, Wire part and "
+"Length from. A list with columns of its own prints each wire on one line."
 msgstr ""
 "Om ook de engineeringkolommen af te drukken, kiest u **Uitvoer ▸ "
 "Lijstkolommen…** op de pagina van de lijst en vinkt u ze aan: Potentiaal, "
-"Bron, Via, Draadartikel, Lengte uit, en de artikelen en striplengtes van de "
-"einden."
+"Bron, Via, Draadartikel en Lengte uit. Een lijst met eigen kolommen drukt "
+"elke draad op één regel af."
 
-#: src/how-to/workshop-lists.md:22
+#: src/how-to/workshop-lists.md:24
 msgid ""
 "A project without a wire list opens **Report block…** on the wire list "
 "instead; **Create** makes it."
@@ -5877,27 +5883,48 @@ msgstr ""
 "Een project zonder draadlijst opent in plaats daarvan **Rapportblok…** op de "
 "draadlijst; **Maken** maakt haar."
 
-#: src/how-to/workshop-lists.md:24
+#: src/how-to/workshop-lists.md:26
 msgid "The assembly lists, the cut list and the consumables"
 msgstr "De montagelijsten, de afkortlijst en de verbruiksmaterialen"
 
-#: src/how-to/workshop-lists.md:26
+#: src/how-to/workshop-lists.md:28
 msgid ""
-"Choose **Output ▸ Workshop ▸ Open assembly lists**. Each strip starts with a "
-"line that says where it goes and how long it is, such as \"-X1011 · on rail "
-"1 from 0 to 48.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm with its "
-"end brackets\", then every item in the order the fitter mounts it: end "
-"bracket, terminals with their part, colour and marker, end plate, end "
-"bracket; then its bridges."
+"Choose **Output ▸ Workshop ▸ Open assembly lists**. Each rail comes first "
+"with a line that says where it lies and which end its positions are measured "
+"from, such as \"Rail 1 · Mounting plate, page 902 · cut to 470 mm · its "
+"centre line at Y 580 mm, from X 25 to 495 mm, measured from the bottom-left "
+"corner · positions from its left end\", then everything on it in the order "
+"the fitter mounts it, each device with its part, its width and where it "
+"stands (\"48.2–102.2\"), the gaps between them, and each strip as one row. "
+"The strips on that rail follow, each with a line that says where it goes and "
+"how long it is, such as \"-X1011 · on rail 1 from 0 to 48.2 mm · rail cut to "
+"470 mm · 5 terminals · 48.2 mm with its end brackets\", then every item in "
+"mounting order: end bracket, terminals with their part, colour and marker, "
+"end plate, end bracket; then its bridges. A device in the door or on the "
+"plate without a rail is listed under its surface with its centre (\"X 270, Y "
+"480\", measured as the hole table measures) and the hole it sits in (\"in "
+"hole H3\"); a device the layout does not place yet is listed last with "
+"\"place missing\"."
 msgstr ""
-"Kies **Uitvoer ▸ Werkplaats ▸ Montagelijsten openen**. Elke klemmenstrook "
-"begint met een regel die zegt waar ze komt en hoe lang ze is, zoals \"-X1011 "
-"· on rail 1 from 0 to 48.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm "
-"with its end brackets\" in het Engelse voorbeeldproject, daarna alles in de "
-"volgorde waarin de monteur het monteert: eindsteun, klemmen met hun artikel, "
-"kleur en merker, eindplaat, eindsteun; daarna haar bruggen."
+"Kies **Uitvoer ▸ Werkplaats ▸ Montagelijsten openen**. Elke rail komt eerst, "
+"met een regel die zegt waar ze ligt en vanaf welk uiteinde haar posities "
+"gemeten zijn, zoals \"Rail 1 · Mounting plate, page 902 · cut to 470 mm · "
+"its centre line at Y 580 mm, from X 25 to 495 mm, measured from the "
+"bottom-left corner · positions from its left end\" in het Engelse "
+"voorbeeldproject, daarna alles wat erop staat in de volgorde waarin de "
+"monteur het monteert, elk apparaat met zijn artikel, zijn breedte en waar "
+"het staat (\"48,2–102,2\"), de tussenruimtes, en elke klemmenstrook als één "
+"rij. De klemmenstroken op die rail volgen, elk met een regel die zegt waar "
+"ze komt en hoe lang ze is, zoals \"-X1011 · on rail 1 from 0 to 48.2 mm · "
+"rail cut to 470 mm · 5 terminals · 48.2 mm with its end brackets\", daarna "
+"alles in montagevolgorde: eindsteun, klemmen met hun artikel, kleur en "
+"merker, eindplaat, eindsteun; daarna haar bruggen. Een apparaat in de deur "
+"of op de plaat zonder rail staat onder zijn vlak met zijn midden (\"X 270, Y "
+"480\", gemeten zoals de gatentabel meet) en het gat waarin het zit (\"in gat "
+"H3\"); een apparaat dat de layout nog geen plaats geeft, staat als laatste "
+"met \"plaats ontbreekt\"."
 
-#: src/how-to/workshop-lists.md:30
+#: src/how-to/workshop-lists.md:38
 msgid ""
 "Choose **Output ▸ Workshop ▸ Open cut list**. Under Rails, Ducts, Cables, "
 "Wires and Tubes it lists each piece to cut with its part or its size and "
@@ -5912,7 +5939,7 @@ msgstr ""
 "**Afkorten op** (5 mm, tenzij het project iets anders zet); een draad is zo "
 "lang als de draadlijst zegt."
 
-#: src/how-to/workshop-lists.md:33
+#: src/how-to/workshop-lists.md:41
 msgid ""
 "Choose **Output ▸ Workshop ▸ Open consumables**: the metres of each wire, "
 "the ferrules and lugs per part, and the markers per label set, to order "
@@ -5922,7 +5949,7 @@ msgstr ""
 "elke draad, de adereindhulzen en kabelschoenen per artikel, en de merkers "
 "per labelset, om naast de stuklijst te bestellen."
 
-#: src/how-to/workshop-lists.md:35
+#: src/how-to/workshop-lists.md:43
 msgid ""
 "The wire parts, the ferrules, the markers and the glands these lists name "
 "come from the **workshop stock**, the parts your shop keeps, in the order "
@@ -5942,7 +5969,7 @@ msgstr ""
 "Hoe, en hoe u de voorraad voor nieuwe projecten bewaart, staat in [Artikelen "
 "kiezen](choose-parts.md#the-workshop-stock)."
 
-#: src/how-to/workshop-lists.md:40
+#: src/how-to/workshop-lists.md:48
 msgid ""
 "The rows of the workshop settings are under **Output ▸ Workshop ▸ Workshop "
 "settings**: Cut to, Marker text, Ferrules, Two wires in one clamp and the "
@@ -5953,11 +5980,11 @@ msgstr ""
 "draden in één klem en de andere. Een wijziging verschijnt meteen in de "
 "lijsten."
 
-#: src/how-to/workshop-lists.md:43
+#: src/how-to/workshop-lists.md:51
 msgid "The rework list after a release"
 msgstr "De wijzigingslijst na een vrijgave"
 
-#: src/how-to/workshop-lists.md:45
+#: src/how-to/workshop-lists.md:53
 msgid ""
 "After a release, a change to the project is work in the built cabinet. "
 "Choose **Output ▸ Workshop ▸ Rework list…**. It compares the project as it "
@@ -5971,22 +5998,29 @@ msgstr ""
 "het project staat; **Vergelijken met** kiest een andere vrijgave, en "
 "**Archiefbestand…** een archiefbestand."
 
-#: src/how-to/workshop-lists.md:48
+#: src/how-to/workshop-lists.md:56
 msgid ""
 "A line counts the work, then one row per thing the fitter does, in the order "
 "he does it: Pull, Replace, Move end, Re-make end, Check length, Re-mark, "
 "Re-label, Remove device, Mount device, Add and the others, each with what "
-"changes. \"Not listed: wires that only moved on a page or took another "
-"route, and a new wire number.\""
+"changes. Mount device and Remove device say where the device goes or stood, "
+"in the words of the assembly lists. A row that follows from another change "
+"says why under **Because**, such as \"its twin ferrule's partner 104.8 at "
+"-104A1:L+ changed size\". \"Not listed: wires that only moved on a page or "
+"took another route, and a new wire number.\""
 msgstr ""
 "Een regel telt het werk, daarna volgt één rij per handeling van de monteur, "
 "in de volgorde waarin hij ze doet: Uittrekken, Vervangen, Einde verleggen, "
 "Einde opnieuw afwerken, Lengte nakijken, Merker vervangen, Label vervangen, "
 "Apparaat verwijderen, Apparaat monteren, Toevoegen en de andere, elk met wat "
-"er verandert. \"Niet vermeld: draden die alleen op een pagina verschoven of "
-"een andere route kregen, en een nieuw draadnummer.\""
+"er verandert. Apparaat monteren en Apparaat verwijderen zeggen waar het "
+"apparaat komt of stond, in de woorden van de montagelijsten. Een rij die "
+"volgt uit een andere wijziging, zegt onder **Omdat** waarom, zoals \"de "
+"partner van zijn twinhuls, 104.8 op -104A1:L+, heeft een andere doorsnede\". "
+"\"Niet vermeld: draden die alleen op een pagina verschoven of een andere "
+"route kregen, en een nieuw draadnummer.\""
 
-#: src/how-to/workshop-lists.md:51
+#: src/how-to/workshop-lists.md:62
 msgid ""
 "**Export…** writes the rework list as an Excel file or a CSV; **Labels for "
 "these changes…** opens Labels… on the labels the list names. A project "
@@ -6000,46 +6034,48 @@ msgstr ""
 "vrijgegeven revisie: de wijzigingslijst vergelijkt met een vrijgave. Geef "
 "het vrij op het tabblad Controle, of kies een archiefbestand.\""
 
-#: src/how-to/workshop-lists.md:55
+#: src/how-to/workshop-lists.md:66
 msgid "Print the lists, or hand them over as files"
 msgstr "De lijsten afdrukken, of ze als bestanden overdragen"
 
-#: src/how-to/workshop-lists.md:57
+#: src/how-to/workshop-lists.md:68
 msgid ""
 "To print a list, choose **Output ▸ Print…**, set **Range** to **Pages** and "
-"type the list's folios, such as `907-907.2`; or open the list's page and "
+"type the list's folios, such as `907-907.5`; or open the list's page and "
 "choose **Current page**. **Export PDF…** writes every page, the lists among "
 "them."
 msgstr ""
 "Om een lijst af te drukken, kiest u **Uitvoer ▸ Afdrukken…**, zet u "
 "**Bereik** op **Pagina's** en typt u de folio's van de lijst, zoals "
-"`907-907.2`; of open de pagina van de lijst en kies **Huidige pagina**. "
+"`907-907.5`; of open de pagina van de lijst en kies **Huidige pagina**. "
 "**PDF exporteren…** schrijft elke pagina, de lijsten erbij."
 
-#: src/how-to/workshop-lists.md:60
+#: src/how-to/workshop-lists.md:71
 msgid ""
 "To hand one list over as a file, open its page and choose **Output ▸ "
 "Workshop ▸ Export list…** (also in the menu of the list's page). It writes "
-"the list on show as an Excel file in the project's language, or, for a file "
-"name that ends in `.csv`, a CSV in English for a program. A size or a length "
-"is a number under a heading that carries its unit, such as \"Length mm\". "
-"The package holds every workshop list as an Excel file ([Export the labels, "
-"the drilling drawings and the package](workshop-package.md)), and on the "
-"command line `ew export wires` and `ew export report` write one list ([Use "
-"the command line on the sample project](headless-workflow.md))."
+"the columns the page prints, one row per wire, as an Excel file in the "
+"project's language, or, for a file name that ends in `.csv`, a CSV in "
+"English for a program. A size or a length is a number under a heading that "
+"carries its unit, such as \"Length mm\". The package holds every workshop "
+"list as such an Excel file ([Export the labels, the drilling drawings and "
+"the package](workshop-package.md)), and on the command line `ew export "
+"wires` and `ew export report` write one list ([Use the command line on the "
+"sample project](headless-workflow.md))."
 msgstr ""
 "Om één lijst als bestand over te dragen, opent u haar pagina en kiest u "
 "**Uitvoer ▸ Werkplaats ▸ Lijst exporteren…** (ook in het menu van de pagina "
-"van de lijst). Het schrijft de getoonde lijst als Excel-bestand in de taal "
-"van het project, of, voor een bestandsnaam die op `.csv` eindigt, als CSV in "
-"het Engels voor een programma. Een doorsnede of een lengte is een getal "
-"onder een kop die haar eenheid draagt, zoals \"Lengte mm\". Het pakket bevat "
-"elke lijst voor de werkplaats als Excel-bestand ([De labels, de "
-"boortekeningen en het pakket exporteren](workshop-package.md)), en op de "
-"opdrachtregel schrijven `ew export wires` en `ew export report` één lijst "
-"([De opdrachtregel gebruiken op het voorbeeldproject](headless-workflow.md))."
+"van de lijst). Het schrijft de kolommen die de pagina afdrukt, één rij per "
+"draad, als Excel-bestand in de taal van het project, of, voor een "
+"bestandsnaam die op `.csv` eindigt, als CSV in het Engels voor een "
+"programma. Een doorsnede of een lengte is een getal onder een kop die haar "
+"eenheid draagt, zoals \"Lengte mm\". Het pakket bevat elke lijst voor de "
+"werkplaats als zo'n Excel-bestand ([De labels, de boortekeningen en het "
+"pakket exporteren](workshop-package.md)), en op de opdrachtregel schrijven "
+"`ew export wires` en `ew export report` één lijst ([De opdrachtregel "
+"gebruiken op het voorbeeldproject](headless-workflow.md))."
 
-#: src/how-to/workshop-lists.md:68
+#: src/how-to/workshop-lists.md:80
 msgid ""
 "What each command does is in the [command bar "
 "reference](../reference/window/command-bar.md#output)."
@@ -6156,48 +6192,55 @@ msgid ""
 "Choose **Output ▸ Workshop ▸ Drilling…** (greyed with \"No surface of this "
 "project has holes yet.\" while no surface has any). The form \"Export the "
 "drawings for drilling\" lists the **Surfaces with holes**, each with its "
-"page, its holes and the sheets its template takes, such as \"Door · page 904 "
-"· 8 holes · 5 sheets\", with a tick."
+"page, its holes, the sheets its template takes and its two files, such as "
+"\"Door · page 904 · 8 holes · 9 sheets · +CAB Door template.pdf, +CAB "
+"Door.dxf\", with a tick."
 msgstr ""
 "Kies **Uitvoer ▸ Werkplaats ▸ Boren…** (grijs, met \"Geen vlak van dit "
 "project heeft al gaten.\", zolang geen vlak gaten heeft). Het formulier "
 "\"Boortekeningen exporteren\" noemt de **Vlakken met gaten**, elk met zijn "
-"pagina, zijn gaten en de bladen die zijn boormal nodig heeft, zoals \"Deur · "
-"pagina 904 · 8 gaten · 5 bladen\", met een vinkje."
+"pagina, zijn gaten, de bladen die zijn boormal nodig heeft en zijn twee "
+"bestanden, zoals \"Deur · pagina 904 · 8 gaten · 9 bladen · +CAB Deur "
+"boormal.pdf, +CAB Deur.dxf\", met een vinkje."
 
-#: src/how-to/workshop-package.md:35
+#: src/how-to/workshop-package.md:36
 msgid ""
 "Choose **Template to print at full size (PDF)**, **DXF for a machine** or "
 "both, the **Paper** (A4 or A3) and the **Folder** (Drilling, beside the "
 "project), and choose **Export**. Each surface gets its files, such as `+CAB "
-"Door template.pdf` and `+CAB Door.dxf`; the toast says \"Wrote 6 files to "
-"…\"."
+"Door template.pdf` and `+CAB Door.dxf`; the toast says which are which "
+"surface's, such as \"Wrote 6 files to Drilling: a template and a DXF for "
+"each of Mounting plate, Door, Bottom\"."
 msgstr ""
 "Kies **Boormal om op ware grootte te printen (PDF)**, **DXF voor een "
 "machine** of beide, het **Papier** (A4 of A3) en de **Map** (Boortekeningen, "
 "naast het project), en kies **Exporteren**. Elk vlak krijgt zijn bestanden, "
 "zoals `+CAB Door template.pdf` en `+CAB Door.dxf` in het Engelse "
-"voorbeeldproject; de toast zegt \"6 bestanden geschreven naar …\"."
+"voorbeeldproject; de toast zegt welke bij welk vlak horen, zoals \"6 "
+"bestanden geschreven naar Boortekeningen: een boormal en een DXF voor elk "
+"van Montageplaat, Deur, Onderkant\"."
 
-#: src/how-to/workshop-package.md:38
+#: src/how-to/workshop-package.md:40
 msgid ""
 "Print a template at actual size, not fitted to the page, and measure its 100 "
 "mm bar. Tape the sheets together at their crosses, lay the template's two "
-"thick edges against the surface's edges and centre-punch each hole. The DXF "
-"has its 0,0 at the corner the surface's holes are measured from, and a layer "
-"for each way of making a hole."
+"thick edges against the surface's edges they name (the corner the hole table "
+"measures from) and centre-punch each hole. The DXF has its 0,0 at the corner "
+"the surface's holes are measured from, and a layer for each way of making a "
+"hole."
 msgstr ""
 "Druk een boormal af op ware grootte, niet passend gemaakt op het papier, en "
 "meet zijn balk van 100 mm. Plak de bladen aan elkaar bij hun kruisjes, leg "
-"de twee dikke randen van de boormal tegen de randen van het vlak en körner "
-"elk gat. De DXF heeft zijn 0,0 in de hoek waarvandaan de gaten van het vlak "
-"worden gemeten, en een laag voor elke manier om een gat te maken."
+"de twee dikke randen van de boormal tegen de randen van het vlak die ze "
+"noemen (de hoek waarvandaan de gatentabel meet) en körner elk gat. De DXF "
+"heeft zijn 0,0 in de hoek waarvandaan de gaten van het vlak worden gemeten, "
+"en een laag voor elke manier om een gat te maken."
 
-#: src/how-to/workshop-package.md:42
+#: src/how-to/workshop-package.md:45
 msgid "The package"
 msgstr "Het pakket"
 
-#: src/how-to/workshop-package.md:44
+#: src/how-to/workshop-package.md:47
 msgid ""
 "Choose **Output ▸ Workshop ▸ Package…** (the command bar's button reads "
 "Package). The dialog \"Package for the workshop\" has two panes."
@@ -6205,7 +6248,7 @@ msgstr ""
 "Kies **Uitvoer ▸ Werkplaats ▸ Pakket…** (op de knop in de opdrachtbalk staat "
 "Pakket). Het venster \"Pakket voor de werkplaats\" heeft twee delen."
 
-#: src/how-to/workshop-package.md:46
+#: src/how-to/workshop-package.md:49
 msgid ""
 "On the left, **What goes in**: the drawings, the wire list, the assembly "
 "lists, the cut list, the consumables, the hole table, the label files and "
@@ -6230,7 +6273,7 @@ msgstr ""
 "adereindhuls, met **Artikel bewerken…**, dat dat artikel in Artikelen bij "
 "het veld opent; **Wijzigen…** wijzigt de vorm van het labelbestand."
 
-#: src/how-to/workshop-package.md:53
+#: src/how-to/workshop-package.md:56
 msgid ""
 "On the right, always in view, **Before it goes to the workshop** shows the "
 "release check: \"Ready: nothing stands in the way.\", or what stands, such "
@@ -6251,7 +6294,7 @@ msgstr ""
 "zoals **Markeren als niet gebruikt**, toont dat voor het venster; pas het "
 "toe, en het venster is terug met de bevinding hersteld."
 
-#: src/how-to/workshop-package.md:58
+#: src/how-to/workshop-package.md:61
 msgid ""
 "A wire without a length stops nothing. The right pane and the package's "
 "contents name the wires without a length and say why, such as \"3 wires have "
@@ -6263,7 +6306,7 @@ msgstr ""
 "hebben geen lengte: van elk wordt één einde ter plaatse gemaakt\", of dat "
 "Routeren een draad van de kast er een geeft."
 
-#: src/how-to/workshop-package.md:61
+#: src/how-to/workshop-package.md:64
 msgid ""
 "Below, the revision decides draft or release. While a revision is open, such "
 "as \"V1.0 is open, not released.\", the package is a draft: \"The package is "
@@ -6278,7 +6321,7 @@ msgstr ""
 "manifest en het inhoudsbestand.\" Het pakket van een vrijgegeven revisie "
 "draagt geen markering, en een tweede pakket ervan is hetzelfde bestand."
 
-#: src/how-to/workshop-package.md:65
+#: src/how-to/workshop-package.md:68
 msgid ""
 "To hand the package to someone outside the company, tick **Without personal "
 "data**: it leaves out the name and the address of each party marked as "
@@ -6291,7 +6334,7 @@ msgstr ""
 "zonder zo'n partij zegt \"Geen partij van dit project is gemarkeerd als "
 "persoonsgegevens (Projecteigenschappen ▸ Partijen)\"."
 
-#: src/how-to/workshop-package.md:68
+#: src/how-to/workshop-package.md:71
 msgid ""
 "Under **File**, **Choose…** sets where the ZIP goes, such as `SAMPLE-E V1.0 "
 "draft package.zip`. Choose **Write draft package** (or **Write package** for "
@@ -6305,36 +6348,37 @@ msgstr ""
 "wordt eerst gevraagd (\"… bestaat al. Vervangen?\"). Het pakket wordt "
 "geschreven als taak, en de toast noemt het bestand met **In map tonen**."
 
-#: src/how-to/workshop-package.md:72
+#: src/how-to/workshop-package.md:75
 msgid "What the shop finds in the ZIP"
 msgstr "Wat de werkplaats in het ZIP-bestand vindt"
 
-#: src/how-to/workshop-package.md:74
+#: src/how-to/workshop-package.md:77
 msgid ""
 "At the top, `Contents.txt`, which says the revision, whether it is a draft, "
 "what the release check found, which wires have no length and why, what the "
-"files lack of the workshop stock and of its parts' data, and what each file "
-"is; and the drawings as one PDF, every page in page order."
+"files lack of the workshop stock and of its parts' data, how to read the "
+"papers, and what each file is; and the drawings as one PDF, every page in "
+"page order."
 msgstr ""
 "Bovenaan het inhoudsbestand, dat de revisie noemt, zegt of het pakket een "
 "concept is, wat de vrijgavecontrole vond, welke draden geen lengte hebben en "
 "waarom, wat de bestanden missen van de werkplaatsvoorraad en van de gegevens "
-"van haar artikelen, en wat elk bestand is; en de tekeningen als één PDF, "
-"elke pagina in paginavolgorde."
-
-#: src/how-to/workshop-package.md:77
-msgid ""
-"In `Lists`, each workshop list as an Excel file; in `Labels`, the label "
-"files; in `Drilling`, the template and the DXF of each surface with holes; "
-"and `manifest.json`, the same list for a program, with a SHA-256 of each "
-"file."
-msgstr ""
-"In een map voor elk soort: de lijsten van de werkplaats, elk als "
-"Excel-bestand; de labelbestanden; en per vlak met gaten de boormal en de "
-"DXF. Daarnaast `manifest.json`, dezelfde lijst voor een programma, met een "
-"SHA-256 van elk bestand."
+"van haar artikelen, hoe u de papieren leest, en wat elk bestand is; en de "
+"tekeningen als één PDF, elke pagina in paginavolgorde."
 
 #: src/how-to/workshop-package.md:80
+msgid ""
+"In `Lists`, each workshop list as an Excel file with the columns its page "
+"prints; in `Labels`, the label files; in `Drilling`, the template and the "
+"DXF of each surface with holes; and `manifest.json`, the same list for a "
+"program, with a SHA-256 of each file."
+msgstr ""
+"In een map voor elk soort: de lijsten van de werkplaats, elk als "
+"Excel-bestand met de kolommen die haar pagina afdrukt; de labelbestanden; en "
+"per vlak met gaten de boormal en de DXF. Daarnaast `manifest.json`, dezelfde "
+"lijst voor een programma, met een SHA-256 van elk bestand."
+
+#: src/how-to/workshop-package.md:83
 msgid ""
 "The same three exports run on the command line: `ew export labels`, `ew "
 "export drilling` and `ew export package` ([Use the command line on the "
@@ -10047,30 +10091,33 @@ msgstr ""
 #: src/reference/window/command-bar.md:325
 msgid ""
 "In the Workshop group. Shows the first page of the project's wire list, the "
-"fitter's sheet: per wire its ends, its colour, its cross-section, its length "
-"and what goes on each end; List columns… adds the potential, the source, the "
-"joins and the wire part. A project without a wire list opens Report block… "
-"on the wire list."
+"fitter's sheet: how to read it, then per wire its colour, its cross-section, "
+"its length and each end on a line of its own, with what goes on it, its "
+"part, its strip length and its marker; List columns… adds the potential, the "
+"source, the joins and the wire part. A project without a wire list opens "
+"Report block… on the wire list."
 msgstr ""
 
-#: src/reference/window/command-bar.md:329
+#: src/reference/window/command-bar.md:330
 msgid "Open assembly lists"
 msgstr ""
 
-#: src/reference/window/command-bar.md:331
+#: src/reference/window/command-bar.md:332
 msgid ""
 "In the Workshop group. Shows the first page of the project's assembly lists: "
-"per terminal strip first where it goes on its rail and how long it is, then "
-"every item in the order the fitter mounts it (end brackets, terminals with "
-"their part, colour and marker, end plates), then its bridges. A project "
-"without assembly lists opens Report block… on them."
+"per rail where it lies and everything on it from its start with its width "
+"and its place, then per terminal strip where it goes on its rail and how "
+"long it is, then every item in the order the fitter mounts it (end brackets, "
+"terminals with their part, colour and marker, end plates), then its bridges; "
+"the devices in the door or on the plate without a rail with their centres "
+"and holes. A project without assembly lists opens Report block… on them."
 msgstr ""
 
-#: src/reference/window/command-bar.md:335
+#: src/reference/window/command-bar.md:338
 msgid "Open cut list"
 msgstr ""
 
-#: src/reference/window/command-bar.md:337
+#: src/reference/window/command-bar.md:340
 msgid ""
 "In the Workshop group. Shows the first page of the project's cut list: the "
 "rails, the ducts with their covers, the cables, the wires and the tubes to "
@@ -10079,11 +10126,11 @@ msgid ""
 "list opens Report block… on it."
 msgstr ""
 
-#: src/reference/window/command-bar.md:341
+#: src/reference/window/command-bar.md:344
 msgid "Open consumables"
 msgstr ""
 
-#: src/reference/window/command-bar.md:343
+#: src/reference/window/command-bar.md:346
 msgid ""
 "In the Workshop group. Shows the first page of the project's consumables: "
 "the metres of each wire, the ferrules and lugs per part and the markers per "
@@ -10091,11 +10138,11 @@ msgid ""
 "Report block… on it."
 msgstr ""
 
-#: src/reference/window/command-bar.md:347
+#: src/reference/window/command-bar.md:350
 msgid "Export list…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:349
+#: src/reference/window/command-bar.md:352
 msgid ""
 "In the Workshop group, and in the menu of a list's page. Writes the list on "
 "show as a file: an Excel file in the project's language, or, for a name that "
@@ -10103,11 +10150,11 @@ msgid ""
 "report --block` writes. Greyed while no list page is shown."
 msgstr ""
 
-#: src/reference/window/command-bar.md:353
+#: src/reference/window/command-bar.md:356
 msgid "Rework list…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:355
+#: src/reference/window/command-bar.md:358
 msgid ""
 "In the Workshop group. Compares the project as it is with a release and "
 "lists what the fitter changes in the built cabinet, in the order he does it: "
@@ -10119,11 +10166,11 @@ msgid ""
 "changes… opens Labels… on the labels the list names."
 msgstr ""
 
-#: src/reference/window/command-bar.md:361
+#: src/reference/window/command-bar.md:364
 msgid "Labels…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:363
+#: src/reference/window/command-bar.md:366
 msgid ""
 "In the Workshop group. Lists the label files for your label program, one per "
 "label set (wire markers, terminal markers, device labels…) and marker part, "
@@ -10138,11 +10185,11 @@ msgid ""
 "or `=` is read as a formula, so open an Excel file there."
 msgstr ""
 
-#: src/reference/window/command-bar.md:371
+#: src/reference/window/command-bar.md:374
 msgid "Hole tables"
 msgstr ""
 
-#: src/reference/window/command-bar.md:373
+#: src/reference/window/command-bar.md:376
 msgid ""
 "In the Workshop group. Shows the first page of the project's hole table: "
 "every hole and cut-out of each surface of the cabinet (the mounting plate, a "
@@ -10152,35 +10199,35 @@ msgid ""
 "opens Report block… on the hole table."
 msgstr ""
 
-#: src/reference/window/command-bar.md:378
+#: src/reference/window/command-bar.md:381
 msgid "Drilling…"
 msgstr "Boren…"
 
-#: src/reference/window/command-bar.md:380
+#: src/reference/window/command-bar.md:383
 msgid ""
 "In the Workshop group. Exports the drawings for drilling: for each surface "
 "with holes (ticked in a list that names its page, its holes and the sheets "
 "its template takes) a template to print at full size (PDF) and a DXF for a "
 "machine, on A4 or A3, into a folder (Drilling, beside the project). The "
-"template lies in the surface's corner nearest its holes: lay its two thick "
-"edges against the surface's edges, tape the sheets together at their crosses "
-"and centre-punch each hole. Print it at actual size and measure its 100 mm "
-"bar. Greyed while no surface has holes."
+"template lies in the corner the hole table measures from: lay its two thick "
+"edges against the surface's edges they name, tape the sheets together at "
+"their crosses and centre-punch each hole. Print it at actual size and "
+"measure its 100 mm bar. Greyed while no surface has holes."
 msgstr ""
 "In de groep Werkplaats. Exporteert de boortekeningen: voor elk vlak met "
 "gaten (aangevinkt in een lijst die zijn pagina, zijn gaten en de bladen van "
 "zijn boormal noemt) een boormal om op ware grootte te printen (PDF) en een "
 "DXF voor een machine, op A4 of A3, in een map (Boortekeningen, naast het "
-"project). De boormal ligt in de hoek van het vlak die het dichtst bij zijn "
-"gaten ligt: leg zijn twee dikke kanten tegen de kanten van het vlak, plak de "
+"project). De boormal ligt in de hoek waarvandaan de gatentabel meet: leg "
+"zijn twee dikke kanten tegen de kanten van het vlak die ze noemen, plak de "
 "bladen aan elkaar op hun kruisen en körn elk gat. Print hem op ware grootte "
 "en meet zijn balk van 100 mm. Grijs zolang geen vlak gaten heeft."
 
-#: src/reference/window/command-bar.md:386
+#: src/reference/window/command-bar.md:389
 msgid "Workshop settings"
 msgstr ""
 
-#: src/reference/window/command-bar.md:388
+#: src/reference/window/command-bar.md:391
 msgid ""
 "In the Workshop group. Shows the project's Properties at its Workshop rows: "
 "the stock, the ferrules, two wires in one clamp, the marker text, the "
@@ -10189,11 +10236,11 @@ msgid ""
 "fixings, the web between holes and the corner the holes are measured from."
 msgstr ""
 
-#: src/reference/window/command-bar.md:393
+#: src/reference/window/command-bar.md:396
 msgid "Package…"
 msgstr ""
 
-#: src/reference/window/command-bar.md:395
+#: src/reference/window/command-bar.md:398
 msgid ""
 "In the Workshop group. Writes one ZIP file with what the workshop builds the "
 "cabinet from: the drawings as one PDF, each workshop list as an Excel file, "
@@ -10210,125 +10257,125 @@ msgid ""
 "a job, as Export PDF is, and a toast names the file with Show in folder."
 msgstr ""
 
-#: src/reference/window/command-bar.md:405
+#: src/reference/window/command-bar.md:408
 msgid "View"
 msgstr ""
 
-#: src/reference/window/command-bar.md:407
+#: src/reference/window/command-bar.md:410
 msgid "Back"
 msgstr ""
 
-#: src/reference/window/command-bar.md:409
+#: src/reference/window/command-bar.md:412
 msgid ""
 "Goes back to the place shown before the last jump (a cross-reference "
 "followed, a page opened)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:411
+#: src/reference/window/command-bar.md:414
 msgid "Forward"
 msgstr ""
 
-#: src/reference/window/command-bar.md:413
+#: src/reference/window/command-bar.md:416
 msgid "Goes forward again after **Back**."
 msgstr ""
 
-#: src/reference/window/command-bar.md:415
+#: src/reference/window/command-bar.md:418
 msgid "Follow cross-reference"
 msgstr ""
 
-#: src/reference/window/command-bar.md:417
+#: src/reference/window/command-bar.md:420
 msgid ""
 "Goes to the place the cross-reference under the pointer or selected names."
 msgstr ""
 
-#: src/reference/window/command-bar.md:419
+#: src/reference/window/command-bar.md:422
 msgid "Zoom in"
 msgstr ""
 
-#: src/reference/window/command-bar.md:421
+#: src/reference/window/command-bar.md:424
 msgid "Shows the page larger, around the middle of the view."
 msgstr ""
 
-#: src/reference/window/command-bar.md:423
+#: src/reference/window/command-bar.md:426
 msgid "Zoom out"
 msgstr ""
 
-#: src/reference/window/command-bar.md:425
+#: src/reference/window/command-bar.md:428
 msgid "Shows the page smaller."
 msgstr ""
 
-#: src/reference/window/command-bar.md:427
+#: src/reference/window/command-bar.md:430
 msgid "Actual size"
 msgstr ""
 
-#: src/reference/window/command-bar.md:429
+#: src/reference/window/command-bar.md:432
 msgid "Shows the page at its printed size."
 msgstr ""
 
-#: src/reference/window/command-bar.md:431
+#: src/reference/window/command-bar.md:434
 msgid "Fit page"
 msgstr ""
 
-#: src/reference/window/command-bar.md:433
+#: src/reference/window/command-bar.md:436
 msgid "Shows the whole page in the view."
 msgstr ""
 
-#: src/reference/window/command-bar.md:435
+#: src/reference/window/command-bar.md:438
 msgid "Side by side"
 msgstr ""
 
-#: src/reference/window/command-bar.md:437
+#: src/reference/window/command-bar.md:440
 msgid "Shows two pages side by side, each in its own group of tabs."
 msgstr ""
 
-#: src/reference/window/command-bar.md:439
+#: src/reference/window/command-bar.md:442
 msgid "Grid"
 msgstr ""
 
-#: src/reference/window/command-bar.md:441
+#: src/reference/window/command-bar.md:444
 msgid "Shows or hides the drawing grid on the page."
 msgstr ""
 
-#: src/reference/window/command-bar.md:443
+#: src/reference/window/command-bar.md:446
 msgid "Theme"
 msgstr ""
 
-#: src/reference/window/command-bar.md:445
+#: src/reference/window/command-bar.md:448
 msgid ""
 "Chooses the window's colours. See "
 "[Appearance](../../how-to/application-window.md#appearance)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:447
+#: src/reference/window/command-bar.md:450
 msgid "Density"
 msgstr ""
 
-#: src/reference/window/command-bar.md:449
+#: src/reference/window/command-bar.md:452
 msgid "Chooses how close the window's rows and buttons stand."
 msgstr ""
 
-#: src/reference/window/command-bar.md:451
+#: src/reference/window/command-bar.md:454
 msgid "UI scale"
 msgstr ""
 
-#: src/reference/window/command-bar.md:453
+#: src/reference/window/command-bar.md:456
 msgid "Makes the whole window larger or smaller."
 msgstr ""
 
-#: src/reference/window/command-bar.md:455
+#: src/reference/window/command-bar.md:458
 msgid "Show tips"
 msgstr ""
 
-#: src/reference/window/command-bar.md:457
+#: src/reference/window/command-bar.md:460
 msgid ""
 "Shows or hides the tips the window gives on the canvas and in empty panels."
 msgstr ""
 
-#: src/reference/window/command-bar.md:459
+#: src/reference/window/command-bar.md:462
 msgid "Frame statistics"
 msgstr ""
 
-#: src/reference/window/command-bar.md:461
+#: src/reference/window/command-bar.md:464
 msgid ""
 "Shows how long the window takes to draw each frame, for a report of a slow "
 "window."
@@ -12988,6 +13035,21 @@ msgid ""
 "model, so it cannot go stale. **In the window:** **Page ▸ Go ▸ Follow "
 "cross-reference**."
 msgstr ""
+
+#~ msgid ""
+#~ "Choose **Output ▸ Workshop ▸ Open assembly lists**. Each strip starts with a "
+#~ "line that says where it goes and how long it is, such as \"-X1011 · on rail "
+#~ "1 from 0 to 48.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm with its "
+#~ "end brackets\", then every item in the order the fitter mounts it: end "
+#~ "bracket, terminals with their part, colour and marker, end plate, end "
+#~ "bracket; then its bridges."
+#~ msgstr ""
+#~ "Kies **Uitvoer ▸ Werkplaats ▸ Montagelijsten openen**. Elke klemmenstrook "
+#~ "begint met een regel die zegt waar ze komt en hoe lang ze is, zoals \"-X1011 "
+#~ "· on rail 1 from 0 to 48.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm "
+#~ "with its end brackets\" in het Engelse voorbeeldproject, daarna alles in de "
+#~ "volgorde waarin de monteur het monteert: eindsteun, klemmen met hun artikel, "
+#~ "kleur en merker, eindplaat, eindsteun; daarna haar bruggen."
 
 #~ msgid "The Bus panel's table takes each node's address; the box prints it."
 #~ msgstr ""
