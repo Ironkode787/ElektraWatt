@@ -600,18 +600,29 @@ impl Session {
                         &[&name, &standing.join(", ")],
                     )));
                 }
-                // In words, never by the reference's identifiers.
-                Err(match e {
-                    crate::ApiError::Library { .. } => {
-                        PartDraftError::Field(message("part", key!("error-part-names-unknown"), &[]))
-                    }
-                    other => PartDraftError::Field(message(
-                        "part",
-                        key!("error-part-library"),
-                        &[&name, &other.to_string()],
-                    )),
-                })
+                Err(PartDraftError::Field(self.save_error_words(&name, &e)))
             }
+        }
+    }
+
+    /// Why a Save of a part could not read what it brings into the project, in words that name a part by its maker
+    /// and number and never by an identifier: a reference no library and not the project answers; a part the
+    /// project holds at another version than its library (with the way: update it first); else library `library`'s
+    /// error.
+    pub(crate) fn save_error_words(&self, library: &str, e: &crate::ApiError) -> crate::part_editor::DraftMessage {
+        match e {
+            crate::ApiError::Library { .. } => message("part", key!("error-part-names-unknown"), &[]),
+            crate::ApiError::OtherVersionHeld { copy, held, library: newer } => {
+                let q = self.query();
+                let part = (q.parts().get(Id::from_uuid(*copy)))
+                    .map(|c| {
+                        let maker = ew_derive::manufacturer_name(&q, &c.item.manufacturer);
+                        format!("{maker} {}", c.item.part_number.as_str()).trim().to_owned()
+                    })
+                    .unwrap_or_default();
+                message("part", key!("error-part-other-version-held"), &[&part, held, newer])
+            }
+            other => message("part", key!("error-part-library"), &[library, &other.to_string()]),
         }
     }
 }

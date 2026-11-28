@@ -755,3 +755,40 @@ fn changing_a_piece_keeps_the_entries_the_table_does_not_show() {
         assert!(part.function_template.contains(e), "kept as it was: {e:?}");
     }
 }
+
+/// A new part of My parts that comes with a part the project holds at another version than My parts does: the Save
+/// is refused in words that name that part by its maker and number with the way on, never by its copy's identifier.
+#[test]
+fn a_save_that_meets_another_version_names_the_part() {
+    let tmp = ew_testdir::Tmp::new("parts-place-other-version");
+    let mut s = project(&tmp.0);
+    terminal(&mut s, "EP-1", true);
+    // My parts' EP-1 changes; the project keeps the copy it took.
+    let mut sheet = s.part_draft(copy_of(&s, "EP-1")).expect("its sheet");
+    s.set_draft_field(&mut sheet, "description", "changed in My parts")
+        .expect("a description");
+    let save = s.own_parts_save(&[&sheet]).expect("planned");
+    s.write_own_save(&save).expect("written, the card not applied");
+    let mut new = s.new_part_draft().expect("a new part");
+    for (f, v) in [
+        ("manufacturer", "Example"),
+        ("part_number", "TB-1"),
+        ("kind", "terminal"),
+    ] {
+        s.set_draft_field(&mut new, f, v).expect(f);
+    }
+    assert!(new.add_table_row("accessories"));
+    for (f, v) in [("part", "EP-1"), ("qty", "1"), ("per", "strip")] {
+        s.set_draft_field(&mut new, &format!("accessories[0].{f}"), v)
+            .expect(f);
+    }
+    let Err(ew_api::PartDraftError::Field(m)) = s.new_part_command(&new) else {
+        panic!("refused")
+    };
+    assert_eq!(m.key, "error-part-other-version-held", "{m:?}");
+    assert_eq!(m.args[0], "Example EP-1", "{m:?}");
+    assert!(
+        !m.args.iter().any(|a| a.parse::<Uuid>().is_ok() || a.contains('-') && a.len() > 30),
+        "{m:?}"
+    );
+}

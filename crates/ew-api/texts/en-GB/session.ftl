@@ -309,6 +309,7 @@ error-part-exists = { $p1 } { $p0 } is in My parts or in this project already: o
 error-part-library = { $p0 } could not be written: { $p1 }
 error-part-no-my-parts = With no project open a new part is saved in My parts, and My parts cannot be made here: open a project to keep the part in it
 error-part-keep-no-my-parts = My parts cannot be made here, as this window has no folder of its own for it: the part stays in this project
+error-part-other-version-held = This project holds { $p0 } at version { $p1 }, and its library has { $p2 }: update it from the Libraries navigator first, then save again
 error-part-names-unknown = It names a part that no library you have holds and this project does not hold: choose that part again in its field
 error-part-take-back-failed = { $p0 } could not take back what this Save wrote, so these stand in it now: { $p1 }. Open them there, or remove them there.
 reason-part-symbol-unsaved = Save the symbol to a library first; the part then names it

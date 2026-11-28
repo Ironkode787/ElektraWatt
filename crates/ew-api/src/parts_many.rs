@@ -301,12 +301,6 @@ impl Session {
         let forced: Vec<Uuid> = (kept.items.iter())
             .map(|i| ew_ids::v5::lib_copy_id::<Part>(lib, *i).as_uuid())
             .collect();
-        let refused = |e: crate::ApiError| {
-            (
-                0,
-                PartDraftError::Field(message("part", key!("error-part-library"), &["", &e.to_string()])),
-            )
-        };
         let (plan, command) = if held_new.is_empty() {
             let command = kept.moves.split_first().map(|(first, also)| {
                 let copies = docs.iter().filter_map(|d| serde_json::to_value(d).ok()).collect();
@@ -316,7 +310,7 @@ impl Session {
         } else {
             let plan = self
                 .update_keeping(&docs, &forced, &kept.moves, &[])
-                .map_err(refused)?;
+                .map_err(|e| (0, PartDraftError::Field(self.save_error_words("", &e))))?;
             (Some(plan), None)
         };
         Ok(OwnSave {
