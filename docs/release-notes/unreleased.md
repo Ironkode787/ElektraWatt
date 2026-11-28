@@ -977,7 +977,8 @@ change here.
   a depth and **Edit part…** on the first (a project of 0.3.5 shows it at once), and the check's message says when the
   door closes over what stands behind it
 - behaviour-change: the package's dialog comes back after a fix of one of its findings, read again, its choices kept;
-  a release whose revision records no release day makes a release package whose Contents says so, not a day made up
+  a release whose revision records no release day makes a release package whose Contents says so, not a day made up;
+  its `manifest.json` then leaves `released_on` out, where it held the made-up day
 - behaviour-change: Labels… says why **Changed since a release** cannot be chosen: no release yet, or the reason the
   release's archive is not found, as the Rework list says it
 - behaviour-change: every row of Route's preview names its wire ("101.4: a way through duct 1, 595 mm"; a changed way
