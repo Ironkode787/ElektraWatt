@@ -305,6 +305,10 @@ template-edge-left = Linkerkant van de { $p0 }: leg deze kant ertegen
 template-edge-right = Rechterkant van de { $p0 }: leg deze kant ertegen
 template-edge-top = Bovenkant van de { $p0 }: leg deze kant ertegen
 template-edge-bottom = Onderkant van de { $p0 }: leg deze kant ertegen
+template-edge-side-left = Linkerkant van de { $p0 }, aan de linkerkant van de kast als u voor de deur staat: leg deze kant ertegen
+template-edge-side-right = Rechterkant van de { $p0 }, aan de rechterkant van de kast als u voor de deur staat: leg deze kant ertegen
+template-edge-back = Achterkant van de { $p0 }, van de deur af: leg deze kant ertegen
+template-edge-door = Deurkant van de { $p0 }: leg deze kant ertegen
 template-band-what = { $p0 } · { $p1 } { $p2 } · { $p3 }
 template-band-sheet = Blad { $p0 } van { $p1 }, rij { $p2 }, kolom { $p3 }: { $p4 }–{ $p5 } mm vanaf de { $p6 }, { $p7 }–{ $p8 } mm vanaf de { $p9 }
 template-band-datum = Gatentabel: X en Y vanaf de hoek { $p0 }, met 0 gemarkeerd
@@ -349,6 +353,7 @@ corner-in-sentence-bottom-right = rechtsonder
 corner-in-sentence-top-left = linksboven
 corner-in-sentence-top-right = rechtsboven
 hole-table-heading = { $p0 }, pagina { $p1 }, { $p2 }, gemeten vanaf de hoek { $p3 }
+hole-table-heading-sized = { $p0 } { $p1 } mm, pagina { $p2 }, { $p3 }, gemeten vanaf de hoek { $p4 }
 
 ## Waar een apparaat staat (doc 13 §6.1)
 

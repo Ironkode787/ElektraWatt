@@ -97,7 +97,8 @@ pub(crate) fn body(ui: &mut Ui, d: &ReworkDialog, events: &mut Vec<Event>) {
                                 ui.vertical(|ui| {
                                     ui.add(egui::Label::new(components::body(&t, cell)).wrap());
                                     if !row.because.is_empty() {
-                                        let line = strings::format(key!("rework-because-line"), &[&row.because]);
+                                        let line =
+                                            strings::format(key!("rework-because-line"), &[&row.because]);
                                         ui.add(egui::Label::new(components::body_secondary(&t, line)).wrap());
                                     }
                                 });

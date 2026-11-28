@@ -22,8 +22,6 @@ use crate::panel::LAYOUT_LABEL_STYLE;
 const MARGIN: Nm = Nm(10_000_000);
 /// The band at a sheet's foot.
 const BAND: Nm = Nm(12_000_000);
-/// The strip neighbouring sheets share.
-const OVERLAP: Nm = Nm(10_000_000);
 /// How far a hole's centre cross reaches past its edge.
 const CROSS_PAST: Nm = Nm(4_000_000);
 /// The text of a hole's words and of the band.
@@ -77,6 +75,8 @@ pub struct TemplateView {
     pub datum: Option<Pt2>,
     /// A neighbour on the right and one above: their strips tinted on this sheet.
     pub tint: (bool, bool),
+    /// How far neighbouring sheets overlap: the width of a tinted strip.
+    pub overlap: Nm,
     /// A neighbour on the left and one below: this sheet's cut edges, dashed.
     pub cut: (bool, bool),
     /// The points where four sheets meet, in the surface frame.
@@ -116,11 +116,11 @@ pub fn template_sheet(v: &TemplateView, fonts: &FontSet, styles: &ew_text::TextS
     // The strips the neighbours print again, tinted, under everything.
     let (cmin, cmax) = (content.min(), content.max());
     if v.tint.0 {
-        let r = Rect::from_points(Pt2::new(Nm(cmax.x.0 - OVERLAP.0), cmin.y), cmax);
+        let r = Rect::from_points(Pt2::new(Nm(cmax.x.0 - v.overlap.0), cmin.y), cmax);
         push(&mut b, Path::rect(r), None, Some(Brush::Solid(TINT)));
     }
     if v.tint.1 {
-        let r = Rect::from_points(cmin, Pt2::new(cmax.x, Nm(cmin.y.0 + OVERLAP.0)));
+        let r = Rect::from_points(cmin, Pt2::new(cmax.x, Nm(cmin.y.0 + v.overlap.0)));
         push(&mut b, Path::rect(r), None, Some(Brush::Solid(TINT)));
     }
     let dashed = || Some(thin.clone().dashed(DashPattern::Dash42));

@@ -382,9 +382,9 @@ without a hole table opens Report block… on the hole table.
 
 In the Workshop group. Exports the drawings for drilling: for each surface with holes (ticked in a list that names its
 page, its holes and the sheets its template takes) a template to print at full size (PDF) and a DXF for a machine,
-on A4 or A3, into a folder (Drilling, beside the project). The template lies in the surface's corner nearest its holes:
-lay its two thick edges against the surface's edges, tape the sheets together at their crosses and centre-punch each
-hole. Print it at actual size and measure its 100 mm bar. Greyed while no surface has holes.
+on A4 or A3, into a folder (Drilling, beside the project). The template lies in the corner the hole table measures
+from: lay its two thick edges against the surface's edges they name, tape the sheets together at their crosses and
+centre-punch each hole. Print it at actual size and measure its 100 mm bar. Greyed while no surface has holes.
 
 ### Workshop settings
 

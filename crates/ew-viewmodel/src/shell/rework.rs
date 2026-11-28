@@ -79,7 +79,12 @@ fn dialog_rows(session: &ew_api::Session, rework: &ew_api::Rework) -> (Vec<Strin
     let at = |key: &str| rework.set.columns.iter().position(|c| c.key == key);
     let shown: Vec<usize> = SHOWN.iter().filter_map(|k| at(k)).collect();
     let because = at("reason");
-    let pick = |cells: &[String]| shown.iter().map(|i| cells.get(*i).cloned().unwrap_or_default()).collect();
+    let pick = |cells: &[String]| {
+        shown
+            .iter()
+            .map(|i| cells.get(*i).cloned().unwrap_or_default())
+            .collect()
+    };
     let rows = rows
         .iter()
         .map(|r| ReworkRow {

@@ -84,6 +84,7 @@ fn surface_rows(q: &Q, surface: ew_ids::Id<MountingSurface>, folio: &str, set: &
     let words = |t: &Text| Cell::Text(ew_derive::text::in_languages(t));
     let heading = ew_derive::text::hole_table_heading(
         word.clone(),
+        face.size,
         folio,
         ew_derive::text::surface_seen(&face.kind),
         &surface_datum(q, s),

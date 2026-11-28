@@ -394,7 +394,10 @@ drilling-dir = Folder
 drilling-surfaces = Surfaces with holes
 drilling-surface = Surface
 drilling-tick = Export
-drilling-row = { $p0 } · page { $p1 } · { $p2 } · { $p3 }
+drilling-row = { $p0 } · page { $p1 } · { $p2 } · { $p3 } · { $p4 }
+drilling-written-both = a template and a DXF
+drilling-written-template = a template
+drilling-written-dxf = a DXF
 drilling-holes = { $p0 ->
         [one] 1 hole
        *[other] { $p0 } holes

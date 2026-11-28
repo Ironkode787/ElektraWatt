@@ -223,7 +223,7 @@ fn unit_symbol(u: &QtyUnit) -> &'static str {
 /// Whether a quantity prints with a decimal comma: the project's `settings.formatting.decimal_separator` when it sets
 /// one and the output is in the project's own language (none, or the language of its source language: the list pages
 /// print so, doc 09 §4.7); else the output language's; else the point.
-pub(crate) fn writes_comma(q: &Q, lang: Option<&LangTag>) -> bool {
+pub fn writes_comma(q: &Q, lang: Option<&LangTag>) -> bool {
     let project = q.project();
     let own = match (lang, project.languages.as_ref()) {
         (None, _) => true,

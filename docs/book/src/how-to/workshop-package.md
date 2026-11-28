@@ -31,12 +31,15 @@ holes of the cabinet's surfaces ([Place devices in the door, and make holes and 
 
 6. Choose **Output ▸ Workshop ▸ Drilling…** (greyed with "No surface of this project has holes yet." while no surface
    has any). The form "Export the drawings for drilling" lists the **Surfaces with holes**, each with its page, its
-   holes and the sheets its template takes, such as "Door · page 904 · 8 holes · 5 sheets", with a tick.
+   holes, the sheets its template takes and its two files, such as "Door · page 904 · 8 holes · 9 sheets · +CAB Door
+   template.pdf, +CAB Door.dxf", with a tick.
 7. Choose **Template to print at full size (PDF)**, **DXF for a machine** or both, the **Paper** (A4 or A3) and the
    **Folder** (Drilling, beside the project), and choose **Export**. Each surface gets its files, such as
-   `+CAB Door template.pdf` and `+CAB Door.dxf`; the toast says "Wrote 6 files to …".
+   `+CAB Door template.pdf` and `+CAB Door.dxf`; the toast says which are which surface's, such as "Wrote 6 files to
+   Drilling: a template and a DXF for each of Mounting plate, Door, Bottom".
 8. Print a template at actual size, not fitted to the page, and measure its 100 mm bar. Tape the sheets together at
-   their crosses, lay the template's two thick edges against the surface's edges and centre-punch each hole. The DXF
+   their crosses, lay the template's two thick edges against the surface's edges they name (the corner the hole table
+   measures from) and centre-punch each hole. The DXF
    has its 0,0 at the corner the surface's holes are measured from, and a layer for each way of making a hole.
 
 ## The package

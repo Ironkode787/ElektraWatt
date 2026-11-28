@@ -1115,13 +1115,25 @@ pub fn template_file(location: &str, surface: &str) -> Text {
     text!("template-file", location, surface)
 }
 
-/// The words of an edge at a template's corner (`left`, `right`, `top`, `bottom`) of the surface `surface` in lower
-/// case: "Left edge of the door: lay this edge on it".
-pub fn template_edge(edge: &str, surface: &str) -> Text {
-    match edge {
-        "right" => text!("template-edge-right", surface),
-        "top" => text!("template-edge-top", surface),
-        "bottom" => text!("template-edge-bottom", surface),
+/// The words of an edge at a template's corner (`left`, `right`, `top`, `bottom`) of the surface `surface` (of kind
+/// `kind`) in lower case: "Left edge of the door: lay this edge on it". The top and the bottom, seen from another side
+/// than the fitter stands at, name their edges as he stands at the door: the left and the right edge by the cabinet's
+/// side, the others as its back edge and its door's edge (the bottom's page shows the door's edge at the top, the top's
+/// at the bottom).
+pub fn template_edge(edge: &str, kind: &SurfaceKind, surface: &str) -> Text {
+    let door_at_top = match kind {
+        SurfaceKind::Bottom => Some(true),
+        SurfaceKind::Top => Some(false),
+        _ => None,
+    };
+    match (edge, door_at_top) {
+        ("right", Some(_)) => text!("template-edge-side-right", surface),
+        ("left", Some(_)) => text!("template-edge-side-left", surface),
+        ("top", Some(true)) | ("bottom", Some(false)) => text!("template-edge-door", surface),
+        ("top" | "bottom", Some(_)) => text!("template-edge-back", surface),
+        ("right", None) => text!("template-edge-right", surface),
+        ("top", None) => text!("template-edge-top", surface),
+        ("bottom", None) => text!("template-edge-bottom", surface),
         _ => text!("template-edge-left", surface),
     }
 }
@@ -1235,16 +1247,31 @@ pub fn corner_in_sentence(c: &Corner) -> Text {
     }
 }
 
-/// The heading of a surface's holes in the hole table (doc 13 §9.2): "Door, page 904, seen from outside, measured from
-/// the bottom-left corner".
-pub fn hole_table_heading(surface: Text, folio: &str, seen: Text, corner: &Corner) -> Text {
-    text!(
-        "hole-table-heading",
-        surface,
-        folio,
-        seen,
-        corner_in_sentence(corner)
-    )
+/// The heading of a surface's holes in the hole table (doc 13 §9.2): "Door 600 × 800 mm, page 904, seen from outside,
+/// measured from the bottom-left corner"; without the size where the surface has none.
+pub fn hole_table_heading(
+    surface: Text,
+    size: Option<(Nm, Nm)>,
+    folio: &str,
+    seen: Text,
+    corner: &Corner,
+) -> Text {
+    let corner = corner_in_sentence(corner);
+    match size {
+        Some((w, h)) => text!(
+            "hole-table-heading-sized",
+            surface,
+            format!(
+                "{} \u{d7} {}",
+                mm_tenth_short(i128::from(w.0)),
+                mm_tenth_short(i128::from(h.0))
+            ),
+            folio,
+            seen,
+            corner
+        ),
+        None => text!("hole-table-heading", surface, folio, seen, corner),
+    }
 }
 
 /// The end of a rail its positions are measured from, inside a sentence: "left end", "lower end".

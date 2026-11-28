@@ -1068,3 +1068,10 @@ change here.
 - behaviour-change: the Rework list… dialog shows each row's action, wire and change, the change taking the rest of the
   dialog's width with "Because: …" under it, so that a row reads on one or two lines and the first screen shows the
   rows; the ends' treatments, parts, strip lengths and markers stay in its export
+- behaviour-change: a template for drilling lies in the surface's datum corner, the corner the hole table measures
+  from, its two thick edges named as the fitter stands at the door on the top and the bottom ("Back edge of the bottom,
+  away from the door"); its sheets overlap by the largest hole's size where that is more than 10 mm, so that no hole is
+  split between two sheets; its sizes print with the project's decimal sign (the DXF keeps the point). An existing
+  project's templates take other sheets
+- behaviour-change: the hole table's heading of a surface names its size ("Door 600 × 800 mm, page 904, …")
+- behaviour-change: Drilling…'s rows name the two files of each surface, and its toast which files are which surface's

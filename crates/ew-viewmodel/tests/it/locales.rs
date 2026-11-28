@@ -424,6 +424,16 @@ const OTHER_SENSES: &[(&str, &str, &str)] = &[
         "a template for drilling (boormal)",
     ),
     ("template-file", "template", "a template for drilling (boormal)"),
+    (
+        "drilling-written-both",
+        "template",
+        "a template for drilling (boormal)",
+    ),
+    (
+        "drilling-written-template",
+        "template",
+        "a template for drilling (boormal)",
+    ),
     ("action-view-frame-stats", "frame", "a drawn frame of the window"),
     ("canvas-stats-frame", "frame", "a drawn frame of the window"),
     (

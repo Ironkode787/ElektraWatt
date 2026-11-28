@@ -223,7 +223,7 @@ Open `out/holes.csv` in a text editor. It starts like this:
 
 ```text
 row,Surface,No.,X mm,Y mm,Hole,What,For
-heading,"Mounting plate, page 902, seen from the front, measured from the bottom-left corner",,,,,,
+heading,"Mounting plate 520 × 720 mm, page 902, seen from the front, measured from the bottom-left corner",,,,,,
 data,Mounting plate,H1,50,440,"Ø 3.3, tap M4",Fixing M4,Duct 1
 ```
 

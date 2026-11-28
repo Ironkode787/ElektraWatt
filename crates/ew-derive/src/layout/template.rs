@@ -5,12 +5,13 @@
 //! paper sheets it takes, which of them print and their numbers. The scene draws a sheet from it; the Drilling… dialog
 //! counts the sheets.
 //!
-//! The template lies in **the corner nearest the holes** (the corner whose two edges enclose the holes in the smallest
-//! rectangle; on a tie the first of bottom left, bottom right, top left, top right) and covers the surface from there to
-//! 20 mm past the farthest hole's edge, within the sheet. A paper sheet holds its paper less 10 mm all round and a 12 mm
-//! band at its foot; neighbouring sheets overlap by 10 mm. The orientation that needs the fewer sheets is taken
-//! (portrait on a tie). A sheet that holds no part of a hole and neither of the two edges at the corner is not printed;
-//! the printed sheets are numbered row by row from the corner.
+//! The template lies in **the corner the hole table measures from** (the surface's datum corner, `surface_datum`), so
+//! that it is laid against the two edges every number is measured from, and covers the surface from there to 20 mm past
+//! the farthest hole's edge, within the sheet. A paper sheet holds its paper less 10 mm all round and a 12 mm band at its
+//! foot; neighbouring sheets overlap by 10 mm, or by the largest hole's size where that is more, so that a hole on a join
+//! stands whole on one of the two sheets. The orientation that needs the fewer sheets is taken (portrait on a tie). A
+//! sheet that holds no part of a hole and neither of the two edges at the corner is not printed; the printed sheets are
+//! numbered row by row from the corner.
 
 use ew_ids::Id;
 use ew_schema::{Corner, MountingSurface};
@@ -23,7 +24,7 @@ use crate::Q;
 pub const TEMPLATE_MARGIN: Nm = Nm(10_000_000);
 /// The band at a sheet's foot.
 pub const TEMPLATE_BAND: Nm = Nm(12_000_000);
-/// How far neighbouring sheets overlap.
+/// How far neighbouring sheets overlap at least ([`TemplateSheets::overlap`]).
 pub const TEMPLATE_OVERLAP: Nm = Nm(10_000_000);
 /// How far the template reaches past the farthest hole's edge.
 pub const TEMPLATE_PAST: Nm = Nm(20_000_000);
@@ -92,6 +93,8 @@ pub struct TemplateSheets {
     pub cover: Rect,
     /// The paper's width and height as the sheets lie (landscape: the long side across).
     pub paper: (Nm, Nm),
+    /// How far neighbouring sheets overlap: [`TEMPLATE_OVERLAP`], or the largest hole's size where that is more.
+    pub overlap: Nm,
     /// The rows and the columns of sheets.
     pub rows: u32,
     /// The columns.
@@ -169,30 +172,21 @@ pub fn template_sheets(q: &Q, surface: Id<MountingSurface>, paper: Paper) -> Opt
     let holes = hole_boxes(q, surface);
     let first = holes.first()?;
     let span = holes.iter().fold(*first, |a, b| a.union(*b));
-    // The corner whose two edges enclose the holes in the smallest rectangle.
     let (lo, hi) = (sheet.min(), sheet.max());
-    let reach = |left: bool, top: bool| {
-        let w = if left {
-            span.max().x.0 - lo.x.0
-        } else {
-            hi.x.0 - span.min().x.0
-        };
-        let h = if top {
-            hi.y.0 - span.min().y.0
-        } else {
-            span.max().y.0 - lo.y.0
-        };
-        i128::from(w) * i128::from(h)
+    // The corner the hole table measures from; one of a newer format as the bottom-left one.
+    let corner = match super::surfaces::surface_datum(q, s) {
+        Corner::Unknown(_) => Corner::BottomLeft,
+        c => c,
     };
-    let corner = [
-        (Corner::BottomLeft, true, false),
-        (Corner::BottomRight, false, false),
-        (Corner::TopLeft, true, true),
-        (Corner::TopRight, false, true),
-    ]
-    .into_iter()
-    .min_by_key(|(_, l, t)| reach(*l, *t))
-    .map(|(c, _, _)| c)?;
+    // A hole on a join stands whole on one of the two sheets: they overlap by its size at least, to the millimetre.
+    let largest = holes
+        .iter()
+        .map(|h| h.width().0.max(h.height().0))
+        .max()
+        .unwrap_or(0);
+    let overlap = TEMPLATE_OVERLAP
+        .0
+        .max((largest + 999_999) / 1_000_000 * 1_000_000);
     let (left, top) = (
         matches!(corner, Corner::BottomLeft | Corner::TopLeft),
         matches!(corner, Corner::TopLeft | Corner::TopRight),
@@ -222,7 +216,7 @@ pub fn template_sheets(q: &Q, surface: Id<MountingSurface>, paper: Paper) -> Opt
     // The sheets each orientation needs; the fewer, portrait on a tie.
     let (short, long) = paper.sides();
     let count = |len: i64, room: i64| -> Option<u32> {
-        let step = room - TEMPLATE_OVERLAP.0;
+        let step = room - overlap;
         if room <= 0 || step <= 0 {
             return None;
         }
@@ -247,7 +241,7 @@ pub fn template_sheets(q: &Q, surface: Id<MountingSurface>, paper: Paper) -> Opt
     };
     let room_w = pw.0 - 2 * TEMPLATE_MARGIN.0;
     let room_h = ph.0 - 2 * TEMPLATE_MARGIN.0 - TEMPLATE_BAND.0;
-    let (step_w, step_h) = (room_w - TEMPLATE_OVERLAP.0, room_h - TEMPLATE_OVERLAP.0);
+    let (step_w, step_h) = (room_w - overlap, room_h - overlap);
     let mut tiles = Vec::new();
     let mut number = 0;
     for row in 0..rows {
@@ -282,6 +276,7 @@ pub fn template_sheets(q: &Q, surface: Id<MountingSurface>, paper: Paper) -> Opt
         sheet,
         cover,
         paper: (pw, ph),
+        overlap: Nm(overlap),
         rows,
         cols,
         tiles,

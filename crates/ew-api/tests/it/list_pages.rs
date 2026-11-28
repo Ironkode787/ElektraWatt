@@ -449,14 +449,14 @@ fn the_wire_lists_first_page_says_how_to_read_it_from_the_settings() {
         );
     }
     // The first wire: its From end, then its To end under it.
-    let at = first
-        .iter()
-        .position(|l| l.contains("|From|"))
-        .expect("a wire");
+    let at = first.iter().position(|l| l.contains("|From|")).expect("a wire");
     assert!(first[at + 1].starts_with("|To|"), "{first:#?}");
     let second = table(&s, pages[1]);
     assert!(
-        !second.rows.iter().any(|r| r.cells[0] == "How to read these papers"),
+        !second
+            .rows
+            .iter()
+            .any(|r| r.cells[0] == "How to read these papers"),
         "the head is the first page's"
     );
 }

@@ -73,6 +73,7 @@ impl ShellModel {
                             o.folio.as_deref().unwrap_or("—"),
                             &strings::format_count(crate::count_key!("drilling-holes"), o.holes),
                             &strings::format_count(crate::count_key!("drilling-sheets"), o.sheets),
+                            &format!("{}, {}", o.files.0, o.files.1),
                         ],
                     ),
                     cells: vec![TICKED.to_owned()],
@@ -170,10 +171,21 @@ impl ShellModel {
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default();
+        // Which files are which surface's: their kinds, then the surfaces in the dialog's order.
+        let what = strings::text(match (ask.template, ask.dxf) {
+            (true, true) => key!("drilling-written-both"),
+            (true, false) => key!("drilling-written-template"),
+            _ => key!("drilling-written-dxf"),
+        });
+        let surfaces: Vec<String> = offered
+            .iter()
+            .filter(|o| ask.surfaces.contains(&o.surface))
+            .map(|o| strings::render(&o.words))
+            .collect();
         let text = strings::format_counted(
             crate::count_key!("toast-drilling-written"),
             files.len(),
-            &[&folder],
+            &[&folder, what, &surfaces.join(", ")],
         );
         if self.in_form_of(ACTION) {
             self.dialog = None;

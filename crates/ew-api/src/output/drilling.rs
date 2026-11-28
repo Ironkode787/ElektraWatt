@@ -11,8 +11,8 @@ use std::io;
 use std::path::Path;
 
 use ew_derive::layout::{
-    Made, Paper, SurfaceFeatures, TEMPLATE_OVERLAP, carrier_labels, drawable, face_of, surface_datum,
-    surface_page, template_sheets,
+    Made, Paper, SurfaceFeatures, carrier_labels, drawable, face_of, surface_datum, surface_page,
+    template_sheets,
 };
 use ew_derive::{Q, print_language};
 use ew_export::{DrillEntity, DrillSheet, PdfPage};
@@ -37,6 +37,9 @@ pub struct DrillingSurface {
     pub holes: usize,
     /// The printed sheets of its template.
     pub sheets: usize,
+    /// The names of its template's PDF and of its DXF, in the project's language ("+CAB Door template.pdf", "+CAB
+    /// Door.dxf"): what Drilling… writes for it.
+    pub files: (String, String),
 }
 
 /// One file of the drawings for drilling.
@@ -130,6 +133,20 @@ fn location_of(q: &Q, s: &MountingSurface) -> String {
     }
 }
 
+/// The names of the template's PDF and of the DXF of the surface `s` (its face `face`), in the project's language
+/// (doc 13-package §8.2): "+CAB Door template.pdf", "+CAB Door.dxf".
+fn file_names(q: &Q, s: &MountingSurface, face: &ew_derive::layout::Face) -> (String, String) {
+    let lang = print_language(q);
+    let words = |t: &Text| super::print::in_print_language(t, lang.as_ref());
+    let location = location_of(q, s);
+    let surface = words(&ew_derive::text::surface_word(&face.kind, face.door, face.doors));
+    let stem = words(&ew_derive::text::template_file(&location, &surface));
+    (
+        format!("{}.pdf", stem.trim()),
+        format!("{location} {surface}.dxf").trim().to_owned(),
+    )
+}
+
 /// A rectangle's outline as a closed polyline with its corner radius `r` as bulges, from its bottom-left.
 fn rect_outline(c: Pt2, w: Nm, h: Nm, r: Option<Nm>) -> DrillEntity {
     let (hw, hh) = (w.0 / 2, h.0 / 2);
@@ -195,6 +212,7 @@ impl Session {
                 let page = surface_page(&q, id);
                 let at = page.and_then(|p| order.iter().position(|(o, _)| *o == p));
                 let sheets = template_sheets(&q, id, paper).map_or(0, |t| t.printed());
+                let files = file_names(&q, q.table::<MountingSurface>().get(id)?, &face);
                 Some((
                     at.unwrap_or(usize::MAX),
                     DrillingSurface {
@@ -203,6 +221,7 @@ impl Session {
                         folio: at.map(|i| order[i].1.clone()),
                         holes,
                         sheets,
+                        files,
                     },
                 ))
             })
@@ -220,8 +239,18 @@ impl Session {
     pub fn drilling_files(&self, ask: &DrillingAsk) -> Result<Vec<DrillingFile>, String> {
         let q = self.query();
         let lang = print_language(&q);
-        // Every word of the drawings in the project's language, as a page prints it.
+        // Every word of the drawings in the project's language, as a page prints it; a template's measures with the
+        // decimal sign its lists print, a DXF's with the point a machine reads.
         let words = |t: &Text| super::print::in_print_language(t, lang.as_ref());
+        let comma = ew_reports::render::writes_comma(&q, lang.as_ref());
+        let measured = |t: &Text| {
+            let s = words(t);
+            if comma {
+                ew_l10n::render::decimal_with_comma(&s)
+            } else {
+                s
+            }
+        };
         let mut out = Vec::new();
         for id in &ask.surfaces {
             let id: Id<MountingSurface> = Id::from_uuid(*id);
@@ -322,7 +351,7 @@ impl Session {
                     ],
                 ));
                 let file = ew_export::drilling_dxf(&DrillSheet {
-                    name: format!("{} {surface_words}.dxf", location).trim().to_owned(),
+                    name: file_names(&q, &s, &face).1,
                     extent: (lo, hi),
                     layers,
                 });
@@ -360,6 +389,7 @@ impl Session {
                         Pt2::new(ex, hi.y),
                         words(&ew_derive::text::template_edge(
                             if left { "left" } else { "right" },
+                            &face.kind,
                             &lower,
                         )),
                     ),
@@ -368,6 +398,7 @@ impl Session {
                         Pt2::new(hi.x, ey),
                         words(&ew_derive::text::template_edge(
                             if top { "top" } else { "bottom" },
+                            &face.kind,
                             &lower,
                         )),
                     ),
@@ -389,7 +420,7 @@ impl Session {
                         words: format!(
                             "H{} \u{b7} {} \u{b7} {}",
                             f.no,
-                            words(&ew_derive::text::made(&f.made)),
+                            measured(&ew_derive::text::made(&f.made)),
                             owners(f)
                         ),
                     })
@@ -401,14 +432,14 @@ impl Session {
                     .filter(|a| a.row + 1 < t.rows && a.col + 1 < t.cols)
                     .map(|a| {
                         let x = if left {
-                            a.area.max().x.0 - TEMPLATE_OVERLAP.0 / 2
+                            a.area.max().x.0 - t.overlap.0 / 2
                         } else {
-                            a.area.min().x.0 + TEMPLATE_OVERLAP.0 / 2
+                            a.area.min().x.0 + t.overlap.0 / 2
                         };
                         let y = if top {
-                            a.area.min().y.0 + TEMPLATE_OVERLAP.0 / 2
+                            a.area.min().y.0 + t.overlap.0 / 2
                         } else {
-                            a.area.max().y.0 - TEMPLATE_OVERLAP.0 / 2
+                            a.area.max().y.0 - t.overlap.0 / 2
                         };
                         Pt2::new(Nm(x), Nm(y))
                     })
@@ -469,11 +500,12 @@ impl Session {
                         hinge,
                         datum: Some(origin),
                         tint: (right_n, up_n),
+                        overlap: t.overlap,
                         cut: (left_n, down_n),
                         joins: joins.clone(),
                         band: vec![
                             what.clone(),
-                            words(&place),
+                            measured(&place),
                             words(&ew_derive::text::template_band_datum(&corner)),
                         ],
                         map: ew_scene::template::TemplateMap {
@@ -488,7 +520,7 @@ impl Session {
                     pages.push(PdfPage {
                         destination: ew_dl::Destination::Page(Uuid::from_u128(u128::from(n))),
                         label: n.to_string(),
-                        title: words(&place),
+                        title: measured(&place),
                         section: None,
                         width: t.paper.0,
                         height: t.paper.1,
@@ -496,7 +528,8 @@ impl Session {
                         placement: None,
                     });
                 }
-                let stem = words(&ew_derive::text::template_file(&location, &surface_words));
+                let name = file_names(&q, &s, &face).0;
+                let stem = name.trim_end_matches(".pdf").to_owned();
                 let mut options =
                     ew_export::PdfOptions::new(ask.date.unwrap_or_else(|| super::model_date(&q)));
                 options.title = Some(stem.clone());
@@ -506,7 +539,7 @@ impl Session {
                 let pdf = ew_export::pdf(&pages, &options, &super::DrawingFonts, None)
                     .map_err(|e| e.to_string())?;
                 out.push(DrillingFile {
-                    name: format!("{}.pdf", stem.trim()),
+                    name,
                     bytes: pdf.bytes,
                 });
             }

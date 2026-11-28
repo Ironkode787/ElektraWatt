@@ -44,7 +44,7 @@ What is in it
   Drilling/                                      Per surface with holes: a template to print at 100 % and lay on it, and a DXF for a machine.
     +CAB Bottom template.pdf                     2 holes on 1 sheet of A4, to print at 100 %.
     +CAB Bottom.dxf                              2 holes, for a machine; 0,0 at the surface's corner its holes are measured from.
-    +CAB Door template.pdf                       8 holes on 5 sheets of A4, to print at 100 %.
+    +CAB Door template.pdf                       8 holes on 9 sheets of A4, to print at 100 %.
     +CAB Door.dxf                                8 holes, for a machine; 0,0 at the surface's corner its holes are measured from.
     +CAB Mounting plate template.pdf             10 holes on 8 sheets of A4, to print at 100 %.
     +CAB Mounting plate.dxf                      10 holes, for a machine; 0,0 at the surface's corner its holes are measured from.

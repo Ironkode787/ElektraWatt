@@ -309,6 +309,10 @@ template-edge-left = Left edge of the { $p0 }: lay this edge on it
 template-edge-right = Right edge of the { $p0 }: lay this edge on it
 template-edge-top = Top edge of the { $p0 }: lay this edge on it
 template-edge-bottom = Bottom edge of the { $p0 }: lay this edge on it
+template-edge-side-left = Left edge of the { $p0 }, at the cabinet's left as you face its door: lay this edge on it
+template-edge-side-right = Right edge of the { $p0 }, at the cabinet's right as you face its door: lay this edge on it
+template-edge-back = Back edge of the { $p0 }, away from the door: lay this edge on it
+template-edge-door = Door's edge of the { $p0 }: lay this edge on it
 template-band-what = { $p0 } · { $p1 } { $p2 } · { $p3 }
 template-band-sheet = Sheet { $p0 } of { $p1 }, row { $p2 }, column { $p3 }: { $p4 }–{ $p5 } mm from the { $p6 }, { $p7 }–{ $p8 } mm from the { $p9 }
 template-band-datum = Hole table: X and Y from the { $p0 } corner, marked 0
@@ -353,6 +357,7 @@ corner-in-sentence-bottom-right = bottom-right
 corner-in-sentence-top-left = top-left
 corner-in-sentence-top-right = top-right
 hole-table-heading = { $p0 }, page { $p1 }, { $p2 }, measured from the { $p3 } corner
+hole-table-heading-sized = { $p0 } { $p1 } mm, page { $p2 }, { $p3 }, measured from the { $p4 } corner
 
 ## Where a device stands (doc 13 §6.1)
 

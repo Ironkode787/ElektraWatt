@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The drawings for drilling (doc 13 §9.1) of the sample's door: the template lies in the door's top-left corner, the
-//! corner nearest its holes, and prints five of six A4 sheets; the DXF holds the handle's two fixings through the door
+//! The drawings for drilling (doc 13 §9.1) of the sample's door: the template lies in the door's bottom-left corner,
+//! the corner the hole table measures from, and each hole stands whole on one of its printed sheets; the DXF holds the handle's two fixings through the door
 //! and the six cut-outs, each on its tool's layer, and two exports are the same bytes. A part made in the test, not a
 //! starter part, puts its own holes on the door's drawings. The door's DXF is `tests/expected/door_drilling.dxf`.
 
@@ -65,13 +65,30 @@ fn door_dxf(s: &Session, door: Id<MountingSurface>) -> String {
 }
 
 #[test]
-fn the_door_s_template_lies_in_its_top_left_corner_and_its_dxf_holds_its_holes() {
+fn the_door_s_template_lies_in_its_datum_corner_and_its_dxf_holds_its_holes() {
     let s = common::sample();
     let door = door(&s);
-    let t = ew_derive::layout::template_sheets(&s.query(), door, Paper::A4).expect("holes");
-    assert_eq!(t.corner, Corner::TopLeft);
-    assert_eq!((t.rows, t.cols), (2, 3));
-    assert_eq!(t.printed(), 5, "the sixth holds no hole and neither edge");
+    let q = s.query();
+    let t = ew_derive::layout::template_sheets(&q, door, Paper::A4).expect("holes");
+    assert_eq!(
+        t.corner,
+        Corner::BottomLeft,
+        "the corner the hole table measures from"
+    );
+    // A hole on the join of two sheets stands whole on one of them: H5 of the door lies on a join of the template.
+    for hole in ew_derive::layout::hole_boxes(&q, door) {
+        assert!(
+            t.tiles
+                .iter()
+                .filter(|a| a.number.is_some())
+                .any(|a| a.area.min().x <= hole.min().x
+                    && a.area.min().y <= hole.min().y
+                    && hole.max().x <= a.area.max().x
+                    && hole.max().y <= a.area.max().y),
+            "{hole:?} is whole on no sheet"
+        );
+    }
+    drop(q);
 
     let ask = DrillingAsk {
         surfaces: vec![door.as_uuid()],
@@ -281,7 +298,7 @@ fn a_dutch_project_names_its_label_files_and_drawings_for_drilling_in_dutch() {
         .flat_map(|p| p.runs.into_iter().map(|r| r.text))
         .collect();
     for dutch in [
-        "Blad 1 van 5, rij ",
+        "Blad 1 van ",
         "Gatentabel: X en Y vanaf de hoek",
         "100 mm: print op ware grootte",
         "kant van de deur: leg deze kant ertegen",

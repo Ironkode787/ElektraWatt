@@ -124,7 +124,8 @@ mod tests {
             column("from_end").other_end("to_end", ew_l10n::Text::bare("Treatment".to_owned())),
             column("to_end"),
         ];
-        let form = per_end_of(&columns, &["no", "from", "to", "colour", "from_end", "to_end"]).expect("pairs");
+        let form =
+            per_end_of(&columns, &["no", "from", "to", "colour", "from_end", "to_end"]).expect("pairs");
         let lines: Vec<[EndLine; 2]> = form.iter().map(|c| c.lines.clone()).collect();
         let words = |c: &ColumnDef| EndLine::Words(c.label.clone());
         assert_eq!(

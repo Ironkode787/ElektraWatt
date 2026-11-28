@@ -191,10 +191,7 @@ pub fn label_files(q: &Q, profile: &ExportProfile, keep: impl Fn(&LabelRecord) -
         .collect();
     let header: Vec<String> = profile.columns.iter().map(|c| c.heading.clone()).collect();
     let column = |key: &str| set.columns.iter().position(|c| c.key == key);
-    let (what_for, texts) = (
-        column("for"),
-        ["text_1", "text_2", "text_3"].map(|k| column(k)),
-    );
+    let (what_for, texts) = (column("for"), ["text_1", "text_2", "text_3"].map(column));
     let mut files: Vec<LabelFile> = Vec::new();
     for (label, row) in q.get::<LabelRows>(()).iter().zip(&set.rows) {
         if !keep(label) {

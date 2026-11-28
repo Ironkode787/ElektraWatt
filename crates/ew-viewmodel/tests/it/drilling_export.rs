@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Output ▸ Workshop ▸ Drilling… (doc 13 §9): greyed in words in a project without holes; on the sample its form lists
-//! the surfaces with holes, each ticked, and Export writes the door's template and DXF into the folder chosen.
+//! the surfaces with holes, each ticked with the names of its two files, and Export writes the door's template and DXF
+//! into the folder chosen, its toast saying which files are which surface's.
 
 use crate::common;
 
@@ -27,7 +28,10 @@ fn drilling_is_greyed_without_holes_and_writes_the_door_s_drawings() {
     };
     let table = form.table.expect("the surfaces");
     assert!(
-        table.rows.iter().any(|r| r.key.starts_with("Door")),
+        table
+            .rows
+            .iter()
+            .any(|r| r.key.starts_with("Door") && r.key.ends_with("+CAB Door template.pdf, +CAB Door.dxf")),
         "{:?}",
         table.rows
     );
@@ -35,6 +39,14 @@ fn drilling_is_greyed_without_holes_and_writes_the_door_s_drawings() {
     assert!(form.fields.iter().any(|f| f.name == "dir"), "the folder");
     s.set_form_field("dir", &dir.to_string_lossy());
     assert_eq!(s.submit_form(), Outcome::Done);
+    let toast = s.notifications().newest_visible().cloned().expect("a toast");
+    assert!(
+        toast
+            .text
+            .ends_with(": a template and a DXF for each of Mounting plate, Door, Bottom."),
+        "{}",
+        toast.text
+    );
     let names: Vec<String> = std::fs::read_dir(&dir)
         .expect("the folder is made")
         .filter_map(|e| e.ok()?.file_name().into_string().ok())
