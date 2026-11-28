@@ -131,7 +131,8 @@ impl Rule for NoEndPlate {
 // ---------------------------------------------------------------------------------------------------------
 // EW-MFG-021
 
-/// EW-MFG-021 "Bridge without a part" (doc 15 §4.5.5): completeness, o r, warning (error in release), device.
+/// EW-MFG-021 "Bridge without a part" (doc 15 §4.5.5): completeness, o r, warning (in release too: a project made
+/// before a bridge could have a part releases as it did), device.
 pub const BRIDGE_WITHOUT_PART: RuleMeta = RuleMeta {
     id: "EW-MFG-021",
     message: key!("rule-ew-mfg-021"),
@@ -139,7 +140,7 @@ pub const BRIDGE_WITHOUT_PART: RuleMeta = RuleMeta {
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
     severity: Severity::Warning,
-    release_severity: Some(Severity::Error),
+    release_severity: None,
     scope: ScopeKind::Device,
     supersedes: &[],
     release: Release::V1_0,

@@ -227,12 +227,11 @@ Among its findings are those that the workshop meets in its files, at their rele
 |---|---|---|
 | EW-LAY-011 | a way that no longer holds, so its length is an "≈" | error |
 | EW-LAY-018 | a cable gland not placed on its surface | error |
-| EW-MFG-021 | a bridge without a part | error |
 | EW-LAY-006 | a device that overlaps another or meets the closed door | error |
 | EW-POT-010 | a clamp that takes fewer conductors than land on it | error |
 | EW-MFG-001 | a cabinet's wires that Route lays have no length (only where a panel layout exists) | info: shown with its wires and Route |
 | EW-LAY-008, EW-LAY-012, EW-LAY-017 | a duct over its fill limit; holes too close; a cut-out part without holes | warning |
-| EW-MFG-004, 008, 009, 020, 022 | a marker that does not fit; an end that cannot be made or does not fit; a strip without its end plate; a wire part that does not match | warning |
+| EW-MFG-004, 008, 009, 020, 021, 022 | a marker that does not fit; an end that cannot be made or does not fit; a strip without its end plate; a bridge without a part (its line prints TBD); a wire part that does not match | warning |
 
 **A wire without a length does not stop the package or the release**: the fitter may measure it on the cabinet. The
 package says it instead: the dialog names the wires (EW-MFG-001 where a layout exists), Contents counts every wire

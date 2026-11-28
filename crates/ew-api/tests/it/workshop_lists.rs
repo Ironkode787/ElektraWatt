@@ -116,8 +116,8 @@ fn a_strip_whose_end_plate_was_left_off_is_ew_mfg_020_and_its_fix_adds_one() {
     );
 }
 
-/// EW-MFG-021: BR1 of -X1021 without its part is a warning online and an error in release, and the assembly list and
-/// the wire list print TBD for it.
+/// EW-MFG-021: BR1 of -X1021 without its part is a warning, online and in release (a project made before a bridge
+/// could have a part releases as it did), and the assembly list and the wire list print TBD for it.
 #[test]
 fn a_bridge_without_a_part_is_ew_mfg_021_and_prints_tbd() {
     let mut s = common::sample();
@@ -150,7 +150,7 @@ fn a_bridge_without_a_part_is_ew_mfg_021_and_prints_tbd() {
         online[0].message()
     );
     let release = findings(&s, "EW-MFG-021", CheckMode::Release);
-    assert_eq!(release[0].severity, ew_checks::Severity::Error);
+    assert_eq!(release[0].severity, ew_checks::Severity::Warning, "it refuses no release");
     assert!(
         lines(&s, "assembly_list")
             .iter()

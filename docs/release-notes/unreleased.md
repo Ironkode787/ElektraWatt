@@ -426,7 +426,8 @@ change here.
 - behaviour-change: the wire list's bridge rows print the bridge's part; only a bridge without one prints TBD.
 - behaviour-change: EW-MFG-020 reports a strip whose terminals have parts and after whose last terminal no end plate
   stands, with the quick fix Add the end plate … after … where a terminal's part names one; EW-MFG-021 reports a
-  bridge without a part (an error in release).
+  bridge without a part, a warning in release too: a project made before a bridge could have a part releases as it
+  did, and its lists print TBD for the bridge until it has one.
 - behaviour-change: Output ▸ Workshop gains Assembly lists, Cut list and Consumables, each of which opens the first page
   of the project's list of that kind, else Report block… on it.
 - format-variant: mounting_surface SurfaceKind door (a cabinet's door, seen from outside; doc 12 §2.8)

@@ -221,7 +221,7 @@ table says so where its value is shown.
 | EW-MFG-009 | End set by hand does not fit | An end set by hand whose ferrule part fits another size, a twin ferrule with no second wire on its clamp, or a ferrule of another collar colour than the workshop stock's ferrule of that size | conflict | o r | warning | potential | 1.0 | FR-MFG-007, FR-MFG-042 | — | 13 §4.6 |
 | EW-MFG-011 | Feedback length deviation | A machine feedback length that deviates from the computed length beyond tolerance | hygiene | f | info | project | 1.x | FR-MFG-026 | — | 13 §4.6 |
 | EW-MFG-020 | Strip without an end plate | A strip whose terminals have parts and after whose last terminal no end plate stands: none of its parts names one, it was left off, none was added | completeness | o r | warning | device | 1.0 | FR-MFG-016 | — | 13 §6.3 |
-| EW-MFG-021 | Bridge without a part | A bridge group whose carrier connection names no part, so the parts list and the assembly list cannot name it | completeness | o r | warning; error in release | device | 1.0 | FR-MFG-016 | — | 13 §6.3 |
+| EW-MFG-021 | Bridge without a part | A bridge group whose carrier connection names no part, so the parts list and the assembly list cannot name it | completeness | o r | warning (in release too: a project made before a bridge could have a part releases as it did) | device | 1.0 | FR-MFG-016 | — | 13 §6.3 |
 | EW-MFG-022 | Wire part does not match the wire | A wire part whose section gives another cross-section or colour than the wire's effective one | conflict | o r | warning | potential | 1.0 | FR-PRT-035 | D-08 | 07 §2.5 |
 
 ### 4.6 EW-THM: IEC 61439 thermal (1.0)
