@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-28T06:19:45Z\n"
+"POT-Creation-Date: 2026-11-28T06:38:48Z\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -8544,48 +8544,51 @@ msgid ""
 "revision…** is the checker's sign-off of the saved project, and **Release "
 "revision…** issues it: the release gate first runs the checks of the "
 "project's check level on the saved project and lists what blocks the "
-"release. **Withdraw revision…** takes a released revision back, with a "
-"reason. **Settle the incomplete release…** completes or discards a release "
-"that stopped half way."
-msgstr ""
-
-#: src/reference/window/dialogs.md:56
-msgid "Purge unused images"
+"release. Where the project has unsaved changes, Approve and Release offer "
+"**Save and go on**, which saves it (after the upgrade question of a project "
+"of an older version) and opens the dialog again; where the revision has no "
+"author, Approve offers **Set revision author…**. **Withdraw revision…** "
+"takes a released revision back, with a reason. **Settle the incomplete "
+"release…** completes or discards a release that stopped half way."
 msgstr ""
 
 #: src/reference/window/dialogs.md:58
+msgid "Purge unused images"
+msgstr ""
+
+#: src/reference/window/dialogs.md:60
 msgid ""
 "Lists the image files that no page uses any more and deletes them on Purge. "
 "Undo does not bring them back. Open it with Project ▸ Purge unused images…."
 msgstr ""
 
-#: src/reference/window/dialogs.md:61
+#: src/reference/window/dialogs.md:63
 msgid "Choose part"
 msgstr ""
 
-#: src/reference/window/dialogs.md:63
+#: src/reference/window/dialogs.md:65
 msgid ""
 "The part selection: search the library, filter the results and choose the "
 "part for the selected devices. Open it with Edit ▸ Choose part…. See [Choose "
 "parts](../../how-to/choose-parts.md)."
 msgstr ""
 
-#: src/reference/window/dialogs.md:66
+#: src/reference/window/dialogs.md:68
 msgid "Print"
 msgstr ""
 
-#: src/reference/window/dialogs.md:68
+#: src/reference/window/dialogs.md:70
 msgid ""
 "The print options beside a preview of the print set; Print… hands the set to "
 "the printer, Open in PDF viewer opens it there. Open it with Output ▸ "
 "Print…. See [Reports and PDF](../../tutorials/reports-and-pdf.md)."
 msgstr ""
 
-#: src/reference/window/dialogs.md:71
+#: src/reference/window/dialogs.md:73
 msgid "Changes on disk"
 msgstr ""
 
-#: src/reference/window/dialogs.md:73
+#: src/reference/window/dialogs.md:75
 msgid ""
 "The project changed on disk while you have unsaved edits to the same fields: "
 "each colliding field with its base, your value and the value on disk. Choose "
@@ -8593,11 +8596,11 @@ msgid ""
 "by itself; File ▸ Check for changes on disk looks again."
 msgstr ""
 
-#: src/reference/window/dialogs.md:77
+#: src/reference/window/dialogs.md:79
 msgid "Upgrade the format"
 msgstr ""
 
-#: src/reference/window/dialogs.md:79
+#: src/reference/window/dialogs.md:81
 msgid ""
 "The first save of a project in an older format: Upgrade and save writes a "
 "backup beside the project, then saves in the current format; Cancel saves "
@@ -8605,44 +8608,44 @@ msgid ""
 "project](../../how-to/upgrade-a-project.md)."
 msgstr ""
 
-#: src/reference/window/dialogs.md:82
+#: src/reference/window/dialogs.md:84
 msgid "Re-import a matched file"
 msgstr ""
 
-#: src/reference/window/dialogs.md:84
+#: src/reference/window/dialogs.md:86
 msgid ""
 "A QElectroTech file that matches an earlier import of this project by its "
 "items: Re-import compares it with that import; Cancel stops. Open it with "
 "Project ▸ Re-import QElectroTech project…."
 msgstr ""
 
-#: src/reference/window/dialogs.md:87
+#: src/reference/window/dialogs.md:89
 msgid "Re-import QElectroTech project"
 msgstr ""
 
-#: src/reference/window/dialogs.md:89
+#: src/reference/window/dialogs.md:91
 msgid ""
 "The re-import card: the records the source added, changed, changed on both "
 "sides and removed, in words. Apply takes them over as one undo step; Cancel "
 "changes nothing. The migration report then lists what needs a decision."
 msgstr ""
 
-#: src/reference/window/dialogs.md:92
+#: src/reference/window/dialogs.md:94
 msgid "Open .ewz"
 msgstr ""
 
-#: src/reference/window/dialogs.md:94
+#: src/reference/window/dialogs.md:96
 msgid ""
 "An `.ewz` archive of a project: Extract and open unpacks it into a new "
 "folder beside it, Open read-only opens it without unpacking. Open it with "
 "File ▸ Import…, which takes a QElectroTech project as well."
 msgstr ""
 
-#: src/reference/window/dialogs.md:97
+#: src/reference/window/dialogs.md:99
 msgid "Import a drawing"
 msgstr ""
 
-#: src/reference/window/dialogs.md:99
+#: src/reference/window/dialogs.md:101
 msgid ""
 "A DXF or DWG drawing, or a PDF, chosen with File ▸ Import…. Add as page "
 "makes the drawing a new graphic page after the last page. Place under page "
@@ -8655,11 +8658,11 @@ msgid ""
 "for it."
 msgstr ""
 
-#: src/reference/window/dialogs.md:106
+#: src/reference/window/dialogs.md:108
 msgid "Import EPLAN data"
 msgstr ""
 
-#: src/reference/window/dialogs.md:108
+#: src/reference/window/dialogs.md:110
 msgid ""
 "An EPLAN part package (`.edz`), a parts XML (`.xml`) or a report spreadsheet "
 "(`.xlsx`, `.csv`), chosen with File ▸ Import…. Before the first EDZ of a "
@@ -8668,7 +8671,7 @@ msgid ""
 "records the file and its SHA-256 on every part."
 msgstr ""
 
-#: src/reference/window/dialogs.md:112
+#: src/reference/window/dialogs.md:114
 msgid ""
 "A file of parts goes on to Parts after the notice: its parts stand in the "
 "list as a set, and Save writes them into My parts, as a new version where a "
@@ -8680,7 +8683,7 @@ msgid ""
 "your own parts](../../how-to/own-parts.md#bring-parts-in-from-a-file))."
 msgstr ""
 
-#: src/reference/window/dialogs.md:118
+#: src/reference/window/dialogs.md:120
 msgid ""
 "For a report, the dialog offers the mappings that fit the file's column "
 "headers: your saved one, and the shipped German and English ones for a "
@@ -8691,22 +8694,22 @@ msgid ""
 "read in Parts as a parts table."
 msgstr ""
 
-#: src/reference/window/dialogs.md:122
+#: src/reference/window/dialogs.md:124
 msgid "Set up merge driver"
 msgstr ""
 
-#: src/reference/window/dialogs.md:124
+#: src/reference/window/dialogs.md:126
 msgid ""
 "Sets up the repository's git configuration so that git merges the project's "
 "files record by record. It asks first and writes nothing on Cancel. Open it "
 "with Project ▸ Set up merge driver."
 msgstr ""
 
-#: src/reference/window/dialogs.md:127
+#: src/reference/window/dialogs.md:129
 msgid "PLC import"
 msgstr ""
 
-#: src/reference/window/dialogs.md:129
+#: src/reference/window/dialogs.md:131
 msgid ""
 "**PLC ▸ Import from PLC software…** asks for an AutomationML file or a TIA "
 "Portal \"PLC Tags\" workbook and shows what it would change in the project's "

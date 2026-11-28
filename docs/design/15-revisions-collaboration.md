@@ -35,7 +35,8 @@ changes state (FR-REV-009): withdrawing it adds a separate record in state `With
 
 The first content edit after a release adds `Revision{label: next, state: Open, author: <party of the current
 user>}` in the same transaction, through a normaliser (`revision.ensure_open`). Undoing the edit removes the
-revision again (FR-REV-009).
+revision again (FR-REV-009). The window says it where the edit is made, once, in a toast: "This change opens revision
+V2.0: V1.0 stays as released", with Revisions (the revision overview); opening or making another project says nothing.
 - **What counts as content.** Every change to a file that the content digest covers (§5.4). View state, comments,
   transmittals and revision page notes are not content edits.
 - **Printing.** The title-block "Revision" cell binds to the latest revision record, and every page prints the same

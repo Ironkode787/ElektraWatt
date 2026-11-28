@@ -74,9 +74,13 @@ code editors.
 | `:` | a cell in the project's xref format | ":103-A1" opens folio 103 with A1 centred (FR-UI-039) |
 | `?` | help topics and rule IDs | "?EW-POT-013" |
 
-Without a prefix the search ("Search commands and devices") lists, after
-the actions, the devices, terminal strips and cables whose tag holds the query ("X1031" → -X1031); `>` keeps to the
-actions.
+Without a prefix the search ("Search commands and devices") ranks among the actions the panels of the left rail by
+their names ("Unplaced devices"), the pages by folio, title or kind in words ("panel" → 902, 904, 905, each saying
+"Page · Panel layout") and the rows of Project properties by their words and the rows they stand under ("rail fixing",
+"hole pitch", each saying "Project properties · Workshop"; Enter shows the project's sheet filtered to the row); a
+row of Project properties ranks a step below an action of as good a match, and a command's name finds the command
+before the pages of that title. Then it lists the devices, terminal strips and cables whose tag holds the query
+("X1031" → -X1031); `>` keeps to the actions.
 
 - **Ranking** is the deterministic score of §15.1, with a recency boost from the last 50 invocations. An empty query
   lists the eight most recent actions.

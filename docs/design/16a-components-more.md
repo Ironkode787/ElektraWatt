@@ -9,7 +9,8 @@ A chapter of [Design language](16a-design-language.md), whose table says where e
 Opened by Ctrl+K, Ctrl+Shift+P or the command search field: 560 px wide, anchored under the search field (or centred
 at the top fifth of the window when opened by key), `elevation.2`, `radius.lg`. The search field is 36 px with a
 search icon and no title above it. Result rows (32 px): icon, label with the matched characters in `type.body.strong`,
-the breadcrumb in `color.text.tertiary` ("Draw · Place"), the key as key chips at the right. Disabled results follow
+the breadcrumb in `color.text.tertiary` ("Draw · Place"; a page's "Page · Panel layout", a setting's "Project
+properties · Workshop"), the key as key chips at the right. Disabled results follow
 the enabled ones with their reason in `color.text.secondary`. Actions that cannot run from the window in this build
 are not listed (P3); scripts still reach them.
 

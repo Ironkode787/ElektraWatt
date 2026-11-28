@@ -314,7 +314,6 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-861 `ew-ui (properties.rs, label_column, value_need)`: The Properties label column gives way for all rows to any value that fits whole, prose included, so one medium prose value cuts labels such as Manufacturer or Order number on every row at the floor. …
 - FT-868 `ew-viewmodel, ew-ui`: No window control sets a panel page's surface view: only the command `page.surface_view.set` does, and the Properties panel shows none.
 - FT-872 `ew-viewmodel, ew-ui`: The release's steps show no progress through the job model: the release runs synchronously.
-- FT-873 `ew-ui`: The revision commands sit in the Check ▸ Revision submenu only, not on the Check tab's command bar.
 - FT-900 `ew-viewmodel, ew-scene`: Low (UI). After a placement nothing is selected, and the page arrows are a few pixels at 69 %.
 - FT-911 `ew-ui`: "Not now" beside a danger button lacks the primary button's emphasis.
 - FT-932 `ew-ui, ew-scene`: At the default 69 % the tag and part texts beside a placed symbol are a few pixels high and need a zoom to read (with FT-900).

@@ -50,7 +50,9 @@ The revision dialogs of **Check ▸ Revision**, the Check tab's Revision group (
 them too). A revision is one issue of the drawing set. **Set revision author…**
 names who drew it, **Approve revision…** is the checker's sign-off of the saved project, and **Release revision…**
 issues it: the release gate first runs the checks of the project's check level on the saved project and lists what
-blocks the release. **Withdraw revision…** takes a released revision back, with a reason. **Settle the incomplete
+blocks the release. Where the project has unsaved changes, Approve and Release offer **Save and go on**, which
+saves it (after the upgrade question of a project of an older version) and opens the dialog again; where the revision
+has no author, Approve offers **Set revision author…**. **Withdraw revision…** takes a released revision back, with a reason. **Settle the incomplete
 release…** completes or discards a release that stopped half way.
 
 ## Purge unused images
