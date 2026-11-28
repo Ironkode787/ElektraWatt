@@ -742,6 +742,92 @@ fn a_save_of_his_part_writes_my_parts_only_on_apply() {
     s.shutdown();
 }
 
+/// The project's records as their lines, each a JSON value.
+fn record_lines(s: &ShellModel) -> Vec<String> {
+    let world = s.world_for_tests().expect("a project");
+    ew_commands::rows::model_lines(&world.model)
+        .expect("every record has a JSON form")
+        .into_iter()
+        .map(|(_, line)| line)
+        .collect()
+}
+
+/// The IDs of the project's copies of part `number`.
+fn copies_of(s: &ShellModel, number: &str) -> Vec<String> {
+    (record_lines(s).iter())
+        .filter_map(|l| serde_json::from_str::<serde_json::Value>(l).ok())
+        .filter(|v| v["part_number"] == number)
+        .filter_map(|v| v["id"].as_str().map(str::to_owned))
+        .collect()
+}
+
+/// How many records other than the copy itself name the copy `copy` (its uses: a link names a copy by its ID).
+fn uses_of(s: &ShellModel, copy: &str) -> usize {
+    (record_lines(s).iter())
+        .filter(|l| l.contains(copy) && !l.contains(&format!("\"id\":\"{copy}\"")))
+        .count()
+}
+
+/// Review fix phase (M1): a strip whose terminals include his terminal of My parts takes, as its end plate, a part only
+/// in this project; his terminal then comes with that end plate. Save keeps the end plate in My parts with it, and its
+/// Apply moves the strip's use of the project's copy to the kept copy in the same one step; Undo moves it back.
+#[test]
+fn a_strips_end_plate_only_here_moves_to_the_kept_copy_on_apply() {
+    let tmp = Tmp::new("life-m1-uses");
+    let mut s = sample(&tmp);
+    project_parts(&mut s, &tmp, HERE);
+    done(&mut s, "parts.new", json!({"start": "terminal"}));
+    fill(&mut s, &[("manufacturer", "Example"), ("part_number", "EX-TB-U")]);
+    done(&mut s, "parts.save", json!({}));
+    done(&mut s, "parts.back", json!({}));
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    done(&mut s, "select.set", json!({"refs": ["tag:-X1021:1"]}));
+    done(&mut s, "part.choose", json!({}));
+    done(&mut s, "part.pick", json!({"part": "EX-TB-U"}));
+    // The strip takes the end plate only in this project in place of the one its other terminals bring.
+    done(&mut s, "select.set", json!({"refs": ["tag:-X1021"]}));
+    done(
+        &mut s,
+        "props.set",
+        json!({"row": "device/derived.accessory.end_plate", "value": "EX-EP-1"}),
+    );
+    let old = copies_of(&s, "EX-EP-1");
+    assert_eq!(old.len(), 1, "{old:?}");
+    let old = old[0].clone();
+    let before = uses_of(&s, &old);
+    assert!(before > 0, "the strip uses the project's end plate");
+    done(&mut s, "parts.open", json!({"part": "EX-TB-U"}));
+    fill(
+        &mut s,
+        &[
+            ("+accessories", ""),
+            ("accessories[0].part", "EX-EP-1"),
+            ("accessories[0].qty", "1"),
+            ("accessories[0].per", "strip"),
+            ("accessories[0].kind", "end_plate"),
+        ],
+    );
+    done(&mut s, "parts.save", json!({}));
+    assert!(s.properties().card().is_some(), "the card waits");
+    let n = s.recorded_commands().len();
+    assert_eq!(
+        s.dispatch("preview.apply", &json!({})),
+        Outcome::Done,
+        "{}",
+        said(&s)
+    );
+    assert_eq!(s.recorded_commands().len(), n + 1, "one step");
+    let kept: Vec<String> = (copies_of(&s, "EX-EP-1").into_iter())
+        .filter(|c| *c != old)
+        .collect();
+    assert_eq!(kept.len(), 1, "the kept copy: {kept:?}");
+    assert_eq!(uses_of(&s, &old), 0, "every use left the project's copy");
+    assert!(uses_of(&s, &kept[0]) >= before, "the kept copy took them");
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(uses_of(&s, &old), before, "one Undo moves them back");
+    s.shutdown();
+}
+
 /// The parts named by Comes with of part `number` as My parts holds it, read in a window with no project open.
 fn my_parts_accessories(tmp: &Tmp, number: &str) -> Vec<String> {
     let mut s = tmp.empty_shell(Mode::Gui);
