@@ -594,6 +594,28 @@ fn aux_inside_its_own_black_box_prints_nothing() {
     assert_eq!(text(&q, rep_of(0x1001)), format!("∞ 1-{}", cell(3, 2)));
 }
 
+/// A symbol that draws two auxiliaries of a device, its first function the later one (0x1003, then 0x1002): the main
+/// representation lists it once, by its first function, whichever of the two the device's functions name first. The
+/// rule once marked it seen at 0x1002, which is not its first, and then skipped it at 0x1003, so it was not listed.
+#[test]
+fn a_symbol_drawing_two_auxiliaries_is_listed_once_by_its_first_function() {
+    let mut fx = base();
+    fx.device(0x2000, "K", Some(1));
+    func(&mut fx, 0x1001, 0x2000, (FNDEF, SYM), true, pg(1), (1, 0));
+    fx.function(0x1002, Some(0x2000), FNDEF, false);
+    fx.function(0x1003, Some(0x2000), FNDEF, false);
+    let (x, y) = at(3, 2);
+    fx.rep(rep_of(0x1003), pg(2), SYM, &[0x1003, 0x1002], x, y);
+    fx.record(rep_of(0x1003))["pin_map"] = json!([
+        {"symbol_cp": 0, "function": uid(0x1003), "idx": 0},
+        {"symbol_cp": 1, "function": uid(0x1002), "idx": 0},
+    ]);
+    let m = fx.build();
+    let q = Q::new(&m);
+    assert_eq!(text(&q, rep_of(0x1001)), format!("∞ 2-{}", cell(3, 2)));
+    assert_eq!(text(&q, rep_of(0x1003)), format!("(1-{})", cell(1, 0)));
+}
+
 #[test]
 fn same_page_zone_only() {
     // FR-XRF-025: two "24VDC-9" points on one page.

@@ -36,6 +36,8 @@ change here.
   **Draw as one symbol** in a box's menu on that page puts the device's symbol in their place, in one undo step
 - api-break: `bus.place_ports` draws the device's bus symbol: it takes `pos` and `replace` (the device's boxes it takes
   the place of) instead of `boxes`, and finds the port functions' definition among the project's bus ports
+- behaviour-change: a cross-reference of a main function lists a symbol that draws two auxiliaries of its device whose
+  first function is the later one; such a symbol was left out of the list (no page of the sample draws one)
 - behaviour-change: the sheet of Parts lists a part's groups (Identity, On the schematic,
   In the cabinet, Connections, the kind's own group, Technical data, Goes with it), each with the fields one declaration
   of a part's fields gives (doc 07 §2.5); an enclosure, a mounting plate and a rail of one's own now have their
