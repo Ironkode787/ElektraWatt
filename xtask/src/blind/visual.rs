@@ -180,7 +180,7 @@ pub const APP_CLOSED: &str = "harness: the application has closed";
 pub const NO_ADAPTER: &str = "harness: no offscreen adapter for a visual run";
 
 /// The input names of the vocabulary.
-pub const INPUTS: [&str; 9] = [
+pub const INPUTS: [&str; 10] = [
     "click",
     "double_click",
     "right_click",
@@ -190,6 +190,7 @@ pub const INPUTS: [&str; 9] = [
     "key",
     "hover",
     "wait",
+    "answer_open",
 ];
 
 /// The key names the harness accepts in a chord (any case): a subset of what the driver accepts (egui's key names and
@@ -389,12 +390,23 @@ pub fn check_input_in(o: &Map<String, Value>, g: Geometry) -> Result<u64, String
         "key" => &["chord", "repeat"],
         "hover" => &["x", "y"],
         "wait" => &["ms"],
+        "answer_open" => &["path"],
         other => return Err(format!("unknown input `{other}`")),
     };
     if let Some(extra) = o.keys().find(|k| *k != "input" && !members.contains(&k.as_str())) {
         return Err(format!("unknown member `{extra}` of `{kind}`"));
     }
     match kind {
+        // The file the next open dialog answers with: a file of the work folder, which the driver joins to it.
+        "answer_open" => {
+            let path = o.get("path").and_then(Value::as_str).unwrap_or_default();
+            let inside = std::path::Path::new(path)
+                .components()
+                .all(|c| matches!(c, std::path::Component::Normal(_)));
+            if path.is_empty() || path.chars().count() > 260 || path.chars().any(char::is_control) || !inside {
+                return Err("`path` names a file of your work folder, such as plan.xlsx".to_owned());
+            }
+        }
         "click" => {
             point(o, "x", "y", g)?;
             button_member(o)?;
@@ -823,6 +835,18 @@ mod tests {
             err(json!({"input": "type", "text": "a\tb"})),
             "`text` is 1 to 200 characters without control characters"
         );
+        // The file of the next open dialog: a file of the work folder, which a run can name; never one outside it.
+        assert_eq!(
+            check_input(&obj(json!({"input": "answer_open", "path": "plan.xlsx"}))),
+            Ok(0)
+        );
+        for outside in ["../plan.xlsx", "/etc/plan.xlsx", ""] {
+            assert_eq!(
+                err(json!({"input": "answer_open", "path": outside})),
+                "`path` names a file of your work folder, such as plan.xlsx",
+                "{outside}"
+            );
+        }
         assert_eq!(err(json!({"input": "wait", "ms": 99})), "`ms` is 100 to 5000");
         assert_eq!(err(json!({"input": "wait", "ms": 5001})), "`ms` is 100 to 5000");
         assert_eq!(

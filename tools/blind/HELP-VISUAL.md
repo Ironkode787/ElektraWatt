@@ -1,6 +1,6 @@
 ---
 prompt: blind-help-visual
-version: 4
+version: 5
 ---
 # The harness: how to work with it (a visual run)
 
@@ -47,6 +47,7 @@ read its detail with `look --zoom`, whose regions are at most 768 × 497 pixels.
 | `key` | `chord` (`ctrl+s`, `enter`, `escape`, `f2`, `shift+tab`, `delete`, `arrowdown`, …), `repeat` (1 to 20) | Presses and releases the keys, `repeat` times. |
 | `hover` | `x`, `y` | Moves the pointer there and leaves it; a tooltip needs a `hover` and then a `wait` of about 600. |
 | `wait` | `ms` (100 to 5,000) | Lets time pass (tooltips, messages that fade). A batch waits at most 10,000 ms in all. |
+| `answer_open` | `path` (a file of your work folder, such as `plan.xlsx`) | Shows nothing by itself: the next time the program asks for a file to open (an import, an image, an archive), it gets this one. Send it before the click that asks: `{blind} do {run} answer_open path=plan.xlsx`, then the click on Import…. |
 
 The pointer stays where your last input left it, so the next picture shows what it hovers over. A batch is sent in full:
 an input that does nothing does not stop the ones after it, so keep a batch short when you are not sure what a click
@@ -59,9 +60,10 @@ pixels apart (a card's or a strip's row) a click a little off takes the neighbou
 
 **What the system does for you.** You have no file dialog of your own: when the program asks the system for a folder or
 a file name, the answer is given for you, always inside your work folder. A new, opened or saved project is the folder
-`project`; an exported PDF is `project.pdf`; an import of another program's project is cancelled; an import from PLC
-software takes the file you exported to PLC software before (without one it is cancelled); a link to a web page
-does not open. A finding cannot be waived in a run: the program takes a waiver from a person at the window only. You have no clipboard from outside the program, cannot drop files on the window and cannot resize it.
+`project`; an exported PDF is `project.pdf`; a file to open (an import, an image, an archive) is the one an
+`answer_open` named before it (each names one file, for one choice), and without one the choice is cancelled; an
+import from PLC software takes the file you exported to PLC software before (without one it is cancelled); a link to a
+web page does not open. A finding cannot be waived in a run: the program takes a waiver from a person at the window only. You have no clipboard from outside the program, cannot drop files on the window and cannot resize it.
 
 If you close the program (its own quit command, or the window's close), the run ends: `do` then prints
 `harness: the application has closed`, and you file your hand-back.
