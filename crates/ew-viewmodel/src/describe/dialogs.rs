@@ -442,7 +442,13 @@ fn rework_dialog_lines(d: &crate::shell::rework::ReworkDialog, lines: &mut Vec<S
                 lines.push(format!("  header \"{}\"", user(&list.header.join("\" \""))));
             }
             for row in &list.rows {
-                lines.push(format!("  row \"{}\"", user(&row.join("\" \""))));
+                lines.push(format!("  row \"{}\"", user(&row.cells.join("\" \""))));
+                if !row.because.is_empty() {
+                    lines.push(format!(
+                        "    label \"{}\"",
+                        user(&strings::format(key!("rework-because-line"), &[&row.because]))
+                    ));
+                }
             }
         }
         Err(why) => lines.push(format!("  note \"{}\"", user(why))),

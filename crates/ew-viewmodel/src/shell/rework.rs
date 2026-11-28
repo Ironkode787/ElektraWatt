@@ -37,15 +37,57 @@ pub enum Against {
     File(PathBuf),
 }
 
-/// A rework list as the dialog shows it, in the window's language.
+/// A rework list as the dialog shows it, in the window's language: what each row is about ([`SHOWN`]) and what changes,
+/// the Change column taking the rest of the dialog's width, and why under it; the ends' treatments, parts, strip lengths
+/// and markers are the export's, and the change names those that change.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ReworkList {
     /// The work counted in one line ("The work: 3 wires to pull, 1 wire to replace."); "nothing to change" without rows.
     pub work: String,
-    /// The column headings.
+    /// The column headings, Change last.
     pub header: Vec<String>,
-    /// The rows' cells.
-    pub rows: Vec<Vec<String>>,
+    /// The rows.
+    pub rows: Vec<ReworkRow>,
+}
+
+/// One row of the Rework list… dialog.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ReworkRow {
+    /// Its cells under [`ReworkList::header`], the change last.
+    pub cells: Vec<String>,
+    /// Why the row is there where nobody changed its wire by name; empty for every other row.
+    pub because: String,
+}
+
+/// The columns of the rework list the dialog shows, by key, in their order: the action and the wire, then the change.
+const SHOWN: [&str; 10] = [
+    "action",
+    "no",
+    "from",
+    "from_cp",
+    "to",
+    "to_cp",
+    "colour",
+    "cross_section",
+    "length",
+    "change",
+];
+
+/// The dialog's rows of `rework` in the window's language ([`ReworkList`]).
+fn dialog_rows(session: &ew_api::Session, rework: &ew_api::Rework) -> (Vec<String>, Vec<ReworkRow>) {
+    let (header, rows) = session.rework_texts(rework, Some(strings::locale()));
+    let at = |key: &str| rework.set.columns.iter().position(|c| c.key == key);
+    let shown: Vec<usize> = SHOWN.iter().filter_map(|k| at(k)).collect();
+    let because = at("reason");
+    let pick = |cells: &[String]| shown.iter().map(|i| cells.get(*i).cloned().unwrap_or_default()).collect();
+    let rows = rows
+        .iter()
+        .map(|r| ReworkRow {
+            cells: pick(r),
+            because: because.and_then(|i| r.get(i)).cloned().unwrap_or_default(),
+        })
+        .collect();
+    (pick(&header), rows)
 }
 
 impl ReworkDialog {
@@ -229,7 +271,7 @@ impl ShellModel {
                 None => Err(reason(&project.session.why_no_release())),
                 Some(base) => match project.session.rework(&base) {
                     Ok(rework) => {
-                        let (header, rows) = project.session.rework_texts(&rework, Some(strings::locale()));
+                        let (header, rows) = dialog_rows(&project.session, &rework);
                         let work = if rework.counts.is_empty() {
                             strings::text(key!("rework-nothing")).to_owned()
                         } else {

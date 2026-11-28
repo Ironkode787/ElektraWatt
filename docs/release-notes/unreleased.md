@@ -1065,3 +1065,6 @@ change here.
 - behaviour-change: `ew export labels --since` and `--archive` print under each file the labels it holds, what each is
   for and what it says ("102.10 at -X1021:3/a · -102S3:13")
 - api-add: `ew_api::LabelFile` gains `named` and `names`, its labels by name, for Labels… to list
+- behaviour-change: the Rework list… dialog shows each row's action, wire and change, the change taking the rest of the
+  dialog's width with "Because: …" under it, so that a row reads on one or two lines and the first screen shows the
+  rows; the ends' treatments, parts, strip lengths and markers stay in its export

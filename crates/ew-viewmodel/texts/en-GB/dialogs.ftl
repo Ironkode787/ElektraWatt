@@ -151,6 +151,7 @@ rework-export = Export…
 rework-work = The work: { $p0 }.
 rework-nothing = Nothing to change: the project is as it was released.
 rework-not-listed = Not listed: wires that only moved on a page or took another route, and a new wire number.
+rework-because-line = Because: { $p0 }
 rework-count-remove-device = { $p0 ->
         [one] 1 device to remove
        *[other] { $p0 } devices to remove

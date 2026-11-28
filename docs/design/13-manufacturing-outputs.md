@@ -435,7 +435,10 @@ changes (with destination marking a renumber needs no work; a twin ferrule is co
 partner's number), a change of source that keeps the value (a size that
 moves from the wire to the profile), a potential renamed while no marker names it. Tubes are the fluid lists'.
 
-**Where it goes.** The Rework list… dialog shows the rows and exports them as XLSX and CSV through the list's writers;
+**Where it goes.** The Rework list… dialog shows each row's action and wire (No., From, CP, To, CP, Colour, mm², Length)
+and its change, which takes the rest of the dialog's width, with "Because: …" under it; the ends' treatments, parts,
+strip lengths and markers are the export's, and the change names those that change. It exports the rows as XLSX and
+CSV through the list's writers;
 Labels for these changes… writes the label files of the new and changed markers and labels only (§5.4). A rework list
 is not a page of the drawing set: it compares with a file outside the project.
 

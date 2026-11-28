@@ -88,12 +88,19 @@ pub(crate) fn body(ui: &mut Ui, d: &ReworkDialog, events: &mut Vec<Event>) {
                     }
                     ui.end_row();
                     for row in &list.rows {
-                        for (i, cell) in row.iter().enumerate() {
-                            // The action leads the row; the change wraps in the room it has.
+                        for (i, cell) in row.cells.iter().enumerate() {
+                            // The action leads the row; the change takes the rest of the width, and why the row is
+                            // there stands under it.
                             if i == 0 {
                                 ui.label(components::body_strong(&t, cell));
-                            } else if i + 1 == row.len() {
-                                ui.add(egui::Label::new(components::body(&t, cell)).wrap());
+                            } else if i + 1 == row.cells.len() {
+                                ui.vertical(|ui| {
+                                    ui.add(egui::Label::new(components::body(&t, cell)).wrap());
+                                    if !row.because.is_empty() {
+                                        let line = strings::format(key!("rework-because-line"), &[&row.because]);
+                                        ui.add(egui::Label::new(components::body_secondary(&t, line)).wrap());
+                                    }
+                                });
                             } else {
                                 ui.label(components::body(&t, cell));
                             }
