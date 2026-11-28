@@ -299,6 +299,7 @@ error-part-library = { $p0 } kon niet worden geschreven: { $p1 }
 error-part-no-my-parts = Zonder open project wordt een nieuw artikel in Mijn artikelen bewaard, en Mijn artikelen kan hier niet worden gemaakt: open een project om het artikel daarin te bewaren
 error-part-keep-no-my-parts = Mijn artikelen kan hier niet worden gemaakt, want dit venster heeft er geen eigen map voor: het artikel blijft in dit project
 error-part-names-unknown = Het noemt een artikel dat geen bibliotheek van u heeft en dit project ook niet: kies dat artikel opnieuw in zijn veld
+error-part-take-back-failed = { $p0 } kon niet terugnemen wat deze opslag schreef, dus deze staan er nu in: { $p1 }. Open ze daar, of verwijder ze daar.
 reason-part-symbol-unsaved = Sla het symbool eerst op in een bibliotheek; het artikel noemt het dan
 reason-part-not-own = Dit artikel staat niet in uw artikelbibliotheek: alleen een eigen artikel wordt eruit verwijderd
 # de PLC-sectie van een nieuw artikel.

@@ -976,8 +976,9 @@ impl Registry {
     }
 
     /// The document of `r` and everything it pulls in (doc 05 §13.2), the item first, then FnDefs, symbols, parts,
-    /// forms, manufacturers and macros, each by item ID. A reference that no installed library resolves is
-    /// [`LibraryError::NotFound`]: a closure is complete or none.
+    /// forms, manufacturers and macros, each by item ID. A reference that an installed library does not resolve is
+    /// [`LibraryError::NotFound`]: a closure is complete or none; a reference into a library that is not installed (a
+    /// project's own) is left out, and the part that makes it says what it lacks.
     pub fn closure(&self, r: &LibRef) -> Result<Vec<LibDocument>, LibraryError> {
         let first = self.resolve(r)?;
         let start = (r.library.as_uuid(), r.item.as_uuid());
@@ -986,6 +987,11 @@ impl Registry {
         let mut rest: Vec<LibDocument> = Vec::new();
         while let Some((l, i, req)) = queue.pop() {
             if !seen.insert((l, i)) {
+                continue;
+            }
+            // A reference into a library this registry does not have (a project's own, named by a part kept before its
+            // closure was kept with it) is no part of the closure: the part is still offered, and says what it lacks.
+            if self.lib(l).is_none() {
                 continue;
             }
             let doc = self.resolve_parts(l, i, &req)?;

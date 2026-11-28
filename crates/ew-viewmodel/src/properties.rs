@@ -521,6 +521,9 @@ pub struct PartCard {
     pub lost: Vec<String>,
     /// The drawn boxes the change draws anew, each in words ("-201A3 on page 105").
     pub boxes: Vec<String>,
+    /// The parts only in this project that the Save keeps in My parts with it, by maker and number: Apply writes them
+    /// and moves their uses in this project to them.
+    pub kept: Vec<String>,
     /// Whether saving forks the copy.
     pub fork: bool,
 }

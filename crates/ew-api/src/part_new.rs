@@ -8,7 +8,7 @@
 //! **Where it is saved.** With [`PartSheet::to_library`] and a user library folder, the part goes into the person's
 //! own parts library ("My parts", [`crate::eplan::USER_PARTS_KEY`], where the EPLAN import adds parts too) and the
 //! project embeds that library copy (`library.embed`): the next project finds it there, and a change of it in
-//! Parts gives My parts its next version ([`Session::own_part_update`]). The parts only in this project that it names
+//! Parts gives My parts its next version ([`Session::own_parts_save`]). The parts only in this project that it names
 //! (its plate, what it comes with, a piece's symbol) go into My parts with it in the same write, and the command is
 //! then the `part.keep` that moves their uses to the kept copies (`Session::keep_named`). Otherwise it is a
 //! project-local part (`parts.import`). A new part never overwrites another: its item ID is new, and a part of the
@@ -392,7 +392,8 @@ impl Session {
         let mut kept = crate::parts::Kept::default();
         let (name, part) = self.my_part(part, lib, draft, &mut kept)?;
         kept.written.push(LibDocument::Part(part));
-        let copies = self.write_kept(lib, &kept, &[crate::part_offers::lib_ref(lib, item)])?;
+        kept.items.push(item);
+        let copies = self.write_kept(lib, &kept)?;
         let command = match kept.moves.split_first() {
             None => AnyCommand::of(&EmbedLibraryCopies { copies }).map_err(|e| {
                 PartDraftError::Field(message("part", key!("error-part-value"), &[&e.to_string()]))
@@ -419,7 +420,8 @@ impl Session {
         let mut kept = crate::parts::Kept::default();
         let (name, part) = self.my_part(part, lib, draft, &mut kept)?;
         kept.written.push(LibDocument::Part(part));
-        self.write_kept(lib, &kept, &[crate::part_offers::lib_ref(lib, draft.copy)])?;
+        kept.items.push(draft.copy);
+        self.write_kept(lib, &kept)?;
         Ok((lib, name))
     }
 
@@ -504,25 +506,6 @@ impl Session {
         let r = lib_ref(lib, copy.item_id.as_uuid());
         written.push(LibDocument::Manufacturer(copy));
         Ok(r)
-    }
-
-    /// Saves a corrected part of My parts (a held copy of the person's own library): the part with the forms'
-    /// identity and sections as the library item's next patch version, written into My parts, and the
-    /// `library.update` that brings the project's copy to it (Bulk: its card lists the changed fields and the devices,
-    /// and the devices that use the copy take the new connection points; a bus port a function carries keeps its
-    /// value, N5).
-    ///
-    /// # Errors
-    ///
-    /// [`PartDraftError::Field`] for the first field that does not parse, or on `part` when My parts cannot be
-    /// written; [`PartDraftError::Refused`] (`reason-part-unchanged`) when nothing changed.
-    pub fn own_part_update(
-        &mut self,
-        draft: &PartSheet,
-    ) -> Result<Option<crate::library_ops::UpdatePlan>, PartDraftError> {
-        self.own_parts_update(&[draft])
-            .map(|(_, plan)| plan)
-            .map_err(|(_, e)| e)
     }
 
     /// The part number of part `item` when My parts, the person's own writable library, is `library` and holds it:

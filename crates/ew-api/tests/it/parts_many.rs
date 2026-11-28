@@ -49,10 +49,7 @@ fn a_value_typed_into_several_parts_is_saved_into_each_and_mixed_is_left_as_each
     for sheet in [&mut a, &mut b] {
         s.set_draft_field(sheet, "mech.depth", "45").expect("the depth");
     }
-    assert!(
-        matches!(s.own_parts_update(&[&a, &b]).expect("saved"), (2, None)),
-        "no project holds them"
-    );
+    assert_eq!(saved(&mut s, &[&a, &b]), (2, true), "no project holds them");
     let lib = a.source.expect("from My parts").0;
     for (sheet, height) in [(&a, 60), (&b, 70)] {
         let now = s.library_part_draft(lib, sheet.source.unwrap().1).expect("saved");
@@ -68,5 +65,12 @@ fn a_value_typed_into_several_parts_is_saved_into_each_and_mixed_is_left_as_each
     let mut a = s.library_part_draft(lib, a.source.unwrap().1).expect("saved");
     let b = s.library_part_draft(lib, b.source.unwrap().1).expect("saved");
     s.set_draft_field(&mut a, "mech.depth", "46").expect("the depth");
-    assert!(matches!(s.own_parts_update(&[&a, &b]).expect("saved"), (1, None)));
+    assert_eq!(saved(&mut s, &[&a, &b]), (1, true));
+}
+
+/// Plans the Save of `sheets` and writes it: how many parts it saves and whether no card waits.
+fn saved(s: &mut ew_api::Session, sheets: &[&ew_api::PartSheet]) -> (usize, bool) {
+    let save = s.own_parts_save(sheets).expect("planned");
+    s.write_own_save(&save).expect("written");
+    (save.count, save.plan.is_none())
 }

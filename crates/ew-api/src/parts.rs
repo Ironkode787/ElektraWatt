@@ -7,6 +7,8 @@
 //! their messages, read, checked and saved by the session's part editing.
 
 use ew_derive::part_fields::{Group as G, Lack};
+use std::collections::BTreeSet;
+
 use ew_ids::{Id, Uuid, v5};
 use ew_library::Tier;
 use ew_schema::{Kind, LibCopy, LibDocument, Part, Sha256};
@@ -94,6 +96,11 @@ pub struct PartFound {
     pub copy: Uuid,
     /// Whether a feature lacks a datum of it ([`ew_derive::part_fields::lacks`]).
     pub lacks: bool,
+    /// Whether My parts has it too, while the project holds it only on a copy of its own (a Keep taken back): Keep in
+    /// my parts brings the project onto My parts' copy.
+    pub mine_too: bool,
+    /// The fields that name a part neither the project nor a library he has holds ([`Session::names_missing`]).
+    pub missing: Vec<&'static str>,
 }
 
 impl PartFound {
@@ -214,26 +221,28 @@ impl Session {
         let q = self.query();
         let mut out = Vec::new();
         for offer in offers {
-            let (library, part, copy) = match offer.pick {
+            let (library, part, copy, item) = match offer.pick {
                 PartPick::Held(c) => {
                     let Some(copy) = q.parts().get(Id::from_uuid(c)) else {
                         continue;
                     };
-                    (copy.library_id.as_uuid(), copy.item.clone(), c)
+                    (copy.library_id.as_uuid(), copy.item.clone(), c, copy.item_id.as_uuid())
                 }
                 PartPick::Library { library, item } => {
                     let Ok(LibDocument::Part(c)) = self.libraries().resolve(&lib_ref(library, item)) else {
                         continue;
                     };
                     let copy: Id<Part> = v5::lib_copy_id(library, item);
-                    (library, c.item, copy.as_uuid())
+                    (library, c.item, copy.as_uuid(), item)
                 }
             };
             let lives = self.lives_in(library);
+            let mine_too = lives == Lives::OnlyHere && self.in_my_parts(item);
             if scope == PartScope::Mine && lives != Lives::Mine {
                 continue;
             }
-            let lacks = !ew_derive::part_fields::lacks(&part).is_empty();
+            let missing = self.names_missing(&part);
+            let lacks = !ew_derive::part_fields::lacks(&part).is_empty() || !missing.is_empty();
             if lacking && !lacks {
                 continue;
             }
@@ -242,6 +251,8 @@ impl Session {
                 lives,
                 copy,
                 lacks,
+                mine_too,
+                missing,
             });
             if out.len() >= limit && scope != PartScope::Stock {
                 break;
@@ -255,6 +266,50 @@ impl Session {
             out.truncate(limit);
         }
         out
+    }
+
+    /// What a list that offers parts leaves out, so that a part is one entry wherever it is offered (doc 07 §5.8): the
+    /// one rule for Parts' list, the part dialog, the device browser, the layout's offers and Properties' Parts row.
+    pub fn not_offered(&self) -> NotOffered {
+        let q = self.query();
+        let project = q.project().id.as_uuid();
+        let libs = self.libraries().libraries();
+        let only_here = |lib: Uuid| lib == project || !libs.iter().any(|l| l.id == lib);
+        let (here, kept): (Vec<_>, Vec<_>) =
+            (q.parts().iter()).partition(|(_, c)| only_here(c.library_id.as_uuid()));
+        let kept: BTreeSet<Uuid> = kept.iter().map(|(_, c)| c.item_id.as_uuid()).collect();
+        NotOffered {
+            copies: (here.iter())
+                .filter(|(_, c)| kept.contains(&c.item_id.as_uuid()))
+                .map(|(id, _)| id.as_uuid())
+                .collect(),
+            items: here.iter().map(|(_, c)| c.item_id.as_uuid()).collect(),
+        }
+    }
+
+    /// The fields of part `p` that name a part neither the project nor a library he has holds (a part kept in My parts
+    /// before what it names was kept with it), by their paths in the declaration (`accessories[].part`,
+    /// `sections.enclosure.plate`): the part is offered all the same, and its row and its sheet say what it lacks.
+    pub fn names_missing(&self, p: &Part) -> Vec<&'static str> {
+        let q = self.query();
+        let found = |r: &ew_schema::LibRef| {
+            q.parts().contains(v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid()))
+                || self.libraries().resolve(r).is_ok()
+        };
+        let mut out = Vec::new();
+        if p.accessories.iter().any(|a| !found(&a.part)) {
+            out.push("accessories[].part");
+        }
+        if (p.sections.enclosure.as_ref().and_then(|e| e.plate.as_ref())).is_some_and(|r| !found(r)) {
+            out.push("sections.enclosure.plate");
+        }
+        out
+    }
+
+    /// Whether My parts holds item `item`: a part the project holds only on a copy of its own may be his too (kept
+    /// before, the project's step taken back since), and its row says so.
+    pub fn in_my_parts(&self, item: Uuid) -> bool {
+        crate::eplan::find_user_parts_library(self.libraries()).is_some_and(|l| self.own_part_number(l, item).is_some())
     }
 
     /// Whether a copy of library `library` is only in this project: the library is the project's own, or one this
@@ -290,21 +345,8 @@ impl Session {
         };
         let lib = crate::eplan::user_parts_library(self.libraries_mut())
             .map_err(|_| PartDraftError::Field(message("part", key!("error-part-keep-no-my-parts"), &[])))?;
-        // A part kept before is in My parts already: said in words, as a new part of its maker and number is.
-        let mine = self.libraries().documents(lib, Kind::Part);
-        if let Some(c) = held.iter().find(|c| {
-            mine.iter().any(|d| {
-                d.copy_meta()
-                    .is_some_and(|m| m.item_id.as_uuid() == c.item_id.as_uuid())
-            })
-        }) {
-            let maker = ew_derive::manufacturer_name(&self.query(), &c.item.manufacturer);
-            return Err(PartDraftError::Field(message(
-                "part_number",
-                key!("error-part-exists"),
-                &[c.item.part_number.as_str(), &maker],
-            )));
-        }
+        // A part My parts holds already (kept before, the project's step taken back since) is not refused: the project
+        // takes My parts' copy of it, as Keep does for a part it names.
         let mut kept = Kept::default();
         let mut tos = Vec::new();
         for c in &held {
@@ -314,8 +356,7 @@ impl Session {
         // The parts named beside them are said; the parts asked for are not.
         kept.with
             .retain(|(item, _)| !held.iter().any(|c| c.item_id.as_uuid() == *item));
-        let refs: Vec<_> = held.iter().map(|c| lib_ref(lib, c.item_id.as_uuid())).collect();
-        let copies = self.write_kept(lib, &kept, &refs)?;
+        let copies = self.write_kept(lib, &kept)?;
         let mut moves = kept.moves.clone();
         // The first part asked for is the step's own.
         let first = moves
@@ -415,55 +456,69 @@ impl Session {
             .iter()
             .find_map(|d| d.copy_meta().filter(|c| c.item_id.as_uuid() == item))
         {
-            if let (LibDocument::Part(_), Some((from, _))) = (&doc, &copy) {
+            if let (LibDocument::Part(p), Some((from, _))) = (&doc, &copy) {
+                // Its uses move to My parts' copy, and the move is said by maker and number.
                 kept.moves.push((*from, c.id));
+                kept.items.push(item);
+                let maker = ew_derive::manufacturer_name(&self.query(), &p.item.manufacturer);
+                let words = format!("{maker} {}", p.item.part_number.as_str());
+                kept.with.push((item, words.trim().to_owned()));
+                // What the project's copy names moves with it, said as well.
+                kept.versions.insert(item, c.version.to_owned());
+                if let Ok(mut value) = serde_json::to_value(&p.item) {
+                    self.keep_named(&mut value, lib, kept)?;
+                }
             }
             return Ok((item, c.version.to_owned()));
         }
         let version = copy.as_ref().map(|(_, v)| v.clone()).unwrap_or_default();
-        kept.versions.insert(item, version.clone());
-        let q = self.query();
         match doc {
-            LibDocument::Part(c) => {
-                let maker = ew_derive::manufacturer_name(&q, &c.item.manufacturer);
-                let number = c.item.part_number.as_str().to_owned();
-                let parts: Vec<Part> = mine
-                    .iter()
-                    .filter_map(|d| match d {
-                        LibDocument::Part(c) => Some(c.item.clone()),
-                        _ => None,
-                    })
-                    .collect();
-                if self.same_part(&parts, &number, &maker) {
-                    return Err(PartDraftError::Field(message(
-                        "part_number",
-                        key!("error-part-exists"),
-                        &[&number, &maker],
-                    )));
-                }
-                drop(q);
-                let mut new = self.rehome(&c, lib, kept)?;
-                new.item.meta.extra.remove("source");
-                new.item.manufacturer = self.my_maker(lib, &maker, &mut kept.written)?;
-                let new = crate::part_new::finish(new, LibDocument::Part);
-                kept.moves.push((c.id.as_uuid(), new.id.as_uuid()));
-                kept.with
-                    .push((item, format!("{maker} {number}").trim().to_owned()));
-                kept.written.push(LibDocument::Part(new));
-            }
+            LibDocument::Part(c) => self.keep_part(&c, lib, kept)?,
             LibDocument::Symbol(c) => {
-                drop(q);
+                kept.versions.insert(item, version.clone());
                 let new = crate::part_new::finish(self.rehome(&c, lib, kept)?, LibDocument::Symbol);
                 kept.written.push(LibDocument::Symbol(new));
             }
             LibDocument::Fndef(c) => {
-                drop(q);
+                kept.versions.insert(item, version.clone());
                 let new = crate::part_new::finish(self.rehome(&c, lib, kept)?, LibDocument::Fndef);
                 kept.written.push(LibDocument::Fndef(new));
             }
             _ => return Err(PartDraftError::Refused(key!("reason-part-keep"))),
         }
         Ok((item, version))
+    }
+
+    /// Keeps the project's part copy `c` (only in this project; its item as `c` holds it, which may be its sheet's
+    /// texts) in My parts `lib` as the same item with what it names, into `kept`: its maker made there, its uses moving
+    /// to the kept copy. A part of its maker and number that My parts holds as another item refuses it.
+    pub(crate) fn keep_part(&self, c: &LibCopy<Part>, lib: Uuid, kept: &mut Kept) -> Result<(), PartDraftError> {
+        let item = c.item_id.as_uuid();
+        kept.versions.insert(item, c.version.clone());
+        let maker = ew_derive::manufacturer_name(&self.query(), &c.item.manufacturer);
+        let number = c.item.part_number.as_str().to_owned();
+        let parts: Vec<Part> = (self.libraries().documents(lib, Kind::Part).into_iter())
+            .filter_map(|d| match d {
+                LibDocument::Part(c) => Some(c.item),
+                _ => None,
+            })
+            .collect();
+        if self.same_part(&parts, &number, &maker) {
+            return Err(PartDraftError::Field(message(
+                "part_number",
+                key!("error-part-exists"),
+                &[&number, &maker],
+            )));
+        }
+        let mut new = self.rehome(c, lib, kept)?;
+        new.item.meta.extra.remove("source");
+        new.item.manufacturer = self.my_maker(lib, &maker, &mut kept.written)?;
+        let new = crate::part_new::finish(new, LibDocument::Part);
+        kept.moves.push((c.id.as_uuid(), new.id.as_uuid()));
+        kept.items.push(item);
+        kept.with.push((item, format!("{maker} {number}").trim().to_owned()));
+        kept.written.push(LibDocument::Part(new));
+        Ok(())
     }
 
     /// The project's copy `c` as the same item of My parts `lib`, its references to copies only in this project kept
@@ -491,12 +546,7 @@ impl Session {
     /// Writes what `kept` keeps into My parts `lib` in one write and reads the closure of `refs` (the parts asked for)
     /// back from it: the documents a command embeds. Where the closure cannot be read, what was written is taken out
     /// again and the refusal names the part in words.
-    pub(crate) fn write_kept(
-        &mut self,
-        lib: Uuid,
-        kept: &Kept,
-        refs: &[ew_schema::LibRef],
-    ) -> Result<Vec<Value>, PartDraftError> {
+    pub(crate) fn write_kept(&mut self, lib: Uuid, kept: &Kept) -> Result<Vec<Value>, PartDraftError> {
         let name = self
             .libraries()
             .libraries()
@@ -513,12 +563,8 @@ impl Session {
                 ))
             })?;
         }
-        // The parts kept beside them come into the project too, whatever names them (their uses move to them).
-        let mut refs = refs.to_vec();
-        refs.extend(kept.written.iter().filter_map(|d| match d {
-            LibDocument::Part(c) => Some(lib_ref(lib, c.item_id.as_uuid())),
-            _ => None,
-        }));
+        // Every part kept comes into the project, whatever names it (its uses move to it).
+        let refs: Vec<_> = kept.items.iter().map(|i| lib_ref(lib, *i)).collect();
         match self.closure_docs(&refs) {
             Ok(docs) => Ok(docs.iter().filter_map(|d| serde_json::to_value(d).ok()).collect()),
             Err(e) => {
@@ -528,8 +574,18 @@ impl Session {
                         by_kind.entry(k).or_default().push(c.item_id.as_uuid());
                     }
                 }
+                let mut taken_back = true;
                 for (k, items) in by_kind {
-                    let _ = self.libraries_mut().remove(lib, k, &items);
+                    taken_back &= self.libraries_mut().remove(lib, k, &items).is_ok();
+                }
+                if !taken_back {
+                    // What could not be taken back stands in My parts: said by maker and number.
+                    let standing: Vec<&str> = kept.with.iter().map(|(_, w)| w.as_str()).collect();
+                    return Err(PartDraftError::Field(message(
+                        "part",
+                        key!("error-part-take-back-failed"),
+                        &[&name, &standing.join(", ")],
+                    )));
                 }
                 // In words, never by the reference's identifiers.
                 Err(match e {
@@ -544,6 +600,29 @@ impl Session {
                 })
             }
         }
+    }
+}
+
+/// What the lists that offer parts leave out ([`Session::not_offered`]).
+#[derive(Clone, Debug, Default)]
+pub struct NotOffered {
+    /// The project's copies a part was kept from: only in this project, beside a copy of an installed library of the
+    /// same item, which is the one offered.
+    pub copies: BTreeSet<Uuid>,
+    /// The items the project holds on a copy only in this project: a library's part of the same item (My parts', after
+    /// a Keep taken back) is that part, offered as the project's copy.
+    pub items: BTreeSet<Uuid>,
+}
+
+impl NotOffered {
+    /// Whether the project's copy `copy` is left out.
+    pub fn copy(&self, copy: Uuid) -> bool {
+        self.copies.contains(&copy)
+    }
+
+    /// Whether a library's part of item `item`, which the project does not hold, is left out.
+    pub fn item(&self, item: Uuid) -> bool {
+        self.items.contains(&item)
     }
 }
 
@@ -568,6 +647,8 @@ pub(crate) struct Kept {
     pub(crate) moves: Vec<(Uuid, Uuid)>,
     /// Each part kept by its item, with its maker and number.
     pub(crate) with: Vec<(Uuid, String)>,
+    /// The items of My parts the project takes: the parts kept, and those My parts held already.
+    pub(crate) items: Vec<Uuid>,
     /// The version of each item kept in this write.
     versions: std::collections::BTreeMap<Uuid, String>,
 }

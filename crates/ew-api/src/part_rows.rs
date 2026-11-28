@@ -797,10 +797,13 @@ impl Session {
     /// The part numbered `number` (case aside): a held copy (no documents), else a library's part with the documents
     /// that embed it; with its kind. `None` when no part has the number.
     pub(crate) fn part_by_number(&self, q: &Q, number: &str) -> Option<(LibRef, PartKind, Vec<Value>)> {
+        let not_offered = self.not_offered();
         if let Some((_, c)) = q
             .parts()
             .iter()
-            .find(|(_, c)| c.item.part_number.as_str().eq_ignore_ascii_case(number))
+            .find(|(id, c)| {
+                !not_offered.copy(id.as_uuid()) && c.item.part_number.as_str().eq_ignore_ascii_case(number)
+            })
         {
             let c: &LibCopy<Part> = c;
             return Some((

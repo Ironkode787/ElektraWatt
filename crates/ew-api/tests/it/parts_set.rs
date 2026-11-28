@@ -401,7 +401,8 @@ fn save_refuses_a_set_my_parts_changed_under() {
     };
     let mut sheet = s.library_part_draft(lib, item).expect("its sheet");
     s.set_draft_field(&mut sheet, "mech.width", "7").expect("width");
-    s.own_part_update(&sheet).expect("saved");
+    let save = s.own_parts_save(&[&sheet]).expect("planned");
+    s.write_own_save(&save).expect("saved");
     match s.save_set(&set) {
         Err(ew_api::parts_set::SetSaveError::Changed(fresh)) => assert_eq!(row(&fresh), SetStatus::Changed),
         other => panic!("{other:?}"),

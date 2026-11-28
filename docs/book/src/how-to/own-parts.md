@@ -102,7 +102,8 @@ switch, 8 ports) and EW-GEN-PND-1 (a PROFINET device, 2 ports).
    data, which you save under a part number of your own.
 3. Change what you need and **Save**. A part of My parts is saved there as its next version, and the card beside the
    sheet lists what changes in words ("Interface X1: 8 ports → 6 ports", "Channels: 8 → 16", the parts list row's
-   changed column) and the devices that use it; **Apply** brings the project's copy to it. A part only in this project
+   changed column) and the devices that use it, and the parts only in this project that it names and that go into My
+   parts with it; **Apply** writes My parts and brings the project's copy to it, **Cancel** writes nothing. A part only in this project
    changes in place, with the same card. **Discard** drops what you typed.
 4. A device already drawn follows the correction: its box shows the pins and sockets the part still has, and its bus
    port keeps its bus, role and address. A bus line at a socket the part no longer has keeps its end there; the card
@@ -112,7 +113,9 @@ switch, 8 ports) and EW-GEN-PND-1 (a PROFINET device, 2 ports).
 
 A part only in this project has **Keep in my parts** in the bar: it is written into My parts with the parts only in
 this project that it names (its mounting plate, an end plate it comes with), and the project's devices take those
-copies; the message names the parts kept with it. A part is then one row of the list, **Mine**. **Remove** takes a part of your own out of My parts (it asks first); a project that uses it keeps its
+copies; the message names the parts kept with it. A part is then one row of the list, **Mine**. After **Undo** of a
+keep, My parts keeps the part: its row reads "Only in this project · also in My parts", and **Keep in my parts** brings
+the project onto it again. A part that names a part nobody holds says so over **Ready for**, with the way. **Remove** takes a part of your own out of My parts (it asks first); a project that uses it keeps its
 copy. **Back** returns to where you came from.
 
 ## Bring parts in from a file

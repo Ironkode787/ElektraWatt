@@ -1048,6 +1048,9 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                     for r in &p.lost {
                         lines.push(format!("  lost \"{}\"", user(r)));
                     }
+                    for r in &p.kept {
+                        lines.push(format!("  kept \"{}\"", user(r)));
+                    }
                     for r in &p.boxes {
                         lines.push(format!("  box \"{}\"", user(r)));
                     }
@@ -2068,7 +2071,7 @@ fn parts_lines(place: &crate::shell::parts_place::PartsPlace, lines: &mut Vec<St
             "  row \"{}\" \"{}\" {}{}",
             user(&row.offer.part_number),
             user(&row.offer.manufacturer),
-            user(&crate::shell::parts_place::lives_word(&row.lives)),
+            user(&crate::shell::parts_place::lives_words(&row.lives, row.mine_too)),
             if row.lacks { " lacks" } else { "" }
         ));
     }
@@ -2121,11 +2124,14 @@ fn parts_lines(place: &crate::shell::parts_place::PartsPlace, lines: &mut Vec<St
     lines.push(format!(
         "  open \"{}\" {}{}",
         user(&open.title()),
-        user(&crate::shell::parts_place::lives_word(&open.lives)),
+        user(&crate::shell::parts_place::lives_words(&open.lives, open.mine_too)),
         if open.changed { " changed" } else { "" }
     ));
     for lack in &open.lacks {
         lines.push(format!("  lacks \"{}\"", user(&strings::render(&lack.text()))));
+    }
+    if let Some(m) = &open.missing {
+        lines.push(format!("  missing \"{}\"", user(m)));
     }
     let d = &open.sheet;
     for f in ew_api::identity_fields() {

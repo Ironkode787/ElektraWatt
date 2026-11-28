@@ -458,16 +458,11 @@ impl Session {
         let mut held_items: BTreeSet<(Uuid, Uuid)> = BTreeSet::new();
         // A cable gland is no device's part (doc 12 §3.9): offered only where a gland is asked for.
         let glands = q.kinds.iter().any(|k| k == "gland");
-        // A part kept in My parts is one part (doc 07 §5.8): the project's own copy it was kept from, which keeps its
-        // item, is not offered beside it.
-        let only_here = |lib: Uuid| lib == project || !libs.iter().any(|l| l.id == lib);
-        let kept: BTreeSet<Uuid> = (query.parts().iter())
-            .filter(|(_, c)| !only_here(c.library_id.as_uuid()))
-            .map(|(_, c)| c.item_id.as_uuid())
-            .collect();
+        // A part is one entry (doc 07 §5.8): the one rule of every list that offers parts.
+        let not_offered = self.not_offered();
         for (id, c) in query.parts().iter() {
             held_items.insert((c.library_id.as_uuid(), c.item_id.as_uuid()));
-            if only_here(c.library_id.as_uuid()) && kept.contains(&c.item_id.as_uuid()) {
+            if not_offered.copy(id.as_uuid()) {
                 continue;
             }
             let p = &c.item;
@@ -556,7 +551,10 @@ impl Session {
                 })
             };
             for (pos, h) in hits.into_iter().enumerate() {
-                if held_items.contains(&(h.library, h.item)) || h.kind == PartKind::Gland && !glands {
+                if held_items.contains(&(h.library, h.item))
+                    || not_offered.item(h.item)
+                    || h.kind == PartKind::Gland && !glands
+                {
                     continue;
                 }
                 let fit = match (h.same_fndef, h.compatible) {

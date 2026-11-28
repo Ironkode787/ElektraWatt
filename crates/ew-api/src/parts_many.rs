@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 use ew_ids::{Id, Uuid};
 use ew_schema::{Kind, LibCopy, LibDocument, Part};
 
-use crate::Session;
+use crate::{AnyCommand, Session};
 use crate::part_editor::{PartDraftError, PartSheet, message};
 use crate::parts_set::SHARED_SIZES;
 
@@ -103,34 +103,74 @@ pub fn shared_fields(sheets: &[PartSheet]) -> Vec<(String, Option<String>)> {
         .collect()
 }
 
+/// What a Save of parts of his own does (doc 07 §3.1, §5.9), planned before anything is written: the documents each
+/// library gets in its one write (the parts' next versions, and the parts only in this project that they name, or that
+/// are among them, kept in My parts), the card of what changes in the project or, without one, the command that moves
+/// the project's uses to the kept parts, and the parts kept with them by maker and number. Nothing is written until
+/// [`Session::write_own_save`]; the card's Cancel writes nothing anywhere.
+#[derive(Clone, Debug)]
+pub struct OwnSave {
+    /// How many of the parts asked for are saved.
+    pub count: usize,
+    /// The card of the one step that brings the project to them (`library.update`, which also moves the uses of the
+    /// parts kept with them); `None` where the project holds none of them.
+    pub plan: Option<crate::library_ops::UpdatePlan>,
+    /// Without a card: the `part.keep` that brings the kept parts into the project and moves their uses, to commit after
+    /// the write.
+    pub command: Option<AnyCommand>,
+    /// The parts kept in My parts with them (only in this project before), by maker and number.
+    pub with: Vec<String>,
+    /// Each project's copy kept, and the kept copy that takes its uses.
+    pub moved: Vec<(Uuid, Uuid)>,
+    /// The documents to write, per library.
+    writes: BTreeMap<Uuid, Vec<LibDocument>>,
+}
+
 impl Session {
-    /// Saves the changed parts of My parts among `sheets` (doc 07 §5.9, one Save): each as its library item's next
-    /// patch version, written into its library in one write, and the one `library.update` that brings the project's
-    /// copies of them to their new versions (Bulk: its card names the parts' changed fields and the devices; one undo
-    /// step), with how many parts were written. The plan is `None` where the project holds none of them. A part that did
-    /// not change is not written again.
+    /// Plans the Save of `sheets` (doc 07 §5.9, one Save of one part or of several): each changed part of a library
+    /// he writes as its item's next patch version; each part only in this project among them kept in My parts with
+    /// what its sheet says; and the parts only in this project that any of them names kept with them, each once.
+    /// Nothing is written ([`OwnSave`]). A part of My parts that did not change is not written again.
     ///
     /// # Errors
     ///
-    /// The index of the sheet and why: a field that does not parse, a part that is no longer where it was opened,
-    /// My parts that cannot be written; [`PartDraftError::Refused`] (`reason-part-unchanged`) when none changed.
-    pub fn own_parts_update(
-        &mut self,
-        sheets: &[&PartSheet],
-    ) -> Result<(usize, Option<crate::library_ops::UpdatePlan>), (usize, PartDraftError)> {
-        let mut written: BTreeMap<Uuid, Vec<LibDocument>> = BTreeMap::new();
-        let mut held_docs = Vec::new();
+    /// The index of the sheet and why: a field that does not parse, a part that is no longer where it was opened, a
+    /// part kept of a maker and number My parts holds as another item, My parts that cannot be made or written;
+    /// [`PartDraftError::Refused`] (`reason-part-unchanged`) when none changed.
+    pub fn own_parts_save(&mut self, sheets: &[&PartSheet]) -> Result<OwnSave, (usize, PartDraftError)> {
+        let mut writes: BTreeMap<Uuid, Vec<LibDocument>> = BTreeMap::new();
+        let mut held_new: Vec<LibDocument> = Vec::new();
+        let mut kept = crate::parts::Kept::default();
+        let mut asked: Vec<Uuid> = Vec::new();
+        let mut mine: Option<Uuid> = None;
+        let mut count = 0;
         for (i, draft) in sheets.iter().enumerate() {
             let item = self.sectioned_item(draft).map_err(|e| (i, e))?;
+            let target = || (i, PartDraftError::Refused(key!("reason-part-edit-target")));
+            let held = (self.query().parts().get(Id::from_uuid(draft.copy))).map(|c| (**c).clone());
+            // A part only in this project is kept in My parts as its sheet gives it.
+            if let Some(h) = held.as_ref().filter(|h| self.only_here(h.library_id.as_uuid())) {
+                let lib = match mine {
+                    Some(l) => l,
+                    None => *mine.insert(crate::eplan::user_parts_library(self.libraries_mut()).map_err(|_| {
+                        (
+                            i,
+                            PartDraftError::Field(message("part", key!("error-part-keep-no-my-parts"), &[])),
+                        )
+                    })?),
+                };
+                let typed = LibCopy {
+                    item,
+                    ..h.clone()
+                };
+                self.keep_part(&typed, lib, &mut kept).map_err(|e| (i, e))?;
+                asked.push(h.item_id.as_uuid());
+                count += 1;
+                continue;
+            }
             if item == draft.original {
                 continue;
             }
-            let target = || (i, PartDraftError::Refused(key!("reason-part-edit-target")));
-            let held = self
-                .query()
-                .parts()
-                .get(Id::from_uuid(draft.copy))
-                .map(|c| (**c).clone());
             let in_project = held.is_some();
             let held = match (held, draft.source) {
                 (Some(h), _) => h,
@@ -146,11 +186,10 @@ impl Session {
                 (None, None) => return Err(target()),
             };
             let lib = held.library_id.as_uuid();
-            // The parts only in this project that a part of My parts names go into My parts with it, and the project
-            // takes those copies with its update.
+            // The parts only in this project that a part of My parts names go into My parts with it.
             let mut item = item;
-            let mut kept = crate::parts::Kept::default();
             if self.own_part_number(lib, held.item_id.as_uuid()).is_some() {
+                mine = Some(lib);
                 let bad = |e: serde_json::Error| {
                     (
                         i,
@@ -189,16 +228,100 @@ impl Session {
             );
             let doc = LibDocument::Part(copy);
             if in_project {
-                held_docs.push(doc.clone());
-                held_docs.extend(kept.written.iter().cloned());
+                held_new.push(doc.clone());
             }
-            written.entry(lib).or_default().extend(kept.written);
-            written.entry(lib).or_default().push(doc);
+            writes.entry(lib).or_default().push(doc);
+            count += 1;
         }
-        if written.is_empty() {
+        if count == 0 {
             return Err((0, PartDraftError::Refused(key!("reason-part-unchanged"))));
         }
-        // Every library is checked before the first is written: one that cannot be written refuses them all.
+        if let Some(lib) = mine.filter(|_| !kept.written.is_empty()) {
+            writes.entry(lib).or_default().extend(kept.written.iter().cloned());
+        }
+        // Every library is checked before anything is written: one that cannot be written refuses them all.
+        let infos = self.libraries().libraries();
+        if let Some(lib) = writes
+            .keys()
+            .find(|l| !infos.iter().any(|i| i.id == **l && i.writable))
+        {
+            let name = infos.iter().find(|l| l.id == *lib).map_or_else(String::new, |l| l.name.clone());
+            return Err((
+                0,
+                PartDraftError::Field(message(
+                    "part",
+                    key!("error-part-library"),
+                    &[&name, &crate::library::LibraryError::ReadOnly.to_string()],
+                )),
+            ));
+        }
+        // What comes into the project: the kept parts as they will be written, and what the new versions and the kept
+        // parts name that the project lacks, from the libraries as they are now.
+        let written_items: Vec<Uuid> = (kept.written.iter())
+            .filter_map(|d| d.copy_meta().map(|c| c.item_id.as_uuid()))
+            .collect();
+        let mut docs = held_new.clone();
+        docs.extend(kept.written.iter().cloned());
+        let refs: Vec<ew_schema::LibRef> = {
+            let q = self.query();
+            let lib = mine.unwrap_or_default();
+            (held_new.iter().chain(&kept.written))
+                .flat_map(crate::library::closure_refs)
+                .map(|(l, i, _)| (l, i))
+                .chain(kept.items.iter().filter(|i| !written_items.contains(i)).map(|i| (lib, *i)))
+                .filter(|(l, i)| {
+                    !written_items.contains(i) && q.parts().get(ew_ids::v5::lib_copy_id::<Part>(*l, *i)).is_none()
+                })
+                .map(|(l, i)| crate::part_offers::lib_ref(l, i))
+                .collect()
+        };
+        for r in refs {
+            if let Ok(LibDocument::Part(_)) = self.libraries().resolve(&r)
+                && let Ok(more) = self.closure_docs(std::slice::from_ref(&r))
+            {
+                docs.extend(more);
+            }
+        }
+        let lib = mine.unwrap_or_default();
+        let forced: Vec<Uuid> = (kept.items.iter())
+            .map(|i| ew_ids::v5::lib_copy_id::<Part>(lib, *i).as_uuid())
+            .collect();
+        let refused = |e: crate::ApiError| {
+            (
+                0,
+                PartDraftError::Field(message("part", key!("error-part-library"), &["", &e.to_string()])),
+            )
+        };
+        let (plan, command) = if held_new.is_empty() {
+            let command = kept.moves.split_first().map(|(first, also)| {
+                let copies = docs.iter().filter_map(|d| serde_json::to_value(d).ok()).collect();
+                crate::parts::keep_command(*first, also, copies)
+            });
+            (None, command)
+        } else {
+            let plan = self.update_keeping(&docs, &forced, &kept.moves, &[]).map_err(refused)?;
+            (Some(plan), None)
+        };
+        Ok(OwnSave {
+            count,
+            plan,
+            command,
+            with: (kept.with.into_iter())
+                .filter(|(item, _)| !asked.contains(item))
+                .map(|(_, w)| w)
+                .collect(),
+            moved: kept.moves,
+            writes,
+        })
+    }
+
+    /// Writes what `save` planned ([`Session::own_parts_save`]): each library's documents in one write.
+    ///
+    /// # Errors
+    ///
+    /// [`PartDraftError::Field`] on `part` when a library cannot be written; where a second library fails after the
+    /// first was written, the message names the parts written and those not.
+    pub fn write_own_save(&mut self, save: &OwnSave) -> Result<(), PartDraftError> {
         let infos = self.libraries().libraries();
         let name = |lib: &Uuid| {
             infos
@@ -206,20 +329,6 @@ impl Session {
                 .find(|l| l.id == *lib)
                 .map_or_else(String::new, |l| l.name.clone())
         };
-        if let Some(lib) = written
-            .keys()
-            .find(|l| !infos.iter().any(|i| i.id == **l && i.writable))
-        {
-            return Err((
-                0,
-                PartDraftError::Field(message(
-                    "part",
-                    key!("error-part-library"),
-                    &[&name(lib), &crate::library::LibraryError::ReadOnly.to_string()],
-                )),
-            ));
-        }
-        // Two libraries are no one write: when a later one fails, the message names the parts written and those not.
         let numbers = |docs: &[LibDocument]| -> Vec<String> {
             docs.iter()
                 .filter_map(|d| match d {
@@ -229,56 +338,26 @@ impl Session {
                 .collect()
         };
         let mut done: Vec<String> = Vec::new();
-        for (lib, docs) in &written {
+        for (lib, docs) in &save.writes {
             if let Err(e) = self.libraries_mut().write(*lib, docs) {
                 let why = message("part", key!("error-part-library"), &[&name(lib), &e.to_string()]);
-                let rest: Vec<String> = written
-                    .iter()
+                let rest: Vec<String> = (save.writes.iter())
                     .skip_while(|(l, _)| *l != lib)
                     .flat_map(|(_, d)| numbers(d))
                     .collect();
-                return Err((
-                    0,
-                    PartDraftError::Field(if done.is_empty() {
-                        why
-                    } else {
-                        message(
-                            "part",
-                            key!("error-parts-written-partly"),
-                            &[&done.join(", "), &rest.join(", "), &e.to_string()],
-                        )
-                    }),
-                ));
+                return Err(PartDraftError::Field(if done.is_empty() {
+                    why
+                } else {
+                    message(
+                        "part",
+                        key!("error-parts-written-partly"),
+                        &[&done.join(", "), &rest.join(", "), &e.to_string()],
+                    )
+                }));
             }
             done.extend(numbers(docs));
         }
-        if held_docs.is_empty() {
-            return Ok((done.len(), None));
-        }
-        // What the new versions name that the project does not hold (a part they come with, a cabinet's plate) comes
-        // with the update, from the libraries as they are now.
-        let named: Vec<ew_schema::LibRef> = {
-            let q = self.query();
-            (held_docs.iter())
-                .flat_map(crate::library::closure_refs)
-                .filter(|(l, i, _)| q.parts().get(ew_ids::v5::lib_copy_id::<Part>(*l, *i)).is_none())
-                .map(|(l, i, _)| crate::part_offers::lib_ref(l, i))
-                .collect()
-        };
-        for r in named {
-            if let Ok(LibDocument::Part(_)) = self.libraries().resolve(&r)
-                && let Ok(docs) = self.closure_docs(std::slice::from_ref(&r))
-            {
-                held_docs.extend(docs);
-            }
-        }
-        let plan = self.update_from_documents(&held_docs, &[]).map_err(|e| {
-            (
-                0,
-                PartDraftError::Field(message("part", key!("error-part-library"), &["", &e.to_string()])),
-            )
-        })?;
-        Ok((done.len(), Some(plan)))
+        Ok(())
     }
 }
 

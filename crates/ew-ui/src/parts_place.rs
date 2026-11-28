@@ -14,7 +14,7 @@ use ew_viewmodel::ew_api::part_fields::Group;
 use ew_viewmodel::ew_api::parts::{Lives, PartFound, PartScope};
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::shell::parts_place::{
-    Asking, LIST_ROWS, OpenSheet, PartsPlace, group_hint, group_line, lives_word, table_add_word, table_hint,
+    Asking, LIST_ROWS, OpenSheet, PartsPlace, group_hint, group_line, lives_words, table_add_word, table_hint,
 };
 use ew_viewmodel::{count_key, key, strings};
 use serde_json::json;
@@ -575,7 +575,7 @@ fn heading_chips(open: &OpenSheet) -> Vec<String> {
     if open.changed {
         out.push(strings::text(key!("parts-changed")).to_owned());
     }
-    out.push(lives_word(&open.lives));
+    out.push(lives_words(&open.lives, open.mine_too));
     out
 }
 
@@ -1018,7 +1018,11 @@ fn list_row(ui: &mut Ui, row: &PartFound, open: bool, place: Option<usize>) -> e
         body.clone(),
         t.text_secondary.color32(),
     );
-    let chip = chip_word(&row.lives);
+    let chip = if row.mine_too {
+        format!("{} \u{b7} {}", chip_word(&row.lives), strings::text(key!("parts-chip-mine")))
+    } else {
+        chip_word(&row.lives)
+    };
     let (galley, size) = components::caption_chip_layout(ui, &t, &chip);
     let chip_rect = egui::Rect::from_min_size(pos2(rect.right() - t.space_2 - size.x, top), size);
     components::paint_caption_chip(&painter, &t, chip_rect, galley);
@@ -1044,7 +1048,7 @@ fn list_row(ui: &mut Ui, row: &PartFound, open: bool, place: Option<usize>) -> e
         "{} {} \u{b7} {}",
         row.offer.part_number,
         row.offer.manufacturer,
-        lives_word(&row.lives)
+        lives_words(&row.lives, row.mine_too)
     );
     r.widget_info(|| egui::WidgetInfo::selected(egui::Role::ListItem, true, open, &name));
     r
@@ -1156,6 +1160,14 @@ fn pictures_column(ui: &mut Ui, shell: &ShellModel, place: &PartsPlace, events: 
                     }
                 });
                 ui.add_space(t.space_4);
+            }
+            // A part it names that no one holds: said over Ready for, with the way.
+            if let Some(m) = &open.missing {
+                ui.horizontal_wrapped(|ui| {
+                    mark(ui, IconId::alert_triangle, t.warning.color32());
+                    ui.label(RichText::new(m).font(theme::font(&t.type_small)).color(t.warning.color32()));
+                });
+                ui.add_space(t.space_3);
             }
             ready_for(ui, strings::text(key!("parts-ready-for")), &open.ready);
         });

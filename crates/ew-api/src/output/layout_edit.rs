@@ -2414,16 +2414,18 @@ impl Session {
             copies,
             sections: c.item.sections.clone(),
         };
+        // A part is one entry, by the rule every list that offers parts reads (doc 07 §5.8).
+        let not_offered = self.not_offered();
         let mut held: Vec<LayoutPartOffer> = q
             .table::<LibCopy<Part>>()
             .iter()
-            .filter(|(_, c)| usable(c))
+            .filter(|(id, c)| usable(c) && !not_offered.copy(id.as_uuid()))
             .map(|(_, c)| offer(c, Vec::new()))
             .collect();
         held.sort_by(|a, b| ew_mltext::natural_cmp(&a.number, &b.number).then(a.part.cmp(&b.part)));
         let mut seen: BTreeSet<Uuid> = held.iter().map(|o| o.part).collect();
         for c in self.library_parts() {
-            if !usable(&c) || !seen.insert(c.id.as_uuid()) {
+            if !usable(&c) || not_offered.item(c.item_id.as_uuid()) || !seen.insert(c.id.as_uuid()) {
                 continue;
             }
             // The reference to the library part, from the part itself: the libraries are read once per computation.
@@ -2433,14 +2435,9 @@ impl Session {
                 version_req: "*".to_owned(),
                 extra: ew_schema::Extra::new(),
             };
-            let mut refs = vec![r];
-            if let Some(plate) = c.item.sections.enclosure.as_ref().and_then(|e| e.plate.clone()) {
-                let copy = ew_ids::v5::lib_copy_id(plate.library.as_uuid(), plate.item.as_uuid());
-                if !q.parts().contains(copy) {
-                    refs.push(plate);
-                }
-            }
-            let Ok(docs) = self.closure_docs(&refs) else {
+            // Its closure brings its plate (doc 07 §3.1); a plate it names that no installed library has is said on
+            // its row in Parts, and the cabinet is still offered.
+            let Ok(docs) = self.closure_docs(std::slice::from_ref(&r)) else {
                 continue;
             };
             let copies: Vec<Value> = docs

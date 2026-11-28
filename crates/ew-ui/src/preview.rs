@@ -189,6 +189,14 @@ fn part_block(ui: &mut Ui, p: &ew_viewmodel::properties::PartCard) {
             t.text_secondary,
         );
     }
+    // The parts kept in My parts with it are said before Apply writes them.
+    if !p.kept.is_empty() {
+        line(
+            ui,
+            &strings::format(key!("part-card-kept"), &[&p.kept.join(", ")]),
+            t.text_primary,
+        );
+    }
     // A bus line at a socket the part no longer has keeps its end there: said in the primary colour.
     if !p.lost.is_empty() {
         line(

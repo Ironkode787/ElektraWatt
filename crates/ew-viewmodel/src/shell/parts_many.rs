@@ -255,11 +255,10 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// Save of the sheet of many: every part changed is saved as its next version in My parts; where the project holds
-    /// them, the card of the one update names how many parts and their changed fields and the devices, before its
-    /// Apply. The parts only in this project among them are kept in My parts first (Keep in my parts and save, one
-    /// undo step of its own), and the values typed go to the kept parts. A part that is not his is refused in words
-    /// that name it.
+    /// Save of the sheet of many (Save, or Keep in my parts and save where parts only in this project are among them):
+    /// one Save of them all ([`ShellModel::save_own`]): the parts of My parts as their next versions, the parts only
+    /// in this project kept in My parts with the values typed, and the parts only in this project that any of them
+    /// names kept once with them. A part that is not his is refused in words that name it.
     pub(super) fn save_many(&mut self) -> Outcome {
         let Some(many) = self.many_sheet() else {
             return Outcome::refused(key!("reason-no-part-open"));
@@ -273,22 +272,19 @@ impl ShellModel {
                 ),
             };
         }
-        if many.sheets.iter().any(|(_, l)| *l == Lives::OnlyHere) {
-            let out = self.keep_many();
-            if out != Outcome::Done {
-                return out;
-            }
-        }
-        let Some(many) = self.many_sheet() else {
-            return Outcome::refused(key!("reason-no-part-open"));
-        };
         let sheets: Vec<PartSheet> = many.sheets.iter().map(|(s, _)| s.clone()).collect();
-        let (Some(session), _) = self.parts_session_mut() else {
-            return Outcome::refused(key!("reason-no-parts-place"));
-        };
-        let refs: Vec<&PartSheet> = sheets.iter().collect();
-        let (count, plan) = match session.own_parts_update(&refs) {
-            Ok(p) => p,
+        let title = strings::format_count(crate::count_key!("parts-many-title"), sheets.len());
+        let said = strings::format_count(crate::count_key!("parts-many-saved"), sheets.len());
+        match self.save_own(&sheets, &title, said) {
+            Ok(out) => {
+                // Saved now; else the card waits, and the values stay typed until its Apply.
+                if self.parts_save.is_none()
+                    && let Some(m) = self.parts.as_deref_mut().and_then(|p| p.many.as_deref_mut())
+                {
+                    m.changed = false;
+                }
+                out
+            }
             Err((i, e)) => {
                 let number = sheets
                     .get(i)
@@ -304,29 +300,39 @@ impl ShellModel {
                 if let Some(m) = self.parts.as_deref_mut().and_then(|p| p.many.as_deref_mut()) {
                     m.error = Some(message.clone());
                 }
-                return Outcome::Failed { message };
+                Outcome::Failed { message }
             }
-        };
-        if let Some(m) = self.parts.as_deref_mut().and_then(|p| p.many.as_deref_mut()) {
-            m.changed = false;
         }
-        self.libraries_changed();
-        let Some(plan) = plan else {
-            self.notify(
-                strings::format_count(crate::count_key!("parts-many-saved"), count),
-                false,
-            );
-            return self.reopen_many();
+    }
+
+    /// One Save of parts of his own, one or several (doc 07 §3.1): planned first ([`ew_api::Session::own_parts_save`]),
+    /// nothing written. Where the project holds them, the card of what changes opens, naming the parts kept with them,
+    /// and its Apply writes My parts and commits the one step ([`ShellModel::apply_own_save`]); its Cancel writes
+    /// nothing. Else his Save is the yes: My parts is written, then the step that moves the kept parts' uses. `title`
+    /// heads the card, `said` is the toast.
+    pub(super) fn save_own(
+        &mut self,
+        sheets: &[PartSheet],
+        title: &str,
+        said: String,
+    ) -> Result<Outcome, (usize, PartDraftError)> {
+        let (Some(session), _) = self.parts_session_mut() else {
+            return Ok(Outcome::Done);
         };
-        let devices = plan.devices.iter().map(|d| self.tag_of(d.as_uuid())).collect();
+        let refs: Vec<&PartSheet> = sheets.iter().collect();
+        let save = session.own_parts_save(&refs)?;
+        let Some(plan) = save.plan.clone() else {
+            session.write_own_save(&save).map_err(|e| (0, e))?;
+            self.libraries_changed();
+            let out = save.command.as_ref().map_or(Outcome::Done, |c| self.run_commit(c));
+            self.own_saved(&save, Some(said));
+            return Ok(out);
+        };
         let session = self.parts_session();
-        let fields = plan
-            .copies
-            .iter()
-            .flat_map(|c| card_fields(session, &c.fields))
-            .collect();
+        let fields = plan.copies.iter().flat_map(|c| card_fields(session, &c.fields)).collect();
+        let devices = plan.devices.iter().map(|d| self.tag_of(d.as_uuid())).collect();
         let card = PartCard {
-            title: strings::format_count(crate::count_key!("parts-many-title"), count),
+            title: title.to_owned(),
             fields,
             devices,
             removed: plan.bom_removed,
@@ -339,74 +345,75 @@ impl ShellModel {
             ]
             .concat(),
             lost: plan.lost,
+            kept: save.with.clone(),
             fork: false,
         };
-        self.preview_host_card_as(
+        self.parts_save = Some(Box::new(save));
+        Ok(self.preview_host_card_as(
             &plan.command.name,
             plan.command.params,
             key!("reason-library-update"),
             CardOrigin::Part(Box::new(card)),
-        )
+        ))
     }
 
-    /// The parts only in this project of the sheet of many kept in My parts (Keep in my parts, one step), and the sheet
-    /// of many again over the kept parts with the values that were typed into all of them.
-    fn keep_many(&mut self) -> Outcome {
-        let Some(many) = self.many_sheet() else {
-            return Outcome::refused(key!("reason-no-part-open"));
+    /// Apply of a part card: where its Save waits ([`ShellModel::save_own`]), My parts is written first, then the card's
+    /// step is committed; a write that fails leaves the card and the project as they were.
+    pub(crate) fn apply_own_save(&mut self, card: crate::properties::Card) -> Outcome {
+        let save = self
+            .parts_save
+            .take()
+            .filter(|s| s.plan.as_ref().is_some_and(|p| p.command.params == card.edit.params));
+        let Some(save) = save else {
+            return self.apply_bulk_card(card);
         };
-        let typed: Vec<(String, String)> = (many.fields.iter())
-            .filter_map(|(f, v)| Some((f.clone(), v.clone()?)))
-            .collect();
-        let here: Vec<ew_api::output::Uuid> = (many.sheets.iter())
-            .filter(|(_, l)| *l == Lives::OnlyHere)
-            .map(|(s, _)| s.copy)
-            .collect();
-        let parts = many.parts.clone();
-        let (Some(session), _) = self.parts_session_mut() else {
-            return Outcome::refused(key!("reason-no-parts-place"));
-        };
-        let kept = match session.keep_in_my_parts(&here) {
-            Ok(k) => k,
-            Err(e) => {
-                let out = draft_refusal(e);
-                if let (Outcome::Failed { message }, Some(m)) = (
-                    &out,
-                    self.parts.as_deref_mut().and_then(|p| p.many.as_deref_mut()),
-                ) {
-                    m.error = Some(message.clone());
-                }
-                return out;
-            }
-        };
-        let out = self.run_commit(&kept.command);
-        if out != Outcome::Done {
-            return out;
+        if let (Some(session), _) = self.parts_session_mut()
+            && let Err(e) = session.write_own_save(&save)
+        {
+            self.props.card = Some(card);
+            self.parts_save = Some(save);
+            return draft_refusal(e);
         }
         self.libraries_changed();
-        // Each part kept is named by its kept copy now.
-        let p = &kept.command.params;
-        let moved: Vec<(String, String)> = std::iter::once((&p["from"], &p["to"]))
-            .chain((p["also"].as_array().into_iter().flatten()).map(|k| (&k["from"], &k["to"])))
-            .filter_map(|(f, t)| Some((format!("id:{}", f.as_str()?), format!("id:{}", t.as_str()?))))
-            .collect();
-        let parts = parts
-            .into_iter()
-            .map(|c| moved.iter().find(|(f, _)| *f == c).map_or(c, |(_, t)| t.clone()))
-            .collect();
-        let out = self.open_many(parts);
-        if out != Outcome::Done {
-            return out;
+        let out = self.apply_bulk_card(card);
+        if out == Outcome::Done {
+            self.own_saved(&save, None);
         }
-        for (field, value) in typed {
-            let out = self.many_field(&field, &value);
-            if out != Outcome::Done {
-                return out;
-            }
-        }
-        Outcome::Done
+        out
     }
 
+    /// After a Save of his own parts is written and committed: the toast `said` with the parts kept with them, the
+    /// list again, and the sheet of several over the kept parts.
+    fn own_saved(&mut self, save: &ew_api::parts_many::OwnSave, said: Option<String>) {
+        if let Some(place) = self.parts.as_deref_mut() {
+            if let Some(open) = place.sheet.as_mut() {
+                open.changed = false;
+            }
+            if let Some(m) = place.many.as_deref_mut() {
+                m.changed = false;
+            }
+        }
+        let kept = (!save.with.is_empty())
+            .then(|| strings::format(key!("parts-saved-kept"), &[&save.with.join(", ")]));
+        let text = match (said, kept) {
+            (Some(s), Some(k)) => Some(format!("{s} {k}")),
+            (s, k) => s.or(k),
+        };
+        if let Some(text) = text {
+            self.notify(text, false);
+        }
+        if let Some(m) = self.parts.as_deref_mut().and_then(|p| p.many.as_deref_mut()) {
+            for p in &mut m.parts {
+                if let Some((_, to)) = save.moved.iter().find(|(from, _)| *p == format!("id:{from}")) {
+                    *p = format!("id:{to}");
+                }
+            }
+        }
+        if self.many_sheet().is_some() {
+            let _ = self.reopen_many();
+        }
+        self.parts_refresh();
+    }
     /// The sheet of many read again from where the parts live now (after a Save, a Discard).
     pub(super) fn reopen_many(&mut self) -> Outcome {
         let Some(parts) = self.many_sheet().map(|m| m.parts.clone()) else {

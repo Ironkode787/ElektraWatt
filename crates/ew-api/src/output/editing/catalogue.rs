@@ -1138,10 +1138,12 @@ impl Session {
         // ([`Session::library_manufacturer`]).
         let mut parts: Vec<CataloguePart> = Vec::new();
         let mut without_functions: Vec<CataloguePart> = Vec::new();
+        // A part is one entry, by the rule every list that offers parts reads (doc 07 §5.8).
+        let not_offered = self.not_offered();
         for (id, copy) in q.parts().iter() {
             // The parts a wire consumes (the workshop stock's wires, ferrules and markers) and a cable's gland are no
             // device to place.
-            if copy.item.kind.in_stock() {
+            if copy.item.kind.in_stock() || not_offered.copy(id.as_uuid()) {
                 continue;
             }
             if let Some(row) = catalogue_part(&q, set, &rows, id.as_uuid(), &copy.item, None, &page) {
@@ -1154,6 +1156,7 @@ impl Session {
         // The libraries' parts the project does not hold.
         for c in self.library_parts() {
             if q.parts().contains(c.id)
+                || not_offered.item(c.item_id.as_uuid())
                 || (c.item.function_template.is_empty() && c.item.sections.plc.is_none())
             {
                 continue;

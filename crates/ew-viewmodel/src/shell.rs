@@ -768,6 +768,9 @@ pub struct ShellModel {
     parts_alone: Option<Box<Session>>,
     /// How many parts Parts has opened: each opening's number, by which the window shows a part opened anew.
     parts_opened: u64,
+    /// The Save of parts of his own whose card waits: what its Apply writes into My parts before it commits the card
+    /// (doc 07 §3.1; the card's Cancel writes nothing).
+    parts_save: Option<Box<ew_api::parts_many::OwnSave>>,
     symbol_editor_generation: u64,
     /// What the symbol editor's Copy and Cut hold, from one draft to the next.
     symbol_clipboard: symbol_editor::Clipboard,
@@ -1363,6 +1366,7 @@ impl ShellModel {
             parts: None,
             parts_alone: None,
             parts_opened: 0,
+            parts_save: None,
             symbol_editor_generation: 0,
             symbol_clipboard: symbol_editor::Clipboard::default(),
             dispatch_log: None,

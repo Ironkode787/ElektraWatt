@@ -158,7 +158,8 @@ its workshop stock names it), Save shows first what changes there (the pins that
 boxes that are drawn anew and why, the lines of the parts list that change), and Save and update makes the change
 in one undo step: until then the project's copy is as it was. The card names each field that changes by its word on
 the sheet, with its values as the sheet shows them ("Mounts on: TS 35 × 7.5", Comes with by the part's number), and
-never an identifier, a version requirement or a member's path. A part of kind wire, ferrule or
+never an identifier, a version requirement or a member's path. It names the parts kept in My parts with the part
+(§3.1), and its Apply writes My parts; its Cancel writes nothing. A part of kind wire, ferrule or
 marker is refused as something another part comes with: the consumables count it (§2.5).
 
 **Remove…** takes a part out of My parts, or out of the project when it is only there. It stands greyed while
@@ -321,8 +322,11 @@ A person sees three things and no more (§3.1 has the rules):
   colleague's project. He changes it freely, for this project; **Keep in my parts** puts it among his with the parts
   only in this project that it names, and the toast names them ("EX-TB-1 is kept in My parts with Example EX-EP-1").
 
-A part is one row wherever it is listed: a part of My parts the project holds is one row, Mine, and the project's copy
-it was kept from is not listed beside it (§3.1).
+A part is one row wherever it is listed, in Parts, the part dialog, the device browser, the layout's offers (Create
+enclosure, the rail and duct tools, a cable's type) and Properties' Parts row: a part of My parts the project holds is
+one row, Mine, and the project's copy it was kept from is not listed beside it; after a Keep taken back by Undo the
+part is one row, "Only in this project · also in My parts", with Keep in my parts as the way (§3.1). A part that names
+a part no one holds says so over Ready for, by the field's word, with the way.
 
 A part of My parts that was changed since the open project took it says so on its sheet and in the list ("Changed in
 My parts since this project took it. See changes…"); nothing changes in the project until he says so (§3.1).
@@ -348,8 +352,8 @@ My parts since this project took it. See changes…"); nothing changes in the pr
   written; Save saves each as its next version in My parts, with one card for the devices of the open project that
   names how many parts and which fields before Apply, one undo step. A starter part among them, or one of a library he
   cannot write, locks the sheet in a line that names it, with Make my own from it for each. Where parts only in this
-  project are among them, Save reads **Keep in my parts and save**: they are kept in My parts first (one step, §3.1),
-  and the value typed goes to the kept parts. The Connection points table is shared too where the selected parts have the same
+  project are among them, Save reads **Keep in my parts and save**: they are kept in My parts with the values typed,
+  in the same Save as the others (§3.1: the card names what is kept, Apply writes it, Cancel writes nothing). The Connection points table is shared too where the selected parts have the same
   pins, a cell each by its pin and column; the other tables, the forms and the drawings are a single part's.
 - **A spreadsheet for a family.** Export as a table… writes the selected parts, or the open one, with the declared
   columns in the window's words (CSV or Excel, by the file's extension). Fifty terminals of one family are made there by copying rows; the import reads them back, new rows as new

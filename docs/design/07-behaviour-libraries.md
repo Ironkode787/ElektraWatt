@@ -43,9 +43,17 @@ window says no more (§5.8). The same holds for a symbol.
    of his own that it names** (its mounting plate, what it comes with, a piece's symbol, its bus symbol): where such a
    part is only in this project, Save and Keep in my parts write it into My parts beside the part, in one write, its
    reference made My parts', and the toast names it by maker and number ("kept with Example EX-EP-1"); the project's
-   uses of the copy move to the kept one in the same step (`part.keep`'s `also`). A part of a library he cannot write
-   that it names (a starter part) is named by reference and never copied. A reference that neither a library nor the
-   project answers refuses the save in words, and nothing is written.
+   uses of the copy move to the kept one in the same step (`part.keep`'s `also`, `library.update`'s `keep`). A part of
+   a library he cannot write that it names (a starter part) is named by reference and never copied. **One order for
+   every Save, of one part or of several:** first the plan, nothing written, what is kept with it named on the one
+   card or in the one toast; then, on his Save (no card: the project holds none of them) or the card's Apply, one
+   write of My parts and, in the same undo step, the project's update with the uses moved; the card's Cancel writes
+   nothing anywhere. A part two of the parts saved together name is kept once. Where the project's step cannot follow
+   a write of My parts (a closure that cannot be read), the write is taken back, and where that fails too the refusal
+   names, by maker and number, what stands in My parts now. A part of My parts kept before what it names was kept with
+   it (a reference into a project's own library) is still offered: its closure leaves that reference out, and its row
+   and its sheet say what it names and no one holds, with the way (keep that part from the project that holds it, or
+   name another).
 2. **A project carries the parts it uses.** A project takes a part when a device uses it (the embed above), so it
    opens, prints and checks on a PC that has none of his parts. A part the project holds that no library the reader
    can read has is **only in this project**: it is the project's own (its `library_id` is the project's), it is
@@ -54,7 +62,9 @@ window says no more (§5.8). The same holds for a symbol.
    (`part.keep`, one step), so that it is his here and in the next project. That is how parts travel to a second PC
    or a colleague: with the project, kept there with one click, one part or all of the project's. The project's own
    copy a part was kept from keeps its item and stays, unused, until purged; it is no second part: Parts' list and
-   every picker show the kept part once.
+   every picker show the kept part once (`Session::not_offered`, the one rule of every list that offers parts). An
+   Undo of the project's step cannot take a write of My parts back: the part is then one row, on the project's own
+   copy and also in My parts, and Keep in my parts brings the project onto My parts' copy, naming what moves with it.
 3. **A part that is not his is never changed.** A starter part, a community pack's and a library he cannot write
    are the same on every PC that has them, and that is what the lock protects: it is the one lock, and it says so.
    **Make my own from it** makes a new part of his with everything the other has, under a maker and a number he

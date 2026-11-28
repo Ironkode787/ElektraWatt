@@ -871,7 +871,7 @@ impl Session {
             }
             pairs.push((held_doc, lib));
         }
-        self.update_plan(&q, pairs, &embed, cp_maps)
+        self.update_plan(&q, pairs, &embed, &[], cp_maps)
     }
 
     /// The plan of "update the project's copy" from documents: as
@@ -887,6 +887,19 @@ impl Session {
     pub fn update_from_documents(
         &self,
         docs: &[LibDocument],
+        cp_maps: &[CpMap],
+    ) -> Result<UpdatePlan, ApiError> {
+        self.update_keeping(docs, &[], &[], cp_maps)
+    }
+
+    /// [`Session::update_from_documents`] that also keeps parts in My parts (doc 07 §3.1): the copies `forced` (among
+    /// `docs`, the parts kept) come into the project with what they name, and each of the project's copies `keep`
+    /// names moves its uses to its kept copy in the same step.
+    pub(crate) fn update_keeping(
+        &self,
+        docs: &[LibDocument],
+        forced: &[Uuid],
+        keep: &[(Uuid, Uuid)],
         cp_maps: &[CpMap],
     ) -> Result<UpdatePlan, ApiError> {
         let q = self.query();
@@ -905,6 +918,7 @@ impl Session {
         }
         // What the new versions name, and in turn what a lacking document they name names (an end plate's maker).
         let mut named: BTreeSet<Uuid> = pairs.iter().flat_map(|(_, new)| named_items(new)).collect();
+        named.extend(forced.iter().copied());
         let is_named = |d: &LibDocument, named: &BTreeSet<Uuid>| {
             identity(d).is_some_and(|(_, c, ..)| named.contains(&c))
         };
@@ -920,7 +934,7 @@ impl Session {
             named.extend(more);
         }
         let embed: Vec<LibDocument> = lacking.into_iter().filter(|d| is_named(d, &named)).collect();
-        self.update_plan(&q, pairs, &embed, cp_maps)
+        self.update_plan(&q, pairs, &embed, keep, cp_maps)
     }
 
     /// [`Session::update_from_documents`] with the copies of a pasted fragment (`edit.paste`'s `fragment` member, as
@@ -948,6 +962,7 @@ impl Session {
         q: &Q,
         pairs: Vec<(LibDocument, LibDocument)>,
         embed: &[LibDocument],
+        keep: &[(Uuid, Uuid)],
         cp_maps: &[CpMap],
     ) -> Result<UpdatePlan, ApiError> {
         let mut docs = Vec::new();
@@ -991,6 +1006,13 @@ impl Session {
                 .collect(),
             embed: embed.iter().map(to_value).collect(),
             redraw,
+            keep: keep
+                .iter()
+                .map(|(from, to)| ew_commands::commands::KeptCopy {
+                    from: Id::from_uuid(*from),
+                    to: Id::from_uuid(*to),
+                })
+                .collect(),
         };
         let command = AnyCommand::of(&cmd).map_err(ApiError::Cmd)?;
         // the preview on a throwaway engine over the current snapshot (the session's engine is not touched)

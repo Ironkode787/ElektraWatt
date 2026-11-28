@@ -1299,7 +1299,7 @@ impl Session {
     /// (`reason-part-unchanged`) when the part equals the copy's.
     pub fn part_edit_command(&self, draft: &PartSheet) -> Result<AnyCommand, PartDraftError> {
         // A starter part, or a part of a library he cannot write, is never changed: he makes his own from it. A part of
-        // My parts changes there, as its next version (`own_part_update`), never forked inside the project.
+        // My parts changes there, as its next version (`own_parts_save`), never forked inside the project.
         match self.sheet_lives(draft) {
             crate::parts::Lives::NotMine { .. } => {
                 return Err(PartDraftError::Refused(key!("reason-part-edit-not-yours")));

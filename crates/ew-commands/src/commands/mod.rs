@@ -75,6 +75,7 @@ mod workshop;
 
 pub use assembly::ChildSpec;
 pub use assign::AssignModeParam;
+pub use part_keep::KeptCopy;
 pub use bus::{BusLineField, PlugParam};
 pub use common::{EndpointParam, KindName, TargetRef};
 pub use connection::{IpAtEnd, WiringChoice, next_in_series};

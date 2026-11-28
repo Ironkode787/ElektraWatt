@@ -647,6 +647,10 @@ impl ShellModel {
         if matches!(card.origin, CardOrigin::Arrange(_)) {
             return self.apply_arrange_card(card);
         }
+        // A part card's Save writes My parts on its Apply, then commits.
+        if matches!(card.origin, CardOrigin::Part(_)) {
+            return self.apply_own_save(card);
+        }
         // A bulk card is a renumber dialog's, and Copy pages…'s.
         if matches!(
             card.origin,

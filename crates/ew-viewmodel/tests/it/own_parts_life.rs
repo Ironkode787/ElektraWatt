@@ -663,3 +663,261 @@ fn his_terminals_update_brings_the_end_plate_it_comes_with() {
     );
     s.shutdown();
 }
+
+/// Review round: a part of My parts the project's strip uses gains a Comes with that is only in this project. Save
+/// plans it and writes nothing: the card names the end plate kept with it, and Cancel leaves My parts as it was. Saved
+/// again and applied, My parts holds the end plate, the project's terminal names its kept copy, the toast names it, and
+/// one Undo takes the project's step back.
+#[test]
+fn a_save_of_his_part_writes_my_parts_only_on_apply() {
+    let tmp = Tmp::new("life-m1");
+    let mut s = sample(&tmp);
+    project_parts(&mut s, &tmp, HERE);
+    done(&mut s, "parts.new", json!({"start": "terminal"}));
+    fill(&mut s, &[("manufacturer", "Example"), ("part_number", "EX-TB-M")]);
+    done(&mut s, "parts.save", json!({}));
+    done(&mut s, "parts.back", json!({}));
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    done(&mut s, "select.set", json!({"refs": ["tag:-X1021:1", "tag:-X1021:2"]}));
+    done(&mut s, "part.choose", json!({}));
+    done(&mut s, "part.pick", json!({"part": "EX-TB-M"}));
+    let comes_with = |s: &mut ShellModel| {
+        done(s, "parts.open", json!({"part": "EX-TB-M"}));
+        fill(
+            s,
+            &[
+                ("+accessories", ""),
+                ("accessories[0].part", "EX-EP-1"),
+                ("accessories[0].qty", "1"),
+                ("accessories[0].per", "strip"),
+            ],
+        );
+        done(s, "parts.save", json!({}));
+    };
+    comes_with(&mut s);
+    assert!(s.properties().card().is_some(), "the card waits");
+    assert!(s.describe().contains("kept \"Example EX-EP-1\""), "{}", s.describe());
+    done(&mut s, "preview.cancel", json!({}));
+    assert_eq!(rows(&mut s, "EX-EP-1", "mine"), [], "Cancel wrote nothing");
+    assert!(my_parts_accessories(&tmp, "EX-TB-M").is_empty(), "My parts' terminal as it was");
+    done(&mut s, "parts.discard", json!({}));
+    comes_with(&mut s);
+    let n = s.recorded_commands().len();
+    assert_eq!(s.dispatch("preview.apply", &json!({})), Outcome::Done, "{}", said(&s));
+    assert_eq!(s.recorded_commands().len(), n + 1, "one step");
+    assert!(toast(&s).contains("Kept in My parts with it: Example EX-EP-1"), "{}", toast(&s));
+    one_row_mine(&mut s, "EX-EP-1");
+    assert_eq!(my_parts_accessories(&tmp, "EX-TB-M"), ["EX-EP-1"]);
+    let named = |s: &mut ShellModel| {
+        done(s, "parts.open", json!({"part": "EX-TB-M"}));
+        let o = s.parts_place().and_then(|p| p.sheet.as_ref()).unwrap();
+        o.sheet.table("accessories").map(|t| t.rows.len()).unwrap_or_default()
+    };
+    assert_eq!(named(&mut s), 1, "the project's terminal names its end plate");
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(named(&mut s), 0, "one Undo takes the project's step back");
+    s.shutdown();
+}
+
+/// The parts named by Comes with of part `number` as My parts holds it, read in a window with no project open.
+fn my_parts_accessories(tmp: &Tmp, number: &str) -> Vec<String> {
+    let mut s = tmp.empty_shell(Mode::Gui);
+    done(&mut s, "parts.open", json!({}));
+    done(&mut s, "parts.find", json!({"text": number, "scope": "mine"}));
+    let param = s
+        .parts_place()
+        .unwrap()
+        .found
+        .iter()
+        .find(|f| f.offer.part_number == number)
+        .map(ew_viewmodel::ew_api::parts::PartFound::param)
+        .expect("in My parts");
+    done(&mut s, "parts.open", json!({"part": param}));
+    let o = s.parts_place().and_then(|p| p.sheet.as_ref()).unwrap();
+    let out = (o.sheet.table("accessories").into_iter())
+        .flat_map(|t| t.rows.iter().filter_map(|r| r.first().cloned()))
+        .collect();
+    s.shutdown();
+    out
+}
+
+/// Review round: two terminals only in this project that both come with one end plate only in this project, selected,
+/// a value for both, Save: the end plate is kept once with them, each part is one row of his, and both took the value.
+#[test]
+fn several_parts_naming_one_part_only_here_keep_it_once() {
+    let tmp = Tmp::new("life-m1-many");
+    let mut s = sample(&tmp);
+    project_parts(&mut s, &tmp, HERE);
+    for number in ["EX-TB-1", "EX-TB-2"] {
+        done(&mut s, "parts.open", json!({"part": number}));
+        fill(
+            &mut s,
+            &[
+                ("+accessories", ""),
+                ("accessories[0].part", "EX-EP-1"),
+                ("accessories[0].qty", "1"),
+                ("accessories[0].per", "strip"),
+            ],
+        );
+        done(&mut s, "parts.save", json!({}));
+        done(&mut s, "preview.apply", json!({}));
+    }
+    done(&mut s, "parts.find", json!({"text": "EX-TB-", "scope": "all"}));
+    let params: Vec<String> = (s.parts_place().unwrap().found.iter())
+        .filter(|f| f.offer.part_number.starts_with("EX-TB-"))
+        .map(ew_viewmodel::ew_api::parts::PartFound::param)
+        .collect();
+    done(&mut s, "parts.open", json!({"part": params[0]}));
+    done(&mut s, "parts.open", json!({"part": params[1], "add": true}));
+    fill(&mut s, &[("mech.mount_kind", "ts35x15")]);
+    assert_eq!(s.dispatch("parts.save", &json!({})), Outcome::Done, "{}", said(&s));
+    if s.properties().card().is_some() {
+        done(&mut s, "preview.apply", json!({}));
+    }
+    for number in ["EX-TB-1", "EX-TB-2", "EX-EP-1"] {
+        one_row_mine(&mut s, number);
+    }
+    for number in ["EX-TB-1", "EX-TB-2"] {
+        assert_eq!(my_parts_accessories(&tmp, number), ["EX-EP-1"]);
+    }
+    no_identifier(&said(&s));
+    s.shutdown();
+}
+
+/// Review round (m9): Keep taken back by Undo leaves My parts as it is, as an Undo of the project's step must: the
+/// part is then one row, only in this project and also in My parts, and Keep in my parts is not refused: it brings
+/// the project onto My parts' copies and names the part it names that moves with it.
+#[test]
+fn a_keep_taken_back_is_one_row_and_keeps_again() {
+    let tmp = Tmp::new("life-m9");
+    let mut s = sample(&tmp);
+    project_parts(&mut s, &tmp, HERE);
+    done(&mut s, "parts.open", json!({"part": "EX-TB-1"}));
+    fill(
+        &mut s,
+        &[
+            ("+accessories", ""),
+            ("accessories[0].part", "EX-EP-1"),
+            ("accessories[0].qty", "1"),
+            ("accessories[0].per", "strip"),
+        ],
+    );
+    done(&mut s, "parts.save", json!({}));
+    done(&mut s, "preview.apply", json!({}));
+    done(&mut s, "parts.keep", json!({}));
+    done(&mut s, "edit.undo", json!({}));
+    for number in ["EX-TB-1", "EX-EP-1"] {
+        assert_eq!(rows(&mut s, number, "all"), [Lives::OnlyHere], "{number} once");
+        let place = s.parts_place().unwrap();
+        assert!(place.found.iter().any(|f| f.offer.part_number == number && f.mine_too), "{number}: mine too");
+    }
+    done(&mut s, "parts.open", json!({"part": "EX-TB-1"}));
+    assert_eq!(s.dispatch("parts.keep", &json!({})), Outcome::Done, "{}", said(&s));
+    assert!(toast(&s).contains("Example EX-EP-1"), "the part that moves is named: {}", toast(&s));
+    one_row_mine(&mut s, "EX-TB-1");
+    one_row_mine(&mut s, "EX-EP-1");
+    s.shutdown();
+}
+
+/// Review round (M2): after a Keep every list that offers parts offers the kept part once: Parts' list, the part
+/// dialog, the device browser and the rail tool.
+#[test]
+fn every_list_that_offers_parts_offers_a_kept_part_once() {
+    let tmp = Tmp::new("life-m2");
+    let mut s = sample(&tmp);
+    project_parts(
+        &mut s,
+        &tmp,
+        "EX-TB-1,Example,EX-TB-1,terminal,,Terminal 2.5,piece,,,5.2,60,40,ts35x7_5,,,,,\n\
+         EX-RL-1,Example,EX-RL-1,rail,,Rail 35,m,,,,,,,,,,ts35x7_5,\n",
+    );
+    for number in ["EX-TB-1", "EX-RL-1"] {
+        done(&mut s, "parts.open", json!({"part": number}));
+        done(&mut s, "parts.keep", json!({}));
+    }
+    done(&mut s, "parts.back", json!({}));
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    // The part dialog of a terminal.
+    done(&mut s, "select.set", json!({"refs": ["tag:-X1021:1"]}));
+    done(&mut s, "part.choose", json!({}));
+    done(&mut s, "part.search", json!({"text": "EX-TB-1"}));
+    let Some(Dialog::PartChoose(c)) = s.dialog() else {
+        panic!("the part dialog")
+    };
+    assert_eq!(c.offers.iter().filter(|o| o.part_number == "EX-TB-1").count(), 1, "the part dialog");
+    done(&mut s, "ui.dismiss", json!({}));
+    // The device browser.
+    done(&mut s, "tool.place", json!({}));
+    let browser = (s.picker().expect("the device browser").catalogue.parts.iter())
+        .filter(|p| p.part_number == "EX-TB-1")
+        .count();
+    assert_eq!(browser, 1, "the device browser");
+    done(&mut s, "ui.dismiss", json!({}));
+    // The rail tool's parts (the layout's offers).
+    let rails = (s.draw_part_offers("rail").into_iter()).filter(|o| o.number == "EX-RL-1").count();
+    assert_eq!(rails, 1, "the rail tool");
+    for number in ["EX-TB-1", "EX-RL-1"] {
+        done(&mut s, "parts.open", json!({}));
+        one_row_mine(&mut s, number);
+    }
+    s.shutdown();
+}
+
+/// Review round: a cabinet of My parts kept by an earlier build, whose plate reference names a project's own library
+/// (its plate never kept with it): in a new project it is still offered (Parts' list, Create enclosure), and its row
+/// and its sheet say what it names and no one holds, with the way.
+#[test]
+fn a_part_naming_a_part_no_one_holds_is_offered_and_says_so() {
+    use ew_viewmodel::ew_api::library::{LibraryTiers, Registry, item_kind};
+    let tmp = Tmp::new("life-old-keep");
+    let mut s = sample(&tmp);
+    done(&mut s, "parts.new", json!({"start": "enclosure"}));
+    fill(
+        &mut s,
+        &[
+            ("manufacturer", "Example"),
+            ("part_number", "EX-CAB-8"),
+            ("sections.enclosure.width", "800"),
+            ("sections.enclosure.height", "1000"),
+            ("sections.enclosure.depth", "300"),
+        ],
+    );
+    done(&mut s, "parts.new", json!({"start": "plate", "for_field": "sections.enclosure.plate"}));
+    fill(&mut s, &[("manufacturer", "Example"), ("part_number", "EX-CAB-8-MP")]);
+    done(&mut s, "parts.save", json!({}));
+    done(&mut s, "parts.save", json!({}));
+    s.shutdown();
+    drop(s);
+    // My parts as an earlier build wrote it: the cabinet's plate names an item of a project's own library.
+    let dir = tmp.0.join("config");
+    let tiers = LibraryTiers::under(&dir, &dir.join("library-index"), Vec::new(), Vec::new());
+    let mut reg = Registry::open(&tiers).expect("the libraries");
+    let lib = ew_viewmodel::ew_api::eplan::find_user_parts_library(&reg).expect("My parts");
+    let mut cabinet = (reg.documents(lib, item_kind("part").unwrap()).into_iter())
+        .map(|d| serde_json::to_value(d).unwrap())
+        .find(|v| v["part_number"] == "EX-CAB-8")
+        .expect("the cabinet");
+    cabinet["version"] = json!("0.1.1");
+    cabinet["sections"]["enclosure"]["plate"]["library"] = json!("0195e6c1-0000-7000-8000-00000000c0de");
+    reg.write(lib, &[serde_json::from_value(cabinet).unwrap()]).expect("written");
+    drop(reg);
+    let mut s = tmp.empty_shell(Mode::Gui);
+    common::make_project(&mut s, &tmp.0.join("next.ew"), &[]);
+    done(&mut s, "parts.open", json!({}));
+    assert_eq!(rows(&mut s, "EX-CAB-8", "all"), [Lives::Mine], "still offered");
+    let first = s.parts_place().unwrap().found[0].param();
+    done(&mut s, "parts.open", json!({"part": first}));
+    let missing = s.describe().lines().find(|l| l.trim_start().starts_with("missing ")).map(str::to_owned);
+    assert!(
+        missing.as_deref().is_some_and(|m| m.contains("Mounting plate") && m.contains("keep that part")),
+        "{missing:?}"
+    );
+    done(&mut s, "parts.back", json!({}));
+    done(&mut s, "page.new", json!({"folio": "926", "type": "panel_layout", "title": "Layout"}));
+    done(&mut s, "page.goto", json!({"folio": "926"}));
+    done(&mut s, "layout.enclosure_new", json!({}));
+    let form = common::form(&s);
+    let part = form.fields.iter().find(|f| f.name == "part").unwrap();
+    assert!(part.options.iter().any(|(_, w)| w.starts_with("EX-CAB-8")), "{:?}", part.options);
+    s.shutdown();
+}

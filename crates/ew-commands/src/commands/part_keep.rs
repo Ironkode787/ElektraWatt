@@ -75,10 +75,13 @@ impl Command for KeepPart {
                 return Err(missing(format!("{at}/from"), *from));
             }
         }
-        crate::commands::library::EmbedLibraryCopies {
-            copies: self.copies.clone(),
+        // A project that holds every kept copy already (Keep again after an Undo) embeds nothing.
+        if !self.copies.is_empty() {
+            crate::commands::library::EmbedLibraryCopies {
+                copies: self.copies.clone(),
+            }
+            .run(tx)?;
         }
-        .run(tx)?;
         for (at, _, to) in &pairs {
             if tx.row(&(Kind::Part, to.cast())).is_none() {
                 return Err(missing(format!("{at}/to"), *to));

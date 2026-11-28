@@ -381,6 +381,11 @@ pub struct UpdateLibraryCopies {
     /// `box.reshape` takes it, after the copies and their boxes' pins are in.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub redraw: Vec<crate::commands::ReshapeBox>,
+    /// The project's copies of parts only in this project that the update keeps in My parts with the parts it names
+    /// (doc 07 §3.1), each with the kept copy (embedded through `embed`) that takes its uses, as `part.keep` moves
+    /// them, in the same step.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub keep: Vec<crate::commands::part_keep::KeptCopy>,
 }
 
 /// The FnDefs and the manufacturer a part names, the FnDef a symbol names: the closure items an update checks,
@@ -707,6 +712,18 @@ impl Command for UpdateLibraryCopies {
         follow_drawn_cps(tx, drawn, &remap)?;
         for b in &self.redraw {
             b.run(tx)?;
+        }
+        for (i, k) in self.keep.iter().enumerate() {
+            for (at, copy) in [("from", k.from), ("to", k.to)] {
+                if tx.row(&(ew_schema::Kind::Part, copy.cast())).is_none() {
+                    return Err(CmdError::invalid_params(
+                        Self::NAME,
+                        format!("/keep/{i}/{at}"),
+                        text!("refusal-part-edit-copy-missing", copy.to_string()),
+                    ));
+                }
+            }
+            crate::commands::part_edit::repoint_part_copy(tx, k.from, k.to)?;
         }
         Ok(Outcome {
             primary,

@@ -24,6 +24,30 @@ use crate::properties::{CardOrigin, PartCard};
 use crate::shell::{Dialog, FormDialog, Outcome, Prompt, ShellModel, failed, flag, string_param};
 use crate::strings;
 
+/// The sentence that part names a part no one holds, by the fields' words (`missing` as
+/// `ew_api::Session::names_missing` gives them), with the way; `None` for none.
+pub fn missing_words(missing: &[&str]) -> Option<String> {
+    if missing.is_empty() {
+        return None;
+    }
+    let words: Vec<String> = (missing.iter())
+        .filter_map(|p| ew_api::part_fields::field(p))
+        .map(|f| strings::render(&ew_api::part_fields::word(f.word)))
+        .collect();
+    Some(strings::format(key!("parts-names-missing"), &[&words.join(", ")]))
+}
+
+/// Where a part lives in words ([`lives_word`]), and that My parts has it too where the project holds it only on a
+/// copy of its own (a Keep taken back).
+pub fn lives_words(lives: &Lives, mine_too: bool) -> String {
+    let word = lives_word(lives);
+    if mine_too {
+        strings::format(key!("parts-lives-mine-too"), &[&word])
+    } else {
+        word
+    }
+}
+
 /// Where a part lives, in words: Mine · in My parts, Starter part, the library's name, Only in this project, New.
 pub fn lives_word(lives: &Lives) -> String {
     match lives {
@@ -130,6 +154,12 @@ pub struct OpenSheet {
     pub sheet: PartSheet,
     /// Where it lives.
     pub lives: Lives,
+    /// Whether My parts has it too, while the project holds it only on a copy of its own: Keep in my parts brings the
+    /// project onto My parts' copy.
+    pub mine_too: bool,
+    /// The fields that name a part neither the project nor a library he has holds, in words: said over Ready for with
+    /// the way (keep that part from the project that holds it, or name another).
+    pub missing: Option<String>,
     /// What it lacks, as the texts give it now (Ready for, the dots of the contents list).
     pub lacks: Vec<Lack>,
     /// Ready for: every feature that reads the part, one entry each, as the texts give it now.
@@ -682,6 +712,8 @@ impl ShellModel {
             return;
         };
         let lives = session.sheet_lives(&sheet);
+        let mine_too = lives == Lives::OnlyHere && sheet.source.is_some_and(|(_, item)| session.in_my_parts(item));
+        let missing = missing_words(&session.names_missing(&session.sheet_part(&sheet)));
         let lacks = session.sheet_lacks(&sheet);
         let ready = session.sheet_ready(&sheet);
         let used_by = if sheet.new {
@@ -707,6 +739,8 @@ impl ShellModel {
                 opened,
                 sheet,
                 lives,
+                mine_too,
+                missing,
                 lacks,
                 ready,
                 used_by,
@@ -1143,6 +1177,7 @@ impl ShellModel {
             if session.sheet_reads(&open.sheet) {
                 open.lacks = session.sheet_lacks(&open.sheet);
                 open.ready = session.sheet_ready(&open.sheet);
+                open.missing = missing_words(&session.names_missing(&session.sheet_part(&open.sheet)));
             }
             open.piece_symbols = piece_symbols_of(session, &open.sheet);
         }
@@ -1660,61 +1695,26 @@ impl ShellModel {
         out
     }
 
-    /// Save of a part of My parts: its next version goes into My parts, and the card of the `library.update` that
-    /// brings the project's copy to it opens beside the sheet; Apply commits it.
+    /// Save of a part of My parts ([`ShellModel::save_own`]): where the project holds it, the card of what changes
+    /// opens beside the sheet and its Apply writes My parts and commits the step; else its next version is written at
+    /// once, with the parts only in this project that it names.
     fn parts_save_mine(&mut self) -> Outcome {
-        let (Some(session), Some(place)) = self.parts_session_mut() else {
+        let Some(open) = self.parts.as_deref().and_then(|p| p.sheet.as_ref()) else {
             return Outcome::Done;
         };
-        let Some(open) = place.sheet.as_ref() else {
-            return Outcome::Done;
-        };
-        let title = open.title();
-        match session.own_part_update(&open.sheet) {
-            Ok(None) => {
-                // A part of My parts the project does not hold: its next version is in My parts, nothing else changes.
-                if let Some(open) = self.open_mut() {
+        let (title, sheet) = (open.title(), open.sheet.clone());
+        let said = strings::format(key!("parts-saved-mine"), &[&title]);
+        match self.save_own(&[sheet], &title, said) {
+            Ok(out) => {
+                // Saved now; else the card waits, and the part stays changed until its Apply.
+                if self.parts_save.is_none()
+                    && let Some(open) = self.open_mut()
+                {
                     open.changed = false;
                 }
-                self.notify(strings::format(key!("parts-saved-mine"), &[&title]), false);
-                self.libraries_changed();
-                self.parts_refresh();
-                Outcome::Done
+                out
             }
-            Ok(Some(plan)) => {
-                let fields = plan
-                    .copies
-                    .first()
-                    .map(|c| card_fields(self.parts_session(), &c.fields))
-                    .unwrap_or_default();
-                let devices = plan.devices.iter().map(|d| self.tag_of(d.as_uuid())).collect();
-                let card = PartCard {
-                    title,
-                    fields,
-                    devices,
-                    removed: plan.bom_removed,
-                    added: plan.bom_added,
-                    changed: plan.bom_changed,
-                    boxes: [
-                        self.box_words(&plan.boxes),
-                        self.symbol_words(&plan.symbols),
-                        self.own_symbol_words(&plan.own_symbols),
-                    ]
-                    .concat(),
-                    lost: plan.lost,
-                    fork: false,
-                };
-                if let Some(open) = self.open_mut() {
-                    open.changed = false;
-                }
-                self.preview_host_card_as(
-                    &plan.command.name,
-                    plan.command.params,
-                    key!("reason-library-update"),
-                    CardOrigin::Part(Box::new(card)),
-                )
-            }
-            Err(e) => self.save_refused(e),
+            Err((_, e)) => self.save_refused(e),
         }
     }
 
@@ -1747,6 +1747,7 @@ impl ShellModel {
                 self.own_symbol_words(&plan.own_symbols),
             ]
             .concat(),
+            kept: Vec::new(),
             fork: plan.fork.is_some(),
         };
         if let Some(open) = self.open_mut() {

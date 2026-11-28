@@ -21,6 +21,8 @@ pub(crate) struct SheetCx<'q> {
     pub(super) source: Option<String>,
     /// The libraries' parts the project does not hold, listed after its copies (the Parts row).
     library: Vec<crate::output::fields::PartCopyText>,
+    /// The copies and the items a list of parts leaves out (`Session::not_offered`).
+    not_offered: crate::parts::NotOffered,
 }
 
 impl<'q> SheetCx<'q> {
@@ -30,6 +32,7 @@ impl<'q> SheetCx<'q> {
             q,
             source,
             library: Vec::new(),
+            not_offered: crate::parts::NotOffered::default(),
         }
     }
 
@@ -37,10 +40,11 @@ impl<'q> SheetCx<'q> {
     pub(super) fn with_library_parts(mut self, session: &crate::Session) -> SheetCx<'q> {
         // A part's description in the sheet's language, else English, else the first.
         let lang = self.q.project().languages.as_ref().map(|l| l.source.clone());
+        self.not_offered = session.not_offered();
         self.library = session
             .library_parts()
             .into_iter()
-            .filter(|c| !self.q.parts().contains(c.id))
+            .filter(|c| !self.q.parts().contains(c.id) && !self.not_offered.item(c.item_id.as_uuid()))
             .map(|c| crate::output::fields::PartCopyText {
                 id: c.id.as_uuid().hyphenated().to_string(),
                 number: c.item.part_number.as_str().to_owned(),
@@ -184,6 +188,7 @@ impl ParseCx for SheetCx<'_> {
         self.q
             .parts()
             .iter()
+            .filter(|(id, _)| !self.not_offered.copy(id.as_uuid()))
             .map(|(id, p)| crate::output::fields::PartCopyText {
                 id: id.as_uuid().hyphenated().to_string(),
                 number: p.item.part_number.as_str().to_owned(),

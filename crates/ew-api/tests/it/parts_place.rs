@@ -130,8 +130,9 @@ fn a_part_only_in_this_project_is_kept_in_my_parts() {
         lives.contains(&Lives::Mine) && lives.contains(&Lives::OnlyHere),
         "{lives:?}"
     );
-    // Kept again: My parts has it already, said in words.
-    assert!(s.keep_in_my_parts(&[here]).is_err());
+    // Kept again (as after an Undo of the project's step): not refused, the project takes My parts' copy.
+    let again = s.keep_in_my_parts(&[here]).expect("kept again").command;
+    run(&mut s, &again);
 }
 
 /// Make my own from a starter part (and so Like this): the new part keeps where its data came from and its licence,
