@@ -520,7 +520,7 @@ impl Session {
     /// # Errors
     ///
     /// The I/O error of the folder or of the first file that could not be written (a name that is no plain file name:
-    /// `InvalidFilename`); the files before it are written.
+    /// `InvalidInput`); the files before it are written.
     pub fn write_drilling_files(dir: &Path, files: &[DrillingFile]) -> io::Result<()> {
         std::fs::create_dir_all(dir)?;
         for f in files {

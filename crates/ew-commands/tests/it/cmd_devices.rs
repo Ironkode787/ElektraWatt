@@ -1585,10 +1585,17 @@ fn a_device_placed_on_a_bond_s_wire_leaves_the_bond_without_a_wire() {
     let mut e = engine(model);
     let r = e.execute(&place(PAGE_102, pt(0, 0), new_device("F"))).unwrap();
     let f: ew_ids::Id<Function> = created(&r, Kind::Function)[0];
-    assert_eq!(row(&e, wire).b, cp(f, 0), "the wire's end moved to the device's pin");
+    assert_eq!(
+        row(&e, wire).b,
+        cp(f, 0),
+        "the wire's end moved to the device's pin"
+    );
     assert_eq!(row(&e, bond).via, None);
     assert!(
-        r.outcome.notices.iter().any(|n| n.to_string().ends_with("choose its conductor again")),
+        r.outcome
+            .notices
+            .iter()
+            .any(|n| n.to_string().ends_with("choose its conductor again")),
         "{:?}",
         r.outcome.notices
     );

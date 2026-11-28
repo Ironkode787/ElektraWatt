@@ -326,9 +326,14 @@ fn a_release_package_with_an_open_error_is_refused_naming_it() {
         Err(e @ PackageError::Refused(_)) => {
             let english = e.to_string();
             assert!(english.contains("no longer hold"), "{english}");
-            assert!(english.contains("stop a release package") || english.contains("stops a release package"));
+            assert!(
+                english.contains("stop a release package") || english.contains("stops a release package")
+            );
             let dutch = e.words("nl-NL");
-            assert!(dutch.contains("houd") && dutch.contains("vrijgavepakket tegen: "), "{dutch}");
+            assert!(
+                dutch.contains("houd") && dutch.contains("vrijgavepakket tegen: "),
+                "{dutch}"
+            );
             assert!(!dutch.contains("no longer hold"), "{dutch}");
         }
         other => panic!("refused: {other:?}"),
@@ -526,7 +531,8 @@ fn what_the_lists_lack_of_the_stock_is_said() {
     );
     let plan = s.package_plan(&ask());
     let member = |m: PackageMember| plan.members.iter().find(|p| p.member == m).expect("the member");
-    let lacks_of = |m: PackageMember| -> Vec<String> { member(m).lacks.iter().map(|l| l.text.to_string()).collect() };
+    let lacks_of =
+        |m: PackageMember| -> Vec<String> { member(m).lacks.iter().map(|l| l.text.to_string()).collect() };
     let wires = lacks_of(PackageMember::List("wire_list"));
     let part_of = |said: &str| {
         member(PackageMember::List("wire_list"))

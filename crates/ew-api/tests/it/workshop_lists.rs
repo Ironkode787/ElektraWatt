@@ -150,7 +150,11 @@ fn a_bridge_without_a_part_is_ew_mfg_021_and_prints_tbd() {
         online[0].message()
     );
     let release = findings(&s, "EW-MFG-021", CheckMode::Release);
-    assert_eq!(release[0].severity, ew_checks::Severity::Warning, "it refuses no release");
+    assert_eq!(
+        release[0].severity,
+        ew_checks::Severity::Warning,
+        "it refuses no release"
+    );
     assert!(
         lines(&s, "assembly_list")
             .iter()

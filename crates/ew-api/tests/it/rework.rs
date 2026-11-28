@@ -280,7 +280,11 @@ fn naming_archive(dir: &Path, was: &str, name: &str) {
         ew_format::hash_text(&ew_format::sha256(&before)),
         ew_format::hash_text(&ew_format::sha256(&after)),
     );
-    assert_eq!(m.matches(&old).count(), 1, "the manifest lists revisions.jsonl once");
+    assert_eq!(
+        m.matches(&old).count(),
+        1,
+        "the manifest lists revisions.jsonl once"
+    );
     std::fs::write(&manifest, m.replace(&old, &new)).expect("the manifest written");
 }
 
@@ -324,7 +328,9 @@ fn an_archive_name_that_leaves_its_folder_is_refused_and_nothing_is_read() {
             other => panic!("{name}: {other:?}"),
         }
         assert!(
-            refused.to_string().contains("a release's archive is V1.0.ewarchive"),
+            refused
+                .to_string()
+                .contains("a release's archive is V1.0.ewarchive"),
             "{refused}"
         );
         assert!(matches!(why, ReworkError::NotAFileName { .. }), "{name}: {why:?}");
@@ -345,7 +351,10 @@ fn an_archive_larger_than_an_archive_may_be_is_not_read() {
     drop(file);
     let (refused, _, found) = archive_refusal(&dir);
     assert!(
-        matches!(refused, ReworkError::Open(ew_api::ArchiveOpenError::TooLarge { .. })),
+        matches!(
+            refused,
+            ReworkError::Open(ew_api::ArchiveOpenError::TooLarge { .. })
+        ),
         "{refused:?}"
     );
     assert_eq!(found, 0);

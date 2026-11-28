@@ -1467,7 +1467,11 @@ fn a_bond_s_wire_split_after_bond_create_leaves_the_bond_without_a_wire() {
         .execute(&draw(on_w(2), cp_param(FN_T2, 1), Some(PAGE_102)))
         .expect("a wire drawn onto the bond's wire");
     assert_eq!(row(&e, bond).via, None, "no piece of W joins the bond's ends");
-    assert!(says_bond_lost_its_wire(&r.outcome.notices), "{:?}", r.outcome.notices);
+    assert!(
+        says_bond_lost_its_wire(&r.outcome.notices),
+        "{:?}",
+        r.outcome.notices
+    );
     e.undo(&ew_commands::Origin::Gui).expect("undo");
     assert_eq!(row(&e, bond).via, Some(W));
 }
@@ -1486,7 +1490,11 @@ fn a_re_routed_bond_wire_and_an_untouched_bond_keep_their_wires() {
         })
         .expect("W re-routed");
     assert_eq!(row(&e, bond).via, Some(W));
-    assert!(!says_bond_lost_its_wire(&r.outcome.notices), "{:?}", r.outcome.notices);
+    assert!(
+        !says_bond_lost_its_wire(&r.outcome.notices),
+        "{:?}",
+        r.outcome.notices
+    );
     let pe: Bond = row(&e, BOND_PE);
     assert_eq!(pe.via, Some(CON_W27), "the fixture's PE bond, untouched");
 }

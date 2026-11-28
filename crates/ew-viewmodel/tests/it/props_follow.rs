@@ -222,7 +222,12 @@ fn the_project_sheet_reads_in_words_and_a_filter_keeps_the_parents() {
 /// The value of the row `key` of the first section of the sheet on show.
 fn row_value(s: &ShellModel, key: &str) -> String {
     let sheet = s.properties().sheet().expect("a sheet");
-    match sheet.sections[0].rows.iter().find(|r| r.key == key).map(|r| &r.value) {
+    match sheet.sections[0]
+        .rows
+        .iter()
+        .find(|r| r.key == key)
+        .map(|r| &r.value)
+    {
         Some(RowValue::One { text, .. }) => text.clone(),
         other => panic!("{key}: {other:?}"),
     }
@@ -257,7 +262,10 @@ fn the_layout_rows_phrases_read_in_the_windows_language() {
         .id;
     done(&mut s, "select.set", json!({"ids": [duct.to_string()]}));
     let fill = row_value(&s, "carrier/derived.fill");
-    assert!(fill.starts_with("vulgraad ") && fill.contains(" % waar ze het volst is"), "{fill}");
+    assert!(
+        fill.starts_with("vulgraad ") && fill.contains(" % waar ze het volst is"),
+        "{fill}"
+    );
     let inner = row_value(&s, "carrier/derived.inner_area");
     assert!(inner.contains("binnenmaat"), "{inner}");
     let f1 = panel(&s)

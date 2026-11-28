@@ -29,12 +29,12 @@ pub fn write_replacing(path: &Path, bytes: &[u8]) -> io::Result<()> {
 ///
 /// # Errors
 ///
-/// [`io::ErrorKind::InvalidFilename`] for a name that is not a plain file name, and nothing is written; else the I/O
+/// [`io::ErrorKind::InvalidInput`] for a name that is not a plain file name, and nothing is written; else the I/O
 /// error of [`write_replacing`].
 pub fn write_in(dir: &Path, name: &str, bytes: &[u8]) -> io::Result<()> {
     if !ew_format::is_plain_file_name(name) {
         return Err(io::Error::new(
-            io::ErrorKind::InvalidFilename,
+            io::ErrorKind::InvalidInput,
             "a file's name made from the project is not a plain file name",
         ));
     }
@@ -279,7 +279,7 @@ mod tests {
             "NUL.dxf",
         ] {
             let e = write_in(&dir, name, b"x").expect_err(name);
-            assert_eq!(e.kind(), io::ErrorKind::InvalidFilename, "{name}");
+            assert_eq!(e.kind(), io::ErrorKind::InvalidInput, "{name}");
         }
         assert_eq!(names(&root), ["out"]);
         assert!(names(&dir).is_empty());

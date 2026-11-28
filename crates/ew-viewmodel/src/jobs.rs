@@ -488,7 +488,7 @@ pub(crate) fn io_cause(e: &std::io::Error) -> String {
         std::io::ErrorKind::NotFound => strings::text(key!("job-cause-no-folder")).to_owned(),
         std::io::ErrorKind::PermissionDenied => strings::text(key!("job-cause-denied")).to_owned(),
         std::io::ErrorKind::StorageFull => strings::text(key!("job-cause-full")).to_owned(),
-        std::io::ErrorKind::InvalidFilename => strings::text(key!("job-cause-file-name")).to_owned(),
+        std::io::ErrorKind::InvalidInput => strings::text(key!("job-cause-file-name")).to_owned(),
         kind => kind.to_string(),
     }
 }
