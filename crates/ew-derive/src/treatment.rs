@@ -271,7 +271,7 @@ fn mm2(r: &WireRecord) -> Option<Dec3> {
 }
 
 /// The clamp data of a CP.
-fn clamp_of(q: &Q, cp: CpRef) -> Option<ClampData> {
+pub(crate) fn clamp_of(q: &Q, cp: CpRef) -> Option<ClampData> {
     q.get::<FunctionCps>(cp.function)
         .iter()
         .find(|c| c.idx == cp.idx)
@@ -440,7 +440,8 @@ fn from_side(
 /// The pairing of doc 13 §4.3: on every CP two or more ferrule ends the rule decided land on, sorted by size (largest
 /// first), number, wire ID, pairs of one size into twin ferrules, greedily, where the clamp takes a twin ferrule (or its
 /// part does not say) and the shop's `two_wires` is a twin ferrule. An end set by hand takes no part in it; two twin
-/// ferrules set by hand on one clamp pair with each other, in the same order, whatever the shop's setting.
+/// ferrules set by hand on one clamp pair with each other, in the same order, whatever the shop's setting and whether
+/// the shop or the site makes them: the rule decides only what nobody set.
 fn pair(records: &mut [WireRecord], clamps: &BTreeMap<CpRef, Option<ClampData>>, two_wires: &TwoWires) {
     let mut by_rule: BTreeMap<CpRef, Vec<(usize, usize)>> = BTreeMap::new();
     let mut by_hand: BTreeMap<CpRef, Vec<(usize, usize)>> = BTreeMap::new();
@@ -463,19 +464,20 @@ fn pair(records: &mut [WireRecord], clamps: &BTreeMap<CpRef, Option<ClampData>>,
                 .get(&cp)
                 .is_some_and(|c| c.as_ref().is_some_and(|c| !c.twin_ferrule));
             if twin {
-                pair_in_order(records, ends);
+                pair_in_order(records, ends, true);
             }
         }
     }
     for ends in by_hand.into_values() {
-        pair_in_order(records, ends);
+        pair_in_order(records, ends, false);
     }
 }
 
-/// Pairs the ends `ends` (record, end) of one clamp in the order of §4.3, each pair of one size into a twin ferrule: a
-/// wire the shop makes with one, and a wire made on site (a field wire) with one; a shop wire's end that is left
-/// with a field wire of its size beside it names that wire, which joins the clamp on site.
-fn pair_in_order(records: &mut [WireRecord], mut ends: Vec<(usize, usize)>) {
+/// Pairs the ends `ends` (record, end) of one clamp in the order of §4.3, each pair of one size into a twin ferrule.
+/// Where `site_apart` (the rule's pairing, not the hand's): a wire the shop makes with one, and a wire made on site (a
+/// field wire) with one; a shop wire's end that is left with a field wire of its size beside it names that wire, which
+/// joins the clamp on site.
+fn pair_in_order(records: &mut [WireRecord], mut ends: Vec<(usize, usize)>, site_apart: bool) {
     if ends.len() < 2 {
         return;
     }
@@ -497,7 +499,7 @@ fn pair_in_order(records: &mut [WireRecord], mut ends: Vec<(usize, usize)>) {
             !taken[*y]
                 && size.is_some()
                 && mm2(&records[ends[*y].0]) == size
-                && records[ends[*y].0].flags.field == field
+                && (!site_apart || records[ends[*y].0].flags.field == field)
         }) else {
             continue;
         };
@@ -515,7 +517,7 @@ fn pair_in_order(records: &mut [WireRecord], mut ends: Vec<(usize, usize)>) {
         };
     }
     // A shop wire's end left alone beside a field wire's of its size: the field wire joins the clamp on site.
-    for x in (0..ends.len()).filter(|x| !taken[*x]) {
+    for x in (0..ends.len()).filter(|x| site_apart && !taken[*x]) {
         let (shop, size) = (&records[ends[x].0], mm2(&records[ends[x].0]));
         if shop.flags.field || size.is_none() {
             continue;
@@ -570,9 +572,11 @@ pub fn stock_part(q: &Q, treatment: &EndTreatment, csa: Option<Dec3>) -> Option<
 }
 
 /// The conductors each clamp takes (doc 13 §4.3): the wire ends that land on it, a twin ferrule's two wires counted
-/// once (a twin ferrule no second wire shares as one); what EW-POT-010 compares with the clamp's maximum.
+/// once (a twin ferrule no second wire shares as one), and a shop wire's end with the field wire that joins it on site
+/// counted once too, as their twin was before rule 3 kept them apart, so that a project releases as it did; what
+/// EW-POT-010 compares with the clamp's maximum.
 pub fn clamp_conductors(records: &[WireRecord]) -> BTreeMap<CpRef, usize> {
-    let mut out: BTreeMap<CpRef, (usize, usize)> = BTreeMap::new();
+    let mut out: BTreeMap<CpRef, (usize, usize, usize)> = BTreeMap::new();
     for r in records {
         for (i, end) in r.wire.ends.iter().enumerate() {
             if end.kind != EndKind::Device {
@@ -583,10 +587,13 @@ pub fn clamp_conductors(records: &[WireRecord]) -> BTreeMap<CpRef, usize> {
                 EndTreatment::TwinFerrule { partner: Some(_), .. } => e.1 += 1,
                 _ => e.0 += 1,
             }
+            if r.ends[i].joined_on_site.is_some() {
+                e.2 += 1;
+            }
         }
     }
     out.into_iter()
-        .map(|(cp, (single, twin))| (cp, single + twin.div_ceil(2)))
+        .map(|(cp, (single, twin, joined))| (cp, single.saturating_sub(joined) + twin.div_ceil(2)))
         .collect()
 }
 

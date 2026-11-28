@@ -576,3 +576,67 @@ fn the_labels_for_the_changes_are_named() {
         "{wires:?}"
     );
 }
+
+/// What only a workshop setting changed says that setting by its name (doc 13 §3.5): a routed length made with another
+/// Reserve per end says so, not that Route laid its way again, and a wire part the workshop's stock now gives a wire
+/// of its size and colour says that.
+#[test]
+fn a_change_a_workshop_setting_made_names_it() {
+    let base = ew_testdir::Tmp::new("ew-rework-setting");
+    let dir = released_copy(&base);
+    let mut now = common::sample();
+    let (number, csa, colour) = now
+        .query()
+        .get::<ew_derive::WireRecordSet>(())
+        .iter()
+        .find_map(|r| match (&r.csa, &r.colour, &r.number) {
+            (Some(c), Some(k), Some(n)) => match &c.value {
+                ew_schema::Csa::Mm2(d) => Some((n.clone(), d.to_string(), serde_json::to_value(&k.value).ok()?)),
+                _ => None,
+            },
+            _ => None,
+        })
+        .expect("a wire with a size and a colour");
+    let (part, doc) = common::wire_part(0x7102, "WIRE-FITS", &csa, &colour);
+    let mut stock: Vec<serde_json::Value> = now
+        .query()
+        .project()
+        .settings
+        .workshop
+        .stock
+        .iter()
+        .map(|r| serde_json::json!({"copy": r.copy.to_string()}))
+        .collect();
+    stock.push(serde_json::json!({"copy": part.to_string()}));
+    common::run_cmd(
+        &mut now,
+        "workshop.stock",
+        serde_json::json!({"stock": stock, "copies": [doc]}),
+    );
+    common::run_cmd(
+        &mut now,
+        "project.settings.set",
+        serde_json::json!({"member": "workshop.reserve", "value": 60_000_000}),
+    );
+    let rework = now
+        .rework(&ReworkBase::File(archive_of(&dir)))
+        .expect("the archive opens");
+    let csv = now.rework_csv(&rework);
+    let lengths: Vec<&str> = csv
+        .lines()
+        .filter(|l| l.starts_with("data,Check length,"))
+        .collect();
+    assert!(!lengths.is_empty(), "{csv}");
+    for row in lengths {
+        assert!(row.ends_with(",the workshop's Reserve per end changed"), "{row}");
+    }
+    let replaced = csv
+        .lines()
+        .find(|l| l.starts_with(&format!("data,Replace,{number},")))
+        .unwrap_or_else(|| panic!("no Replace row of {number}: {csv}"));
+    assert!(
+        replaced.contains("the workshop's Stock gives its wire part by its size and colour"),
+        "{replaced}"
+    );
+    assert!(!csv.contains("Route laid its way again"), "{csv}");
+}

@@ -184,6 +184,25 @@ pub enum FollowedFrom {
     Rules,
     /// The cable whose core it is, by the cable's tag.
     Cable(String),
+    /// The workshop's stock, by the wire's size and colour (a wire part only).
+    Stock,
+}
+
+/// A workshop setting a reason names ([`ReworkReason::Setting`]).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum WorkshopSetting {
+    /// Reserve per end.
+    Reserve,
+    /// Door loop.
+    DoorLoop,
+    /// Cut to: the cut increment.
+    CutTo,
+    /// Ferrules: the shop's ferrule rule.
+    Ferrules,
+    /// Two wires in one clamp.
+    TwoWires,
+    /// Stock.
+    Stock,
 }
 
 /// Why a row of the rework list is there when nobody changed its wire by name (doc 13 §3.5): what other change it
@@ -211,15 +230,48 @@ pub enum ReworkReason {
         /// The partner's number.
         partner: String,
     },
-    /// Another wire now lands on the clamp `at` and shares its ferrule.
+    /// The twin ferrule's partner on the clamp `at` lands there still, and one of the two is made on site, the other in
+    /// the shop: a twin is never made of the two (doc 13 §4.3 rule 3).
+    SiteApart {
+        /// The clamp.
+        at: String,
+        /// The partner's number.
+        partner: String,
+        /// The partner is the one made on site (else this wire is).
+        partner_on_site: bool,
+    },
+    /// A wire that did not land on the clamp `at` in the release lands there now and shares the end's ferrule.
     Joined {
         /// The clamp.
         at: String,
         /// The other wire's number.
         wire: String,
     },
-    /// The shop's settings or the clamp's part give the end another treatment or part.
-    EndRule,
+    /// The release's twin partner of the end's new partner on the clamp `at` is pulled, which freed the new partner.
+    ClampPulled {
+        /// The clamp.
+        at: String,
+        /// The pulled wire's number in the release.
+        wire: String,
+    },
+    /// The release's twin partner of the end's new partner no longer lands on the clamp `at`.
+    ClampLeft {
+        /// The clamp.
+        at: String,
+        /// That wire's number.
+        wire: String,
+    },
+    /// The release's twin partner of the end's new partner on the clamp `at` changed its size.
+    ClampResized {
+        /// The clamp.
+        at: String,
+        /// That wire's number.
+        wire: String,
+    },
+    /// The part of the clamp `at` says other things of its clamp.
+    ClampPart(String),
+    /// A workshop setting that decides the row's change is another now.
+    Setting(WorkshopSetting),
     /// The device an end landed on is gone, by its tag in the release.
     DeviceGone(String),
     /// The size (`size` true) or the colour is not set on the wire itself: it follows `from`.
@@ -229,9 +281,13 @@ pub enum ReworkReason {
         /// What it follows.
         from: FollowedFrom,
     },
+    /// The wire part is not named on the wire itself: it follows `from`.
+    PartFollows(FollowedFrom),
     /// Its way was laid for the wiring of the release; Route lays it again.
     WayGone,
-    /// Route laid its way again.
+    /// Route laid its way, which it had none of in the release.
+    Laid,
+    /// Route laid its way again: its run or its door crossing is another.
     Rerouted,
     /// Its stored way no longer holds, and why.
     WayStale(crate::layout::StaleWhy),
@@ -516,71 +572,133 @@ struct Pair<'a> {
 }
 
 /// Why a kept wire, `b` in the release and `a` now, has the changes `changes` where nobody changed it by name (doc 13
-/// §3.5): a size or colour not set on the wire itself, an end re-made because its clamp's other wires changed, an end
-/// moved off a device that is gone, a length that Route changed. Empty for a row a person made by name.
+/// §3.5, "Because"). Each reason is a cause the two states show; a change whose cause they do not tell apart gets none:
+///
+/// - Replace: a size or colour not set on the wire itself follows its connection shared with other wires, its
+///   potential, the project's rules or its cable ([`ReworkReason::Follows`]); a wire part not named on the wire follows
+///   the same or the workshop's stock by size and colour ([`ReworkReason::PartFollows`]).
+/// - Re-make end (an end on the same clamp, not set by hand, of a wire whose own size and wire part are kept): the
+///   release's twin partner pulled, moved off the clamp, of another size, or now made on the other side of shop and
+///   site ([`ReworkReason::SiteApart`]); the new partner new on the clamp ([`ReworkReason::Joined`]), of another size,
+///   or freed because its own partner of the release was pulled, moved off or resized; else the workshop's Ferrules or Two wires
+///   in one clamp, or the clamp's part, where they changed; a part alone re-made, the workshop's Stock.
+/// - Move end: the device the end landed on is gone.
+/// - Check length (a length no person typed): the way gone stale and why, the way laid for the release's wiring gone,
+///   the way laid where there was none, laid again (another run or door crossing), and each of Reserve per end, Door
+///   loop (a way into a door) and Cut to that changed.
 fn reasons(s: &Pair, b: &WireRecord, a: &WireRecord, changes: &[ReworkChange]) -> Vec<ReworkReason> {
     let mut out = Vec::new();
-    let resized = changes
-        .iter()
-        .any(|c| matches!(c, ReworkChange::Size(..) | ReworkChange::Colour(..)));
     for c in changes {
         match c {
             ReworkChange::Size(..) => out.extend(follows(&s.now, a, true)),
             ReworkChange::Colour(..) => out.extend(follows(&s.now, a, false)),
+            ReworkChange::WirePart(..) => out.extend(part_follows(&s.now, a)),
             _ => {}
         }
     }
-    // An end re-made on its clamp: by its own new size (no reason of its own), by hand, else by the clamp's wires.
+    // A wire's own new size or wire part re-makes its ends: that change is in the row itself.
+    let own = changes
+        .iter()
+        .any(|c| matches!(c, ReworkChange::Size(..) | ReworkChange::WirePart(..)));
     let size = |r: &WireRecord| r.csa.as_ref().map(|p| p.value.clone());
-    let partner = |e: &EndRecord| match e.treatment {
-        EndTreatment::TwinFerrule { partner, .. } => partner,
-        _ => None,
+    let partner_at = |r: &WireRecord, cp: CpRef| {
+        r.wire
+            .ends
+            .iter()
+            .position(|e| e.cp == cp)
+            .and_then(|i| match r.ends[i].treatment {
+                EndTreatment::TwinFerrule { partner, .. } => partner,
+                _ => None,
+            })
     };
+    let workshop = |q: &Q| q.project().settings.workshop.clone();
+    let (shop_b, shop_a) = (workshop(s.base.q), workshop(s.now.q));
     for (ia, end) in a.wire.ends.iter().enumerate() {
         let cp = end.cp;
         let Some(ib) = b.wire.ends.iter().position(|e| e.cp == cp) else {
             continue;
         };
         let (eb, ea) = (&b.ends[ib], &a.ends[ia]);
-        let remade = eb.treatment != ea.treatment
-            || part_number(s.base.q, eb.part.map(PartRef::new).as_ref())
-                != part_number(s.now.q, ea.part.map(PartRef::new).as_ref());
         let by_hand = [eb, ea]
             .iter()
             .any(|e| e.treated_by == crate::treatment::TreatedBy::Hand);
-        if !remade || resized || by_hand {
+        let parts = |e: &EndRecord, q: &Q| part_number(q, e.part.map(PartRef::new).as_ref());
+        let reparted = parts(eb, s.base.q) != parts(ea, s.now.q);
+        if own || by_hand || (eb.treatment == ea.treatment && !reparted) {
+            continue;
+        }
+        if eb.treatment == ea.treatment {
+            // The same treatment with another part: the stock gave it.
+            if shop_b.stock != shop_a.stock {
+                out.push(ReworkReason::Setting(WorkshopSetting::Stock));
+            }
             continue;
         }
         let at = end_label(s.now.q, a, cp);
         let first = out.len();
-        let (pb, pa) = (partner(eb), partner(ea));
-        if pb != pa {
-            if let Some(p) = pb
-                && let Some(name) = s.base.number(p)
-            {
-                let (at, partner) = (at.clone(), name);
-                let reason = match s.now.by_id.get(&p) {
-                    None => Some(ReworkReason::PartnerPulled { at, partner }),
-                    Some(_) if !s.now.lands(p, cp) => Some(ReworkReason::PartnerLeft { at, partner }),
-                    Some(r) if s.base.by_id.get(&p).map(|x| size(x)) != Some(size(r)) => {
-                        Some(ReworkReason::PartnerResized { at, partner })
-                    }
-                    Some(_) => None,
-                };
-                out.extend(reason);
-            }
-            if let Some(p) = pa
-                && let Some(name) = s.now.number(p)
-                && (!s.base.lands(p, cp) || out.len() == first)
-            {
-                out.push(ReworkReason::Joined {
+        let (pb, pa) = (partner_at(b, cp), partner_at(a, cp));
+        // The release's partner: pulled, moved off, of another size, or made on the other side of shop and site.
+        if let Some(p) = pb.filter(|p| Some(*p) != pa)
+            && let Some(partner) = s.base.number(p)
+        {
+            let at = at.clone();
+            let before = s.base.by_id.get(&p);
+            out.extend(match s.now.by_id.get(&p) {
+                None => Some(ReworkReason::PartnerPulled { at, partner }),
+                Some(_) if !s.now.lands(p, cp) => Some(ReworkReason::PartnerLeft { at, partner }),
+                Some(r) if before.map(|x| size(x)) != Some(size(r)) => {
+                    Some(ReworkReason::PartnerResized { at, partner })
+                }
+                Some(r)
+                    if r.flags.field != a.flags.field
+                        && before.is_some_and(|x| x.flags.field == b.flags.field) =>
+                {
+                    Some(ReworkReason::SiteApart {
+                        at,
+                        partner,
+                        partner_on_site: r.flags.field,
+                    })
+                }
+                Some(_) => None,
+            });
+        }
+        // Now's partner: new on the clamp, of another size, or freed by its own partner of the release.
+        if let Some(p) = pa.filter(|p| Some(*p) != pb)
+            && let Some(wire) = s.now.number(p)
+        {
+            let before = s.base.by_id.get(&p);
+            if !s.base.lands(p, cp) {
+                out.push(ReworkReason::Joined { at: at.clone(), wire });
+            } else if before.map(|x| size(x)) != s.now.by_id.get(&p).map(|r| size(r)) {
+                out.push(ReworkReason::PartnerResized {
                     at: at.clone(),
-                    wire: name,
+                    partner: wire,
                 });
+            } else if let Some(freed) = before.and_then(|x| partner_at(x, cp)).filter(|o| *o != a.wire.id)
+                && let Some(wire) = s.base.number(freed)
+            {
+                let at = at.clone();
+                match s.now.by_id.get(&freed) {
+                    None => out.push(ReworkReason::ClampPulled { at, wire }),
+                    Some(_) if !s.now.lands(freed, cp) => out.push(ReworkReason::ClampLeft { at, wire }),
+                    Some(r) if s.base.by_id.get(&freed).map(|x| size(x)) != Some(size(r)) => {
+                        out.push(ReworkReason::ClampResized { at, wire });
+                    }
+                    Some(_) => {}
+                }
             }
         }
+        // Else what decides the end's treatment, where it changed.
         if out.len() == first {
-            out.push(ReworkReason::EndRule);
+            if shop_b.ferrules != shop_a.ferrules {
+                out.push(ReworkReason::Setting(WorkshopSetting::Ferrules));
+            }
+            if shop_b.two_wires != shop_a.two_wires {
+                out.push(ReworkReason::Setting(WorkshopSetting::TwoWires));
+            }
+            if crate::treatment::clamp_of(s.base.q, cp) != crate::treatment::clamp_of(s.now.q, cp) {
+                out.push(ReworkReason::ClampPart(at));
+            }
         }
     }
     // An end moved off a device that is gone.
@@ -597,16 +715,51 @@ fn reasons(s: &Pair, b: &WireRecord, a: &WireRecord, changes: &[ReworkChange]) -
     }
     // A length no person typed.
     if changes.iter().any(|c| matches!(c, ReworkChange::Length(..))) {
-        let reason = match (b.length, a.length) {
-            (WireLength::Typed(_), _) | (_, WireLength::Typed(_)) => None,
-            (_, WireLength::Stale { why, .. }) => Some(ReworkReason::WayStale(why)),
+        // A way that went stale, or stale for another reason.
+        if let WireLength::Stale { why, .. } = a.length
+            && !matches!(b.length, WireLength::Stale { why: was, .. } if was == why)
+            && !matches!(b.length, WireLength::Typed(_))
+        {
+            out.push(ReworkReason::WayStale(why));
+        }
+        match (b.length, a.length) {
+            (WireLength::Typed(_), _) | (_, WireLength::Typed(_)) => {}
             (WireLength::Routed { .. } | WireLength::Stale { .. }, WireLength::Missing) => {
-                Some(ReworkReason::WayGone)
+                out.push(ReworkReason::WayGone);
             }
-            (_, WireLength::Routed { .. }) => Some(ReworkReason::Rerouted),
-            _ => None,
-        };
-        out.extend(reason);
+            (WireLength::Missing, WireLength::Routed { .. } | WireLength::Stale { .. }) => {
+                out.push(ReworkReason::Laid);
+            }
+            (
+                WireLength::Routed { run, door, .. } | WireLength::Stale { run, door, .. },
+                WireLength::Routed {
+                    run: run_now,
+                    door: door_now,
+                    ..
+                }
+                | WireLength::Stale {
+                    run: run_now,
+                    door: door_now,
+                    ..
+                },
+            ) => {
+                if (run, door) != (run_now, door_now) {
+                    out.push(ReworkReason::Rerouted);
+                }
+                use crate::layout::{door_loop, reserve};
+                if reserve(s.base.q) != reserve(s.now.q) {
+                    out.push(ReworkReason::Setting(WorkshopSetting::Reserve));
+                }
+                if (door || door_now) && door_loop(s.base.q) != door_loop(s.now.q) {
+                    out.push(ReworkReason::Setting(WorkshopSetting::DoorLoop));
+                }
+                // The increment in force: what one nanometre is cut to.
+                if crate::cut_to(s.base.q, 1) != crate::cut_to(s.now.q, 1) {
+                    out.push(ReworkReason::Setting(WorkshopSetting::CutTo));
+                }
+            }
+            _ => {}
+        }
     }
     out.dedup();
     out
@@ -615,13 +768,42 @@ fn reasons(s: &Pair, b: &WireRecord, a: &WireRecord, changes: &[ReworkChange]) -
 /// What the size (`size`) or the colour of `a` follows when it is not set on the wire's own connections; `None` when
 /// it is, or when the wire has none.
 fn follows(now: &State, a: &WireRecord, size: bool) -> Option<ReworkReason> {
-    use crate::wire_props::PropSource;
     let source = if size {
         &a.csa.as_ref()?.source
     } else {
         &a.colour.as_ref()?.source
     };
-    let from = match source {
+    Some(ReworkReason::Follows {
+        size,
+        from: followed_from(now, a, source)?,
+    })
+}
+
+/// What the wire part of `a` follows when it is not named on the wire's own connections: the source of the one its
+/// chain names, else the workshop's stock; `None` when the wire names it.
+fn part_follows(now: &State, a: &WireRecord) -> Option<ReworkReason> {
+    let props = a.wire.potentials.iter().find_map(|p| {
+        now.q
+            .get::<crate::wire_props::WirePropsOf>(*p)
+            .wires
+            .get(&a.wire.id)
+            .cloned()
+    });
+    let from = match props.and_then(|p| p.wire_part) {
+        Some(named) => followed_from(now, a, &named.source)?,
+        None => FollowedFrom::Stock,
+    };
+    Some(ReworkReason::PartFollows(from))
+}
+
+/// What a value of `a` from `source` follows; `None` for one set on the wire's own connections.
+fn followed_from(
+    now: &State,
+    a: &WireRecord,
+    source: &crate::wire_props::PropSource,
+) -> Option<FollowedFrom> {
+    use crate::wire_props::PropSource;
+    Some(match source {
         PropSource::Override(c) if a.wire.own.contains(c) => return None,
         PropSource::Override(c) => FollowedFrom::Shared(
             now.by_id
@@ -644,8 +826,7 @@ fn follows(now: &State, a: &WireRecord, size: bool) -> Option<ReworkReason> {
         | PropSource::SizeRow { .. }
         | PropSource::ProjectDefault
         | PropSource::BuiltIn { .. } => FollowedFrom::Rules,
-    };
-    Some(ReworkReason::Follows { size, from })
+    })
 }
 
 /// An end as the Change cell names it: its CP's label, `ext. <name>` for an external end.

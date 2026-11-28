@@ -230,8 +230,8 @@ pub use q::{Cycle, IdxView, Q, TableView};
 pub use query::{Changes, Policy, Query};
 // The rework list between a release and now (doc 13 §3.5).
 pub use rework::{
-    FollowedFrom, ReworkAction, ReworkChange, ReworkItem, ReworkReason, ReworkSubject, WirePair, rework,
-    wire_changes,
+    FollowedFrom, ReworkAction, ReworkChange, ReworkItem, ReworkReason, ReworkSubject, WirePair,
+    WorkshopSetting, rework, wire_changes,
 };
 pub use settings::{
     DrawingSettingsQ, Member, SettingsIssue, SettingsMember, TextStyles,

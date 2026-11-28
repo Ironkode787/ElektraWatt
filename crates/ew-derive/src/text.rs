@@ -519,9 +519,43 @@ pub fn rework_reason(now: &crate::Q, reason: &crate::ReworkReason) -> Text {
         ReworkReason::PartnerLeft { at, partner } => {
             text!("rework-reason-partner-left", partner.clone(), at.clone())
         }
+        ReworkReason::SiteApart {
+            at,
+            partner,
+            partner_on_site: true,
+        } => text!("rework-reason-site-apart-partner", partner.clone(), at.clone()),
+        ReworkReason::SiteApart { at, partner, .. } => {
+            text!("rework-reason-site-apart-own", partner.clone(), at.clone())
+        }
         ReworkReason::Joined { at, wire } => text!("rework-reason-joined", wire.clone(), at.clone()),
-        ReworkReason::EndRule => text!("rework-reason-end-rule"),
+        ReworkReason::ClampPulled { at, wire } => {
+            text!("rework-reason-clamp-pulled", wire.clone(), at.clone())
+        }
+        ReworkReason::ClampResized { at, wire } => {
+            text!("rework-reason-clamp-resized", wire.clone(), at.clone())
+        }
+        ReworkReason::ClampLeft { at, wire } => text!("rework-reason-clamp-left", wire.clone(), at.clone()),
+        ReworkReason::ClampPart(at) => text!("rework-reason-clamp-part", at.clone()),
+        ReworkReason::Setting(setting) => {
+            use crate::WorkshopSetting;
+            let name = match setting {
+                WorkshopSetting::Reserve => text!("workshop-setting-reserve"),
+                WorkshopSetting::DoorLoop => text!("workshop-setting-door-loop"),
+                WorkshopSetting::CutTo => text!("workshop-setting-cut-to"),
+                WorkshopSetting::Ferrules => text!("workshop-setting-ferrules"),
+                WorkshopSetting::TwoWires => text!("workshop-setting-two-wires"),
+                WorkshopSetting::Stock => text!("workshop-setting-stock"),
+            };
+            text!("rework-reason-setting", name)
+        }
         ReworkReason::DeviceGone(tag) => text!("rework-reason-device-gone", tag.clone()),
+        ReworkReason::PartFollows(from) => match from {
+            FollowedFrom::Shared(w) => text!("rework-reason-part-shared", w.join(", ")),
+            FollowedFrom::Potential(p) => text!("rework-reason-part-potential", p.clone()),
+            FollowedFrom::Rules => text!("rework-reason-part-rules"),
+            FollowedFrom::Cable(c) => text!("rework-reason-part-cable", c.clone()),
+            FollowedFrom::Stock => text!("rework-reason-part-stock"),
+        },
         ReworkReason::Follows { size, from } => match (size, from) {
             (true, FollowedFrom::Shared(w)) => text!("rework-reason-size-shared", w.join(", ")),
             (false, FollowedFrom::Shared(w)) => text!("rework-reason-colour-shared", w.join(", ")),
@@ -531,8 +565,10 @@ pub fn rework_reason(now: &crate::Q, reason: &crate::ReworkReason) -> Text {
             (false, FollowedFrom::Rules) => text!("rework-reason-colour-rules"),
             (true, FollowedFrom::Cable(c)) => text!("rework-reason-size-cable", c.clone()),
             (false, FollowedFrom::Cable(c)) => text!("rework-reason-colour-cable", c.clone()),
+            (_, FollowedFrom::Stock) => text!("rework-reason-part-stock"),
         },
         ReworkReason::WayGone => text!("rework-reason-way-gone"),
+        ReworkReason::Laid => text!("rework-reason-laid"),
         ReworkReason::Rerouted => text!("rework-reason-rerouted"),
         ReworkReason::WayStale(why) => text!("rework-reason-way-stale", stale_why(now, *why)),
     }

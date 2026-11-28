@@ -1043,9 +1043,11 @@ change here.
   columns Device and Position mm, and a strip's heading measures from the same end of its rail
 - behaviour-change: the rework list's Mount device and Remove device rows say where the device goes or stood (its rail
   and place on it, or its surface, centre and hole), and a new column Because says why a row is there where nobody
-  changed its wire by name: a twin ferrule's partner that changed, a size set where the wire shares a connection, a
-  removed device, a way that Route laid again
-- api-break: `ew_derive::ReworkItem` gains `reasons` and `places`; `OnRail::from` and `to` measure from the rail's end
+  changed its wire by name, each a cause the release and now show: a twin ferrule's partner pulled, moved, resized or
+  made on the other side of shop and site, a wire new on the clamp, a size, colour or wire part that follows a shared
+  connection, a potential, the rules or the stock, a removed device, a way Route laid again, a workshop setting by its
+  name ("the workshop's Reserve per end changed"); a change whose cause they do not tell apart has none
+- api-break: `ew_derive::ReworkItem` gains `reasons` (`ReworkReason`, `FollowedFrom`, `WorkshopSetting`) and `places`; `OnRail::from` and `to` measure from the rail's end
   nearest its surface's datum corner
 - behaviour-change: the wire list's page is the fitter's one paper: its default columns gain each end's part and strip
   length, and as they do not fit one line of a sheet each wire prints on two lines, its From end above its To end
@@ -1078,4 +1080,8 @@ change here.
 - behaviour-change: Drilling…'s rows name the two files of each surface, and its toast which files are which surface's
 - behaviour-change: a twin ferrule is no longer made of a wire the shop makes and a wire made on site: the shop's wire
   takes a ferrule of its own and its end cell says that the other joins the clamp on site ("ferrule 0.75 GY · 104.8
-  joins it on site"); an existing project's wire list and consumables change where such a pair stood
+  joins it on site"); an existing project's wire list and consumables change where such a pair stood. Two twin ferrules
+  set by hand on one clamp still pair, whoever makes them
+- behaviour-change: EW-POT-010 counts a shop wire's end and the field wire that joins it on site as one conductor, as
+  it counted their twin ferrule before, so a clamp that took the pair raises no new error and a project that released
+  before releases as it did

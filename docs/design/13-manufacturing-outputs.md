@@ -421,14 +421,21 @@ H5", one place per placement.
 **Because** says why a row is there where nobody changed its wire by name, a thing of its own beside the change:
 `ReworkItem::reasons`, which `ew-derive` derives from the two states, never from the commands that were run. A row a
 person made by name (a size set on the wire's own connection, an end or a length set by hand, a wire moved) has an
-empty Because cell. The reasons:
+empty Because cell. Each reason is a cause the two states show; a change whose cause they do not tell apart (a twin
+partner that is a cable's core, which has no number to name it by) gets none rather than a guess. The causes:
 
-| Row | Because |
-|---|---|
-| Replace: a size or a colour that is not set on the wire's own connection | "its size is set on a connection it shares with 104.4", "its potential 24V sets its size", "the project's wiring rules give its size", "its cable -103W1 gives its size" |
-| Re-make end on a clamp whose other wires changed, the wire's own size kept | "its twin ferrule's partner 104.9 at -104A1:M is pulled", "… changed size", "… no longer lands on -104A1:M", "104.7 now lands on -104A1:M as well"; where none of them changed, "the workshop's settings or the clamp's part give this end another treatment" |
-| Move end off a device that is gone | "-104E2 is removed" |
-| Check length of a length no person typed | "Route laid its way again", "its way no longer holds: …" (the stale way's reason, [12-3d](12-3d-routing-thermal.md) §8.5), "its way was laid for the wiring of the release: Route lays it again" |
+| Row | Cause | Because |
+|---|---|---|
+| Replace | a size or a colour not set on the wire's own connection | "its size is set on a connection it shares with 104.4", "its potential 24V sets its size", "the project's wiring rules give its size", "its cable -103W1 gives its size" (the colour alike) |
+| Replace | a wire part not named on the wire | "its wire part is set on a connection it shares with 104.4", "its potential 24V sets its wire part", "the project's wiring rules give its wire part", "the workshop's Stock gives its wire part by its size and colour" |
+| Re-make end (the end on the same clamp, not set by hand; the wire's own size and wire part kept, which re-make it in the row itself; its colour does not) | its twin partner of the release pulled, moved off the clamp or of another size | "its twin ferrule's partner 104.9 at -104A1:M is pulled", "… changed size", "… no longer lands on -104A1:M" |
+| | its twin partner of the release still on the clamp, one of the two now made on site and the other in the shop (§4.3 rule 3) | "its twin ferrule's partner 104.8 at -104A1:L+ is made on site, this wire in the shop", "this wire is made on site, its twin ferrule's partner … in the shop" |
+| | a new partner that did not land on the clamp in the release | "104.7 now lands on -104A1:M as well" |
+| | a new partner already on the clamp, of another size than it was, or freed: its own partner of the release pulled, moved off or resized | "its twin ferrule's partner 104.7 at -104A1:M changed size", "104.9, which shared a ferrule at -104A1:M, is pulled", "… no longer lands there", "… changed size" |
+| | none of these: the workshop's Ferrules or Two wires in one clamp, or the clamp's part, where they changed | "the workshop's Two wires in one clamp changed", "the part at -104A1:M says other things of its clamp" |
+| | the same treatment with another part | "the workshop's Stock changed" |
+| Move end | off a device that is gone | "-104E2 is removed" |
+| Check length (a length no person typed) | the way no longer holds; the way laid for the release's wiring gone; a way where there was none; another run or door crossing; a workshop setting the length is made with | "its way no longer holds: …" (the stale way's reason, [12-3d](12-3d-routing-thermal.md) §8.5), "its way was laid for the wiring of the release: Route lays it again", "Route laid its way", "Route laid its way again", "the workshop's Reserve per end changed" (Door loop for a way into a door, Cut to, by name) |
 
 **What it does not report**: a wire that only moved on a page or took another route, a new number while no marker
 changes (with destination marking a renumber needs no work; a twin ferrule is compared by its partner wire, not by the
@@ -499,7 +506,9 @@ the ends no person has set by hand, after the table has given each its treatment
    but not that it takes a twin ferrule; the shop's `ferrule_each`.
 3. **A twin is never crimped of a wire the shop makes and one made on site** (a field wire, §2.1): the shop's wire
    takes a ferrule of its own and its end cell names the other, `ferrule 0.75 GY · 104.8 joins it on site`; two field
-   wires pair as two shop wires do.
+   wires pair as two shop wires do. The two count as one conductor against the clamp's maximum, as their twin did
+   before this rule, so that a project made before it releases as it did. The rule decides only what
+   nobody set: two twin ferrules set by hand on one clamp pair with each other, whoever makes them.
 4. **A third conductor** (a wire left over by the pairs) keeps its own ferrule; the clamp then holds a twin and a
    ferrule. A twin counts as one conductor: where the clamp's part names how many it takes and more land on it,
    EW-POT-010 says so, naming the clamp.
@@ -511,7 +520,7 @@ for each CP with wires W (|W| ≥ 2), sorted by cross-section (largest first), t
                    and the shop's two_wires is twin_ferrule
   pair greedily in that order; each pair → TwinFerrule{csa, partner}, every other end keeps its treatment
   a shop end left beside a site end of its size → joined_on_site: that wire
-  conductors = |W| − pairs
+  conductors = |W| − pairs − ends joined on site
   conductors > the clamp's maximum (where its part names one) → EW-POT-010, naming the clamp
 ```
 
