@@ -11,7 +11,7 @@
 {"look":{"page":""},"expect":["harness: a visual run has no text view"]}
 {"do":[{"input":"hover","x":199,"y":53},{"input":"wait","ms":600}],"expect":["frame frames/t0004.png"]}
 {"note":"patience 8 flow 8 The harness refused the action line and the text look; the Save button shows its tooltip."}
-{"do":[{"input":"drag","x":600,"y":300,"to_x":1000,"to_y":500},{"input":"key","chord":"delete"},{"input":"key","chord":"ctrl+z"}],"expect":["frame frames/t0005.png"]}
+{"do":[{"input":"drag","x":680,"y":300,"to_x":1080,"to_y":500},{"input":"key","chord":"delete"},{"input":"key","chord":"ctrl+z"}],"expect":["frame frames/t0005.png"]}
 {"note":"patience 8 flow 8 The rubber band took both contacts; Delete and Undo brought them back."}
 {"do":[{"input":"scroll","x":900,"y":500,"dy":-2,"mods":"ctrl"},{"input":"key","chord":"ctrl+s"},{"input":"wait","ms":300}],"expect":["frame frames/t0006.png"]}
 {"note":"patience 9 flow 9 Ctrl and the wheel zoomed in; Ctrl+S saved."}

@@ -55,7 +55,7 @@ least value in a small window.
 
 | Width | 1920 × 1080 | 2560 × 1440 | Rule |
 |---|---|---|---|
-| Left column (navigator, Properties) | 480 | 640 | 480 + 0.35 × (window − 1920), up to `size.panel.left_max` (640, from about 2380), while the user has not dragged it; below 1920 it narrows the same way until the layout's own share (280 of the 1200 points a 1280 window leaves between the rails) stands. Display only: the user's share stays the layout, like the bottom dock's clamp (§5.7). The strip editor's and a table's lack widens it further, up to two thirds of the dock |
+| Left column (navigator, Properties) | 480 | 640 | 480 + 0.35 × (window − 1920), up to `size.panel.left_max` (640, from about 2380), while the user has not dragged it; below 1920 it narrows the same way until the layout's own share (280 of the 1200 points a 1280 window leaves between the rails) stands. Display only: the user's share stays the layout, like the bottom dock's clamp (§5.7). The strip editor's and a table's lack widens it further, up to 70 % of the dock (the page view keeps 30 %) |
 | Command search | 384 | 512 | 0.2 of the tab row, never under `size.search` (280); no cap beside the tab row's empty middle |
 | Form dialog of fields (New page…, Terminal…) | 864 | 864 | 0.45 of the window from `size.dialog.form` (640), stopping at its 1920 width: short values gain nothing from wider fields |
 | Form or dialog that holds a list (Choose part, the parts mapping card, Keyboard shortcuts, Notices) | 864 | 1152 | 0.45 of the window from `size.dialog.form`; a list dialog fits its content up to that width (the mapping card), a short list keeps the token width |

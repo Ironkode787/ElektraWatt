@@ -1702,9 +1702,20 @@ fn round3_autoconnect_keeps_a_working_port_off_the_plates_exhaust_and_names_its_
     place_turned(&mut d, (1400, 450));
     let cylinder = device_drawn(&mut d, "ew.iso.cylinder");
     let a = port(&mut d, cylinder, "A");
-    let _ = d.shell_mut().dispatch("edit.undo", &json!({}));
-    d.settle();
-    place_turned(&mut d, (1400 + two.0 - a.0, 450));
+    // The drop's pixel snaps to the page's grid, which a pixel offset can miss by a step at another zoom: the aim is
+    // corrected by where A landed, until A stands over port 2.
+    let mut x = 1400 + two.0 - a.0;
+    for _ in 0..3 {
+        let _ = d.shell_mut().dispatch("edit.undo", &json!({}));
+        d.settle();
+        place_turned(&mut d, (x, 450));
+        let cylinder = device_drawn(&mut d, "ew.iso.cylinder");
+        let landed = port(&mut d, cylinder, "A").0;
+        if landed == two.0 {
+            break;
+        }
+        x += two.0 - landed;
+    }
     let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
     assert_eq!(tubes(&mut d), 1, "{toast}");
     assert!(toast.contains("and connected A to "), "{toast}");

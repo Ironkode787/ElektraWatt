@@ -91,10 +91,7 @@ fn the_layout_matches_the_mockup() {
     assert_eq!(names.last(), Some(&"History"), "History at the foot");
     for (name, r) in &left {
         assert!(near(r.center().x, f.left() + 55.0, 1.0), "{name} {r:?}");
-        assert!(
-            near(r.width(), 102.0, 1.0) && r.height() >= 32.0,
-            "{name} {r:?}"
-        );
+        assert!(near(r.width(), 102.0, 1.0) && r.height() >= 32.0, "{name} {r:?}");
     }
     let right = rail_buttons(&h, false);
     let names: Vec<&str> = right.iter().map(|(n, _)| n.as_str()).collect();
@@ -120,7 +117,10 @@ fn the_layout_matches_the_mockup() {
     assert!(near(column, 480.0, 10.0), "the left column {column} of {dock}");
     // The harness's 16 px of margin are the canvas's at a real 1920-px window.
     let share = (pane.width() + 16.0) / (f.width() + 16.0);
-    assert!(near(share, 0.672, 0.012) && share >= 0.65, "the canvas share {share}");
+    assert!(
+        near(share, 0.672, 0.012) && share >= 0.65,
+        "the canvas share {share}"
+    );
     // Pages above Properties, 50 : 50 within three percentage points.
     let props = h
         .get_all_by_role(egui::Role::Button)

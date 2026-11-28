@@ -291,7 +291,10 @@ mod tests {
     fn a_name_breaks_at_a_space_or_its_soft_hyphen() {
         let fits = |s: &str| s.chars().count() <= 14;
         assert_eq!(caption_lines("Unplaced devices", fits), ["Unplaced", "devices"]);
-        assert_eq!(caption_lines("Onderbrekings\u{ad}punten", fits), ["Onderbrekings-", "punten"]);
+        assert_eq!(
+            caption_lines("Onderbrekings\u{ad}punten", fits),
+            ["Onderbrekings-", "punten"]
+        );
         assert_eq!(caption_lines("Bus", fits), ["Bus"]);
         assert_eq!(caption_lines("Parts in use", fits), ["Parts in use"]);
         assert_eq!(

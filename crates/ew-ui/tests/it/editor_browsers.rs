@@ -432,8 +432,8 @@ fn place_power_supply(d: &mut Driver) {
     d.settle();
     d.input(&key("enter"));
     d.settle();
-    d.input(&click((560, 380)));
-    d.input(&click((700, 470)));
+    d.input(&click((640, 380)));
+    d.input(&click((780, 470)));
     d.settle();
 }
 

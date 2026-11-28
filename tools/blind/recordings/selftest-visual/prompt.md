@@ -2,7 +2,7 @@
 # The visual self-test task
 
 This task is for the harness, not for an agent. A scripted agent (`agent.jsonl`) plays the part of a play-tester and
-calls the run's copy of the harness exactly as a real agent would, through `«run»\bin/xtask.exe blind`, in a visual run: it looks at the
+calls the run's copy of the harness exactly as a real agent would, through `«run»/bin/xtask blind`, in a visual run: it looks at the
 start frame, opens the symbol picker with a click, types a filter and chooses the normally open contact with Enter,
 places two contacts with two clicks on page 101, zooms into the frame to read their tags and logs a friction entry
 about it, sends a Redo that the product refuses and an Undo and Redo that it does, tries an action line and a text look
@@ -24,29 +24,29 @@ coordinates of `agent.jsonl` are read off its frames.
 <!-- file: tools/blind/HELP-VISUAL.md -->
 ---
 prompt: blind-help-visual
-version: 2
+version: 5
 ---
 # The harness: how to work with it (a visual run)
 
-You work with ElektraWatt through one program, `«run»\bin/xtask.exe blind`, and nothing else. You see the program's window as pictures,
+You work with ElektraWatt through one program, `«run»/bin/xtask blind`, and nothing else. You see the program's window as pictures,
 one after every batch of inputs, and you act on it with the mouse and the keyboard, as a person at a desk would. You
-get no text description of the window: everything the window says reaches you as pixels. `«run»\bin/xtask.exe blind help` prints this
+get no text description of the window: everything the window says reaches you as pixels. `«run»/bin/xtask blind help` prints this
 text and nothing more.
 
 ## The commands
 
 | Command | What it does |
 |---|---|
-| `«run»\bin/xtask.exe blind do selftest-visual -` | A batch of 1 to 12 inputs, one JSON object per line on standard input: `{"input":"click","x":412,"y":96}`. |
-| `«run»\bin/xtask.exe blind do selftest-visual <input> [key=value ...]` | One input in short form: `«run»\bin/xtask.exe blind do selftest-visual click x=412 y=96`, `«run»\bin/xtask.exe blind do selftest-visual key chord=ctrl+s`, `«run»\bin/xtask.exe blind do selftest-visual type text=Pump`. |
-| `«run»\bin/xtask.exe blind look selftest-visual` | The window as it is now, painted again without any input. |
-| `«run»\bin/xtask.exe blind look selftest-visual --zoom <x> <y> <w> <h>` | A region of the window (frame pixels, at most 768 × 497, inside the frame) painted twice as large, to read small print. A zoom is a picture only: its pixels are never coordinates for an input. |
-| `«run»\bin/xtask.exe blind note selftest-visual "patience <0-10> flow <0-10> <text>"` | The note of your last turn. |
-| `«run»\bin/xtask.exe blind friction selftest-visual --severity <s> --category <c> --wanted "…" --expected "…" --saw "…" [--frame <name>] [--region <x>,<y>,<w>,<h>] [--workaround "…"]` | One entry of the friction log (see below). |
-| `«run»\bin/xtask.exe blind handback selftest-visual -` | Your hand-back on standard input; it ends the run. |
+| `«run»/bin/xtask blind do selftest-visual -` | A batch of 1 to 12 inputs, one JSON object per line on standard input: `{"input":"click","x":412,"y":96}`. |
+| `«run»/bin/xtask blind do selftest-visual <input> [key=value ...]` | One input in short form: `«run»/bin/xtask blind do selftest-visual click x=412 y=96`, `«run»/bin/xtask blind do selftest-visual key chord=ctrl+s`, `«run»/bin/xtask blind do selftest-visual type text=Pump`. |
+| `«run»/bin/xtask blind look selftest-visual` | The window as it is now, painted again without any input. |
+| `«run»/bin/xtask blind look selftest-visual --zoom <x> <y> <w> <h>` | A region of the window (frame pixels, at most 768 × 497, inside the frame) painted twice as large, to read small print. A zoom is a picture only: its pixels are never coordinates for an input. |
+| `«run»/bin/xtask blind note selftest-visual "patience <0-10> flow <0-10> <text>"` | The note of your last turn. |
+| `«run»/bin/xtask blind friction selftest-visual --severity <s> --category <c> --wanted "…" --expected "…" --saw "…" [--frame <name>] [--region <x>,<y>,<w>,<h>] [--workaround "…"]` | One entry of the friction log (see below). |
+| `«run»/bin/xtask blind handback selftest-visual -` | Your hand-back on standard input; it ends the run. |
 
 `do` prints exactly one line, `frame frames/t<turn>.png`: the picture of the window once your batch has settled. `look`
-prints the path of the picture it painted. The pictures are PNG files in the folder `«run»\frames`; open each one and look
+prints the path of the picture it painted. The pictures are PNG files in the folder `«run»/frames`; open each one and look
 at it before you decide what to do next. `frames/t0000.png` is the window before your first input.
 
 ## The picture and the coordinates
@@ -71,16 +71,23 @@ read its detail with `look --zoom`, whose regions are at most 768 × 497 pixels.
 | `key` | `chord` (`ctrl+s`, `enter`, `escape`, `f2`, `shift+tab`, `delete`, `arrowdown`, …), `repeat` (1 to 20) | Presses and releases the keys, `repeat` times. |
 | `hover` | `x`, `y` | Moves the pointer there and leaves it; a tooltip needs a `hover` and then a `wait` of about 600. |
 | `wait` | `ms` (100 to 5,000) | Lets time pass (tooltips, messages that fade). A batch waits at most 10,000 ms in all. |
+| `answer_open` | `path` (a file of your work folder, such as `plan.xlsx`) | Shows nothing by itself: the next time the program asks for a file to open (an import, an image, an archive), it gets this one. Send it before the click that asks: `«run»/bin/xtask blind do selftest-visual answer_open path=plan.xlsx`, then the click on Import…. |
 
 The pointer stays where your last input left it, so the next picture shows what it hovers over. A batch is sent in full:
 an input that does nothing does not stop the ones after it, so keep a batch short when you are not sure what a click
 will do, and look at the picture before you go on.
 
+**Pins close together.** A click on a page takes the connection point nearest the pointer, so where pins stand a few
+pixels apart (a card's or a strip's row) a click a little off takes the neighbour. Before such a click, `hover` there,
+`wait` about 600 and look with `--zoom`: the point the click will take wears a blue ring, and its tooltip names it
+(`-201K1-Q1:1 · …`). Click at the same place when it is the one you mean.
+
 **What the system does for you.** You have no file dialog of your own: when the program asks the system for a folder or
 a file name, the answer is given for you, always inside your work folder. A new, opened or saved project is the folder
-`project`; an exported PDF is `project.pdf`; an import of another program's project is cancelled; an import from PLC
-software takes the file you exported to PLC software before (without one it is cancelled); a link to a web page
-does not open. A finding cannot be waived in a run: the program takes a waiver from a person at the window only. You have no clipboard from outside the program, cannot drop files on the window and cannot resize it.
+`project`; an exported PDF is `project.pdf`; a file to open (an import, an image, an archive) is the one an
+`answer_open` named before it (each names one file, for one choice), and without one the choice is cancelled; an
+import from PLC software takes the file you exported to PLC software before (without one it is cancelled); a link to a
+web page does not open. A finding cannot be waived in a run: the program takes a waiver from a person at the window only. You have no clipboard from outside the program, cannot drop files on the window and cannot resize it.
 
 If you close the program (its own quit command, or the window's close), the run ends: `do` then prints
 `harness: the application has closed`, and you file your hand-back.
@@ -93,7 +100,19 @@ calls need no note, but you may make at most 3 between two `do` calls.
 
 Three notes in a row with patience 2 or less, or five with flow 2 or less, end the run; you then file your hand-back.
 The run also ends at its caps: 150 turns, 1000 inputs, 200 looks and 50 refused calls. They are
-counts, never times; there is no clock, so take the time you need to look.
+counts, never times: take the time you need to look.
+
+## Time and messages
+
+Time passes between your turns as it would for a person: each picture you get counts as about four seconds of the
+program's time, the time a person takes to look at the window and act. A `wait` adds the time it asks for; a `look`
+adds none.
+
+A message that appears in the window's top right corner stays for about eight seconds, about two turns, and then
+leaves. It is not lost: the bell at the right end of the status bar shows how many messages there are, and its list
+holds each one with what it offers (Undo and the like), usable as long as it can still run. So read a message in the
+turn it appears, and open the bell's list when you want one back. A message that has left is no fault to log; one you
+cannot find in the list is.
 
 ## What the harness refuses
 

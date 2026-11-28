@@ -42,6 +42,11 @@ pub(crate) fn report_content(ui: &Ui, pane: PaneKind, viewport: Rect, content: f
     }
 }
 
+/// The most of the dock's width the left column takes for the strip editor's or a table's lack: 70 %, the page view
+/// keeps 30 % (two thirds until the left rail named its entries, 70 px wider at 1920: the strip editor's side columns
+/// then still show whole at 1920 × 1080).
+const LACK_MOST: f32 = 0.7;
+
 /// The key of the width the strip editor's grid lacked in the last frame.
 fn left_lack_id() -> egui::Id {
     egui::Id::unique("ew-dock-left-lack")
@@ -49,10 +54,10 @@ fn left_lack_id() -> egui::Id {
 
 /// The strip editor's report of the width its columns need beyond the grid's this frame (negative: room to
 /// spare), every frame it is shown. Above 1280 the next frame shows the left column that much wider, as far as
-/// [`Dock::keep_left_wide`] lets a default share grow (two thirds of the dock), so that the side columns show without scrolling
+/// [`Dock::keep_left_wide`] lets a default share grow ([`LACK_MOST`] of the dock), so that the side columns show without scrolling
 /// sideways in a wide window; without a report the column has its default width again.
 pub(crate) fn report_left_lack(ui: &Ui, lack: f32) {
-    // A lack the column cannot take (in a small window, or at two thirds) stays the same; only a change asks
+    // A lack the column cannot take (in a small window, or at its most) stays the same; only a change asks
     // for the next frame.
     let last = egui::Id::unique("ew-dock-left-lack-last");
     let changed = ui.ctx().data_mut(|d| {
@@ -511,10 +516,11 @@ impl Dock {
         if !tiles.is_visible(left) {
             return None;
         }
-        // The strip editor in the column asks for its last width plus what its grid lacked, up to two
-        // thirds of the dock (an editing table; the page view keeps a third), else the default grows to half.
+        // The strip editor in the column asks for its last width plus what its grid lacked, up to
+        // [`LACK_MOST`] of the dock (an editing table; the page view keeps the rest), else the default grows to half.
         let (want, most) = match (lack, tiles.rect(left)) {
-            (Some(lack), Some(r)) => (want.max(r.width() + lack), 2.0 / 3.0),
+            // Whole points, so that a lack of a fraction of one is taken in one frame and the column comes to rest.
+            (Some(lack), Some(r)) => (want.max((r.width() + lack).ceil()), LACK_MOST),
             _ => (want, 0.5),
         };
         let Some(Tile::Container(Container::Linear(linear))) = self.tree.tiles.get_mut(root) else {

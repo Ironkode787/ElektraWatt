@@ -17,7 +17,7 @@
 {"input":"hover","x":199,"y":53}
 {"input":"wait","ms":600}
 {"frame":"t0004.png"}
-{"input":"drag","to_x":1000,"to_y":500,"x":600,"y":300}
+{"input":"drag","to_x":1080,"to_y":500,"x":680,"y":300}
 {"chord":"delete","input":"key"}
 {"chord":"ctrl+z","input":"key"}
 {"frame":"t0005.png"}

@@ -73,6 +73,23 @@ fn the_fluid_workspace_lists_valves_lines_and_tubes_and_edits_a_length() {
     // The tube table: a length typed into the first tube's cell becomes manual.
     let tubes = h.state().shell().shown_rows(NavKind::Tubes);
     assert!(!tubes.is_empty(), "the tube list's rows");
+    // At 1920 the table's last columns lie past the dock's edge (the left rail names its panels): a sideways scroll
+    // over the table brings Length into view, as a person scrolls to it.
+    let table = h
+        .get_all_by_role(egui::accesskit::Role::Table)
+        .map(|n| n.rect())
+        .max_by(|a, b| a.width().total_cmp(&b.width()))
+        .expect("the tube table");
+    h.hover_at(table.center());
+    h.event(egui::Event::MouseWheel {
+        unit: egui::MouseWheelUnit::Point,
+        delta: egui::Vec2::new(-400.0, 0.0),
+        phase: egui::TouchPhase::Move,
+        source: egui::MouseWheelSource::Wheel,
+        modifiers: egui::Modifiers::NONE,
+    });
+    settle(&mut h);
+    settle(&mut h);
     let at = h
         .get_all_by_role(egui::accesskit::Role::Cell)
         .find(|n| {
@@ -83,6 +100,7 @@ fn the_fluid_workspace_lists_valves_lines_and_tubes_and_edits_a_length() {
         .expect("a length cell")
         .rect()
         .center();
+    assert!(table.contains(at), "the length cell in view: {at:?} in {table:?}");
     double_click(&mut h, at);
     h.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
     h.event(egui::Event::Text("2500".to_owned()));
