@@ -651,7 +651,10 @@ fn the_revision_stands_once_for_the_status_bar_and_the_package() {
         })
     );
     let plan = undated.package_plan(&ask());
-    assert!(!plan.draft() && plan.released_on.is_none(), "a release, its day not made up");
+    assert!(
+        !plan.draft() && plan.released_on.is_none(),
+        "a release, its day not made up"
+    );
     let (_, entries) = package(&undated, &ask());
     let contents = String::from_utf8(entry(&entries, |n| n == "Contents.txt").data.clone()).expect("UTF-8");
     assert!(

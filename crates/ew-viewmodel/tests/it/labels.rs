@@ -260,9 +260,15 @@ fn changed_since_a_release_says_why_it_cannot_be_chosen() {
     done(&mut s, "file.open", json!({ "dir": dir.to_string_lossy() }));
     for (action, step) in [
         ("revision.approve", json!({ "typed": "V1.0" })),
-        ("revision.approve", json!({ "confirm": true, "date": "2026-10-30" })),
+        (
+            "revision.approve",
+            json!({ "confirm": true, "date": "2026-10-30" }),
+        ),
         ("revision.release", json!({ "typed": "V1.0" })),
-        ("revision.release", json!({ "confirm": true, "date": "2026-10-30" })),
+        (
+            "revision.release",
+            json!({ "confirm": true, "date": "2026-10-30" }),
+        ),
     ] {
         done(&mut s, action, step);
     }

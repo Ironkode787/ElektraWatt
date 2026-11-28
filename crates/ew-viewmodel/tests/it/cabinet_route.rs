@@ -406,7 +406,10 @@ fn routes_preview_says_a_changed_way_with_its_old_length() {
     let tmp = Tmp::new("vm-cabinet-route-changed");
     let mut shell = tmp.sample_in(Mode::Headless, true, "902");
     let (session, _) = ew_api::Session::open_read_only(&tmp.sample_copy(), "test").expect("the sample");
-    let x1031 = session.resolve_reference("tag:-X1031").expect("-X1031").to_string();
+    let x1031 = session
+        .resolve_reference("tag:-X1031")
+        .expect("-X1031")
+        .to_string();
     drop(session);
     let line = std::fs::read_dir(tmp.sample_copy().join("layout"))
         .expect("the layout")
@@ -440,7 +443,8 @@ fn routes_preview_says_a_changed_way_with_its_old_length() {
         .collect();
     assert!(!rows.is_empty(), "Route changes the ways of -X1031's wires");
     assert!(
-        rows.iter().any(|r| r.contains(" mm (was ") && r.ends_with(" mm)")),
+        rows.iter()
+            .any(|r| r.contains(" mm (was ") && r.ends_with(" mm)")),
         "{rows:?}"
     );
     shell.shutdown();

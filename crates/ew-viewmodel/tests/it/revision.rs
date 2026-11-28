@@ -1173,9 +1173,17 @@ fn the_next_revision_toast_speaks_of_this_project_only() {
     copy_dir(Path::new(RELEASE_MIN), &other);
     let mut s = opened(|| ShellModel::new(Mode::Gui, config(&tmp)), &dir);
     done(&mut s, "revision.approve", json!({ "typed": "V1.0" }));
-    done(&mut s, "revision.approve", json!({ "confirm": true, "date": DATE }));
+    done(
+        &mut s,
+        "revision.approve",
+        json!({ "confirm": true, "date": DATE }),
+    );
     done(&mut s, "revision.release", json!({ "typed": "V1.0" }));
-    done(&mut s, "revision.release", json!({ "confirm": true, "date": DATE }));
+    done(
+        &mut s,
+        "revision.release",
+        json!({ "confirm": true, "date": DATE }),
+    );
     let said = |s: &ShellModel| {
         s.notifications()
             .entries()
@@ -1183,17 +1191,29 @@ fn the_next_revision_toast_speaks_of_this_project_only() {
             .count()
     };
     let open = |s: &mut ShellModel, dir: &Path| {
-        done(s, "file.open", json!({ "dir": dir.to_string_lossy(), "discard": true }));
+        done(
+            s,
+            "file.open",
+            json!({ "dir": dir.to_string_lossy(), "discard": true }),
+        );
     };
     open(&mut s, &other);
     assert_eq!(said(&s), 0, "another project opened");
     open(&mut s, &dir);
-    done(&mut s, "file.new", json!({ "dir": tmp.0.join("new.ew").to_string_lossy() }));
+    done(
+        &mut s,
+        "file.new",
+        json!({ "dir": tmp.0.join("new.ew").to_string_lossy() }),
+    );
     assert_eq!(said(&s), 0, "a new project made");
     open(&mut s, &dir);
     assert_eq!(said(&s), 0, "the released project opened again");
     done(&mut s, "navigator.show", json!({"kind": "connections"}));
-    done(&mut s, "navigator.table", json!({"kind": "connections", "on": true}));
+    done(
+        &mut s,
+        "navigator.table",
+        json!({"kind": "connections", "on": true}),
+    );
     assert_eq!(said(&s), 0, "a step that changes nothing");
     done(
         &mut s,
