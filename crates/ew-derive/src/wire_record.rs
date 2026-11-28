@@ -146,6 +146,10 @@ pub struct EndRecord {
     pub marked_by: MarkedBy,
     /// Whether the marker's text fits its marker part (EW-MFG-004 where not).
     pub marker_fits: bool,
+    /// A wire made on site that lands on this end's clamp and would have shared its twin ferrule: a twin is never
+    /// crimped of a wire the shop makes and one made on site, so this end takes a ferrule of its own and the list says
+    /// that the other wire joins the clamp on site (doc 13 §4.3). `None` for every other end.
+    pub joined_on_site: Option<Id<Connection>>,
 }
 
 /// The length of a wire (doc 13 §3.3, doc 12 §9): typed, else a core's cable, else its stored way's (routed, or stale
@@ -222,6 +226,7 @@ impl Query for WireRecordSet {
                         marker: MarkerText::NotMarked(NotMarked::Outside),
                         marked_by: MarkedBy::Setting,
                         marker_fits: true,
+                        joined_on_site: None,
                     });
                     WireRecord {
                         length: wire_length(q, &wire),

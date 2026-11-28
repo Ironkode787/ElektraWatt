@@ -718,3 +718,19 @@ fn a_shield_has_no_size_colour_or_ferrule_that_nothing_states() {
     assert!(shield[4..].iter().all(String::is_empty), "{shield:?}");
     assert_eq!(cells(&s, "-103W1 GNYE", &["to_end"]), ["ferrule 2.5 BU"]);
 }
+
+/// A twin ferrule is never crimped of a wire the shop makes and one made on site (doc 13 §4.3): 101.16 from the
+/// supply and the field wire 104.8 land on -104A1:L+, both 0.75 mm²; 101.16 takes a ferrule of its own there and says
+/// that 104.8 joins the clamp on site, 104.8 a ferrule of its own. Two field wires on one clamp, 104.4 and 104.8 at
+/// -104B1:13, still share a twin.
+#[test]
+fn a_shop_wire_and_a_site_wire_share_no_twin_ferrule() {
+    let s = common::sample();
+    assert_eq!(
+        cells(&s, "101.16", &["to_end", "to_part"]),
+        ["ferrule 0.75 GY · 104.8 joins it on site", "EW-GEN-FER-0.75"]
+    );
+    let field = cells(&s, "104.8", &["from_end", "to_end"]);
+    assert!(field.contains(&"ferrule 0.75 GY".to_owned()), "{field:?}");
+    assert!(field.iter().any(|e| e.starts_with("twin 0.75 GY · 104.4")), "{field:?}");
+}

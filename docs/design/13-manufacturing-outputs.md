@@ -489,24 +489,38 @@ part section describes them yet.
 
 ### 4.3 Two or more wires on one clamp
 
-The wires whose ends land on one CP share its clamp. Pairing runs on the ends no person has set by hand, after the
-table has given each its treatment:
+**The rule per clamp**, the one place it is said. The wires whose ends land on one CP share its clamp. Pairing runs on
+the ends no person has set by hand, after the table has given each its treatment:
+
+1. **Two wires of one size get a twin ferrule** where both ends are ferrules, the clamp takes one (its part says
+   `twin_ferrule`, or its part names no clamp data at all) and the shop's `two_wires` is `twin_ferrule`, the default;
+   they pair greedily by size (largest first), then number, then wire ID.
+2. **Else each gets a single ferrule:** wires of two sizes; a clamp whose part names its clamp (its kind, its range)
+   but not that it takes a twin ferrule; the shop's `ferrule_each`.
+3. **A twin is never crimped of a wire the shop makes and one made on site** (a field wire, §2.1): the shop's wire
+   takes a ferrule of its own and its end cell names the other, `ferrule 0.75 GY · 104.8 joins it on site`; two field
+   wires pair as two shop wires do.
+4. **A third conductor** (a wire left over by the pairs) keeps its own ferrule; the clamp then holds a twin and a
+   ferrule. A twin counts as one conductor: where the clamp's part names how many it takes and more land on it,
+   EW-POT-010 says so, naming the clamp.
 
 ```text
 for each CP with wires W (|W| ≥ 2), sorted by cross-section (largest first), then number, then wire ID:
-  pairable(a, b) = both ferrule ends, equal cross-section,
-                   the clamp takes a twin ferrule (or its part does not say),
+  pairable(a, b) = both ferrule ends, equal cross-section, both made in the shop or both on site,
+                   the clamp's part says twin_ferrule (or names no clamp data),
                    and the shop's two_wires is twin_ferrule
   pair greedily in that order; each pair → TwinFerrule{csa, partner}, every other end keeps its treatment
+  a shop end left beside a site end of its size → joined_on_site: that wire
   conductors = |W| − pairs
   conductors > the clamp's maximum (where its part names one) → EW-POT-010, naming the clamp
 ```
 
-A twin ferrule counts as one conductor, so EW-POT-010 and the treatment see the same count. Each wire of a pair prints
-`twin 2.5 · 102.8`: the size and the partner's number (a core's cable and core), so the fitter cuts both wires before he
-crimps them. Two wires of different sizes on one clamp get a ferrule each, as do two wires where the shop sets
-`ferrule_each`; three wires of one size give one pair and one single ferrule.
-
+Each wire of a pair prints `twin 2.5 · 102.8`: the size and the partner's number (a core's cable and core), so the
+fitter cuts both wires before he crimps them. **On the sample:** at -X1011:PE clamp a, 101.4 and 101.6 (2.5 mm²) share
+a twin ferrule and 101.5 (0.75 mm²) takes its own (rules 1 and 4): the PE terminal's part takes a twin and two
+conductors, so its clamp holds the twin and the ferrule. At -103F1:1, 101.8 and 101.11 (1.5 mm²) take a ferrule each
+(rule 2): the circuit breaker's part names its screw clamps without a twin ferrule. At -104A1:L+, 101.16 takes its own
+ferrule and the field wire 104.8 joins it on site (rule 3); at -104B1:13 the field wires 104.4 and 104.8 share a twin.
 ### 4.4 The part of an end
 
 A ferrule end takes the first ferrule of the workshop stock (`workshop.stock`, in its order;

@@ -472,7 +472,9 @@ fn pair(records: &mut [WireRecord], clamps: &BTreeMap<CpRef, Option<ClampData>>,
     }
 }
 
-/// Pairs the ends `ends` (record, end) of one clamp in the order of §4.3, each pair of one size into a twin ferrule.
+/// Pairs the ends `ends` (record, end) of one clamp in the order of §4.3, each pair of one size into a twin ferrule: a
+/// wire the shop makes with one, and a wire made on site (a field wire) with one; a shop wire's end that is left
+/// with a field wire of its size beside it names that wire, which joins the clamp on site.
 fn pair_in_order(records: &mut [WireRecord], mut ends: Vec<(usize, usize)>) {
     if ends.len() < 2 {
         return;
@@ -490,9 +492,13 @@ fn pair_in_order(records: &mut [WireRecord], mut ends: Vec<(usize, usize)>) {
             continue;
         }
         let size = mm2(&records[ends[x].0]);
-        let Some(y) =
-            (x + 1..ends.len()).find(|y| !taken[*y] && size.is_some() && mm2(&records[ends[*y].0]) == size)
-        else {
+        let field = records[ends[x].0].flags.field;
+        let Some(y) = (x + 1..ends.len()).find(|y| {
+            !taken[*y]
+                && size.is_some()
+                && mm2(&records[ends[*y].0]) == size
+                && records[ends[*y].0].flags.field == field
+        }) else {
             continue;
         };
         taken[x] = true;
@@ -507,6 +513,18 @@ fn pair_in_order(records: &mut [WireRecord], mut ends: Vec<(usize, usize)>) {
             csa: size,
             partner: Some(ida),
         };
+    }
+    // A shop wire's end left alone beside a field wire's of its size: the field wire joins the clamp on site.
+    for x in (0..ends.len()).filter(|x| !taken[*x]) {
+        let (shop, size) = (&records[ends[x].0], mm2(&records[ends[x].0]));
+        if shop.flags.field || size.is_none() {
+            continue;
+        }
+        let joins = (0..ends.len())
+            .filter(|y| !taken[*y] && records[ends[*y].0].flags.field && mm2(&records[ends[*y].0]) == size)
+            .map(|y| records[ends[y].0].wire.id)
+            .next();
+        records[ends[x].0].ends[ends[x].1].joined_on_site = joins;
     }
 }
 

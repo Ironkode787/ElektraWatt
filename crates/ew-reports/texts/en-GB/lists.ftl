@@ -348,6 +348,7 @@ report-kind-unknown = Unknown kind
 
 cell-label-for = { $p0 } at { $p1 }
 cell-label-named = { $p0 } · { $p1 }
+cell-joined-on-site = { $p0 } · { $p1 } joins it on site
 cell-label-does-not-fit = does not fit its marker part
 
 ## The workshop lists (doc 13 §3.6, §6, §9.3)

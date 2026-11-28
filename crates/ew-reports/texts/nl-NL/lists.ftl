@@ -348,6 +348,7 @@ report-kind-unknown = Onbekende soort
 
 cell-label-for = { $p0 } op { $p1 }
 cell-label-named = { $p0 } · { $p1 }
+cell-joined-on-site = { $p0 } · { $p1 } komt erbij ter plaatse
 cell-label-does-not-fit = past niet op het merkerartikel
 
 ## The workshop lists (doc 13 §3.6, §6, §9.3)

@@ -11,10 +11,10 @@ data,,2.5 mm² BU,1 wire,0.25,m
 data,,2.5 mm² DBU,7 wires,5.365,m
 data,,2.5 mm² GNYE,3 wires,1.47,m
 heading,Ferrules and lugs,,,,
-data,EW-GEN-FER-0.75,"Ferrule 0.75 mm², insulated",0.75 mm²,19,pc
+data,EW-GEN-FER-0.75,"Ferrule 0.75 mm², insulated",0.75 mm²,21,pc
 data,EW-GEN-FER-1.5,"Ferrule 1.5 mm², insulated",1.5 mm²,16,pc
 data,EW-GEN-FER-2.5,"Ferrule 2.5 mm², insulated",2.5 mm²,34,pc
-data,EW-GEN-FER-2X0.75,"Twin ferrule 2 × 0.75 mm², insulated",2 × 0.75 mm²,7,pc
+data,EW-GEN-FER-2X0.75,"Twin ferrule 2 × 0.75 mm², insulated",2 × 0.75 mm²,6,pc
 data,EW-GEN-FER-2X2.5,"Twin ferrule 2 × 2.5 mm², insulated",2 × 2.5 mm²,5,pc
 data,,no ring lug found,2.5 mm²,1,pc
 heading,Markers,,,,

@@ -1075,3 +1075,6 @@ change here.
   project's templates take other sheets
 - behaviour-change: the hole table's heading of a surface names its size ("Door 600 × 800 mm, page 904, …")
 - behaviour-change: Drilling…'s rows name the two files of each surface, and its toast which files are which surface's
+- behaviour-change: a twin ferrule is no longer made of a wire the shop makes and a wire made on site: the shop's wire
+  takes a ferrule of its own and its end cell says that the other joins the clamp on site ("ferrule 0.75 GY · 104.8
+  joins it on site"); an existing project's wire list and consumables change where such a pair stood

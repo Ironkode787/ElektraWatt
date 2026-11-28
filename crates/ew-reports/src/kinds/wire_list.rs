@@ -244,6 +244,11 @@ pub(super) fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
         };
         // The size in the end's words as the list prints a quantity in each language ("huls 1,5 BK"); the partner's
         // number keeps its point.
+        // A wire made on site that joins the clamp is named after the end's own ferrule (doc 13 §4.3).
+        let joined = end
+            .joined_on_site
+            .and_then(|w| wires.get(w))
+            .and_then(|r| wire_no(q, r));
         let words = |size: &dyn Fn(Dec3) -> String| {
             ew_derive::text::end_treatment(
                 &end.treatment,
@@ -252,6 +257,10 @@ pub(super) fn wire_row(q: &Q, wires: &Wires, rec: &WireRecord) -> Row {
                 partner.as_deref(),
                 size,
             )
+            .map(|t| match &joined {
+                Some(n) => text!("cell-joined-on-site", t, n.clone()),
+                None => t,
+            })
         };
         set(
             treatment,
