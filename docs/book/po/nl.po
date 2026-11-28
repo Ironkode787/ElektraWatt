@@ -5256,11 +5256,29 @@ msgstr ""
 "hoofdschakelaar met zijn deurkoppelingsgreep, staat eenmaal per te plaatsen "
 "artikel in de lijst. Zet de greep op de deur, voor zijn schakelaar."
 
-#: src/how-to/cabinet-surfaces.md:31
+#: src/how-to/cabinet-surfaces.md:30
+msgid ""
+"Whether the door closes over what stands behind it is judged from the parts' "
+"depths. Where a part has no depth, the door's page says so in its HUD, such "
+"as \"The closed door is not judged for 7 devices without a depth, -201X1 "
+"first\", with **Edit part…**, which opens the first part at its depth. "
+"Choose **Check ▸ Check project**: a door the check judged whole and found "
+"clear is said so in its toast, \"The door of -UC1 closes over what stands "
+"behind it.\""
+msgstr ""
+"Of de deur sluit over wat erachter staat, wordt beoordeeld aan de diepte van "
+"de artikelen. Waar een artikel geen diepte heeft, zegt de pagina van de deur "
+"dat in haar HUD, zoals \"De gesloten deur wordt niet beoordeeld voor 7 "
+"apparaten zonder diepte, eerst -201X1\", met **Artikel bewerken…**, dat het "
+"eerste artikel bij zijn diepte opent. Kies **Controle ▸ Project "
+"controleren**: een deur die de controle helemaal beoordeelde en vrij vond, "
+"staat in haar melding: \"De deur van -UC1 sluit over wat erachter staat.\""
+
+#: src/how-to/cabinet-surfaces.md:35
 msgid "Holes and cut-outs"
 msgstr "Gaten en uitsparingen"
 
-#: src/how-to/cabinet-surfaces.md:33
+#: src/how-to/cabinet-surfaces.md:37
 msgid ""
 "A part brings its holes: a pushbutton its cut-out, a rail and a duct their "
 "fixing holes. Select the device, the rail or the duct: Properties shows the "
@@ -5274,7 +5292,7 @@ msgstr ""
 "plaats vanaf de hoek van het vlak (\"270, 480 mm\") en, in zijn chip, zijn "
 "nummer en hoe het wordt gemaakt (\"H3 · Ø 22.3\")."
 
-#: src/how-to/cabinet-surfaces.md:36
+#: src/how-to/cabinet-surfaces.md:40
 msgid ""
 "To move one of these holes, type another place into its row: the chip then "
 "says \"moved\", and **Reset** puts the hole back. Tick **Leave out** below a "
@@ -5285,7 +5303,7 @@ msgstr ""
 "**Weglaten** aan onder een gat dat u niet maakt; het wordt dan nergens "
 "getekend of vermeld."
 
-#: src/how-to/cabinet-surfaces.md:38
+#: src/how-to/cabinet-surfaces.md:42
 msgid ""
 "Your shop's way of making holes is set once, in **Project properties ▸ "
 "Workshop**: **Fixing holes** (Tapped, Self-tapping screws, or Through, with "
@@ -5303,12 +5321,13 @@ msgstr ""
 "(**Schroef**, **Gaten hooguit … uit elkaar** en **Vanaf elk einde**), "
 "**Ruimte tussen gaten** en **Gemeten vanaf**, de hoek waarvandaan de gaten "
 "van elk vlak worden gemeten. Het zoekveld bovenaan vindt elk van deze rijen "
-"aan zijn woorden, zoals \"railbevestiging\", en opent hem. Zet een nieuwe Railbevestiging of Kabelgootbevestiging "
-"de gaten van een rail of een kabelgoot ergens anders, dan wordt een gat dat "
-"u daar verplaatste of wegliet, hersteld, en de kaart van de wijziging zegt "
-"hoeveel en op welke rails en kabelgoten voordat u toepast."
+"aan zijn woorden, zoals \"railbevestiging\", en opent hem. Zet een nieuwe "
+"Railbevestiging of Kabelgootbevestiging de gaten van een rail of een "
+"kabelgoot ergens anders, dan wordt een gat dat u daar verplaatste of "
+"wegliet, hersteld, en de kaart van de wijziging zegt hoeveel en op welke "
+"rails en kabelgoten voordat u toepast."
 
-#: src/how-to/cabinet-surfaces.md:44
+#: src/how-to/cabinet-surfaces.md:48
 msgid ""
 "To add a hole of your own, right-click the surface where it goes and choose "
 "**Add hole here…**. The form \"Add a hole to -UC1 door\" asks for the "
@@ -5330,7 +5349,7 @@ msgstr ""
 "voor een uitsparing, M12 tot M63 voor een wartel, breedte × hoogte voor een "
 "rechthoek.\""
 
-#: src/how-to/cabinet-surfaces.md:49
+#: src/how-to/cabinet-surfaces.md:53
 msgid ""
 "A hole of your own is dragged with Select, or moved by typing its X and Y in "
 "Properties, whose rows are Kind, Size, X, Y and For, and **Made**, which "
@@ -5340,14 +5359,23 @@ msgstr ""
 "typen in Eigenschappen, waar zijn rijen Soort, Grootte, X, Y en Voor zijn, "
 "en **Gemaakt**, dat \"Met de hand\" zegt; `Delete` verwijdert het."
 
-#: src/how-to/cabinet-surfaces.md:51
+#: src/how-to/cabinet-surfaces.md:55
+msgid ""
+#| "Choose **Check ▸ Check project**. **Holes too close** (EW-LAY-012) names "
+#| "both holes and how far apart they are, such as \"… is 3 mm from … on …: keep "
+#| "at least 5 mm between holes\", a hole inside a door's edge margin (\"… lies "
+#| "12 mm from the edge of …, inside its 30 mm margin and the 5 mm web; move it "
+#| "inward\"), and a hole off the sheet. Move one of the holes, or set the web "
+#| "your shop keeps (step 7). **Holes not known** (EW-LAY-017) names a part in a "
+#| "cut-out that has no holes: **Edit part…** opens it in Parts, where you give "
+#| "it its holes under **In the cabinet** ([Make your own parts](own-parts.md))."
 msgid ""
 "Choose **Check ▸ Check project**. **Holes too close** (EW-LAY-012) names "
 "both holes and how far apart they are, such as \"… is 3 mm from … on …: keep "
 "at least 5 mm between holes\", a hole inside a door's edge margin (\"… lies "
 "12 mm from the edge of …, inside its 30 mm margin and the 5 mm web; move it "
 "inward\"), and a hole off the sheet. Move one of the holes, or set the web "
-"your shop keeps (step 7). **Holes not known** (EW-LAY-017) names a part in a "
+"your shop keeps (step 8). **Holes not known** (EW-LAY-017) names a part in a "
 "cut-out that has no holes: **Edit part…** opens it in Parts, where you give "
 "it its holes under **In the cabinet** ([Make your own parts](own-parts.md))."
 msgstr ""
@@ -5357,16 +5385,16 @@ msgstr ""
 "randstrook van een deur (\"… ligt 12 mm van de rand van …, binnen de "
 "randstrook van 30 mm en de ruimte van 5 mm; schuif het naar binnen\"), en "
 "een gat buiten de plaat. Verschuif een van de gaten, of zet de ruimte die uw "
-"werkplaats aanhoudt (stap 7). **Gaten niet bekend** (EW-LAY-017) noemt een "
+"werkplaats aanhoudt (stap 8). **Gaten niet bekend** (EW-LAY-017) noemt een "
 "artikel in een uitsparing dat geen gaten heeft: **Artikel bewerken…** opent "
 "het in Artikelen, waar u het zijn gaten geeft onder **In de kast** ([Eigen "
 "artikelen maken](own-parts.md))."
 
-#: src/how-to/cabinet-surfaces.md:58
+#: src/how-to/cabinet-surfaces.md:62
 msgid "Cable glands"
 msgstr "Kabelwartels"
 
-#: src/how-to/cabinet-surfaces.md:60
+#: src/how-to/cabinet-surfaces.md:64
 msgid ""
 "A cable that leaves the cabinet, such as the supply cable or a motor cable, "
 "brings its cable gland, chosen from the workshop stock by the cable's outer "
@@ -5379,7 +5407,7 @@ msgstr ""
 "plaat \"2 wartels te plaatsen\" met de knop **Onderkant**, die naar de "
 "pagina van de onderkant gaat."
 
-#: src/how-to/cabinet-surfaces.md:63
+#: src/how-to/cabinet-surfaces.md:67
 msgid ""
 "On the bottom's page the HUD offers **Place cable glands**, which places "
 "every gland that waits in a row. Or drag them from Unplaced devices, where "
@@ -5397,7 +5425,7 @@ msgstr ""
 "volgt de aanwijzer tot u loslaat. Een wartel gaat in een zijwand, de "
 "bovenkant of de onderkant; de deur en de plaat weigeren hem."
 
-#: src/how-to/cabinet-surfaces.md:68
+#: src/how-to/cabinet-surfaces.md:72
 msgid ""
 "Select the cable: in Properties, under its part, **Gland** names the gland "
 "part with the chip \"proposed for 12.5 mm\", and **Gland hole** names its "
@@ -5414,7 +5442,7 @@ msgstr ""
 "zijn Eigenschappen zijn die van een gat, en **Gemaakt** zegt \"Voor de "
 "wartel van -101W1\" met **Selecteer de kabel**."
 
-#: src/how-to/cabinet-surfaces.md:72
+#: src/how-to/cabinet-surfaces.md:76
 msgid ""
 "Check project names a gland that waits (**Cable gland**, EW-LAY-018, an "
 "error when you release) with **Place on the bottom**. A cable whose gland "
@@ -5431,11 +5459,11 @@ msgstr ""
 "te houden, klikt u met de rechtermuisknop op het gat en kiest u **Als gat "
 "houden**."
 
-#: src/how-to/cabinet-surfaces.md:77
+#: src/how-to/cabinet-surfaces.md:81
 msgid "The hole table"
 msgstr "De gatentabel"
 
-#: src/how-to/cabinet-surfaces.md:79
+#: src/how-to/cabinet-surfaces.md:83
 msgid ""
 "Choose **Output ▸ Workshop ▸ Hole tables**. The hole table page lists every "
 "hole and cut-out of each surface, surface by surface, numbered in the order "
@@ -5452,7 +5480,7 @@ msgstr ""
 "(\"Ø 4.2, tap M5\", \"Ø 22.3\") en waarvoor het is. Een project zonder "
 "gatentabel opent **Rapportblok…** op de gatentabel."
 
-#: src/how-to/cabinet-surfaces.md:84
+#: src/how-to/cabinet-surfaces.md:88
 msgid ""
 "The drawings for drilling, the template to print at full size and the DXF, "
 "are in [Export the labels, the drilling drawings and the "

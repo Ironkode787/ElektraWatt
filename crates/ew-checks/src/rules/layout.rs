@@ -39,6 +39,7 @@ use ew_derive::layout::{
     member_order, primary_part, surface_pages,
 };
 use ew_derive::part_confidence;
+use ew_derive::part_fields::{Feature as PartFeature, PartLack};
 use ew_ids::Id;
 use ew_rds::Aspect;
 use ew_schema::{
@@ -808,7 +809,7 @@ impl Rule for Collision {
             };
             out.push(shown(f, q, surface));
         }
-        out.extend(closed_door(q));
+        out.extend(closed_door(q).0);
         out
     }
 }
@@ -822,23 +823,60 @@ fn in_front(q: &Q, surface: Id<MountingSurface>, r: Rect) -> Option<Rect> {
 /// What stands on the plate and what it takes out of it: its targets, its name, its surface, its footprint, its take.
 type OnPlate = (Vec<Target>, Named, Id<MountingSurface>, Rect, ew_units::Nm);
 
+/// What the closed-door check judged of one cabinet with a door (doc 12 §7): whether its part gives the room between
+/// the plate and the closed door, the devices it could not judge for want of a depth (of the plate and of its doors, in
+/// placement order), the part datum the first of what it could not judge lacks, and how many collisions it found. The
+/// check's findings and the door's page read the one judgement ([`door_verdicts`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct DoorVerdict {
+    /// The cabinet's enclosure.
+    pub enclosure: Id<Enclosure>,
+    /// Its doors.
+    pub doors: Vec<Id<MountingSurface>>,
+    /// Whether its part gives the room between the plate and the closed door: without it nothing is judged.
+    pub room: bool,
+    /// The devices not judged: they have no depth.
+    pub unjudged: Vec<Id<Device>>,
+    /// The datum the first of what is not judged lacks (the enclosure's part without the room, else the first
+    /// device's part), where a part names it.
+    pub lack: Option<PartLack>,
+    /// How many collisions with the closed door it found.
+    pub hits: usize,
+}
+
+impl DoorVerdict {
+    /// Whether the door closes over what stands behind it: judged whole, and nothing is hit.
+    pub fn closes(&self) -> bool {
+        self.room && self.unjudged.is_empty() && self.hits == 0
+    }
+}
+
+/// The closed-door check's judgement of every cabinet that has a door ([`DoorVerdict`]).
+pub fn door_verdicts(q: &Q) -> Vec<DoorVerdict> {
+    closed_door(q).1
+}
+
+/// The datum `part` lacks that the depth behind the door reads (`Feature::DoorReach`).
+fn door_lack(q: &Q, part: Option<&PartRef>) -> Option<PartLack> {
+    let part = part?;
+    let copy = q.parts().get(part.copy)?;
+    PartLack::of(part.copy, &copy.item, PartFeature::DoorReach)
+}
+
 /// EW-LAY-006, the closed door (doc 12 §7): per cabinet whose enclosure part gives the room between the plate and the
 /// closed door (`usable_depth`), a device or a duct of the plate that takes more than that room (`door_reach`: a
 /// device its rail's height, its depth and its front clearance, `reach`; a duct its height), and a device or a duct of
 /// the plate and a device of a door whose footprints overlap seen from the front and which together take more than
 /// the room (`door_meet`; the door's device what it reaches behind the door, `behind_door`). A device without a depth
-/// is not judged. Targets: the device and its placement (or the duct), and the door's device and placement;
-/// discriminators `door_reach` and `door_meet`.
-fn closed_door(q: &Q) -> Vec<Finding> {
+/// is not judged, and is counted in the cabinet's [`DoorVerdict`]. Targets: the device and its placement (or the
+/// duct), and the door's device and placement; discriminators `door_reach` and `door_meet`.
+fn closed_door(q: &Q) -> (Vec<Finding>, Vec<DoorVerdict>) {
     let placements = q.table::<Placement>();
     let carriers = q.table::<Carrier>();
     let surfaces = q.table::<MountingSurface>();
     let mut out = Vec::new();
-    for (enclosure, _) in q.table::<Enclosure>().iter() {
-        let Some(room) = ew_derive::layout::enclosure_section(q, enclosure).and_then(|s| s.usable_depth)
-        else {
-            continue;
-        };
+    let mut verdicts = Vec::new();
+    for (enclosure, e) in q.table::<Enclosure>().iter() {
         let of_kind = |kind: SurfaceKind| -> Vec<Id<MountingSurface>> {
             surfaces
                 .iter()
@@ -846,6 +884,25 @@ fn closed_door(q: &Q) -> Vec<Finding> {
                 .map(|(id, _)| id)
                 .collect()
         };
+        let doors = of_kind(SurfaceKind::Door);
+        let Some(room) = ew_derive::layout::enclosure_section(q, enclosure).and_then(|s| s.usable_depth)
+        else {
+            if !doors.is_empty() {
+                verdicts.push(DoorVerdict {
+                    enclosure,
+                    doors,
+                    room: false,
+                    unjudged: Vec::new(),
+                    lack: door_lack(
+                        q,
+                        q.devices().get(e.device).and_then(|d| primary_part(q, d)).as_ref(),
+                    ),
+                    hits: 0,
+                });
+            }
+            continue;
+        };
+        let mut unjudged: Vec<(Id<Device>, Option<PartLack>)> = Vec::new();
         let mut plate: Vec<OnPlate> = Vec::new();
         for s in of_kind(SurfaceKind::Plate) {
             for (id, pl) in placements.iter() {
@@ -855,14 +912,15 @@ fn closed_door(q: &Q) -> Vec<Finding> {
                 if g.surface != s {
                     continue;
                 }
-                if let Some(take) = ew_derive::layout::reach(q, id) {
-                    plate.push((
+                match ew_derive::layout::reach(q, id) {
+                    Some(take) => plate.push((
                         placement_targets(pl).to_vec(),
                         device_name(q, pl.device),
                         s,
                         g.footprint,
                         take,
-                    ));
+                    )),
+                    None => unjudged.push((pl.device, door_lack(q, g.part.as_ref()))),
                 }
             }
             for (id, c) in carriers.iter() {
@@ -902,16 +960,19 @@ fn closed_door(q: &Q) -> Vec<Finding> {
             }
         }
         let mut met: BTreeSet<(Vec<Target>, Id<Placement>)> = BTreeSet::new();
-        for door in of_kind(SurfaceKind::Door) {
+        for door in doors.iter().copied() {
             for (id, pl) in placements.iter() {
                 let Some(g) = q.get::<PlacementGeometry>(id).as_ref().clone() else {
                     continue;
                 };
-                let (true, Some(behind), Some(front)) = (
-                    g.surface == door,
-                    ew_derive::layout::behind_door(q, id),
-                    in_front(q, door, g.footprint),
-                ) else {
+                if g.surface != door {
+                    continue;
+                }
+                let Some(behind) = ew_derive::layout::behind_door(q, id) else {
+                    unjudged.push((pl.device, door_lack(q, g.part.as_ref())));
+                    continue;
+                };
+                let Some(front) = in_front(q, door, g.footprint) else {
                     continue;
                 };
                 for (targets, name, s, r, take) in &plate {
@@ -939,8 +1000,20 @@ fn closed_door(q: &Q) -> Vec<Finding> {
                 }
             }
         }
+        if !doors.is_empty() {
+            let mut seen = BTreeSet::new();
+            unjudged.retain(|(d, _)| seen.insert(*d));
+            verdicts.push(DoorVerdict {
+                enclosure,
+                doors,
+                room: true,
+                lack: unjudged.first().and_then(|(_, lack)| *lack),
+                unjudged: unjudged.into_iter().map(|(d, _)| d).collect(),
+                hits: reached.len() + met.len(),
+            });
+        }
     }
-    out
+    (out, verdicts)
 }
 
 // ---------------------------------------------------------------------------------------------------------

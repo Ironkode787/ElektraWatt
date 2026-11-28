@@ -229,6 +229,7 @@ toast-bridged = { $p0 ->
         [one] 1 brug toegevoegd tussen { $p1 } klemmen
        *[other] { $p0 } bruggen toegevoegd tussen { $p1 } klemmen
     }.
+toast-check-door-closes = De deur van { $p0 } sluit over wat erachter staat.
 toast-check = Controle: { $p0 }.
 toast-marker-count = { $p0 ->
         [one] 1 draad draagt een aanduiding

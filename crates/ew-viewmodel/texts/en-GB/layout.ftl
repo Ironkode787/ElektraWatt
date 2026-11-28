@@ -365,6 +365,12 @@ layout-cutout = { $p0 } goes in a cut-out of a door or a wall: place it on the d
 layout-open-door = Open the door
 reason-layout-cutout = The part goes in a cut-out of a door or a wall.
 hud-layout-door = Door
+# A door's page where the closed-door check cannot judge whether the door closes (doc 12 §7).
+hud-door-no-room = The closed door of { $p0 } is not judged: its part gives no depth between the plate and the door
+hud-door-unjudged = { $p0 ->
+        [one] The closed door is not judged for 1 device without a depth: { $p1 }
+       *[other] The closed door is not judged for { $p0 } devices without a depth, { $p1 } first
+    }
 hud-layout-cutout = { $p0 ->
         [one] 1 device goes in a cut-out
        *[other] { $p0 } devices go in a cut-out

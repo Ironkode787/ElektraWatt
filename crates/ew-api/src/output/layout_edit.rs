@@ -126,6 +126,23 @@ pub struct SurfaceOffer {
     pub page: Option<Uuid>,
 }
 
+/// What the closed-door check judged of one cabinet with a door ([`Session::door_judgements`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct DoorJudgement {
+    /// The cabinet's tag (`-UC1`).
+    pub cabinet: String,
+    /// Its doors' surfaces.
+    pub doors: Vec<Uuid>,
+    /// Whether its part gives the room between the plate and the closed door: without it nothing is judged.
+    pub room: bool,
+    /// Whether the door closes over what stands behind it: judged whole, and nothing hit.
+    pub closes: bool,
+    /// The devices not judged for want of a depth, each with its tag, in placement order.
+    pub unjudged: Vec<(Uuid, String)>,
+    /// The part copy and the field the first of what is not judged lacks (Edit part… opens it there).
+    pub lack: Option<(Uuid, &'static str)>,
+}
+
 /// The stored word of a surface kind (`door`), as `layout.surface.add` takes it.
 fn kind_word(kind: &ew_schema::SurfaceKind) -> &'static str {
     use ew_schema::SurfaceKind as K;
@@ -2628,6 +2645,26 @@ impl Session {
         let q = self.query();
         let word = kind_word(&q.table::<MountingSurface>().get(Id::from_uuid(surface))?.kind);
         (!word.is_empty()).then_some(word)
+    }
+
+    /// What the closed-door check judged of each cabinet with a door (doc 12 §7, `ew_checks`' `door_verdicts`, the
+    /// check's one judgement), with the tags a window names: the door's page and the check's result read it.
+    pub fn door_judgements(&self) -> Vec<DoorJudgement> {
+        let q = self.query();
+        ew_checks::rules::layout::door_verdicts(&q)
+            .into_iter()
+            .filter_map(|v| {
+                let device = q.table::<Enclosure>().get(v.enclosure)?.device;
+                Some(DoorJudgement {
+                    cabinet: tag(&q, device),
+                    doors: v.doors.iter().map(|d| d.as_uuid()).collect(),
+                    room: v.room,
+                    closes: v.closes(),
+                    unjudged: v.unjudged.iter().map(|d| (d.as_uuid(), tag(&q, *d))).collect(),
+                    lack: v.lack.map(|l| (l.copy.as_uuid(), l.field)),
+                })
+            })
+            .collect()
     }
 
     /// The tag of an enclosure's device as a sentence names it (`-UC1`).

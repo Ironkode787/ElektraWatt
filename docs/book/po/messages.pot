@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-28T04:52:04Z\n"
+"POT-Creation-Date: 2026-11-28T05:02:02Z\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4075,11 +4075,22 @@ msgid ""
 "the handle on the door in front of its switch."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:31
+#: src/how-to/cabinet-surfaces.md:30
+msgid ""
+"Whether the door closes over what stands behind it is judged from the parts' "
+"depths. Where a part has no depth, the door's page says so in its HUD, such "
+"as \"The closed door is not judged for 7 devices without a depth, -201X1 "
+"first\", with **Edit part…**, which opens the first part at its depth. "
+"Choose **Check ▸ Check project**: a door the check judged whole and found "
+"clear is said so in its toast, \"The door of -UC1 closes over what stands "
+"behind it.\""
+msgstr ""
+
+#: src/how-to/cabinet-surfaces.md:35
 msgid "Holes and cut-outs"
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:33
+#: src/how-to/cabinet-surfaces.md:37
 msgid ""
 "A part brings its holes: a pushbutton its cut-out, a rail and a duct their "
 "fixing holes. Select the device, the rail or the duct: Properties shows the "
@@ -4088,14 +4099,14 @@ msgid ""
 "22.3\")."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:36
+#: src/how-to/cabinet-surfaces.md:40
 msgid ""
 "To move one of these holes, type another place into its row: the chip then "
 "says \"moved\", and **Reset** puts the hole back. Tick **Leave out** below a "
 "hole you do not make; it is then drawn and listed nowhere."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:38
+#: src/how-to/cabinet-surfaces.md:42
 msgid ""
 "Your shop's way of making holes is set once, in **Project properties ▸ "
 "Workshop**: **Fixing holes** (Tapped, Self-tapping screws, or Through, with "
@@ -4108,7 +4119,7 @@ msgid ""
 "how many and on which rails and ducts before you apply it."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:44
+#: src/how-to/cabinet-surfaces.md:48
 msgid ""
 "To add a hole of your own, right-click the surface where it goes and choose "
 "**Add hole here…**. The form \"Add a hole to -UC1 door\" asks for the "
@@ -4120,30 +4131,30 @@ msgid ""
 "cut-out, M12 to M63 for a gland, width × height for a rectangle.\""
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:49
+#: src/how-to/cabinet-surfaces.md:53
 msgid ""
 "A hole of your own is dragged with Select, or moved by typing its X and Y in "
 "Properties, whose rows are Kind, Size, X, Y and For, and **Made**, which "
 "says \"By hand\"; `Delete` removes it."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:51
+#: src/how-to/cabinet-surfaces.md:55
 msgid ""
 "Choose **Check ▸ Check project**. **Holes too close** (EW-LAY-012) names "
 "both holes and how far apart they are, such as \"… is 3 mm from … on …: keep "
 "at least 5 mm between holes\", a hole inside a door's edge margin (\"… lies "
 "12 mm from the edge of …, inside its 30 mm margin and the 5 mm web; move it "
 "inward\"), and a hole off the sheet. Move one of the holes, or set the web "
-"your shop keeps (step 7). **Holes not known** (EW-LAY-017) names a part in a "
+"your shop keeps (step 8). **Holes not known** (EW-LAY-017) names a part in a "
 "cut-out that has no holes: **Edit part…** opens it in Parts, where you give "
 "it its holes under **In the cabinet** ([Make your own parts](own-parts.md))."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:58
+#: src/how-to/cabinet-surfaces.md:62
 msgid "Cable glands"
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:60
+#: src/how-to/cabinet-surfaces.md:64
 msgid ""
 "A cable that leaves the cabinet, such as the supply cable or a motor cable, "
 "brings its cable gland, chosen from the workshop stock by the cable's outer "
@@ -4151,7 +4162,7 @@ msgid ""
 "the button **Bottom**, which goes to the bottom's page."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:63
+#: src/how-to/cabinet-surfaces.md:67
 msgid ""
 "On the bottom's page the HUD offers **Place cable glands**, which places "
 "every gland that waits in a row. Or drag them from Unplaced devices, where "
@@ -4162,7 +4173,7 @@ msgid ""
 "it."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:68
+#: src/how-to/cabinet-surfaces.md:72
 msgid ""
 "Select the cable: in Properties, under its part, **Gland** names the gland "
 "part with the chip \"proposed for 12.5 mm\", and **Gland hole** names its "
@@ -4172,7 +4183,7 @@ msgid ""
 "and **Made** says \"For the gland of -101W1\" with **Select the cable**."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:72
+#: src/how-to/cabinet-surfaces.md:76
 msgid ""
 "Check project names a gland that waits (**Cable gland**, EW-LAY-018, an "
 "error when you release) with **Place on the bottom**. A cable whose gland "
@@ -4182,11 +4193,11 @@ msgid ""
 "choose **Keep it as a hole**."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:77
+#: src/how-to/cabinet-surfaces.md:81
 msgid "The hole table"
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:79
+#: src/how-to/cabinet-surfaces.md:83
 msgid ""
 "Choose **Output ▸ Workshop ▸ Hole tables**. The hole table page lists every "
 "hole and cut-out of each surface, surface by surface, numbered in the order "
@@ -4196,7 +4207,7 @@ msgid ""
 "for. A project without a hole table opens **Report block…** on it."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:84
+#: src/how-to/cabinet-surfaces.md:88
 msgid ""
 "The drawings for drilling, the template to print at full size and the DXF, "
 "are in [Export the labels, the drilling drawings and the "

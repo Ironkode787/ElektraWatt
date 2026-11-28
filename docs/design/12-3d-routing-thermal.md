@@ -133,7 +133,12 @@ contact block).
   when the door is closed: they take 117.5 and 100 mm of the 200 mm between the plate and the door".
 
 A device without a depth is not judged, nor a cabinet whose enclosure part gives no usable depth; the device's
-Properties say "Depth not known: the closed door is not checked for it". On the sample nothing reaches the door: the
+Properties say "Depth not known: the closed door is not checked for it". The check's own judgement of each cabinet
+with a door (`ew_checks::rules::layout::door_verdicts`: the room or not, the devices not judged with the part datum
+the first lacks, the collisions) is what the window says: the door's page says in its HUD "The closed door is not
+judged for 7 devices without a depth, -201X1 first" (or that the cabinet's part gives no depth) with Edit part… at the
+first datum, and a check that judged a door whole and found it clear adds to its toast "The door of -UC1 closes over
+what stands behind it", so that silence never stands for either. On the sample nothing reaches the door: the
 deepest, -101G1, takes 117.5 of the 200 mm (110 mm on its 7.5 mm rail), and -102S1 in the door, in front of duct 1,
 takes 45 mm beside the duct's 60.
 

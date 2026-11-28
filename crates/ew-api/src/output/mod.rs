@@ -150,7 +150,8 @@ pub use layers::{
 };
 pub(crate) use layout_edit::LayoutPartOffer;
 pub use layout_edit::{
-    GlandSnap, LayoutEdit, LayoutEditError, SurfaceOffer, corner_choice_words, hinge_choice_words, parse_mm,
+    DoorJudgement, GlandSnap, LayoutEdit, LayoutEditError, SurfaceOffer, corner_choice_words, hinge_choice_words,
+    parse_mm,
 };
 pub use navigation::{
     CellLabel, GotoError, LinkTarget, PageCells, PageCp, PageListTable, PageRow, page_kind_name,

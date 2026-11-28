@@ -1596,11 +1596,48 @@ fn select_prompt(model: &ShellModel, stack: &mut usize, buttons: &mut Vec<HudBut
             });
             Some(strings::format_count(crate::count_key!("hud-layout-glands"), n))
         };
+        // A door whose closing the check cannot judge (doc 12 §7, the check's own judgement): why, how many, and the
+        // way to the first datum it lacks (Edit part…), else to the first device.
+        let door = |t: &ew_api::output::PanelTables, buttons: &mut Vec<HudButton>| {
+            let judged = model
+                .project_session()?
+                .door_judgements()
+                .into_iter()
+                .find(|j| j.doors.contains(&t.surface))?;
+            let text = if !judged.room {
+                strings::format(key!("hud-door-no-room"), &[&judged.cabinet])
+            } else if let Some((first, tag)) = judged.unjudged.first() {
+                if judged.lack.is_none() {
+                    buttons.push(button(
+                        tag.clone(),
+                        "select.set",
+                        serde_json::json!({ "ids": [first.to_string()] }),
+                    ));
+                }
+                strings::format_counted(
+                    crate::count_key!("hud-door-unjudged"),
+                    judged.unjudged.len(),
+                    &[tag],
+                )
+            } else {
+                return None;
+            };
+            if let Some((copy, field)) = judged.lack {
+                buttons.push(button(
+                    strings::text(key!("action-part-edit-card")).to_owned(),
+                    "parts.open",
+                    serde_json::json!({ "part": format!("id:{copy}"), "field": field }),
+                ));
+            }
+            Some(text)
+        };
         match model.panel_tables() {
             None => strings::text(key!("hud-layout-start")).to_owned(),
-            // A door, a side, the top or the bottom: the glands that wait, else Select's hint. The first steps below
-            // are the plate's.
-            Some(t) if !t.plate => glands(&t, buttons).unwrap_or_else(hint),
+            // A door, a side, the top or the bottom: the glands that wait, else a door's closing the check cannot
+            // judge, else Select's hint. The first steps below are the plate's.
+            Some(t) if !t.plate => glands(&t, buttons)
+                .or_else(|| door(&t, buttons))
+                .unwrap_or_else(hint),
             // A plate with no device on it says the next step.
             Some(t) if t.placements.is_empty() && !t.unplaced.is_empty() => {
                 buttons.push(unplaced());

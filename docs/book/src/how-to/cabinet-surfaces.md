@@ -27,56 +27,60 @@ The sample project has its mounting plate on page 902, its door on page 904 and 
    quarter turn.
 4. A device with one part in the door and one on the plate, such as a main switch with its door coupling handle, is
    listed once per part to place. Put the handle on the door in front of its switch.
+5. Whether the door closes over what stands behind it is judged from the parts' depths. Where a part has no depth,
+   the door's page says so in its HUD, such as "The closed door is not judged for 7 devices without a depth, -201X1
+   first", with **Edit part…**, which opens the first part at its depth. Choose **Check ▸ Check project**: a door the
+   check judged whole and found clear is said so in its toast, "The door of -UC1 closes over what stands behind it."
 
 ## Holes and cut-outs
 
-5. A part brings its holes: a pushbutton its cut-out, a rail and a duct their fixing holes. Select the device, the
+6. A part brings its holes: a pushbutton its cut-out, a rail and a duct their fixing holes. Select the device, the
    rail or the duct: Properties shows the section **Holes**, one row per hole with its place from the surface's
    corner ("270, 480 mm") and, in its chip, its number and how it is made ("H3 · Ø 22.3").
-6. To move one of these holes, type another place into its row: the chip then says "moved", and **Reset** puts the
+7. To move one of these holes, type another place into its row: the chip then says "moved", and **Reset** puts the
    hole back. Tick **Leave out** below a hole you do not make; it is then drawn and listed nowhere.
-7. Your shop's way of making holes is set once, in **Project properties ▸ Workshop**: **Fixing holes** (Tapped,
+8. Your shop's way of making holes is set once, in **Project properties ▸ Workshop**: **Fixing holes** (Tapped,
    Self-tapping screws, or Through, with a nut), **Rail fixing** and **Duct fixing** (**Screw**, **Holes at most …
    apart** and **From each end**), **Web between holes** and **Measured from**, the corner every surface's holes are
    measured from. The command search finds each of these rows by its words, such as "rail fixing", and opens it. When a new Rail fixing or Duct fixing puts a rail's or a duct's holes elsewhere, a hole you moved
    or left out there is reset, and the card of the change says how many and on which rails and ducts before you apply
    it.
-8. To add a hole of your own, right-click the surface where it goes and choose **Add hole here…**. The form "Add a
+9. To add a hole of your own, right-click the surface where it goes and choose **Add hole here…**. The form "Add a
    hole to -UC1 door" asks for the **Kind** (Hole, Fixing, Cut-out, Gland or Rectangle), the **Size**, **X (mm)** and
    **Y (mm)** from the corner the surface is measured from (the point you clicked) and what it is **For**, such as
    "Earth stud". Choose **Add**. A size that does not read is refused in words: "Give the hole's size: a diameter for a
    hole, M3 to M8 for a fixing, 16, 22 or 30 for a cut-out, M12 to M63 for a gland, width × height for a rectangle."
-9. A hole of your own is dragged with Select, or moved by typing its X and Y in Properties, whose rows are Kind,
+10. A hole of your own is dragged with Select, or moved by typing its X and Y in Properties, whose rows are Kind,
    Size, X, Y and For, and **Made**, which says "By hand"; `Delete` removes it.
-10. Choose **Check ▸ Check project**. **Holes too close** (EW-LAY-012) names both holes and how far apart they are,
+11. Choose **Check ▸ Check project**. **Holes too close** (EW-LAY-012) names both holes and how far apart they are,
     such as "… is 3 mm from … on …: keep at least 5 mm between holes", a hole inside a door's edge margin ("… lies
     12 mm from the edge of …, inside its 30 mm margin and the 5 mm web; move it inward"), and a hole off the sheet.
-    Move one of the holes, or set the web your shop keeps (step 7). **Holes not known** (EW-LAY-017) names a part in
+    Move one of the holes, or set the web your shop keeps (step 8). **Holes not known** (EW-LAY-017) names a part in
     a cut-out that has no holes: **Edit part…** opens it in Parts, where you give it its holes under **In the
     cabinet** ([Make your own parts](own-parts.md)).
 
 ## Cable glands
 
-11. A cable that leaves the cabinet, such as the supply cable or a motor cable, brings its cable gland, chosen from
+12. A cable that leaves the cabinet, such as the supply cable or a motor cable, brings its cable gland, chosen from
     the workshop stock by the cable's outer diameter. While glands wait, the plate's HUD says "2 glands to place" with
     the button **Bottom**, which goes to the bottom's page.
-12. On the bottom's page the HUD offers **Place cable glands**, which places every gland that waits in a row. Or drag
+13. On the bottom's page the HUD offers **Place cable glands**, which places every gland that waits in a row. Or drag
     them from Unplaced devices, where they are listed under **Glands** by their cable's tag ("gland M25"): several
     dropped together stand in a row, each as far from the next as their nuts need, and the outline of each nut
     follows the pointer until you let go. A gland goes in a side, the top or the bottom; the door and the plate refuse
     it.
-13. Select the cable: in Properties, under its part, **Gland** names the gland part with the chip "proposed for
+14. Select the cable: in Properties, under its part, **Gland** names the gland part with the chip "proposed for
     12.5 mm", and **Gland hole** names its hole, "H2" with "on page 905", or says "not placed". Type another gland part
     of the project into Gland to choose it; an empty Gland takes the proposal back. Select a placed gland itself: its
     Properties are a hole's, and **Made** says "For the gland of -101W1" with **Select the cable**.
-14. Check project names a gland that waits (**Cable gland**, EW-LAY-018, an error when you release) with **Place on
+15. Check project names a gland that waits (**Cable gland**, EW-LAY-018, an error when you release) with **Place on
     the bottom**. A cable whose gland changes keeps the hole you made, and the finding offers **Take** with the new
     size, such as **Take M32**. A gland hole whose cable is gone offers **Remove the hole**; to keep it as a spare
     entry, right-click the hole and choose **Keep it as a hole**.
 
 ## The hole table
 
-15. Choose **Output ▸ Workshop ▸ Hole tables**. The hole table page lists every hole and cut-out of each surface,
+16. Choose **Output ▸ Workshop ▸ Hole tables**. The hole table page lists every hole and cut-out of each surface,
     surface by surface, numbered in the order they are made, with X and Y from the corner its heading names (such as
     "Door, page 904, seen from outside, measured from the bottom-left corner"), how each is made ("Ø 4.2, tap M5",
     "Ø 22.3") and what it is for. A project without a hole table opens **Report block…** on it.

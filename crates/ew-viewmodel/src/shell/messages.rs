@@ -499,10 +499,23 @@ impl ShellModel {
                         vec![("messages.show", serde_json::json!({ "on": true }))],
                     )
                 });
+            // The closed-door check's own judgement (doc 12 §7): a cabinet whose door it judged whole and found clear
+            // is said so, so that silence never stands for it.
+            let closes = self
+                .project
+                .as_ref()
+                .map(|p| p.session.door_judgements())
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|j| j.closes)
+                .map(|j| strings::format(key!("toast-check-door-closes"), &[&j.cabinet]));
             self.notes.push(
-                crate::notifications::Note::new("edit", check_summary(c, before))
-                    .offering([action])
-                    .toned(check_tone(c)),
+                crate::notifications::Note::of(
+                    "edit",
+                    std::iter::once(check_summary(c, before)).chain(closes).collect(),
+                )
+                .offering([action])
+                .toned(check_tone(c)),
             );
             self.messages.check_toast = self
                 .messages

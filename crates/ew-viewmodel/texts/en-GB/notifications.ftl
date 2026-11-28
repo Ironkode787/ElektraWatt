@@ -267,6 +267,7 @@ toast-bridged = { $p0 ->
         [one] Added 1 bridge between { $p1 } terminals
        *[other] Added { $p0 } bridges between { $p1 } terminals
     }.
+toast-check-door-closes = The door of { $p0 } closes over what stands behind it.
 toast-check = Check: { $p0 }.
 toast-marker-count = { $p0 ->
         [one] 1 wire carries an annotation

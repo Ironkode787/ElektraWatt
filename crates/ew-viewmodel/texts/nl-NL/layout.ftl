@@ -364,6 +364,12 @@ layout-cutout = { $p0 } komt in een uitsparing van een deur of een wand: plaats 
 layout-open-door = Deur openen
 reason-layout-cutout = Het artikel komt in een uitsparing van een deur of een wand.
 hud-layout-door = Deur
+# De pagina van een deur waar de controle van de gesloten deur niet kan oordelen of de deur sluit (doc 12 §7).
+hud-door-no-room = De gesloten deur van { $p0 } wordt niet beoordeeld: het artikel geeft geen diepte tussen de plaat en de deur
+hud-door-unjudged = { $p0 ->
+        [one] De gesloten deur wordt niet beoordeeld voor 1 apparaat zonder diepte: { $p1 }
+       *[other] De gesloten deur wordt niet beoordeeld voor { $p0 } apparaten zonder diepte, eerst { $p1 }
+    }
 hud-layout-cutout = { $p0 ->
         [one] 1 apparaat komt in een uitsparing
        *[other] { $p0 } apparaten komen in een uitsparing
