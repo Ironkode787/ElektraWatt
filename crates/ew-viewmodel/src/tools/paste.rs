@@ -363,11 +363,7 @@ impl Tool for PasteTool {
     }
 
     fn on_preview(&mut self, info: &PreviewInfo) -> Option<Overlay> {
-        self.tags = if info.ok {
-            info.tags.iter().map(|(_, after)| after.clone()).collect()
-        } else {
-            Vec::new()
-        };
+        self.tags = predicted_tags(info);
         self.notices.clone_from(&info.notices);
         let label = self.label();
         for item in &mut self.last.items {
@@ -380,5 +376,42 @@ impl Tool for PasteTool {
 
     fn as_any_mut(&mut self) -> Option<&mut dyn std::any::Any> {
         Some(self)
+    }
+}
+
+/// The tags an accepted preview predicts, as the label lists them: in the tags' own natural order. The preview lists
+/// them by device ID, and a pasted device's ID is new with every paste, so that order is not the same twice.
+fn predicted_tags(info: &PreviewInfo) -> Vec<String> {
+    if !info.ok {
+        return Vec::new();
+    }
+    let mut tags: Vec<String> = info.tags.iter().map(|(_, after)| after.clone()).collect();
+    tags.sort_by_cached_key(|t| ew_api::output::nav_natural_key(t));
+    tags
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The label's tags do not follow the order the preview lists them in (the new devices' IDs), which differs from
+    /// one paste to the next: whichever way the preview orders three pasted devices, the label reads the same.
+    #[test]
+    fn the_predicted_tags_read_the_same_whatever_order_the_preview_lists_them_in() {
+        let info = |tags: &[&str]| PreviewInfo {
+            ok: true,
+            tags: tags.iter().map(|t| (String::new(), (*t).to_owned())).collect(),
+            notices: Vec::new(),
+            message: None,
+        };
+        let one = predicted_tags(&info(&["-1S1", "-1E1", "-1S2", "-1S10"]));
+        let other = predicted_tags(&info(&["-1S10", "-1S2", "-1S1", "-1E1"]));
+        assert_eq!(one, other);
+        assert_eq!(one, ["-1E1", "-1S1", "-1S2", "-1S10"]);
+        let refused = PreviewInfo {
+            ok: false,
+            ..info(&["-1S1"])
+        };
+        assert!(predicted_tags(&refused).is_empty());
     }
 }

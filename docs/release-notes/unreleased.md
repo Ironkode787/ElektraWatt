@@ -1116,3 +1116,5 @@ change here.
   the -UC1 door …"); in Dutch the column Because reads "Reden"
 - text-change: Drilling…'s toast names a single surface alone ("… a template and a DXF for Door."), each of them
   where there are several
+- behaviour-change: the Paste tool's label lists the tags the paste will give in the tags' own order ("-1E1, -1S1,
+  -1S2"); it followed the new devices' IDs, so the same paste could read in another order the next time
