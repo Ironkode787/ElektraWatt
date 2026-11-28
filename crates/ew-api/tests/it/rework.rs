@@ -591,7 +591,9 @@ fn a_change_a_workshop_setting_made_names_it() {
         .iter()
         .find_map(|r| match (&r.csa, &r.colour, &r.number) {
             (Some(c), Some(k), Some(n)) => match &c.value {
-                ew_schema::Csa::Mm2(d) => Some((n.clone(), d.to_string(), serde_json::to_value(&k.value).ok()?)),
+                ew_schema::Csa::Mm2(d) => {
+                    Some((n.clone(), d.to_string(), serde_json::to_value(&k.value).ok()?))
+                }
                 _ => None,
             },
             _ => None,

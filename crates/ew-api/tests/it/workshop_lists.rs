@@ -561,7 +561,10 @@ fn the_assembly_lists_count_from_a_datum_corner_on_the_right() {
             .unwrap_or_else(|| panic!("no {starts}: {all:#?}"))
             .clone()
     };
-    assert!(row("heading,\"Rail 1 ").contains("positions from its right end"), "{all:#?}");
+    assert!(
+        row("heading,\"Rail 1 ").contains("positions from its right end"),
+        "{all:#?}"
+    );
     let strip = all
         .iter()
         .find(|l| l.contains(",Strip,-X1011,"))
@@ -580,7 +583,10 @@ fn the_assembly_lists_count_from_a_datum_corner_on_the_right() {
         .map(|l| l.split(',').nth(4).unwrap_or_default().to_owned())
         .collect();
     assert_eq!(
-        (terminals.first().map(String::as_str), terminals.last().map(String::as_str)),
+        (
+            terminals.first().map(String::as_str),
+            terminals.last().map(String::as_str)
+        ),
         (Some("PE"), Some("L1")),
         "{terminals:?}"
     );
@@ -604,7 +610,8 @@ fn a_gap_after_a_device_without_a_width_is_not_known() {
     assert!(all[at].contains("width missing"), "{}", all[at]);
     let next = &all[at + 1];
     assert!(
-        next.starts_with("data,,Gap,") && next.ends_with(",the place after -201X2 is not known: its width is missing"),
+        next.starts_with("data,,Gap,")
+            && next.ends_with(",after -201X2: not known"),
         "{next}"
     );
     assert!(!next.contains('–'), "no span: {next}");

@@ -133,7 +133,12 @@ fn the_door_s_template_lies_in_its_datum_corner_and_its_dxf_holds_its_holes() {
 /// sheet can hold stands whole on a printed one, and every other hole is named as larger than a sheet.
 fn keeps_its_rules(s: &Session, door: Id<MountingSurface>, t: &ew_derive::layout::TemplateSheets) {
     let overlap = ew_derive::layout::TEMPLATE_OVERLAP;
-    let tile = |row: u32, col: u32| t.tiles.iter().find(|a| (a.row, a.col) == (row, col)).expect("a tile");
+    let tile = |row: u32, col: u32| {
+        t.tiles
+            .iter()
+            .find(|a| (a.row, a.col) == (row, col))
+            .expect("a tile")
+    };
     for a in &t.tiles {
         if a.col + 1 < t.cols {
             let next = tile(a.row, a.col + 1).area;
@@ -155,7 +160,11 @@ fn keeps_its_rules(s: &Session, door: Id<MountingSurface>, t: &ew_derive::layout
         }
     }
     let reach = t.tiles.iter().fold(t.tiles[0].area, |r, a| r.union(a.area));
-    assert!(reach.contains(t.cover.min()) && reach.contains(t.cover.max()), "{reach:?} {:?}", t.cover);
+    assert!(
+        reach.contains(t.cover.min()) && reach.contains(t.cover.max()),
+        "{reach:?} {:?}",
+        t.cover
+    );
     let q = s.query();
     for (f, hole) in q
         .get::<ew_derive::layout::SurfaceFeatures>(door)
@@ -168,13 +177,21 @@ fn keeps_its_rules(s: &Session, door: Id<MountingSurface>, t: &ew_derive::layout
                 && hole.max().x <= a.area.max().x
                 && hole.max().y <= a.area.max().y
         });
-        assert!(whole || t.larger.contains(&f.no), "H{} {hole:?} is whole on no sheet", f.no);
+        assert!(
+            whole || t.larger.contains(&f.no),
+            "H{} {hole:?} is whole on no sheet",
+            f.no
+        );
     }
 }
 
 /// The sample's door with a rectangular cut-out of one's own, `w` × `h` mm about the point `at` of its sheet, and its
 /// template on A4.
-fn with_cut_out(w: i64, h: i64, at: (i64, i64)) -> (Session, Id<MountingSurface>, ew_derive::layout::TemplateSheets) {
+fn with_cut_out(
+    w: i64,
+    h: i64,
+    at: (i64, i64),
+) -> (Session, Id<MountingSurface>, ew_derive::layout::TemplateSheets) {
     let mut s = common::sample();
     let door = door(&s);
     run(
@@ -216,7 +233,12 @@ fn a_join_moves_clear_of_a_hole_and_a_hole_larger_than_a_sheet_is_drawn_across()
     // A 150 mm cut-out on it: a sheet more at most, across and up.
     let (s, door, t) = with_cut_out(150, 150, join);
     keeps_its_rules(&s, door, &t);
-    assert!(t.cols <= plain.cols + 1 && t.rows <= plain.rows + 1, "{} × {}", t.rows, t.cols);
+    assert!(
+        t.cols <= plain.cols + 1 && t.rows <= plain.rows + 1,
+        "{} × {}",
+        t.rows,
+        t.cols
+    );
     // The 197 × 141 mm cut-out of a touch panel on A4.
     let (s, door, t) = with_cut_out(197, 141, join);
     keeps_its_rules(&s, door, &t);

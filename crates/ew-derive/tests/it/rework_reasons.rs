@@ -8,7 +8,9 @@
 use crate::common;
 
 use common::{Fx, id, uid};
-use ew_derive::{Q, ReworkAction, ReworkItem, ReworkReason, ReworkSubject, WireRecordSet, WorkshopSetting, rework};
+use ew_derive::{
+    Q, ReworkAction, ReworkItem, ReworkReason, ReworkSubject, WireRecordSet, WorkshopSetting, rework,
+};
 use ew_ids::Id;
 use ew_schema::Connection;
 use serde_json::{Value, json};
@@ -257,7 +259,11 @@ fn on_k1(q: &Q, n: u128) -> ew_derive::EndRecord {
         .iter()
         .find(|r| r.wire.id == w)
         .and_then(|r| {
-            let i = r.wire.ends.iter().position(|e| e.cp == ew_derive::CpRef::new(id(K1), 0))?;
+            let i = r
+                .wire
+                .ends
+                .iter()
+                .position(|e| e.cp == ew_derive::CpRef::new(id(K1), 0))?;
             Some(r.ends[i].clone())
         })
         .expect("the wire on -K1")
@@ -275,13 +281,26 @@ fn a_shop_and_a_site_wire_join_by_the_rule_and_pair_by_hand() {
     let m = located(fx).build();
     let q = Q::new(&m);
     let shop = on_k1(&q, W1);
-    assert!(!matches!(shop.treatment, ew_derive::EndTreatment::TwinFerrule { .. }), "{shop:?}");
+    assert!(
+        !matches!(shop.treatment, ew_derive::EndTreatment::TwinFerrule { .. }),
+        "{shop:?}"
+    );
     assert_eq!(shop.joined_on_site, Some(id(W2)));
     let counts = ew_derive::clamp_conductors(&q.get::<WireRecordSet>(()));
-    assert_eq!(counts.get(&ew_derive::CpRef::new(id(K1), 0)), Some(&1), "{counts:?}");
+    assert_eq!(
+        counts.get(&ew_derive::CpRef::new(id(K1), 0)),
+        Some(&1),
+        "{counts:?}"
+    );
     let mut by_hand = devices();
     for (n, to) in [(W1, K1 + 1), (W2, K1 + 4)] {
-        wire(&mut by_hand, n, K1, to, json!({"end_a": {"treatment": "twin_ferrule"}}));
+        wire(
+            &mut by_hand,
+            n,
+            K1,
+            to,
+            json!({"end_a": {"treatment": "twin_ferrule"}}),
+        );
     }
     let m = located(by_hand).build();
     let q = Q::new(&m);

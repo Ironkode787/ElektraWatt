@@ -440,7 +440,7 @@ fn the_wire_lists_first_page_says_how_to_read_it_from_the_settings() {
         "50 mm at each end",
         "80 mm at each end and 250 mm across a door's hinge",
         "A wire's marker carries the wire's number.",
-        "on -X1011, -X1021, -X1031 it is the other way round.",
+        "on -X1011, -X1021, -X1031 the other way round.",
     ] {
         assert_eq!(
             first.iter().any(|l| l.contains(words)),
@@ -486,9 +486,9 @@ fn how_to_read_the_papers_says_what_holds_for_the_sample() {
     let notes = reading(&s, true);
     assert!(notes.len() <= 7, "{notes:#?}");
     for words in [
-        "a routed length holds the way along the ducts, 50 mm at each end and 300 mm across a door's hinge",
-        "a typed length is the one typed in the project",
-        "written here with / between them",
+        "routed, the way along the ducts with 50 mm at each end and 300 mm across a door's hinge",
+        "typed, as typed",
+        "written here with /",
         "is cut, laid and landed on site, at its cabinet end too",
         "Work in this order",
     ] {
@@ -511,7 +511,7 @@ fn how_to_read_the_papers_of_a_project_without_a_layout() {
             && !matches!(r, ew_schema::Record::ReportBlock(b) if b.layout_page.is_some())
     });
     let notes = reading(&common::session_of(project, records, lib), true);
-    for gone in ["routed", "door's hinge", "≈"] {
+    for gone in ["routed,", "door's hinge", "≈"] {
         assert!(!says(&notes, gone), "{gone}: {notes:#?}");
     }
     assert!(says(&notes, "A length of — is none"), "{notes:#?}");
@@ -526,14 +526,18 @@ fn how_to_read_the_papers_follows_the_door_the_site_and_the_marking() {
     project.settings.workshop.marking = ew_schema::Marking::BothEnds;
     let mut sample = common::session_of(project.clone(), records.clone(), lib.clone());
     let notes = reading(&sample, true);
-    assert!(says(&notes, "names the end it sits on, then its far end"), "{notes:#?}");
+    assert!(
+        says(&notes, "names the end it sits on, then its far end"),
+        "{notes:#?}"
+    );
     let wires = sample.query().get::<ew_derive::WireRecordSet>(());
     let door: Vec<ew_ids::Id<ew_schema::Connection>> = wires
         .iter()
         .filter(|r| {
             matches!(
                 r.length,
-                ew_derive::WireLength::Routed { door: true, .. } | ew_derive::WireLength::Stale { door: true, .. }
+                ew_derive::WireLength::Routed { door: true, .. }
+                    | ew_derive::WireLength::Stale { door: true, .. }
             )
         })
         .map(|r| r.wire.id)
@@ -562,7 +566,11 @@ fn how_to_read_the_papers_follows_the_door_the_site_and_the_marking() {
     common::run_cmd(&mut sample, "edit.delete", json!({"targets": targets}));
     let no_site = reading(&sample, true);
     assert!(
-        !sample.query().get::<ew_derive::WireRecordSet>(()).iter().any(|r| r.flags.field),
+        !sample
+            .query()
+            .get::<ew_derive::WireRecordSet>(())
+            .iter()
+            .any(|r| r.flags.field),
         "no wire is made on site"
     );
     assert!(!says(&no_site, "on site"), "{no_site:#?}");
