@@ -65,6 +65,14 @@ pub struct LabelsDialog {
 }
 
 impl LabelsDialog {
+    /// Why "Changed since a release" cannot be chosen, where it cannot: the project has no released revision whose
+    /// archive is found. Its place in the choice says it.
+    pub fn since_note(&self) -> Option<&'static str> {
+        self.releases
+            .is_empty()
+            .then(|| strings::text(key!("labels-no-release")))
+    }
+
     /// The scope of the session's label files.
     fn scope(&self) -> LabelScope {
         match &self.which {

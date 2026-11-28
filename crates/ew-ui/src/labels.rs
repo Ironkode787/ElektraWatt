@@ -62,6 +62,10 @@ pub(crate) fn body(ui: &mut Ui, d: &LabelsDialog, events: &mut Vec<Event>) {
                             events.push(Event::Action("labels.show", json!({ "since": release.label })));
                         }
                     }
+                    // Without a release its place says why it cannot be chosen.
+                    if let Some(note) = d.since_note() {
+                        ui.add_enabled(false, egui::Button::selectable(false, note));
+                    }
                 },
             );
             combo.response.labelled_by(which_label.id);

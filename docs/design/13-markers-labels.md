@@ -110,7 +110,9 @@ CSV has CR LF line ends and its values as they are, never the formula guard of t
 program would print ([09](09-output.md) §4.6). A row is one label; its Copies tells the label program how many to
 print.
 
-**The Labels… dialog** lists the files, each with its set, its marker part, its count and a tick; on one line the
+**The Labels… dialog** chooses Every label or the labels changed since a release (a project without a released revision
+says so in that place: "Changed since a release: none yet, the project has no released revision"), lists the files, each
+with its set, its marker part, its count and a tick; on one line the
 profile ("Excel · Text 1, Text 2, Text 3, Copies, For") with Change…; and the line that counts the labels whose text
 does not fit their marker part, with Show. The form of the files is the profile's, so the dialog has no form of its
 own; `ew export labels --format csv|xlsx` sets it for that one export.

@@ -235,3 +235,21 @@ fn label_file_columns_keep_what_this_build_does_not_know() {
         })
     );
 }
+
+/// Where "Changed since a release" cannot be chosen, its place says why: the sample has no released revision.
+#[test]
+fn changed_since_a_release_says_why_it_cannot_be_chosen() {
+    let tmp = Tmp::new("labels-no-release");
+    let mut s = tmp.sample_in(ew_viewmodel::shell::Mode::Gui, true, "101");
+    done(&mut s, "labels.show", json!({}));
+    assert_eq!(
+        labels(&s).since_note(),
+        Some("Changed since a release: none yet, the project has no released revision")
+    );
+    assert!(
+        s.describe()
+            .contains("  note \"Changed since a release: none yet, the project has no released revision\""),
+        "the dialog's text says it"
+    );
+    s.shutdown();
+}

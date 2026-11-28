@@ -218,6 +218,7 @@ labels-which = Labels
 labels-all = Alle labels
 labels-since = Gewijzigd sinds { $p0 }
 labels-archive = Gewijzigd sinds het archief { $p0 }
+labels-no-release = Gewijzigd sinds een vrijgave: nog geen, het project heeft geen vrijgegeven revisie
 labels-profile = Labelbestand
 labels-change = Wijzigen…
 labels-file = Bestand

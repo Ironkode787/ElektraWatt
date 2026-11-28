@@ -212,6 +212,9 @@ pub(super) fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                 crate::shell::labels::Which::File(_) => "since archive file".to_owned(),
             };
             lines.push(format!("  labels {which}"));
+            if let Some(note) = d.since_note() {
+                lines.push(format!("  note \"{note}\""));
+            }
             lines.push(format!("  profile \"{}\"", d.profile));
             match &d.files {
                 Ok(files) => {

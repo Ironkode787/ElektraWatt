@@ -14,7 +14,8 @@ holes of the cabinet's surfaces ([Place devices in the door, and make holes and 
    the number of labels to print (their copies counted) and a tick. A file is named by the drawing number, the label set and the marker part, such as
    `SAMPLE-E Wire markers EW-GEN-MRK-1.xlsx`.
 2. Under **Labels**, choose **Every label**, or, after a release, only those changed since it (**Changed since
-   V1.0**).
+   V1.0**). Before the first release that choice says so: "Changed since a release: none yet, the project has no
+   released revision".
 3. The line **Label file** says the form of the files and their columns, such as "Excel · Text 1, Text 2, Text 3,
    Copies, For". **Change…** sets, for the whole project, the columns a file has, their headings and their order,
    Excel or CSV, and a CSV's delimiter; **Generic columns** puts the generic ones back. Your label program imports the

@@ -223,6 +223,7 @@ labels-which = Labels
 labels-all = Every label
 labels-since = Changed since { $p0 }
 labels-archive = Changed since the archive { $p0 }
+labels-no-release = Changed since a release: none yet, the project has no released revision
 labels-profile = Label file
 labels-change = Change…
 labels-file = File
