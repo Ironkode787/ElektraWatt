@@ -1058,6 +1058,22 @@ change here.
   Contents holds too
 - behaviour-change: Export list… and the package's lists write the columns the list's page prints, one row per row,
   without the `id` column and the hidden sheets of the round trip (`ew export report` and Export table… keep them)
+- behaviour-change (scripts): the rework list's CSV and Excel export now has the columns Action, No., From, CP, To, CP,
+  Colour, mm², Length mm, From end, From part, From strip length mm, From marker, To end, To part, To strip length mm,
+  To marker, Change, Because: From part, From strip length mm, To part, To strip length mm and Because are new, and To
+  end moves from after From end to after From marker; a Mount device or Remove device row's Change names its place
+- behaviour-change (scripts): the wire list from Export list… and the package has the columns No., From, CP, To, CP,
+  Colour, mm², Length mm, From end, From part, From strip length mm, From marker, To end, To part, To strip length mm,
+  To marker, Pages, one row per wire (the page's two lines per wire are the print's alone), no `row` column and no
+  hidden sheets; `ew export report --kind wire_list` and Export table… keep every column in their order, and their
+  cells change only where rule 3 parts a shop and a site wire (`ferrule 0.75 GY · 104.8 joins it on site`)
+- behaviour-change (scripts): the assembly list's columns are Pos, Item, Device, Terminal, Part number, Description,
+  Colour, Width mm, Position mm, Marker, Note (Device and Position mm new); each rail is a heading row ("Rail 1 · …")
+  followed by its rail and what is on it in mounting order (Strip, Device and Gap rows, a strip pointing to its own
+  block), then the strips' blocks as before, then a heading row per surface for the devices without a rail and one
+  for the devices not placed
+- behaviour-change (scripts): the consumables write one row per marker part, its For cell naming each label set with
+  its count ("Wire markers 82, Tube markers 14") and its Quantity their sum, where they were one row per part and set
 - behaviour-change: the consumables name a marker part once with its total, and where it marks several label sets
   each with its labels ("Wire markers 82, Tube markers 14")
 - text-change: Contents says what the release check found and, apart from it, what the files lack of the workshop
