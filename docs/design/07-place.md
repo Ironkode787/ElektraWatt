@@ -150,9 +150,10 @@ changed, where it is listed, and Also stored: what a file brought that the progr
 
 **Save** is refused only for what makes no part: no maker, no part number, or a part of that maker and number that
 exists, each said at its field with the way on ("Example CON-18-24 is in My parts already. Open it"). Everything
-else may be missing: Ready for says what follows. Where devices of the open project use the part, Save shows first
-what changes for them (the pins that go or change their names, the boxes that are drawn anew and why, the lines of
-the parts list that change), and Save and update makes the change in one undo step. A part of kind wire, ferrule or
+else may be missing: Ready for says what follows. Where the open project holds the part (its devices use it, or
+its workshop stock names it), Save shows first what changes there (the pins that go or change their names, the
+boxes that are drawn anew and why, the lines of the parts list that change), and Save and update makes the change
+in one undo step: until then the project's copy is as it was. A part of kind wire, ferrule or
 marker is refused as something another part comes with: the consumables count it (§2.5).
 
 **Remove…** takes a part out of My parts, or out of the project when it is only there. It stands greyed while
