@@ -152,8 +152,11 @@ fn a_device_placed_on_a_bus_page_is_one_symbol_inside_the_page_and_off_another_d
     let near = grid_point(&s, (right - 2, foot - 8));
     cursor(&mut s, near);
     done(&mut s, "canvas.activate", json!({}));
-    // A new station opens its station view; the page is shown again.
-    done(&mut s, "page.goto", json!({"folio": "105"}));
+    // A new station placed on a bus page leaves the view on the page; a toast offers its rack.
+    assert!(s.station_tab().is_none(), "the page stays in front");
+    let toast = s.toast().cloned().expect("the station's toast");
+    assert!(toast.text.ends_with(" is drawn on this bus page; Rack… fills its slots."), "{}", toast.text);
+    assert_eq!(s.current_folio(), Some("105"));
     let placed: Vec<TableRep> = symbols(&s)
         .into_iter()
         .filter(|r| !before.iter().any(|b| b.id == r.id))

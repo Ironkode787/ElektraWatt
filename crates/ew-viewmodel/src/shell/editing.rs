@@ -158,7 +158,8 @@ fn far_offer(
 
 impl ShellModel {
     /// After a commit that drew PLC devices for the first time (the rack comes first): a station
-    /// placed directly opens its view in a tab beside the page, so it is filled there (a further symbol of a station
+    /// placed directly opens its view in a tab beside the page, so it is filled there, except on a bus page, where a
+    /// toast offers its rack and the view stays on the page (a further symbol of a station
     /// drawn before, a station the project had put on a bus page, or one whose view is open already, does not; Escape
     /// goes back to the page); a module that joined a station says which slot it got, with Rack… as the toast's action; a module that
     /// waits asks which station takes it when the project has several, and offers New station… when it has none.
@@ -234,7 +235,16 @@ impl ShellModel {
                 a.tabs()
                     .any(|(_, _, t)| t.station.as_ref().is_some_and(|s| s.station == Some(station)))
             });
-            if !existing && !open {
+            // On a bus page the view stays on the page the station was drawn on: a toast offers its rack.
+            let bus_page = self
+                .page_rows()
+                .get(self.page_index())
+                .is_some_and(|r| r.kind == ew_api::PageType::BusTopology);
+            if !existing && !open && bus_page {
+                let tag = session.device_tag(station).unwrap_or_default();
+                let rack = self.rack_offer(station);
+                self.notify_offer(strings::format(key!("toast-station-on-bus-page"), &[&tag]), rack);
+            } else if !existing && !open {
                 let _ = self.act_plc_rack_editor(&Map::from_iter([(
                     "station".to_owned(),
                     Value::String(station.to_string()),

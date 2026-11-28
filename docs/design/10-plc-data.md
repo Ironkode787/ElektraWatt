@@ -150,7 +150,7 @@ config_project?, modules, copies}`: the station device (drawn on no page), its `
 declares I/O, its own module, and each module as `plc.add_module` makes it (positional, in rack order), one undo
 step. The same command with `device` makes an existing bus device a station (F19): a part with a station section takes
 N0's role, a part without PLC data the role `io_device` with an open rack whose modules are added by hand. A station
-part placed directly opens its station's view at once; a module placed directly joins as D4 says and its toast names the
+part placed directly opens its station's view at once, except on a bus page, where the page stays in front and a toast offers Rack…; a module placed directly joins as D4 says and its toast names the
 slot, or a chooser asks which station takes it when several could and none is drawn beside it. The rack's order is the
 slot: moving a module up or down swaps two modules' positions (`assembly.attach`) or slots (`fields.set_many`), and the
 view says when addresses moved. Only a module part goes into a rack: the window refuses any other device in words,

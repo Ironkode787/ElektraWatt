@@ -510,6 +510,7 @@ toast-terminal-draw = Klik waar { $p0 } komt op pagina { $p1 }: het wordt als zi
 toast-terminal-valves-drawn = De ventielen van { $p0 } staan in hun vakken, de voedingspoorten 1, 3 en 5 aan de linkerkant.
 toast-fluid-page-made = Fluïdumpagina { $p0 } is ervoor gemaakt.
 toast-card-joined = { $p0 } is in slot { $p2 } van { $p1 } gezet.
+toast-station-on-bus-page = { $p0 } staat op deze buspagina; Rek… vult zijn sloten.
 toast-show-folder = In map tonen
 toast-tutorial-here = Het oefenproject van de zelfstudie staat onder Tutorials in uw projectenmap.
 toast-tutorial-second-window = Het oefenproject van de zelfstudie staat onder Tutorials in uw projectenmap; het opent in een tweede venster en uw project blijft hier open.

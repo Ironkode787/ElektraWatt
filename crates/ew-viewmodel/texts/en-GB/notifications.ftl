@@ -558,6 +558,7 @@ toast-terminal-draw = Click where { $p0 } goes on page { $p1 }: it is drawn as i
 toast-terminal-valves-drawn = The valves of { $p0 } stand in its cells, its supply ports 1, 3 and 5 at its left end.
 toast-fluid-page-made = Fluid page { $p0 } made for it.
 toast-card-joined = { $p0 } joined { $p1 } in slot { $p2 }.
+toast-station-on-bus-page = { $p0 } is drawn on this bus page; Rack… fills its slots.
 toast-show-folder = Show in folder
 toast-tutorial-here = The tutorial's practice project is under Tutorials in your projects folder.
 toast-tutorial-second-window = The tutorial's practice project is under Tutorials in your projects folder; it opens in a second window, and your project stays open here.
