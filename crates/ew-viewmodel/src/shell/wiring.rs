@@ -527,6 +527,7 @@ impl ShellModel {
                 label: None,
                 link: None,
                 note: None,
+                words: Vec::new(),
                 ..model
             });
         }

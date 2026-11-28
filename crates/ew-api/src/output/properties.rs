@@ -191,6 +191,10 @@ pub struct PropRow {
     /// A line under the row that says how its value is made (doc 12-3d §9: "Routed: 821 mm of way, 50 mm reserve at
     /// each end and a 300 mm door loop, rounded up to 1225 mm"; the way in words); `None` for every other row.
     pub note: Option<crate::Text>,
+    /// The value as the program words it, phrases a window renders in its language and joins by " · " (architecture
+    /// §18: a text stays a text until the window renders it; `value`'s text is their English, which the command line
+    /// prints): a duct's Fill, a placement's Ways. Empty for a value that is no phrase.
+    pub words: Vec<crate::Text>,
 }
 
 /// A link a Properties row offers beside its value: its words, and the window's actions it runs, in order (the page to
@@ -257,6 +261,7 @@ impl DerivedRow<'_> {
             label: None,
             link: None,
             note: None,
+            words: Vec::new(),
         }
     }
 }

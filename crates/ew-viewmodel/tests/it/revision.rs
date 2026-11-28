@@ -1040,3 +1040,22 @@ fn the_rework_list_compares_with_the_release() {
     );
     s.shutdown();
 }
+
+/// A file chosen with Archive file… that is no as-built archive is said so in the window's language, not in the
+/// archive reader's English (which names its entries).
+#[test]
+fn a_file_that_is_no_archive_is_said_so_in_the_windows_language() {
+    let tmp = Tmp::new("revision-rework-junk");
+    let dir = fixture_copy(&tmp);
+    let mut s = opened(|| ShellModel::new(Mode::Gui, config(&tmp)), &dir);
+    done(&mut s, "view.language", json!({ "value": "nl" }));
+    let junk = tmp.0.join("V1.0.ewarchive");
+    std::fs::write(&junk, b"not an archive").expect("written");
+    done(&mut s, "rework.archive", json!({ "path": junk.to_string_lossy() }));
+    let text = dialog_text(&mut s);
+    assert!(
+        text.contains("  note \"Het bestand is geen vrijgavearchief van ElektraWatt, of het is beschadigd"),
+        "{text}"
+    );
+    s.shutdown();
+}

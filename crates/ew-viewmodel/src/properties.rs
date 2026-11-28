@@ -1945,23 +1945,20 @@ pub fn command_choice_text(path: &str, option: &str) -> String {
     }
 }
 
-/// Writes the rows whose value is a phrase in the UI language's words, as `words` gives a row's value by its key and its
-/// section's first target (`Session::layout_row_phrases`, rendered and joined): a value equal on every target is the
-/// first one's. A row `words` does not know keeps its text.
-pub fn phrases_in_words(
-    sheet: &mut PropertySheet,
-    words: impl Fn(&str, ew_api::output::Uuid) -> Option<String>,
-) {
-    for section in &mut sheet.sections {
-        let Some(first) = section.targets.first().copied() else {
+/// Writes every row whose value the program words (`PropRow::words`) in the UI language: its phrases rendered and
+/// joined by " · ". A value that differs over the targets keeps its texts.
+pub fn words_in_language(sheet: &mut PropertySheet) {
+    for row in sheet.sections.iter_mut().flat_map(|s| s.rows.iter_mut()) {
+        if row.words.is_empty() {
             continue;
-        };
-        for row in &mut section.rows {
-            if let RowValue::One { text, .. } = &mut row.value
-                && let Some(w) = words(&row.key, first)
-            {
-                *text = w;
-            }
+        }
+        if let RowValue::One { text, .. } = &mut row.value {
+            *text = row
+                .words
+                .iter()
+                .map(crate::strings::render)
+                .collect::<Vec<_>>()
+                .join(" · ");
         }
     }
 }

@@ -397,7 +397,8 @@ One path, from the place a thing is found to the words on a screen or a page.
 
 3. **A seam carries a `Text`, never a `String`:** a command's error, a finding, a session error's refusal, an
    action's outcome, an enable check's reason, the sentences of a notification, a cell's word and a column's
-   heading. The type is the guard: a `String` for a person exists only after rendering.
+   heading, a Properties row's value that the program words (`PropRow::words`, beside the English text the command
+   line prints). The type is the guard: a `String` for a person exists only after rendering.
 4. **Rendering happens once, at the edge:** `ew_l10n::render(text, language)`. The window renders in the window's
    language; a page, a list, an export and a stamp in the project's language; the command line in English. en-GB is the mandatory language and the fallback, and every language holds every key.
    A `Text` carries the catalogue of the crate that owns its key (`text!` gives it), so a text that an edge prints

@@ -159,6 +159,7 @@ impl SectionCx<'_, '_> {
                 label: None,
                 link: None,
                 note: None,
+                words: Vec::new(),
             },
             derived: false,
         });

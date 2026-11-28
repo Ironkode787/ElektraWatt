@@ -791,13 +791,11 @@ fn placement_rows(q: &Q, id: Id<Placement>) -> Option<Vec<PropRow>> {
             }
             // A device in a door without a depth (doc 12 §7): the closed door is not checked for it.
             None if s.kind == ew_schema::SurfaceKind::Door => {
-                let text = depth_unknown().to_string();
-                rows.push(text_row(
+                rows.push(phrase_row(
                     k,
                     "behind_door",
-                    text,
+                    vec![depth_unknown()],
                     derived_of(text!("via-part")),
-                    None,
                 ));
             }
             None => {}
@@ -1142,12 +1140,11 @@ fn carrier_rows(q: &Q, id: Id<Carrier>) -> Option<Vec<PropRow>> {
     let length = path_length(&c.path);
     match (&c.params, RailAxis::of(&c.path)) {
         (CarrierParams::Rail(r), axis) if rail => {
-            rows.push(text_row(
+            rows.push(phrase_row(
                 k,
                 "profile",
-                ew_derive::text::mount_kind(&r.profile).to_string(),
+                vec![ew_derive::text::mount_kind(&r.profile)],
                 Provenance::Authored,
-                None,
             ));
             if let Some(a) = axis {
                 let start = format!(
@@ -1230,7 +1227,6 @@ fn fill_rows(q: &Q, id: Id<Carrier>, d: &ew_schema::DuctParams) -> Vec<PropRow> 
         return Vec::new();
     };
     let k = "carrier";
-    let words = english(&fill_phrases(&fill));
     // Select them: the duct's wires selected, for the Connections table and for their ways on the page.
     let ids: Vec<Uuid> = fill.wires.iter().map(|w| w.as_uuid()).collect();
     let mut wires = text_row(
@@ -1244,10 +1240,19 @@ fn fill_rows(q: &Q, id: Id<Carrier>, d: &ew_schema::DuctParams) -> Vec<PropRow> 
         label: ew_derive::text!("duct-wires-select"),
         actions: vec![("select.set", json!({ "ids": ids }))],
     });
-    let inner = duct_inner_words(q, &fill, d).to_string();
     vec![
-        text_row(k, "inner_area", inner, derived_of(text!("via-part")), None),
-        text_row(k, "fill", words, derived_of(text!("via-stored-ways")), None),
+        phrase_row(
+            k,
+            "inner_area",
+            vec![duct_inner_words(q, &fill, d)],
+            derived_of(text!("via-part")),
+        ),
+        phrase_row(
+            k,
+            "fill",
+            fill_phrases(&fill),
+            derived_of(text!("via-stored-ways")),
+        ),
         wires,
     ]
 }
@@ -1269,25 +1274,28 @@ fn fill_phrases(fill: &ew_derive::layout::DuctFillV) -> Vec<crate::Text> {
     std::iter::once(first).chain(duct_fill_notes(fill)).collect()
 }
 
-/// A row's phrases in English, as the sheet's text carries them for the command line: joined by " · ".
-fn english(phrases: &[crate::Text]) -> String {
-    phrases
+/// A read-only row whose value the program words (`PropRow::words`): the phrases, which the window renders in its
+/// language, and their English joined by " · " as its text, which the command line prints.
+fn phrase_row(kind: &str, name: &str, phrases: Vec<crate::Text>, provenance: Provenance) -> PropRow {
+    let english = phrases
         .iter()
         .map(ToString::to_string)
         .collect::<Vec<_>>()
-        .join(" · ")
+        .join(" · ");
+    let mut row = text_row(kind, name, english, provenance, None);
+    row.words = phrases;
+    row
 }
 
 /// A placement's Ways row (doc 12-3d §12.5): how many of the ways laid for its wires hold, or how many no longer hold,
 /// with Route ("5 no longer hold · Route"); none for a placement without a laid way.
 fn ways_row(q: &Q, id: Id<Placement>) -> Option<PropRow> {
     let (text, stale) = ways_text(q, id)?;
-    let mut row = text_row(
+    let mut row = phrase_row(
         "placement",
         "ways",
-        text.to_string(),
+        vec![text],
         derived_of(text!("via-stored-ways")),
-        None,
     );
     row.link = stale.then(|| super::properties::RowLink {
         label: ew_derive::text!("way-route"),
@@ -2638,43 +2646,6 @@ impl Session {
             .into_iter()
             .find(|(x, _)| *x == c.id)
             .map(|(_, l)| ew_derive::text::carrier_label(l))
-    }
-
-    /// The value of the layout row `key` (`carrier/derived.fill`) of the record `target` as the phrases a window
-    /// renders in its language and joins by " · " (architecture §18: the sheet's text is their English, for the command
-    /// line): a duct's Fill and Inner area, a placement's Ways, and Behind the door of a door's device without a depth.
-    /// `None` for another row, or one whose value is no phrase.
-    pub fn layout_row_phrases(&self, key: &str, target: Uuid) -> Option<Vec<crate::Text>> {
-        let q = || self.query();
-        match key {
-            "carrier/derived.fill" | "carrier/derived.inner_area" => {
-                let q = q();
-                let id = Id::<Carrier>::from_uuid(target);
-                let fill = q.get::<ew_derive::layout::DuctFill>(id).as_ref().clone()?;
-                if key.ends_with("fill") {
-                    return Some(fill_phrases(&fill));
-                }
-                let c = q.table::<Carrier>().get(id)?.clone();
-                let CarrierParams::Duct(d) = &c.params else {
-                    return None;
-                };
-                Some(vec![duct_inner_words(&q, &fill, d)])
-            }
-            "placement/derived.ways" => ways_text(&q(), Id::from_uuid(target)).map(|(t, _)| vec![t]),
-            "placement/derived.behind_door" => {
-                let q = q();
-                let id = Id::<Placement>::from_uuid(target);
-                let CarrierRef::Surface(s) = q.table::<Placement>().get(id)?.carrier else {
-                    return None;
-                };
-                let door = q
-                    .table::<MountingSurface>()
-                    .get(s)
-                    .is_some_and(|s| s.kind == ew_schema::SurfaceKind::Door);
-                (door && ew_derive::layout::behind_door(&q, id).is_none()).then(|| vec![depth_unknown()])
-            }
-            _ => None,
-        }
     }
 
     /// The Surface row's choices: the project's mounting surfaces as `(surface, words)`, in the row's

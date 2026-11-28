@@ -327,6 +327,11 @@ impl ShellModel {
         let project = or_return!(crate::shell::gated(&self.project));
         let files = match project.session.label_files(&scope, None, None) {
             Ok(f) => f,
+            Err(ew_api::LabelError::Rework(e)) => {
+                return Outcome::Failed {
+                    message: super::rework::reason(&e),
+                };
+            }
             Err(e) => return failed(key!("error-export"), &[&e.to_string()]),
         };
         let files: Vec<ew_api::LabelFile> = files.into_iter().filter(|f| wanted.contains(&f.name)).collect();

@@ -304,6 +304,7 @@ mod tests {
             label: None,
             link: None,
             note: None,
+            words: Vec::new(),
         };
         PropertySheet {
             rev: 0,

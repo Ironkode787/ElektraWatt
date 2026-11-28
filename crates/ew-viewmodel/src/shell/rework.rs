@@ -110,7 +110,11 @@ pub(super) fn reason(e: &ReworkError) -> String {
                 label,
             ],
         ),
-        ReworkError::Open(e) => strings::format(key!("rework-not-opened"), &[&e.to_string()]),
+        // The archive's own words name its entries and paths: the window says what is, in its language.
+        ReworkError::Open(ew_api::ArchiveOpenError::Io(e)) => {
+            strings::format(key!("rework-not-opened"), &[&crate::jobs::io_cause(e)])
+        }
+        ReworkError::Open(_) => strings::text(key!("rework-not-an-archive")).to_owned(),
     }
 }
 

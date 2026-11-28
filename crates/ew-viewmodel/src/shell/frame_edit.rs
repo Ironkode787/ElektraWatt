@@ -571,6 +571,7 @@ impl ShellModel {
                 label: Some(label),
                 link: None,
                 note: None,
+                words: Vec::new(),
             };
         let text = |k: crate::strings::Key<'static>| strings::text(k).to_owned();
         let mut header = ew_api::output::SheetHeader::default();
