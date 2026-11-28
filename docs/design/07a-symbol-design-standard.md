@@ -8,7 +8,7 @@ SPDX-License-Identifier: CC-BY-4.0
 **Status:** Draft v0.1 · **Date:** 2026-11-05 (2026-11-06, the document set's header and purpose) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document is EW authoring profile 1: the conventions a symbol follows, whoever draws it. It applies
-equally to people in the symbol editor, AI programs and imported drafts, and refines the symbols of
+equally to people drawing in Parts, AI programs and imported drafts, and refines the symbols of
 [07: Symbols, parts and macros](07-symbols-parts-macros.md); the drawing of Parts implements it. It is an ElektraWatt convention inspired by ECAD practice, not an
 IEC certification or a copy of a vendor library.
 

@@ -23,7 +23,7 @@ after each diff and compares (oracle), and the field-mask test guards new fields
 
 ```mermaid
 sequenceDiagram
-  participant UI as Part editor / import job
+  participant UI as Parts / import job
   participant P as ew-panel (pool)
   participant W as ew-step-worker (OCCT)
   participant C as Cache (OS cache dir)

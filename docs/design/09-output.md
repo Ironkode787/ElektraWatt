@@ -344,8 +344,8 @@ keep Noto Sans.
   from it); absent (or `middle`) centres the text from the first line's cap height to its last baseline on `at`, as
   before. `item.place` takes `anchor`; Properties shows it as *Anchor*.
 - A symbol's text (a static text or a text slot) has three more alignments, `baseline_left`, `baseline_centre` and
-  `baseline_right`: the baseline of the text's first line on its point, left, centred or right; the symbol editor
-  offers *Baseline* beside top, middle and bottom.
+  `baseline_right`: the baseline of the text's first line on its point, left, centred or right; the drawing in
+  Parts offers *On the baseline* beside top, middle and bottom.
 - Turned upright or placed in a variant that brings its body to the other side of its point (a text at 180°, a
   symbol turned half round or mirrored top to bottom), a baseline text is placed as a bottom-aligned text is: by
   the top of its box ([`ew_scene::symbol::placed_align`]); turned a quarter, by the middle of its side.

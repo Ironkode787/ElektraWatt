@@ -312,7 +312,7 @@ PLC/bus/fluid breadth, manufacturing outputs, 3D panel, EDZ/DXF/AML exchange. **
 parked. A **pilot preview** (milestone M-PP, release 0.0.x, an unsigned build for the pilot only) sits before the
 MVP: interactive 2D editing of *new* projects with the starter symbols, the core reports, PDF and the core online
 checks; it adds no release column, because it is a slice of MVP rows (global plan
-§5.3). The mapping to milestones is MVP = M2, 1.0 = M7 ([roadmap](../../ROADMAP.md)). The symbol editor is built (milestone **M2.5**) and shipped in release **0.1.0**.
+§5.3). The mapping to milestones is MVP = M2, 1.0 = M7 ([roadmap](../../ROADMAP.md)). A symbol is drawn in Parts ([07-place](07-place.md)).
 
 **Dates are not set here.** The calendar is the plan of record: see global plan
 §3.4 and §5.1 and milestones.csv. For the plan of record (three developers, lean scope,
@@ -323,7 +323,7 @@ re-baselines them from measured velocity at G-M1.
 |---|---|---|---|---|
 | **PRJ** project & structure | Master data, party roles (D-30), structured supply, IEC 81346 structure nodes (=P01, +J-E-2416), sections, company basic project | Multiple structure aspects in navigators, external project references resolved when open | Multi-project workspaces | — |
 | **PAG** pages & frames | Page types, sparse folios, sub-pages for report continuations (901.1), generated section dividers, 17 × 8 frame, Prev/Next, page navigator | Frame/form editor, A3 and other sheet sizes | — | — |
-| **SYM** symbols | Starter IEC 60617 and ISO 1219 set for the golden project; QET element import; symbol editor (Should); the symbol editor is built and shipped in release 0.1.0 | Full IEC 60617 and ISO 1219 library, symbol linting | Generated symbol families | — |
+| **SYM** symbols | Starter IEC 60617 and ISO 1219 set for the golden project; QET element import; drawing a symbol of one's own in Parts (Should) | Full IEC 60617 and ISO 1219 library, symbol linting | Generated symbol families | — |
 | **DEV** devices | Devices, functions, main/aux, black boxes, assemblies with children (valve terminal), spares | Device selection by function, aspects for all PLC and bus roles | Safety-function records (required PL/SIL, category, subsystems) | — |
 | **NUM** tags & numbering | Identifier sets (EN 81346-2:2009 default, IEC 81346-2:2019, IEC 60750), page-based rule -101F1, frozen tags, previewed renumber | Wire-number and terminal-numbering schemes per profile | Numbering from PLC data | — |
 | **CON** connections | Explicit connections, junctions with sequence, potentials, bonds, wire properties with provenance, wire numbers | Net definitions per signal, clamp-capacity data | — | — |

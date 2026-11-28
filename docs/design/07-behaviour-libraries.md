@@ -647,8 +647,8 @@ flowchart LR
 ```
 
 **Library lint rules.** These are the EW-LIB rules of [15](15-checks-revisions-collaboration.md) §4.11, which
-registers them like every rule (codes, Fluent messages, rule pages). They run only in the library linter (the
-symbol and part editors' lint panels, `ew lib lint`, this pipeline and `ew lib pack`), never in a project scheme:
+registers them like every rule (codes, Fluent messages, rule pages). They run only in the library linter (`ew lib
+lint`, this pipeline and `ew lib pack`), never in a project scheme:
 
 | ID | Rule | Severity |
 |---|---|---|

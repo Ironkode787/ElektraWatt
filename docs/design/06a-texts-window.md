@@ -18,8 +18,8 @@ the labels with their sizes and places. So a page looks the same on the canvas, 
 The first place of each kind is this program's default, taken from the pilot's reference set; the starter
 symbols' slots are set to these first places, and a library symbol whose author chose another slot keeps its slot as first place.
 A symbol turned a quarter has the first places [07](07-symbols-parts-macros.md) §4.1 places anew (owner, 2026-11-22):
-lying flat, its tag centred above the body and its other texts centred below it, line under line; the symbol editor's
-strip of variants and a page show the same.
+lying flat, its tag centred above the body and its other texts centred below it, line under line; the drawing in
+Parts, its strip of variants and a page show the same.
 The other places follow from the part's shape. "Free side" means a side of the body without a pin. For a part
 whose pins leave up and down, "left" and "right" are meant as written; for a part turned a quarter they turn with
 it, and a text always reads from the bottom or from the right (D-16). A part lying flat has, last, the place centred

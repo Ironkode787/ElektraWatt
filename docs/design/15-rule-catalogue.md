@@ -345,10 +345,10 @@ The severities of the 2nn, 25n and 30n rows are this catalogue's defaults within
 
 ### 4.11 EW-LIB: library lint (1.0)
 
-The library linter of `ew-library` runs these rules over library items: live in the lint panels of the symbol and
-part editors, in `ew lib lint <dir>` and the contribution pipeline of [07](07-symbols-parts-macros.md) §6.2, and
-before `ew lib pack`, which refuses any error. They are registered like every rule (codes, Fluent
-messages, rule pages) but belong to no project scheme. All rows: mode l, scope the library item, defined in 07 §6.2.
+The library linter of `ew-library` runs these rules over library items: in `ew lib lint <dir>` and the contribution
+pipeline of [07](07-symbols-parts-macros.md) §6.2, and before `ew lib pack`, which refuses any error. They are
+registered like every rule (codes, Fluent messages, rule pages) but belong to no project scheme. All rows: mode l,
+scope the library item, defined in 07 §6.2.
 
 | ID | Name | Checks | Kind | Severity | Rel | Req. | D (defects) |
 |---|---|---|---|---|---|---|---|
