@@ -788,7 +788,9 @@ fn a_save_that_meets_another_version_names_the_part() {
     assert_eq!(m.key, "error-part-other-version-held", "{m:?}");
     assert_eq!(m.args[0], "Example EP-1", "{m:?}");
     assert!(
-        !m.args.iter().any(|a| a.parse::<Uuid>().is_ok() || a.contains('-') && a.len() > 30),
+        !m.args
+            .iter()
+            .any(|a| a.parse::<Uuid>().is_ok() || a.contains('-') && a.len() > 30),
         "{m:?}"
     );
 }

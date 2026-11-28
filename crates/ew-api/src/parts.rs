@@ -627,18 +627,32 @@ impl Session {
     /// and number and never by an identifier: a reference no library and not the project answers; a part the
     /// project holds at another version than its library (with the way: update it first); else library `library`'s
     /// error.
-    pub(crate) fn save_error_words(&self, library: &str, e: &crate::ApiError) -> crate::part_editor::DraftMessage {
+    pub(crate) fn save_error_words(
+        &self,
+        library: &str,
+        e: &crate::ApiError,
+    ) -> crate::part_editor::DraftMessage {
         match e {
             crate::ApiError::Library { .. } => message("part", key!("error-part-names-unknown"), &[]),
-            crate::ApiError::OtherVersionHeld { copy, held, library: newer } => {
+            crate::ApiError::OtherVersionHeld {
+                copy,
+                held,
+                library: newer,
+            } => {
                 let q = self.query();
                 let part = (q.parts().get(Id::from_uuid(*copy)))
                     .map(|c| {
                         let maker = ew_derive::manufacturer_name(&q, &c.item.manufacturer);
-                        format!("{maker} {}", c.item.part_number.as_str()).trim().to_owned()
+                        format!("{maker} {}", c.item.part_number.as_str())
+                            .trim()
+                            .to_owned()
                     })
                     .unwrap_or_default();
-                message("part", key!("error-part-other-version-held"), &[&part, held, newer])
+                message(
+                    "part",
+                    key!("error-part-other-version-held"),
+                    &[&part, held, newer],
+                )
             }
             other => message("part", key!("error-part-library"), &[library, &other.to_string()]),
         }

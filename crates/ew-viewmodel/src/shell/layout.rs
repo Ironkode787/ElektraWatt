@@ -1413,7 +1413,10 @@ impl ShellModel {
                     let other = named.map_or_else(|| part.clone(), |o| o.number);
                     return self.form_failed(
                         ACTION,
-                        strings::format(key!("error-enclosure-other-part"), &[&tag, &code, &number, &other]),
+                        strings::format(
+                            key!("error-enclosure-other-part"),
+                            &[&tag, &code, &number, &other],
+                        ),
                     );
                 }
             }

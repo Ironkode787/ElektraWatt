@@ -21,10 +21,10 @@ fn own_part(s: &mut Session, kind: &str, fields: &[(&str, String)], doors: usize
     let mut d = s.new_part_draft().expect("a new part");
     d.to_library = false;
     s.set_draft_field(&mut d, "kind", kind).expect("kind");
-    s.set_draft_field(&mut d, "manufacturer", "Acme")
-        .expect("maker");
+    s.set_draft_field(&mut d, "manufacturer", "Acme").expect("maker");
     for (f, v) in fields {
-        s.set_draft_field(&mut d, f, v).unwrap_or_else(|e| panic!("{f}: {e:?}"));
+        s.set_draft_field(&mut d, f, v)
+            .unwrap_or_else(|e| panic!("{f}: {e:?}"));
     }
     for i in 0..doors {
         assert!(d.add_table_row("sections.enclosure.doors"));
@@ -123,7 +123,12 @@ fn give(s: &mut Session, copy: Uuid) -> ew_api::output::EnclosurePartPlan {
 /// The sizes of -UC1's stored surfaces, by kind.
 fn sizes(s: &Session) -> Vec<String> {
     let q = s.query();
-    let enclosure = q.table::<Enclosure>().iter().next().map(|(id, _)| id).expect("-UC1's enclosure");
+    let enclosure = q
+        .table::<Enclosure>()
+        .iter()
+        .next()
+        .map(|(id, _)| id)
+        .expect("-UC1's enclosure");
     let mut out: Vec<String> = (q.table::<MountingSurface>().iter())
         .filter(|(_, m)| m.enclosure == enclosure)
         .map(|(_, m)| format!("{:?} {:?}", m.kind, ew_derive::layout::sheet_size(m)))
@@ -139,13 +144,24 @@ fn another_cabinet_keeps_every_place_from_the_datum() {
     let smaller = cabinet(&mut s, "ACME-CAB-S", (400, 500, 200), (360, 460));
     let before = positions(&s);
     for what in ["carrier", "placement", "feature"] {
-        assert!(before.keys().any(|k| k.starts_with(what)), "the sample's {what}s: {before:?}");
+        assert!(
+            before.keys().any(|k| k.starts_with(what)),
+            "the sample's {what}s: {before:?}"
+        );
     }
     let sizes_before = sizes(&s);
     let plan = give(&mut s, larger);
     assert!(!plan.sizes.is_empty(), "the card names the sizes that change");
-    assert!(plan.outside.is_empty(), "nothing lies outside a larger cabinet: {:?}", plan.outside);
-    assert_ne!(sizes(&s), sizes_before, "the surfaces took the larger cabinet's size");
+    assert!(
+        plan.outside.is_empty(),
+        "nothing lies outside a larger cabinet: {:?}",
+        plan.outside
+    );
+    assert_ne!(
+        sizes(&s),
+        sizes_before,
+        "the surfaces took the larger cabinet's size"
+    );
     assert_eq!(positions(&s), before, "larger: every place as it was");
     let plan = give(&mut s, smaller);
     assert_eq!(positions(&s), before, "smaller: every place as it was");
