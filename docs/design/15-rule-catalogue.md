@@ -281,7 +281,8 @@ gate evaluates every rule cold on a fork at the saved generation (mode `release`
 The gate (FR-REV-007) refuses release when there is any unwaived error in the release scheme, any EW-REL finding,
 or EW-CORE-083/084 at error level. Its named blockers are release-scheme rules at error severity:
 - EW-CORE-047, a device without schematic representation;
-- EW-LAY-001, a device without layout placement where its location has a layout space;
+- EW-LAY-001, a device without layout placement where its location has a layout space (a further part use not placed
+  beside it, a main switch's door handle, is a warning at release);
 - EW-CORE-033, a cable without length;
 - `Tbd` values: EW-CORE-043, EW-CORE-044, EW-BUS-001, EW-PLC-015;
 - the integrity findings marked R in [05](05-project-format-and-persistence.md) §6.3, such as EW-CORE-011

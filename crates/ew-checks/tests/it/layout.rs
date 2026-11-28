@@ -288,6 +288,38 @@ fn a_further_part_placed_first_leaves_the_device_unplaced_until_its_primary_part
     assert_eq!(f55(&fx.build()), 0, "the breaker placed");
 }
 
+/// A project as 0.3.5 saved it, which releases as it did: F55 takes a door handle as its further part and is placed once, by a
+/// placement that names no part (the breaker). EW-LAY-001 still names the handle, as a warning in release too, so the
+/// release refuses nothing for it.
+#[test]
+fn a_further_part_of_a_placed_device_is_a_warning_in_release() {
+    const P_HANDLE: u128 = 0x609;
+    let mut fx = plate();
+    mech_part(
+        &mut fx,
+        P_HANDLE,
+        "HANDLE",
+        json!({"width": mm(65.0), "height": mm(65.0), "mount_kind": "door_cutout"}),
+    );
+    fx.with_parts(F55, &[P_MCB, P_HANDLE]);
+    place(&mut fx, 0xf9, F55, None, on(R1), rail_pose(400.0));
+    let m = fx.build();
+    let q = ew_derive::Q::new(&m);
+    let report = ew_checks::run(&q, &PRE_DELIVERY, CheckMode::Release);
+    let lay: Vec<_> = report
+        .findings
+        .iter()
+        .filter(|f| f.rule == "EW-LAY-001")
+        .collect();
+    assert_eq!(lay.len(), 1, "the handle: {lay:#?}");
+    assert_eq!(lay[0].severity, Severity::Warning, "refuses no release");
+    assert!(
+        report.findings.iter().all(|f| f.severity != Severity::Error || !f.rule.starts_with("EW-LAY-")),
+        "{:#?}",
+        report.findings
+    );
+}
+
 #[test]
 fn the_unplaced_device_is_reported_and_placing_it_clears_it() {
     let m = plate().build();

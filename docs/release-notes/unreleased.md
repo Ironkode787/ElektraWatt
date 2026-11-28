@@ -461,7 +461,8 @@ change here.
   or a wall's page, drawn round where its front is round; dropped on the plate or a rail it is refused in words with
   Open the door, and the bar under a plate's page counts the devices that wait for the door with a Door button. A
   device's further part that goes in a cut-out (a main switch's door handle) is a row of its own in Unplaced and in
-  EW-LAY-001 ("-101Q1's part EW-GEN-HDL-1 has no place in the layout"), placed as the device is (doc 12 §2.7, §3.4)
+  EW-LAY-001 ("-101Q1's part EW-GEN-HDL-1 has no place in the layout"), placed as the device is (doc 12 §2.7, §3.4);
+  that finding is a warning in release too, so a project made before a door could hold the part releases as it did
 - behaviour-change: a placement on a door's or a wall's page shows its Surface and its centre from the surface's
   measured-from corner in Properties, and on a door's page whether the plate behind it holds something there (doc 12
   §3.4)

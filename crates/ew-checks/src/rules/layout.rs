@@ -282,8 +282,10 @@ impl Rule for UnplacedDevice {
                 .arg("form", form)
                 .arg("device", name)
                 .arg("location", location.clone());
+                // A further part is a warning in release too: a project made before a door could hold it (its
+                // device placed once) releases as it did. A device with no placement keeps its release error.
                 if let Some(p) = second {
-                    f = f.arg("part", part_name(q, p));
+                    f = f.arg("part", part_name(q, p)).at_release(Severity::Warning);
                 }
                 out.push(f);
             }

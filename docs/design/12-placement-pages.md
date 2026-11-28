@@ -529,7 +529,7 @@ show their revision stamp.
 
 | Rule | Finding | Severity | Mode | Release | Implementation | Quick fix |
 |---|---|---|---|---|---|---|
-| EW-LAY-001 | A part use to place (§2.7) without a placement in the layout space of its location (FR-LAY-017, FR-CHK-039); a device with two such part uses is reported for each one not placed | warning; error at release | online, release | MVP | `unplaced(space)` | open unplaced list; place on active rail |
+| EW-LAY-001 | A part use to place (§2.7) without a placement in the layout space of its location (FR-LAY-017, FR-CHK-039); a device with two such part uses is reported for each one not placed | warning; error at release, but a further part use (a door coupling handle) a warning at release too, so a project made before a door could hold it releases as it did | online, release | MVP | `unplaced(space)` | open unplaced list; place on active rail |
 | EW-LAY-002 | Placement without device | structural (cascade) | prevent | MVP | invariant; on lenient import an unmatched QET rectangle becomes a layout graphic, never a placement | — |
 | EW-LAY-003 | Placement's part use is not on the device (FR-LAY-059) | error | online | MVP | `Placement.part` ∉ `device.parts` | realise primary part |
 | EW-LAY-004 | Device location ≠ layout space location | warning | online | MVP | structure query | remove / move placement |
