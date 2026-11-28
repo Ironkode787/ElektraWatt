@@ -297,5 +297,5 @@ panels = ["bus"]
 en-GB = "Bus topology"
 nl-NL = "Bustopologie"
 [term.definition]
-en-GB = "A page of the network: the devices as boxes with their bus ports and the bus lines between them; the Bus panel lists the nets and the ports."
-nl-NL = "Een pagina van het netwerk: de apparaten als kaders met hun buspoorten en de buslijnen ertussen; het Bus-paneel toont de netten en de poorten."
+en-GB = "A page of the network: each device as its bus symbol with its ports and the bus lines between them; the Bus panel lists the nets and the ports."
+nl-NL = "Een pagina van het netwerk: elk apparaat als zijn bussymbool met zijn poorten en de buslijnen ertussen; het Bus-paneel toont de netten en de poorten."

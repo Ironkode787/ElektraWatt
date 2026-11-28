@@ -330,7 +330,7 @@ fn the_small_words_say_what_slots_and_a_bus_page_are_and_the_search_finds_the_ne
     assert!(
         texts
             .iter()
-            .any(|t| t.starts_with("The network: the devices as boxes")),
+            .any(|t| t.starts_with("The network: each device as its bus symbol")),
         "the line under Type: {texts:?}"
     );
     assert!(
