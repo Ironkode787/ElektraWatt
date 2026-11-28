@@ -15,6 +15,7 @@ use ew_api::{PartPick, Session};
 use ew_derive::layout::from_datum;
 use ew_ids::{Id, Uuid};
 use ew_schema::{Carrier, CarrierRef, Enclosure, MountingSurface, Placement, SurfaceFeature};
+use serde_json::json;
 
 /// A part of the project's own of kind `kind` with the fields `fields`, and `doors` doors hinged left.
 fn own_part(s: &mut Session, kind: &str, fields: &[(&str, String)], doors: usize) -> Uuid {
@@ -137,9 +138,15 @@ fn sizes(s: &Session) -> Vec<String> {
     out
 }
 
-#[test]
-fn another_cabinet_keeps_every_place_from_the_datum() {
+/// Gives -UC1 a larger and then a smaller cabinet of its own with the project's datum `datum`: every place on the plate,
+/// the door and the bottom stays where it was measured from its surface's datum corner, and the card says from which.
+fn keeps_every_place(datum: &str) {
     let mut s = common::sample();
+    common::run_cmd(
+        &mut s,
+        "project.settings.set",
+        json!({"member": "workshop.datum", "value": datum}),
+    );
     let larger = cabinet(&mut s, "ACME-CAB-L", (800, 1000, 300), (760, 960));
     let smaller = cabinet(&mut s, "ACME-CAB-S", (400, 500, 200), (360, 460));
     let before = positions(&s);
@@ -152,6 +159,7 @@ fn another_cabinet_keeps_every_place_from_the_datum() {
     let sizes_before = sizes(&s);
     let plan = give(&mut s, larger);
     assert!(!plan.sizes.is_empty(), "the card names the sizes that change");
+    assert!(plan.datum.is_some(), "the card says from which corner the places are kept");
     assert!(
         plan.outside.is_empty(),
         "nothing lies outside a larger cabinet: {:?}",
@@ -162,11 +170,31 @@ fn another_cabinet_keeps_every_place_from_the_datum() {
         sizes_before,
         "the surfaces took the larger cabinet's size"
     );
-    assert_eq!(positions(&s), before, "larger: every place as it was");
+    assert_eq!(positions(&s), before, "larger, datum {datum}: every place as it was");
     let plan = give(&mut s, smaller);
-    assert_eq!(positions(&s), before, "smaller: every place as it was");
+    assert_eq!(positions(&s), before, "smaller, datum {datum}: every place as it was");
     assert!(
         !plan.outside.is_empty(),
         "the card names what no longer lies inside its surface"
     );
+}
+
+#[test]
+fn another_cabinet_keeps_every_place_from_a_bottom_left_datum() {
+    keeps_every_place("bottom_left");
+}
+
+#[test]
+fn another_cabinet_keeps_every_place_from_a_bottom_right_datum() {
+    keeps_every_place("bottom_right");
+}
+
+#[test]
+fn another_cabinet_keeps_every_place_from_a_top_left_datum() {
+    keeps_every_place("top_left");
+}
+
+#[test]
+fn another_cabinet_keeps_every_place_from_a_top_right_datum() {
+    keeps_every_place("top_right");
 }

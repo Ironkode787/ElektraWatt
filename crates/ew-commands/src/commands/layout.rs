@@ -27,9 +27,9 @@ use ew_model::{AnyKey, Model};
 use ew_rds::Aspect;
 use ew_schema::{
     Carrier, CarrierKind, CarrierParams, CarrierRef, Device, DeviceAspects, DuctParams, Enclosure,
-    EnclosureSection, Extra, FnDef, Function, Kind, LayoutSpace, LibCopy, MechData, MountKind,
+    Corner, EnclosureSection, Extra, FnDef, Function, Kind, LayoutSpace, LibCopy, MechData, MountKind,
     MountingSurface, Open, Page, Part, PartRef, PartUse, Placement, RailParams, Representation, Section,
-    Slot, StructureAssignment, StructureNode, SurfaceKind, TagScheme, TagSpec,
+    Slot, StructureAssignment, StructureNode, SurfaceFeature, SurfaceKind, TagScheme, TagSpec,
 };
 use ew_units::{Dec3, Nm, Pose3, Pt2};
 use schemars::JsonSchema;
@@ -2221,7 +2221,8 @@ fn enclosure_device(
 /// the plate there is. Every surface the layout holds of the enclosure takes the new part's size: the plate surface its
 /// frame and usable area as the plate centred in the cabinet ([`plate_frame`]), a door, a side, the top and the bottom
 /// their frames as `layout.surface.add` makes them, a door matched by its place among the doors (one the new part
-/// does not list keeps its frame). What stands on a surface keeps its place measured from the surface's datum.
+/// does not list keeps its frame). What stands on a surface keeps its place measured from the surface's datum
+/// corner: from a corner at the top or the right its poses are moved by the change of the sheet's size.
 ///
 /// Rejected: an enclosure that does not exist (`/enclosure`); a part copy the project does not hold after the embed
 /// (`/part`); a part without an enclosure section (with what it lacks); a plate part the project does not hold.
@@ -2369,12 +2370,62 @@ impl Command for SetEnclosurePart {
             if s.kind != SurfaceKind::Plate {
                 next.edge_margin = section.edge_margin;
             }
+            // What stands on the surface keeps its place measured from the surface's datum corner: from a corner at the
+            // top or the right, its poses follow the change of the sheet's size.
+            let datum = (s.datum.clone())
+                .or_else(|| tx.project().settings.workshop.datum.clone())
+                .unwrap_or_default();
+            if let (Some((w0, h0)), Some((w1, h1))) =
+                (ew_derive::layout::sheet_size(&s), ew_derive::layout::sheet_size(&next))
+            {
+                let (dw, dh) = (w1 - w0, h1 - h0);
+                let (dx, dy) = match datum {
+                    Corner::BottomRight => (dw, Nm::ZERO),
+                    Corner::TopLeft => (Nm::ZERO, dh),
+                    Corner::TopRight => (dw, dh),
+                    Corner::BottomLeft | Corner::Unknown(_) => (Nm::ZERO, Nm::ZERO),
+                };
+                if dx != Nm::ZERO || dy != Nm::ZERO {
+                    shift_on_surface(tx, s.id, dx, dy)?;
+                }
+            }
             if next != s {
                 tx.update::<MountingSurface>(s.id, |x| *x = next)?;
             }
         }
         Ok(Outcome::primary((Kind::Enclosure, self.enclosure.cast())))
     }
+}
+
+/// Moves what stands on surface `surface` by `(dx, dy)` in its frame: each carrier's path, each placement on the
+/// surface itself (one on a rail goes with the rail) and each hole or gland of the surface.
+fn shift_on_surface(tx: &mut TxBuilder<'_>, surface: Id<MountingSurface>, dx: Nm, dy: Nm) -> Result<(), CmdError> {
+    let moved = |p: Pt2| Pt2::new(Nm(p.x.0 + dx.0), Nm(p.y.0 + dy.0));
+    let carriers: Vec<Id<Carrier>> = (tx.iter::<Carrier>().into_iter())
+        .filter(|c| c.surface == surface)
+        .map(|c| c.id)
+        .collect();
+    for c in carriers {
+        tx.update::<Carrier>(c, |c| c.path.iter_mut().for_each(|p| *p = moved(*p)))?;
+    }
+    let placements: Vec<Id<Placement>> = (tx.iter::<Placement>().into_iter())
+        .filter(|p| p.carrier == CarrierRef::Surface(surface))
+        .map(|p| p.id)
+        .collect();
+    for p in placements {
+        tx.update::<Placement>(p, |p| {
+            p.pose.t[0] = Nm(p.pose.t[0].0 + dx.0);
+            p.pose.t[1] = Nm(p.pose.t[1].0 + dy.0);
+        })?;
+    }
+    let features: Vec<Id<SurfaceFeature>> = (tx.iter::<SurfaceFeature>().into_iter())
+        .filter(|f| f.surface == surface)
+        .map(|f| f.id)
+        .collect();
+    for f in features {
+        tx.update::<SurfaceFeature>(f, |f| f.at = moved(f.at))?;
+    }
+    Ok(())
 }
 
 /// `layout.space.edit` (`EditLayoutSpace`): renames a layout space; `name: null` clears its name. Nothing else

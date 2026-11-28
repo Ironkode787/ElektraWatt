@@ -299,7 +299,8 @@ is drawn as a person sees it from the side it is worked from, standing in front 
   Choose… of the enclosure's device, opens a card that names each surface whose size changes and what then no longer
   lies inside its surface (EW-LAY-010), before Apply; Apply gives the enclosure's device the part, the plate device the
   plate the new cabinet names (a cabinet that names none keeps the plate there is, and the card says so) and every
-  surface the layout holds the new part's size, what stands on a surface keeping its place from the surface's datum.
+  surface the layout holds the new part's size, what stands on a surface keeping its place measured from the surface's datum corner,
+  whichever corner that is (the card says which).
 - **Tags.** The enclosure device and its plate take the numbering scheme's tags, not frozen ones: the enclosure letter
   `UC` with the lowest counter no `UC` tag holds, its tag printing no page since no page draws it ([03](03-domain-model.md)
   §8.2), so `-UC1`; the plate its child `U1` (`-UC1-U1`). An older project keeps its frozen tags.

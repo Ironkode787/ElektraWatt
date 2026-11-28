@@ -26,6 +26,9 @@ pub struct EnclosurePartPlan {
     pub outside: Vec<crate::Text>,
     /// Whether the new cabinet names no plate, so the plate there is stays.
     pub plate_kept: bool,
+    /// The datum corner the places are kept from, where every surface of the enclosure has the same one, in words;
+    /// `None` where they differ (each surface's own).
+    pub datum: Option<crate::Text>,
 }
 
 impl Session {
@@ -65,6 +68,15 @@ impl Session {
             }
         };
         item.sections.enclosure.as_ref()?;
+        let datum = {
+            let corners: Vec<ew_schema::Corner> = (q.table::<ew_schema::MountingSurface>().iter())
+                .filter(|(_, m)| m.enclosure == enclosure)
+                .map(|(_, m)| ew_derive::layout::surface_datum(&q, m))
+                .collect();
+            (corners.windows(2).all(|w| w[0] == w[1]))
+                .then(|| corners.first().map(ew_derive::text::corner))
+                .flatten()
+        };
         let plate_kept = item
             .sections
             .enclosure
@@ -136,6 +148,7 @@ impl Session {
             sizes,
             outside,
             plate_kept,
+            datum,
         }))
     }
 }

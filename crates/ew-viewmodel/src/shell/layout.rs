@@ -1664,6 +1664,10 @@ impl ShellModel {
     pub(super) fn enclosure_part_card(&mut self, plan: ew_api::output::EnclosurePartPlan) -> Outcome {
         self.dialog = None;
         let mut lines: Vec<String> = plan.outside.iter().map(strings::render).collect();
+        lines.push(match &plan.datum {
+            Some(corner) => strings::format(key!("enclosure-part-kept-from"), &[&strings::render(corner)]),
+            None => strings::text(key!("enclosure-part-kept-datum")).to_owned(),
+        });
         if plan.plate_kept {
             lines.push(strings::format(
                 key!("enclosure-part-plate-kept"),
