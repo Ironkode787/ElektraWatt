@@ -340,9 +340,11 @@ fn card_group(
                         ui.add(egui::Label::new(text(&middle.join(" · "))).truncate());
                     });
                 }
+                // The last cell keeps to the room the first leaves: a long reason ("its end -103F1:1 is on a device
+                // without a location: …") is cut short, whole on hover, never drawn over the wire's number.
                 if let Some(l) = last {
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        ui.add(egui::Label::new(text(l)).extend());
+                        ui.add(egui::Label::new(text(l)).truncate());
                     });
                 }
             })
