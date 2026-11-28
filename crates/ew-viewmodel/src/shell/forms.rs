@@ -78,6 +78,15 @@ impl FormField {
         self.choices.values() == ["false", "true"]
     }
 
+    /// The words of a run-time list of one value that is the field's own (Create enclosure's part on a location that
+    /// has its enclosure): there is nothing to choose, and the window shows the words as text, not as a list of one.
+    pub fn fixed(&self) -> Option<&str> {
+        match self.options.as_slice() {
+            [(value, words)] if *value == self.value => Some(words),
+            _ => None,
+        }
+    }
+
     /// Whether the field is free text: no choice and no run-time option list. A form's first focus is its first text
     /// field, else its Primary (doc 16a §6.12).
     pub fn is_text(&self) -> bool {

@@ -541,6 +541,9 @@ fn form_fields(
                     check.request_focus();
                 }
                 crate::components::focus_ring(ui, &check, t.radius_sm);
+            } else if let Some(words) = f.fixed() {
+                // Nothing to choose: the one value's words, as text.
+                ui.add(egui::Label::new(words).wrap()).labelled_by(label.id);
             } else if !f.options.is_empty() {
                 // A choice list built at run time, shown by its words.
                 let shown = f

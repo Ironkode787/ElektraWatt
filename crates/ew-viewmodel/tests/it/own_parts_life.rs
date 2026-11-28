@@ -449,6 +449,10 @@ fn create_enclosure_on_a_location_with_one_offers_no_part_it_ignores() {
         part.options,
         location.value
     );
+    assert!(
+        part.fixed().is_some_and(|w| w.starts_with("EW-GEN-ENC-1")),
+        "one part, shown as text: {part:?}"
+    );
     let notes = s.enclosure_form_notes().join(" ");
     assert!(notes.contains("EW-GEN-ENC-1"), "{notes}");
     // A script that names another part is refused in words, not drawn as if it took it.
