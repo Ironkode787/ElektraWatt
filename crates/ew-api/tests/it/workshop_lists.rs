@@ -610,8 +610,7 @@ fn a_gap_after_a_device_without_a_width_is_not_known() {
     assert!(all[at].contains("width missing"), "{}", all[at]);
     let next = &all[at + 1];
     assert!(
-        next.starts_with("data,,Gap,")
-            && next.ends_with(",after -201X2: not known"),
+        next.starts_with("data,,Gap,") && next.ends_with(",after -201X2: not known"),
         "{next}"
     );
     assert!(!next.contains('–'), "no span: {next}");
