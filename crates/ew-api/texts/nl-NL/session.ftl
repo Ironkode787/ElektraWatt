@@ -399,6 +399,10 @@ nav-bus-logical = Logische netten
 nav-bus-physical = Fysieke netten
 nav-bus-no-net = Poorten zonder net
 nav-bus-undrawn = Poorten nog niet getekend
+# De cel Staat in van de bustabel: onder welk net de rij van een poort staat.
+nav-bus-listed-logical = logisch net
+nav-bus-listed-physical = fysiek net
+nav-bus-listed-none = geen net
 nav-bus-segment = Segment { $p0 }
 nav-plc-no-cpu = Modules zonder station
 nav-bridges = Bruggen

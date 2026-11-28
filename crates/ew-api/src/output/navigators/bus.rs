@@ -83,7 +83,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
                     parent: u32,
                     f: Id<Function>,
                     mut badges: Vec<String>,
-                    listed_in: &str|
+                    listed_in: crate::Text|
      -> Option<u32> {
         let func = functions.get(f)?;
         let port = func.bus_port.as_ref()?;
@@ -104,12 +104,12 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
             Some(OnOff::Off) => "off",
             _ => "",
         };
-        let cells = vec![
+        // Where the row stands, in words of the window's language; the other cells as printed.
+        let mut cells = plains(vec![
             device.clone(),
             interface.clone(),
             address,
             termination.to_owned(),
-            listed_in.to_owned(),
             ew_derive::bus_word(&port.bus).to_owned(),
             port_role_word(&port.role).to_owned(),
             port.logical_net
@@ -120,7 +120,8 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
                 .and_then(|n| pnets.get(n))
                 .map(|n| name_of(&n.name))
                 .unwrap_or_default(),
-        ];
+        ]);
+        cells.insert(4, listed_in);
         debug_assert_eq!(cells.len(), BUS_COLUMNS.len());
         let drawables = sorted(
             q.idx()
@@ -137,7 +138,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
             badges,
             vec![f.as_uuid()],
             drawables,
-            Some(plains(cells)),
+            Some(cells),
             facets,
         );
         b.nodes[n as usize].kinds = vec!["function".to_owned()];
@@ -187,12 +188,18 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
                 } else {
                     Vec::new()
                 };
-                port_row(b, node, *f, badges, "logical net");
+                port_row(b, node, *f, badges, text!("nav-bus-listed-logical"));
             }
             // A switch or a plug the net runs through stands in the net, as what it is (doc 10 §2.7).
             for f in &members.through {
                 netted.insert(*f);
-                port_row(b, node, *f, vec!["passes through".to_owned()], "logical net");
+                port_row(
+                    b,
+                    node,
+                    *f,
+                    vec!["passes through".to_owned()],
+                    text!("nav-bus-listed-logical"),
+                );
             }
         }
     }
@@ -252,7 +259,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
                                 Some(OnOff::Off) => badges.push("not terminated".to_owned()),
                                 _ => {}
                             }
-                            if port_row(b, s, *f, badges, "physical net").is_none() {
+                            if port_row(b, s, *f, badges, text!("nav-bus-listed-physical")).is_none() {
                                 // An external interruption point at an end: by its device's tag, else by its name.
                                 let label = functions
                                     .get(*f)
@@ -313,7 +320,7 @@ pub(super) fn bus_table(q: &Q, b: &mut Builder) {
     if !loose.is_empty() {
         let g = group(b, None, NavRole::Section, "ports:none", text!("nav-bus-no-net"));
         for (_, f) in loose {
-            port_row(b, g, f, Vec::new(), "no net");
+            port_row(b, g, f, Vec::new(), text!("nav-bus-listed-none"));
         }
     }
     // The interfaces a part gives a device that nothing draws yet (doc 10 §2.7): a row each, keyed

@@ -410,6 +410,10 @@ nav-bus-logical = Logical nets
 nav-bus-physical = Physical nets
 nav-bus-no-net = Ports without a net
 nav-bus-undrawn = Ports not drawn yet
+# The bus table's Listed in cell: under which net a port's row stands.
+nav-bus-listed-logical = logical net
+nav-bus-listed-physical = physical net
+nav-bus-listed-none = no net
 nav-bus-segment = Segment { $p0 }
 nav-plc-no-cpu = Modules without a station
 nav-bridges = Bridges

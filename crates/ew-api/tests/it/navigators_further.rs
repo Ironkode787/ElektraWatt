@@ -117,6 +117,38 @@ fn the_navigators_group_words_read_in_the_readers_language() {
     assert_eq!(both(NavKind::Devices, "function:-"), ["(none)", "(geen)"]);
 }
 
+/// The bus table's Listed in cell, which says under which net a port's row stands, reads in the reader's language; the
+/// table in English prints it in English.
+#[test]
+fn the_bus_tables_listed_in_reads_in_the_readers_language() {
+    let s = common::sample();
+    let listed = |lang: &str| -> Vec<String> {
+        let t = s
+            .navigator_texts(NavKind::Bus)
+            .render(|t| ew_api::catalogue().text_or_english(t, lang));
+        let column = t
+            .columns
+            .iter()
+            .position(|c| c.key == "listed_in")
+            .expect("the Listed in column");
+        t.nodes
+            .iter()
+            .filter(|n| n.role == NavRole::BusPort)
+            .map(|n| n.cells[column].clone())
+            .collect()
+    };
+    let (en, nl) = (listed("en-GB"), listed("nl-NL"));
+    assert!(!en.is_empty(), "the sample's bus ports");
+    let words = [
+        ("logical net", "logisch net"),
+        ("physical net", "fysiek net"),
+        ("no net", "geen net"),
+    ];
+    for (en, nl) in en.iter().zip(&nl) {
+        assert!(words.contains(&(en.as_str(), nl.as_str())), "{en} / {nl}");
+    }
+}
+
 #[test]
 fn connections_are_the_wire_list() {
     let s = common::sample();
