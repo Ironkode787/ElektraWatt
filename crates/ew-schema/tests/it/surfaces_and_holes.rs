@@ -343,8 +343,16 @@ fn a_fork_saved_before_reads_and_writes_its_fork_of_as_it_was() {
     };
     let fork = copy.item.meta.fork_of().expect("a fork");
     assert_eq!(
-        (fork.library.to_string().as_str(), fork.item.to_string().as_str(), fork.version.as_str()),
-        ("75d07cef-7a38-5814-a2ca-4610c08d9a8b", "79825947-aa61-5360-8e00-c535c2db0168", "0.1.1")
+        (
+            fork.library.to_string().as_str(),
+            fork.item.to_string().as_str(),
+            fork.version.as_str()
+        ),
+        (
+            "75d07cef-7a38-5814-a2ca-4610c08d9a8b",
+            "79825947-aa61-5360-8e00-c535c2db0168",
+            "0.1.1"
+        )
     );
     copy.item.meta.extra.clear();
     assert!(copy.item.meta.fork_of().is_none());

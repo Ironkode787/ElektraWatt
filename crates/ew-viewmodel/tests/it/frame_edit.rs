@@ -269,13 +269,19 @@ fn the_frames_lengths_read_as_every_length_of_properties() {
     assert!(paper.ends_with(" mm") && !paper.contains(".0 "), "{paper}");
     done(&mut s, "frame.choose", json!({"rulers": true}));
     let height = frame_row(&s, "both.block_height");
-    assert!(!height.ends_with(".0") && height.parse::<f64>().is_ok(), "{height}");
+    assert!(
+        !height.ends_with(".0") && height.parse::<f64>().is_ok(),
+        "{height}"
+    );
     s.shutdown();
     let file = tmp.sample_copy().join("project.jsonl");
     let jsonl = std::fs::read_to_string(&file).unwrap();
     std::fs::write(
         &file,
-        jsonl.replace("\"decimal_separator\":\"point\"", "\"decimal_separator\":\"comma\""),
+        jsonl.replace(
+            "\"decimal_separator\":\"point\"",
+            "\"decimal_separator\":\"comma\"",
+        ),
     )
     .unwrap();
     let mut s = tmp.sample_in(Mode::Headless, true, "101");

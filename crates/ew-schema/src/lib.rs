@@ -85,11 +85,11 @@ mod connect;
 mod device;
 mod error;
 mod exchange;
+mod fork;
 mod hole;
 mod json;
 mod kind;
 mod layout;
-mod fork;
 mod library;
 mod list_area;
 mod medium;
@@ -134,6 +134,7 @@ pub use device::{
 };
 pub use error::{MalformedVariant, SchemaError};
 pub use exchange::{ExchangeObject, ExchangeRecord, ForeignId};
+pub use fork::ForkOf;
 pub use hole::{Cutout, Gland, Hole, HoleKind, HoleParseError, Screw, mm_text};
 pub use json::{Extra, Open, check_value, normalize_nfc};
 pub use kind::{
@@ -145,7 +146,6 @@ pub use layout::{
     Enclosure, Hinge, HoleChoice, LayoutSpace, MountingSurface, Placement, RailParams, RouteEnd,
     SurfaceFeature, SurfaceKind, WayStep,
 };
-pub use fork::ForkOf;
 pub use library::STOCK_KINDS;
 pub use library::{
     AccessoryPer, Actuation, Actuator, Align, AlternativeKind, AlternativeRef, AnchorPolicy, ArcPrim,

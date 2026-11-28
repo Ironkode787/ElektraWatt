@@ -155,7 +155,10 @@ fn the_port_texts() {
     let text = |s: &Session| {
         let q = s.query();
         let port = q.functions().get(station).unwrap().bus_port.clone().unwrap();
-        (bus_address_text(&port).map(|t| t.to_string()), bus_termination_text(&port))
+        (
+            bus_address_text(&port).map(|t| t.to_string()),
+            bus_termination_text(&port),
+        )
     };
     assert_eq!(
         text(&s),
