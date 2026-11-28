@@ -132,6 +132,7 @@ pub(crate) use editing::{
     starter_fndef_by_key, starter_fndef_key, starter_function_name, starter_piece_fndefs,
     starter_pinned_fndefs, starter_symbol_name,
 };
+pub use enclosure_part::EnclosurePartPlan;
 pub use ew_derive::ValvePort;
 /// The one text of a length in millimetres (`ew_derive::text`), which the shell's lengths read.
 pub use ew_derive::text::{mm_with_unit, mm_words};
@@ -150,7 +151,6 @@ pub use layers::{
     SurfaceLayer, SymbolsLayer, TablesLayer, WiresLayer, new_project_text_style_table, page_kind, page_layer,
     page_scene, page_view, text_style_table,
 };
-pub use enclosure_part::EnclosurePartPlan;
 pub(crate) use layout_edit::LayoutPartOffer;
 pub use layout_edit::{
     DoorJudgement, GlandSnap, LayoutEdit, LayoutEditError, SurfaceOffer, corner_choice_words,
