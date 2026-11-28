@@ -7,7 +7,7 @@
 //! and the Save's card says so (FT-2208). The same switch on a bus page is its bus symbol, which the part draws anew:
 //! the card names the sockets it gains (doc 10 §2.7).
 
-use crate::common::{Tmp, cursor, done, grid_point, new_project, tables};
+use crate::common::{Tmp, click_at, cursor, done, grid_point, new_project, tables};
 use ew_viewmodel::ew_api::output::TableBox;
 use ew_viewmodel::properties::CardOrigin;
 use ew_viewmodel::shell::ShellModel;
@@ -180,4 +180,63 @@ fn a_corrected_part_s_bus_symbol_gains_its_sockets_and_the_card_says_so() {
     done(&mut s, "preview.apply", json!({}));
     done(&mut s, "page.goto", json!({"folio": "102"}));
     assert_eq!(drawn(&s), 8, "its eight sockets");
+}
+
+/// Two switches SW-6 on bus page 102 joined by a bus line at their P4s, which move from the bottom edge to the top one
+/// when the part has eight sockets: the Save's card names each device whose symbol is drawn anew, and after Apply the
+/// line ends at both new sockets.
+#[test]
+fn the_save_card_names_each_device_whose_bus_line_follows_its_socket() {
+    let tmp = Tmp::new("corrected-part-lines");
+    let mut s = switch_drawn(&tmp);
+    for k in [(10, 10), (50, 10)] {
+        done(&mut s, "page.goto", json!({"folio": "102"}));
+        done(&mut s, "tool.place", json!({}));
+        done(&mut s, "place.pick", json!({"part": "SW-6"}));
+        let p = grid_point(&s, k);
+        click_at(&mut s, p);
+    }
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    // Each switch's P4 socket: its device's tag and its point.
+    let p4 = |s: &ShellModel| -> Vec<(String, (i64, i64))> {
+        let mut out: Vec<(String, (i64, i64))> = tables(s)
+            .cps
+            .iter()
+            .filter_map(|c| Some((c.label.strip_suffix(":P4")?.to_owned(), c.at)))
+            .collect();
+        out.sort();
+        out
+    };
+    let before = p4(&s);
+    assert_eq!(before.len(), 2, "{before:?}");
+    done(&mut s, "tool.wire", json!({}));
+    for (_, at) in &before {
+        click_at(&mut s, *at);
+    }
+    done(&mut s, "ui.dismiss", json!({}));
+    let card = save_corrected(&mut s, "8");
+    for (tag, _) in &before {
+        assert!(
+            card.iter()
+                .any(|l| l.starts_with(&format!("Drawn anew: {tag} on page 102"))),
+            "{tag} on the card: {card:?}"
+        );
+    }
+    done(&mut s, "preview.apply", json!({}));
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    let after = p4(&s);
+    assert!(
+        after.iter().zip(&before).all(|(a, b)| a.0 == b.0 && a.1 != b.1),
+        "both P4s moved: {before:?} {after:?}"
+    );
+    let t = tables(&s);
+    let line = t
+        .connections
+        .iter()
+        .find(|c| c.kind == "bus")
+        .expect("the bus line");
+    let ends = [line.polyline.first(), line.polyline.last()];
+    for (_, at) in &after {
+        assert!(ends.contains(&Some(at)), "{:?} ends at {at:?}", line.polyline);
+    }
 }
