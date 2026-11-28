@@ -56,6 +56,8 @@ mod job;
 // The devices a placed symbol can join.
 pub(crate) mod join;
 mod layers;
+// Another cabinet for an enclosure, with its card's words (doc 12 §3.1).
+mod enclosure_part;
 // Properties for layout records and the Surface view rows.
 pub(crate) mod layout_edit;
 // What a list page prints: its columns, caption, legend and rows of its own (doc 09 §3.8).
@@ -148,10 +150,11 @@ pub use layers::{
     SurfaceLayer, SymbolsLayer, TablesLayer, WiresLayer, new_project_text_style_table, page_kind, page_layer,
     page_scene, page_view, text_style_table,
 };
+pub use enclosure_part::EnclosurePartPlan;
 pub(crate) use layout_edit::LayoutPartOffer;
 pub use layout_edit::{
-    DoorJudgement, EnclosurePartPlan, GlandSnap, LayoutEdit, LayoutEditError, SurfaceOffer,
-    corner_choice_words, hinge_choice_words, parse_mm,
+    DoorJudgement, GlandSnap, LayoutEdit, LayoutEditError, SurfaceOffer, corner_choice_words,
+    hinge_choice_words, parse_mm,
 };
 pub use navigation::{
     CellLabel, GotoError, LinkTarget, PageCells, PageCp, PageListTable, PageRow, page_kind_name,
