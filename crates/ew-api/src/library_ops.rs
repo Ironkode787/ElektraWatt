@@ -221,22 +221,12 @@ pub struct VersionConflict {
 }
 
 /// The FnDefs and the manufacturer a part names, the FnDef a symbol names, by (kind, copy ID).
-fn named_items(doc: &LibDocument) -> Vec<(Kind, Uuid)> {
-    let copy = |r: &LibRef| -> Uuid {
-        let id: Id<()> = ew_ids::v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid());
-        id.as_uuid()
-    };
-    match doc {
-        LibDocument::Part(c) => c
-            .item
-            .function_template
-            .iter()
-            .map(|t| (Kind::Fndef, copy(&t.fndef)))
-            .chain(std::iter::once((Kind::Manufacturer, copy(&c.item.manufacturer))))
-            .collect(),
-        LibDocument::Symbol(c) => vec![(Kind::Fndef, copy(&c.item.fndef))],
-        _ => Vec::new(),
-    }
+fn named_items(doc: &LibDocument) -> Vec<Uuid> {
+    // What its closure pulls in (its FnDefs, its accessories, a cabinet's plate, its maker, …), by the copy each has.
+    library::closure_refs(doc)
+        .into_iter()
+        .map(|(l, i, _)| ew_ids::v5::lib_copy_id::<()>(l, i).as_uuid())
+        .collect()
 }
 
 /// A library document's printed name for the paste choice card: a part's `<part number> (<manufacturer>)` (the
@@ -913,11 +903,21 @@ impl Session {
                 None => {}
             }
         }
-        let named: BTreeSet<(Kind, Uuid)> = pairs.iter().flat_map(|(_, new)| named_items(new)).collect();
-        let embed: Vec<LibDocument> = lacking
-            .into_iter()
-            .filter(|d| identity(d).is_some_and(|(k, c, ..)| named.contains(&(k, c))))
-            .collect();
+        // What the new versions name, and in turn what a lacking document they name names (an end plate's maker).
+        let mut named: BTreeSet<Uuid> = pairs.iter().flat_map(|(_, new)| named_items(new)).collect();
+        let is_named = |d: &LibDocument, named: &BTreeSet<Uuid>| identity(d).is_some_and(|(_, c, ..)| named.contains(&c));
+        loop {
+            let more: Vec<Uuid> = (lacking.iter())
+                .filter(|d| is_named(d, &named))
+                .flat_map(named_items)
+                .filter(|c| !named.contains(c))
+                .collect();
+            if more.is_empty() {
+                break;
+            }
+            named.extend(more);
+        }
+        let embed: Vec<LibDocument> = lacking.into_iter().filter(|d| is_named(d, &named)).collect();
         self.update_plan(&q, pairs, &embed, cp_maps)
     }
 

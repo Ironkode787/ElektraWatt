@@ -38,7 +38,7 @@ pub use error::LibraryError;
 pub use index::{INDEX_FILE, IndexState};
 pub use lock::LockPolicy;
 pub use manifest::{LibManifest, MANIFEST};
-pub use registry::{LibraryInfo, Registry, WriteFault, WriteReport, version_matches};
+pub use registry::{LibraryInfo, Registry, WriteFault, WriteReport, closure_refs, version_matches};
 pub use search::{FnCompat, ItemHit, ItemQuery, PartHit, PartQuery, item_kind, item_kind_names, quantise};
 pub use tiers::{LibraryTiers, Tier, cache_dir_in, data_dir_in, default_cache_dir, default_data_dir};
 

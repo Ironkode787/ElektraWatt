@@ -487,7 +487,13 @@ impl Session {
                 ))
             })?;
         }
-        match self.closure_docs(refs) {
+        // The parts kept beside them come into the project too, whatever names them (their uses move to them).
+        let mut refs = refs.to_vec();
+        refs.extend(kept.written.iter().filter_map(|d| match d {
+            LibDocument::Part(c) => Some(lib_ref(lib, c.item_id.as_uuid())),
+            _ => None,
+        }));
+        match self.closure_docs(&refs) {
             Ok(docs) => Ok(docs.iter().filter_map(|d| serde_json::to_value(d).ok()).collect()),
             Err(e) => {
                 let mut by_kind: std::collections::BTreeMap<Kind, Vec<Uuid>> = Default::default();

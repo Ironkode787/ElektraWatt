@@ -404,9 +404,10 @@ fn refs_in(v: &Value, out: &mut Vec<(Uuid, Uuid, String)>) {
     }
 }
 
-/// The references a document pulls into its closure (doc 05 §13.2): a part its template FnDefs, its pieces' and its
-/// bus symbol, its macros, its accessories and its manufacturer; a symbol its FnDef; a macro the symbols, FnDefs, parts and forms its fragment names.
-fn closure_refs(doc: &LibDocument) -> Vec<(Uuid, Uuid, String)> {
+/// The references a document pulls into its closure (doc 05 §13.2), as `(library, item, version requirement)`: a part
+/// its template FnDefs, its pieces' and its bus symbol, its macros, its accessories, a cabinet's mounting plate and its
+/// manufacturer; a symbol its FnDef; a macro the symbols, FnDefs, parts and forms its fragment names.
+pub fn closure_refs(doc: &LibDocument) -> Vec<(Uuid, Uuid, String)> {
     let r = |x: &LibRef| (x.library.as_uuid(), x.item.as_uuid(), x.version_req.clone());
     match doc {
         LibDocument::Part(c) => {
@@ -423,6 +424,8 @@ fn closure_refs(doc: &LibDocument) -> Vec<(Uuid, Uuid, String)> {
             out.extend(c.item.bus_symbol.as_ref().map(r));
             out.extend(c.item.macros.iter().map(|m| r(&m.macro_ref)));
             out.extend(c.item.accessories.iter().map(|a| r(&a.part)));
+            // A cabinet's mounting plate (doc 07 §3.1) comes with the cabinet.
+            out.extend(c.item.sections.enclosure.as_ref().and_then(|e| e.plate.as_ref()).map(r));
             out.push(r(&c.item.manufacturer));
             out
         }

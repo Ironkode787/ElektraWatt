@@ -10,7 +10,10 @@ A chapter of [Symbols, parts and macros](07-symbols-parts-macros.md), whose tabl
 
 **Embed closure.**
 - `PlaceSymbol`, `AssignPart` and `InsertMacro` embed the item together with its `LibRef` closure: the symbol's
-  FnDef, the part's accessories, template FnDefs and manufacturer, and the macro's symbols and parts.
+  FnDef, the part's accessories, template FnDefs, its pieces' and bus symbols, a cabinet's mounting plate and its
+  manufacturer, and the macro's symbols and parts. Update from library embeds, with the new version, what that version
+  names that the project lacks (an end plate a part now comes with), so that no part copy names a part the project
+  does not hold.
 - Within a project a `LibRef{library, item, version_req}` resolves to the embedded copy of `(library, item)`.
   If that copy's version does not satisfy `version_req`, the embedding command stops and proposes "update from
   library" instead of embedding a second copy silently (§2.1, keeping two versions).

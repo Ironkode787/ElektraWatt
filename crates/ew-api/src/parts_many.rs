@@ -255,6 +255,23 @@ impl Session {
         if held_docs.is_empty() {
             return Ok((done.len(), None));
         }
+        // What the new versions name that the project does not hold (a part they come with, a cabinet's plate) comes
+        // with the update, from the libraries as they are now.
+        let named: Vec<ew_schema::LibRef> = {
+            let q = self.query();
+            (held_docs.iter())
+                .flat_map(crate::library::closure_refs)
+                .filter(|(l, i, _)| q.parts().get(ew_ids::v5::lib_copy_id::<Part>(*l, *i)).is_none())
+                .map(|(l, i, _)| crate::part_offers::lib_ref(l, i))
+                .collect()
+        };
+        for r in named {
+            if let Ok(LibDocument::Part(_)) = self.libraries().resolve(&r)
+                && let Ok(docs) = self.closure_docs(std::slice::from_ref(&r))
+            {
+                held_docs.extend(docs);
+            }
+        }
         let plan = self.update_from_documents(&held_docs, &[]).map_err(|e| {
             (
                 0,

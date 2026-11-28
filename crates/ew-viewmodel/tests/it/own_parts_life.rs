@@ -472,3 +472,110 @@ fn his_ferrule_added_to_the_stock_stands_first_of_its_kind() {
     assert_eq!(open(&s).0, "EX-FER-1.5", "the row opens its part");
     s.shutdown();
 }
+
+/// Journey b, the way he went: Comes with makes the end plate in passing (New part… in its row, as a cabinet's plate is
+/// made), and Save returns to the terminal's row with it named; the end plate lacks nothing that only a device needs.
+#[test]
+fn comes_with_makes_its_part_in_passing() {
+    use ew_viewmodel::ew_api::part_fields::Feature;
+    let tmp = Tmp::new("life-b-passing");
+    let mut s = sample(&tmp);
+    done(&mut s, "parts.new", json!({"start": "terminal"}));
+    fill(
+        &mut s,
+        &[
+            ("manufacturer", "Example"),
+            ("part_number", "EX-TB-2L"),
+            ("+accessories", ""),
+        ],
+    );
+    done(
+        &mut s,
+        "parts.new",
+        json!({"start": "accessory", "for_field": "accessories[0].part"}),
+    );
+    fill(&mut s, &[("manufacturer", "Example"), ("part_number", "EX-EP-2L")]);
+    let lacks: Vec<Feature> = (s.parts_place().and_then(|p| p.sheet.as_ref()))
+        .map(|o| o.lacks.iter().map(|l| l.feature).collect())
+        .unwrap_or_default();
+    for only_a_device in [Feature::Placing, Feature::Footprint] {
+        assert!(!lacks.contains(&only_a_device), "an end plate: {lacks:?}");
+    }
+    // Ready for says that the schematic does not draw it, rather than that it is ready for a page.
+    let placing = (s.parts_place().and_then(|p| p.sheet.as_ref()))
+        .and_then(|o| o.ready.iter().find(|r| r.feature == Feature::Placing).cloned())
+        .expect("the schematic's row");
+    assert!(
+        matches!(placing.state, ew_viewmodel::ew_api::part_fields::Readiness::NotHere(_)),
+        "{placing:?}"
+    );
+    done(&mut s, "parts.save", json!({}));
+    let o = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the terminal again");
+    assert_eq!(o.sheet.text("part_number"), "EX-TB-2L");
+    let named = o.sheet.table("accessories").and_then(|t| t.rows.first()).and_then(|r| r.first());
+    assert_eq!(named.map(String::as_str), Some("EX-EP-2L"), "the row names it");
+    fill(&mut s, &[("accessories[0].qty", "1"), ("accessories[0].per", "strip")]);
+    assert_eq!(s.dispatch("parts.save", &json!({})), Outcome::Done, "{}", said(&s));
+    one_row_mine(&mut s, "EX-TB-2L");
+    one_row_mine(&mut s, "EX-EP-2L");
+    s.shutdown();
+}
+
+/// A two-level terminal's picture draws both levels, wider than one level's; Ready for keeps what it said while a
+/// Comes with row is added and not filled in yet.
+#[test]
+fn a_two_level_terminal_shows_its_levels_and_ready_for_holds() {
+    use ew_viewmodel::ew_api::part_fields::Feature;
+    let tmp = Tmp::new("life-levels");
+    let mut s = sample(&tmp);
+    done(&mut s, "parts.new", json!({"start": "terminal"}));
+    fill(&mut s, &[("manufacturer", "Example"), ("part_number", "EX-TB-L")]);
+    let width = |s: &ShellModel| {
+        let o = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the sheet");
+        s.part_schematic(&o.sheet).map(|(_, size)| size.0.0).expect("a picture")
+    };
+    let one = width(&s);
+    fill(&mut s, &[("levels", "2")]);
+    assert!(width(&s) > one, "two levels are drawn: {} against {one}", width(&s));
+    let placing = |s: &ShellModel| {
+        (s.parts_place().and_then(|p| p.sheet.as_ref()))
+            .and_then(|o| o.ready.iter().find(|r| r.feature == Feature::Placing).cloned())
+    };
+    let before = placing(&s);
+    done(&mut s, "parts.row", json!({"table": "accessories"}));
+    assert_eq!(placing(&s), before, "Ready for holds while the row is empty");
+    s.shutdown();
+}
+
+/// Journey e, the other way in: his terminal the project holds is given Comes with an end plate of My parts that the
+/// project does not hold; the Save's card brings the end plate into the project with the update, so that no reference
+/// names a part the project lacks.
+#[test]
+fn his_terminals_update_brings_the_end_plate_it_comes_with() {
+    let tmp = Tmp::new("life-e-update");
+    let mut s = tmp.empty_shell(Mode::Gui);
+    done(&mut s, "parts.open", json!({}));
+    done(&mut s, "parts.new", json!({"start": "accessory"}));
+    fill(&mut s, &[("manufacturer", "Example"), ("part_number", "EX-EP-7")]);
+    done(&mut s, "parts.save", json!({}));
+    done(&mut s, "parts.back", json!({}));
+    let dir = tmp.sample_copy();
+    common::copy_dir(std::path::Path::new(common::SAMPLE), &dir);
+    done(&mut s, "file.open", json!({"dir": dir.to_string_lossy()}));
+    done(&mut s, "parts.new", json!({"start": "terminal"}));
+    fill(&mut s, &[("manufacturer", "Example"), ("part_number", "EX-TB-7")]);
+    done(&mut s, "parts.save", json!({}));
+    fill(
+        &mut s,
+        &[
+            ("+accessories", ""),
+            ("accessories[0].part", "EX-EP-7"),
+            ("accessories[0].qty", "1"),
+            ("accessories[0].per", "strip"),
+        ],
+    );
+    done(&mut s, "parts.save", json!({}));
+    assert_eq!(s.dispatch("preview.apply", &json!({})), Outcome::Done, "{}", said(&s));
+    assert_eq!(rows(&mut s, "EX-EP-7", "project"), [Lives::Mine], "the end plate came with it");
+    s.shutdown();
+}
