@@ -728,36 +728,146 @@ impl ShellModel {
     }
 }
 
-/// A part card's changed members in words (never the sections as raw JSON): each member by its
-/// label, the sections as the interfaces and PLC fields that change ([`section_changes`]), the pins made again as
-/// their designations (their function template following them, unlisted).
-pub(super) fn card_fields(fields: &[ew_api::FieldChange]) -> Vec<(String, String, String)> {
-    let text = |v: &Option<Value>| v.as_ref().map(value_words).unwrap_or_default();
+/// A part card's changed members in words, the one place that words a card's rows (never as JSON, never by an
+/// identifier): each declared field that changes by its word on the sheet with its values as the sheet shows them
+/// ("Mounts on: TS 35 × 7.5", a part by its number, [`declared_changes`]); the sections' interfaces and PLC fields as
+/// [`section_changes`] says them; the pins made again as their designations (their function template following
+/// them, unlisted); any other member by its label. `session` words a reference to a part by its number.
+pub(super) fn card_fields(
+    session: Option<&ew_api::Session>,
+    fields: &[ew_api::FieldChange],
+) -> Vec<(String, String, String)> {
+    let text = |v: &Option<Value>| v.as_ref().map(|v| value_words(session, v)).unwrap_or_default();
     let pins = fields.iter().any(|f| f.member == "cp_pattern");
     fields
         .iter()
         .filter(|f| !(pins && f.member == "function_template"))
-        .flat_map(|f| match f.member.as_str() {
-            "sections" => section_changes(f.old.as_ref(), f.new.as_ref()),
-            "cp_pattern" => vec![(
-                strings::text(key!("part-field-cps")).to_owned(),
-                designations(f.old.as_ref()),
-                designations(f.new.as_ref()),
-            )],
-            member => vec![(member_label(member), text(&f.old), text(&f.new))],
+        .flat_map(|f| {
+            if f.member == "cp_pattern" {
+                return vec![(
+                    strings::text(key!("part-field-cps")).to_owned(),
+                    designations(f.old.as_ref()),
+                    designations(f.new.as_ref()),
+                )];
+            }
+            let mut rows = declared_changes(session, &f.member, f.old.as_ref(), f.new.as_ref());
+            if f.member == "sections" {
+                rows.extend(section_changes(f.old.as_ref(), f.new.as_ref()));
+            }
+            if rows.is_empty() {
+                rows.push((member_label(&f.member), text(&f.old), text(&f.new)));
+            }
+            rows
         })
         .collect()
 }
 
-/// A member's value as the part card says it, never as JSON: a text in several languages in the window's language (else
-/// English, else its first), a list its items joined, a group of members each by its word with its value.
-fn value_words(v: &Value) -> String {
+/// The declared fields of part member `member` that differ between its values `old` and `new`, each by its word with
+/// both values as the sheet shows them; a table (Comes with, Doors, Holes) as one row of its rows' cells.
+fn declared_changes(
+    session: Option<&ew_api::Session>,
+    member: &str,
+    old: Option<&Value>,
+    new: Option<&Value>,
+) -> Vec<(String, String, String)> {
+    use ew_api::part_fields::PART_FIELDS;
+    let wrap = |v: Option<&Value>| {
+        let mut m = serde_json::Map::new();
+        m.insert(member.to_owned(), v.cloned().unwrap_or(Value::Null));
+        Value::Object(m)
+    };
+    let (a, b) = (wrap(old), wrap(new));
+    let at = |v: &'_ Value, path: &str| -> Option<Value> {
+        path.split('.')
+            .try_fold(v, |v, m| v.get(m))
+            .filter(|v| !v.is_null())
+            .cloned()
+    };
+    let ours = |path: &str| {
+        path == member || path.starts_with(&format!("{member}.")) || path.starts_with(&format!("{member}[]."))
+    };
+    let mut out = Vec::new();
+    let mut tables: Vec<&str> = Vec::new();
+    for f in PART_FIELDS.iter().filter(|f| ours(f.path)) {
+        if let Some((table, _)) = f.path.split_once("[].") {
+            if tables.contains(&table) {
+                continue;
+            }
+            tables.push(table);
+            let columns: Vec<&str> = (PART_FIELDS.iter())
+                .filter_map(|c| c.path.strip_prefix(table)?.strip_prefix("[]."))
+                .collect();
+            let rows = |v: &Value| -> String {
+                let items = at(v, table);
+                let items = items.as_ref().and_then(Value::as_array).cloned().unwrap_or_default();
+                items
+                    .iter()
+                    .map(|item| {
+                        (columns.iter())
+                            .filter_map(|c| {
+                                let cell = item.get(*c).filter(|v| !v.is_null())?;
+                                let words = field_value_words(session, &format!("{table}[].{c}"), cell);
+                                (!words.is_empty()).then_some(words)
+                            })
+                            .collect::<Vec<_>>()
+                            .join(" \u{b7} ")
+                    })
+                    .collect::<Vec<_>>()
+                    .join("; ")
+            };
+            let (x, y) = (rows(&a), rows(&b));
+            if x != y {
+                out.push((strings::text(Key::run_time(f.word)).to_owned(), x, y));
+            }
+            continue;
+        }
+        let (x, y) = (at(&a, f.path), at(&b, f.path));
+        if x != y {
+            let words = |v: Option<Value>| {
+                v.map(|v| field_value_words(session, f.path, &v))
+                    .unwrap_or_default()
+            };
+            out.push((strings::text(Key::run_time(f.word)).to_owned(), words(x), words(y)));
+        }
+    }
+    out
+}
+
+/// A value of the part member at `path` as the sheet shows it: a choice by its word, a length with its unit, a yes or
+/// no, a part by its number; else [`value_words`].
+fn field_value_words(session: Option<&ew_api::Session>, path: &str, v: &Value) -> String {
+    use ew_api::output::FieldType;
+    let Some((text, ty)) = session.and_then(|s| s.part_value_text(path, v)) else {
+        return value_words(session, v);
+    };
+    match ty.inner() {
+        FieldType::Enum { .. } => strings::field_choice_text("part", path, &text),
+        FieldType::Nm => format!("{text} mm"),
+        FieldType::Bool | FieldType::MlText | FieldType::Text => value_words(session, v),
+        _ if text.is_empty() => value_words(session, v),
+        _ => text,
+    }
+}
+
+/// A member's value as the part card says it, never as JSON and never by an identifier: a text in several languages
+/// in the window's language (else English, else its first), a list its items joined, a reference to a part by the
+/// part's number, a group of members each by its word with its value.
+fn value_words(session: Option<&ew_api::Session>, v: &Value) -> String {
     match v {
         Value::Null => String::new(),
         Value::String(s) => s.clone(),
         Value::Bool(b) => strings::text(if *b { key!("props-yes") } else { key!("props-no") }).to_owned(),
         Value::Number(n) => n.to_string(),
-        Value::Array(items) => items.iter().map(value_words).collect::<Vec<_>>().join(", "),
+        Value::Array(items) => items
+            .iter()
+            .map(|v| value_words(session, v))
+            .filter(|w| !w.is_empty())
+            .collect::<Vec<_>>()
+            .join(", "),
+        Value::Object(m) if m.contains_key("library") && m.contains_key("item") => session
+            .and_then(|s| s.part_value_text("accessories[].part", v))
+            .map(|(t, _)| t)
+            .unwrap_or_default(),
         Value::Object(m)
             if !m.is_empty() && m.values().all(Value::is_string) && m.keys().all(|k| k.len() <= 5) =>
         {
@@ -765,12 +875,14 @@ fn value_words(v: &Value) -> String {
             m.get(lang)
                 .or_else(|| m.get("en"))
                 .or_else(|| m.values().next())
-                .map(value_words)
+                .map(|v| value_words(session, v))
                 .unwrap_or_default()
         }
         Value::Object(m) => m
             .iter()
-            .map(|(k, v)| format!("{} {}", member_label(k), value_words(v)))
+            .map(|(k, v)| (k, value_words(session, v)))
+            .filter(|(_, w)| !w.is_empty())
+            .map(|(k, w)| format!("{} {w}", member_label(k)))
             .collect::<Vec<_>>()
             .join(", "),
     }
@@ -957,25 +1069,23 @@ fn section_changes(old: Option<&Value>, new: Option<&Value>) -> Vec<(String, Str
             runs(&slots(q)),
         ));
     }
-    // What the forms do not show, beside the members that follow the channels.
+    // What the PLC form does not show, beside the members that follow the channels (the other sections' fields are
+    // declared, [`declared_changes`]).
     let rest = |v: &Value| {
-        let mut v = v.clone();
-        if let Some(m) = v.as_object_mut() {
-            m.remove("bus");
-            if let Some(plc) = m.get_mut("plc").and_then(Value::as_object_mut) {
-                for k in [
-                    "role",
-                    "channels",
-                    "more_channels",
-                    "pin_of",
-                    "limits",
-                    "allowed_slots",
-                    "io",
-                    "bit_of",
-                    "supply_groups",
-                ] {
-                    plc.remove(k);
-                }
+        let mut v = v.get("plc").cloned().unwrap_or(Value::Null);
+        if let Some(plc) = v.as_object_mut() {
+            for k in [
+                "role",
+                "channels",
+                "more_channels",
+                "pin_of",
+                "limits",
+                "allowed_slots",
+                "io",
+                "bit_of",
+                "supply_groups",
+            ] {
+                plc.remove(k);
             }
         }
         v

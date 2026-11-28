@@ -458,8 +458,18 @@ impl Session {
         let mut held_items: BTreeSet<(Uuid, Uuid)> = BTreeSet::new();
         // A cable gland is no device's part (doc 12 §3.9): offered only where a gland is asked for.
         let glands = q.kinds.iter().any(|k| k == "gland");
+        // A part kept in My parts is one part (doc 07 §5.8): the project's own copy it was kept from, which keeps its
+        // item, is not offered beside it.
+        let only_here = |lib: Uuid| lib == project || !libs.iter().any(|l| l.id == lib);
+        let kept: BTreeSet<Uuid> = (query.parts().iter())
+            .filter(|(_, c)| !only_here(c.library_id.as_uuid()))
+            .map(|(_, c)| c.item_id.as_uuid())
+            .collect();
         for (id, c) in query.parts().iter() {
             held_items.insert((c.library_id.as_uuid(), c.item_id.as_uuid()));
+            if only_here(c.library_id.as_uuid()) && kept.contains(&c.item_id.as_uuid()) {
+                continue;
+            }
             let p = &c.item;
             let kind = kind_word(&p.kind);
             if !q.kinds.is_empty() && !q.kinds.contains(&kind) || p.kind == PartKind::Gland && !glands {

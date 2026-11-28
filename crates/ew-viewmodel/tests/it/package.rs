@@ -215,8 +215,8 @@ fn a_part_without_a_field_the_package_reads_offers_edit_part_at_the_field() {
         done(&mut s, "parts.field", json!({"field": field, "value": value}));
     }
     done(&mut s, "parts.save", json!({}));
+    // Added first among its kind.
     done(&mut s, "parts.stock", json!({"op": "add"}));
-    done(&mut s, "parts.stock", json!({"op": "move", "to": 1}));
     done(&mut s, "parts.back", json!({}));
     let line = |s: &ew_viewmodel::shell::ShellModel| {
         package(s)

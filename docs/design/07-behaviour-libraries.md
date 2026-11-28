@@ -34,15 +34,24 @@ window says no more (§5.8). The same holds for a symbol.
 
 1. **A part he makes is his.** It is saved to **My parts**, the writable library of the user tier (key
    `user-parts`; it holds his symbols and their function definitions beside his parts), and it is there in his next
-   project. Parts asks nothing about where to keep it. Only where the window has no user folder is a new part a part
-   of the open project, and its sheet says so.
+   project. Parts asks nothing about where to keep it. The user tier is the configured one, else the settings folder's
+   (a window run on a settings folder of its own keeps My parts there, as its drawings do); only where the window has
+   neither is a new part a part of the open project, and its toast says so. **A part goes to My parts with the parts
+   of his own that it names** (its mounting plate, what it comes with, a piece's symbol, its bus symbol): where such a
+   part is only in this project, Save and Keep in my parts write it into My parts beside the part, in one write, its
+   reference made My parts', and the toast names it by maker and number ("kept with Example EX-EP-1"); the project's
+   uses of the copy move to the kept one in the same step (`part.keep`'s `also`). A part of a library he cannot write
+   that it names (a starter part) is named by reference and never copied. A reference that neither a library nor the
+   project answers refuses the save in words, and nothing is written.
 2. **A project carries the parts it uses.** A project takes a part when a device uses it (the embed above), so it
    opens, prints and checks on a PC that has none of his parts. A part the project holds that no library the reader
    can read has is **only in this project**: it is the project's own (its `library_id` is the project's), it is
-   changed in place by `part.edit_copy`, any member, and **Keep in my parts** writes it into My parts and gives the
-   project's devices that part of his (`part.assign` with `replace`, one previewed step), so that it is his here
-   and in the next project. That is how parts travel to a second PC or a colleague: with the project, kept there
-   with one click, one part or all of the project's.
+   changed in place by `part.edit_copy`, any member, and **Keep in my parts** writes it into My parts, with the parts
+   only in this project that it names (rule 1), and moves every use of the project's copies to the kept ones
+   (`part.keep`, one step), so that it is his here and in the next project. That is how parts travel to a second PC
+   or a colleague: with the project, kept there with one click, one part or all of the project's. The project's own
+   copy a part was kept from keeps its item and stays, unused, until purged; it is no second part: Parts' list and
+   every picker show the kept part once.
 3. **A part that is not his is never changed.** A starter part, a community pack's and a library he cannot write
    are the same on every PC that has them, and that is what the lock protects: it is the one lock, and it says so.
    **Make my own from it** makes a new part of his with everything the other has, under a maker and a number he

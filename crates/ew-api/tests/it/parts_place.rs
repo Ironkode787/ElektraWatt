@@ -111,7 +111,7 @@ fn a_part_only_in_this_project_is_kept_in_my_parts() {
     let mut s = project(&tmp.0);
     terminal(&mut s, "DL-2.5", false);
     let here = copy_of(&s, "DL-2.5");
-    let keep = s.keep_in_my_parts(here).expect("kept");
+    let keep = s.keep_in_my_parts(&[here]).expect("kept").command;
     assert_eq!(keep.name, "part.keep");
     run(&mut s, &keep);
     let kept: Vec<Uuid> = s
@@ -131,7 +131,7 @@ fn a_part_only_in_this_project_is_kept_in_my_parts() {
         "{lives:?}"
     );
     // Kept again: My parts has it already, said in words.
-    assert!(s.keep_in_my_parts(here).is_err());
+    assert!(s.keep_in_my_parts(&[here]).is_err());
 }
 
 /// Make my own from a starter part (and so Like this): the new part keeps where its data came from and its licence,
@@ -283,7 +283,7 @@ fn a_kept_part_keeps_its_devices_and_their_variants_and_undo_brings_them_back() 
             .expect("a part use")
     };
     assert_eq!(use_of(&s), (here, Some("B".to_owned())));
-    let keep = s.keep_in_my_parts(here).expect("kept");
+    let keep = s.keep_in_my_parts(&[here]).expect("kept").command;
     assert_eq!(keep.name, "part.keep");
     run(&mut s, &keep);
     let kept = keep.params["to"]
@@ -561,7 +561,7 @@ fn keep_and_a_fork_move_every_use_the_link_table_holds() {
             "{how}: {lost:?} name it no more"
         );
     };
-    let keep = s.keep_in_my_parts(old).expect("kept");
+    let keep = s.keep_in_my_parts(&[old]).expect("kept").command;
     run(&mut s, &keep);
     let kept: Uuid = keep.params["to"]
         .as_str()

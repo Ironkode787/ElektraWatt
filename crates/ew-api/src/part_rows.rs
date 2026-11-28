@@ -18,7 +18,7 @@ use ew_schema::{Hole, HoleKind, Kind, LibCopy, LibDocument, LibRef, Part, PartKi
 use serde_json::{Map, Value};
 
 use crate::Session;
-use crate::library::ItemQuery;
+use crate::library::PartQuery;
 use crate::output::{FieldType, InputError, format_field_value};
 use crate::part_editor::{DraftMessage, PartDraftError, PartSheet, message};
 use crate::part_offers::lib_ref;
@@ -774,6 +774,14 @@ impl Session {
         Ok(n)
     }
 
+    /// The text the sheet of Parts shows for value `v` of the part member at `path` (`mech.width`,
+    /// `accessories[].part`), with the member's value type: a length in millimetres as typed, a part by its number, a
+    /// choice as the file spells it (the window words it); `None` for a path the part schema does not have.
+    pub fn part_value_text(&self, path: &str, v: &Value) -> Option<(String, FieldType)> {
+        let ty = field_type(path)?;
+        Some((self.value_text(&self.query(), &ty, v), ty))
+    }
+
     /// The part number of the part `r` names: the held copy's, else the library's.
     fn ref_number(&self, q: &Q, r: &LibRef) -> Option<String> {
         let id: Id<Part> = ew_ids::v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid());
@@ -801,15 +809,15 @@ impl Session {
                 Vec::new(),
             ));
         }
+        // By its part number, as the lists find a part (a part's key need not be its number), a new part of his too.
         let hit = self
-            .libraries()
-            .search_items(&ItemQuery {
+            .part_search(&PartQuery {
                 text: number.to_owned(),
-                kinds: vec![Kind::Part],
-                ..ItemQuery::default()
+                include_inactive: true,
+                ..PartQuery::default()
             })
             .into_iter()
-            .find(|h| h.key.eq_ignore_ascii_case(number) || h.name.eq_ignore_ascii_case(number))?;
+            .find(|h| h.part_number.eq_ignore_ascii_case(number))?;
         let r = lib_ref(hit.library, hit.item);
         let docs = self.closure_docs(std::slice::from_ref(&r)).ok()?;
         let kind = docs.iter().find_map(|d| match d {

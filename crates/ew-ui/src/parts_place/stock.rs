@@ -26,11 +26,13 @@ struct StockDrag {
     kind: String,
 }
 
-/// The chip Workshop stock of the filter row: In this project narrowed to the stock, and back.
+/// The chip Workshop stock of the filter row: In this project narrowed to the stock, and back; its hint says where the
+/// stock is changed (it is a view, not an editor).
 pub(super) fn chip(ui: &mut Ui, place: &PartsPlace, events: &mut Vec<Event>) {
     let on = place.scope == PartScope::Stock;
     if ui
         .selectable_label(on, strings::text(key!("parts-stock-chip")))
+        .on_hover_text(strings::text(key!("parts-stock-chip-hint")))
         .clicked()
     {
         let scope = if on { PartScope::Project } else { PartScope::Stock };
@@ -70,10 +72,12 @@ pub(super) fn list(ui: &mut Ui, place: &PartsPlace, events: &mut Vec<Event>) {
                 for (i, row) in rows.into_iter().enumerate() {
                     let param = row.param();
                     let r = super::list_row(ui, row, open == Some(row.copy), Some(i + 1));
-                    if r.clicked() {
+                    // The row is dragged to another place and clicked to open its part: one widget over it senses
+                    // both, as one laid over it for the drag alone took the row's click.
+                    let drag = ui.interact(r.rect, r.id.with("stock-drag"), egui::Sense::click_and_drag());
+                    if r.clicked() || drag.clicked() {
                         events.push(Event::Action("parts.open", json!({ "part": param })));
                     }
-                    let drag = ui.interact(r.rect, r.id.with("stock-drag"), egui::Sense::drag());
                     drag.dnd_set_drag_payload(StockDrag {
                         part: param.clone(),
                         kind: kind.to_owned(),

@@ -230,7 +230,8 @@ pub struct ShellConfig {
     /// The read-only resources.
     pub resources: Resources,
     /// The library tiers the shell's sessions open: the Macros and Libraries navigators, Save as
-    /// macro… and the parts picker read them. `None`: the compiled-in libraries only, with no file read.
+    /// macro… and the parts picker read them. `None`: the tiers of the settings folder `config_dir` (My parts is then
+    /// that folder's), and without a settings folder the compiled-in libraries only, with no file read.
     pub libraries: Option<ew_api::library::LibraryTiers>,
 }
 

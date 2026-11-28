@@ -1390,16 +1390,19 @@ impl ShellModel {
         store
     }
 
-    /// The session options of the shell's own sessions: the origin is the GUI, new IDs from the system unless a test
-    /// set a source (`set_id_source_for_tests`, a debug build's); the configuration's library tiers with the
-    /// company libraries of the settings key `libraries.company` after any the configuration names.
+    /// The library tiers of the shell's sessions and of its drawings: the configuration's, else the settings folder's
+    /// (My parts is then that folder's, as for a window run on a settings folder of its own), each with the company
+    /// libraries of the settings key `libraries.company` after any the configuration names.
     pub(super) fn configured_libraries(&self) -> Option<ew_api::library::LibraryTiers> {
         let company = self.settings.company_libraries(self.config.config_dir.as_deref());
         let tiers = self.config.libraries.clone().or_else(|| {
             let dir = self.config.config_dir.as_deref()?;
-            (!company.is_empty()).then(|| {
-                ew_api::library::LibraryTiers::under(dir, &dir.join("library-index"), Vec::new(), Vec::new())
-            })
+            Some(ew_api::library::LibraryTiers::under(
+                dir,
+                &dir.join("library-index"),
+                Vec::new(),
+                Vec::new(),
+            ))
         });
         tiers.map(|mut tiers| {
             for dir in company {

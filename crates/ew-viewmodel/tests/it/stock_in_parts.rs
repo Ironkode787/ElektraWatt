@@ -45,12 +45,12 @@ fn the_stock_is_changed_on_a_parts_sheet_one_step_each() {
     assert!(stock_line(&s).starts_with("stock 2 of "));
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(stock(&s), before);
-    // Out of the stock, and back after the last of its kind.
+    // Out of the stock, and back first of its kind (a part is added because the shop prefers it).
     done(&mut s, "parts.stock", json!({"op": "remove"}));
     assert!(!stock(&s).contains(&before[0]));
     assert_eq!(stock_line(&s), "stock out");
     done(&mut s, "parts.stock", json!({"op": "add"}));
-    assert!(stock(&s).contains(&before[0]));
+    assert_eq!(stock(&s), before);
     let words = match s.dispatch("parts.stock", &json!({"op": "add", "part": "EW-GEN-MCB-1"})) {
         Outcome::Refused { reason } => ew_viewmodel::strings::render(&reason),
         other => panic!("{other:?}"),

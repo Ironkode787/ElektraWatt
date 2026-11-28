@@ -48,11 +48,12 @@ from the wires.
 
 Open it with **Project ▸ Edit stock…**, with the Edit stock… link under the project's Properties, or in Parts with
 **Workshop stock** beside the scopes: the list shows the stock's parts in their order, under a heading per kind that
-says the rule ("Ferrules · the first that fits"). Drag a row to another place among its kind to change the order.
+says the rule ("Ferrules · the first that fits"). Drag a row to another place among its kind to change the order; click
+a row to open its part.
 
 Open a part of the stock: a line under its heading says where it stands ("number 1 of the 13 of its kind"), with
 **Up**, **Down** and **Take out**. A wire, ferrule, marker or gland not in the stock, your own or a starter part, says so
-there with **Add to the stock**. Each change is one step, which **Undo** takes back. **Add from my parts…** shows My
+there with **Add to the stock**, which puts it first of its kind: you add a part because you prefer it. Each change is one step, which **Undo** takes back. **Add from my parts…** shows My
 parts to open one of yours; **Add the generic stock** (also Project ▸ Add the generic stock) adds the starter's
 ferrules, markers and glands the stock lacks, after its own parts.
 

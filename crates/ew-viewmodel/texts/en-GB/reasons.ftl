@@ -326,7 +326,6 @@ reason-no-import-set = No import's set is shown in Parts
 reason-set-nothing-new = Nothing of this import is new or changed
 reason-set-read-again = My parts changed since the table was read: its rows are judged anew. Look at them and save again
 reason-parts-many-not-yours = { $p0 }: not your parts to change; make your own from them first
-reason-parts-many-here = { $p0 }: only in this project; keep them in My parts first, or change them one at a time
 error-find-field = There is no find field { $p0 }
 error-find-option = There is no find option { $p0 }
 reason-cut-incomplete-items = Cut would lose page items or annotation connections; include every annotated wire or use Copy

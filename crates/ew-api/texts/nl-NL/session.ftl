@@ -297,6 +297,8 @@ error-part-new-id = Er kon geen nieuw artikel worden gemaakt: het systeem gaf ge
 error-part-exists = { $p1 } { $p0 } staat al in Mijn artikelen of in dit project: open het in de lijst, of geef het nieuwe artikel een eigen artikelnummer
 error-part-library = { $p0 } kon niet worden geschreven: { $p1 }
 error-part-no-my-parts = Zonder open project wordt een nieuw artikel in Mijn artikelen bewaard, en Mijn artikelen kan hier niet worden gemaakt: open een project om het artikel daarin te bewaren
+error-part-keep-no-my-parts = Mijn artikelen kan hier niet worden gemaakt, want dit venster heeft er geen eigen map voor: het artikel blijft in dit project
+error-part-names-unknown = Het noemt een artikel dat geen bibliotheek van u heeft en dit project ook niet: kies dat artikel opnieuw in zijn veld
 reason-part-symbol-unsaved = Sla het symbool eerst op in een bibliotheek; het artikel noemt het dan
 reason-part-not-own = Dit artikel staat niet in uw artikelbibliotheek: alleen een eigen artikel wordt eruit verwijderd
 # de PLC-sectie van een nieuw artikel.

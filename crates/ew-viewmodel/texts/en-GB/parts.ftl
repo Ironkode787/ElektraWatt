@@ -132,6 +132,7 @@ part-bus-none = No bus interface yet: add one for a device on a bus.
 part-drawn-with = Drawn with
 stock-summary = Workshop stock: { $p0 } parts
 parts-stock-chip = Workshop stock
+parts-stock-chip-hint = Shows the workshop stock of this project in its order. It is changed here: drag a row to another place, or open a part and use Up, Down, Take out or Add to the stock.
 parts-stock-count = { $p0 } in the stock of this project
 # A heading of the Workshop stock view: the kind's plural, then the rule by which a part of it is taken.
 parts-stock-group = { $p0 } · { $p1 }
@@ -263,6 +264,7 @@ parts-own-from = Make my own from it
 parts-keep = Keep in my parts
 parts-remove = Remove
 parts-save = Save
+parts-save-keep = Keep in my parts and save
 parts-save-use = Save and use for { $p0 }
 parts-discard = Discard
 parts-back = Back

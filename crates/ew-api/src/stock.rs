@@ -29,8 +29,8 @@ pub fn holds(kind: &PartKind) -> bool {
 /// A change of the stock, as Parts makes it.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum StockChange {
-    /// The part of the project's copy `copy` added after the stock; where the project does not hold it, the library
-    /// item `source` is embedded with it.
+    /// The part of the project's copy `copy` added first of its kind (a part is added because the shop prefers it);
+    /// where the project does not hold it, the library item `source` is embedded with it.
     Add {
         /// The copy the part has, or will have, in the project.
         copy: Uuid,
@@ -68,6 +68,13 @@ impl Session {
             .parts()
             .get(Id::<Part>::from_uuid(copy))
             .map(|c| c.item.kind.clone())
+    }
+
+    /// The place in `stock` of its first part of kind `kind`, else its end: where a part of that kind is added.
+    fn first_of(&self, stock: &[Uuid], kind: &PartKind) -> usize {
+        (stock.iter())
+            .position(|c| self.held_kind(*c).as_ref() == Some(kind))
+            .unwrap_or(stock.len())
     }
 
     /// Where the project's copy `copy` stands in the stock: its place among the stock's parts of its kind (from 1) and
@@ -118,7 +125,8 @@ impl Session {
                             .iter()
                             .map(|d| serde_json::to_value(d).expect("a library document has a JSON form"))
                             .collect();
-                        stock.push(v5::lib_copy_id::<Part>(library, item).as_uuid());
+                        let at = self.first_of(&stock, &kind);
+                        stock.insert(at, v5::lib_copy_id::<Part>(library, item).as_uuid());
                         return Ok(stock_cmd(&stock, copies));
                     }
                     (None, None) => return Err(text!("error-stock-gone")),
@@ -132,7 +140,8 @@ impl Session {
                         .unwrap_or_default();
                     return Err(text!("error-stock-kind", number));
                 }
-                stock.push(copy);
+                let at = self.first_of(&stock, &kind);
+                stock.insert(at, copy);
             }
             StockChange::Remove(copy) => stock.retain(|c| *c != copy),
             StockChange::Move { copy, to } => {

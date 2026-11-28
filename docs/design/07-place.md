@@ -154,7 +154,9 @@ exists, each said at its field with the way on ("Example CON-18-24 is in My part
 else may be missing: Ready for says what follows. Where the open project holds the part (its devices use it, or
 its workshop stock names it), Save shows first what changes there (the pins that go or change their names, the
 boxes that are drawn anew and why, the lines of the parts list that change), and Save and update makes the change
-in one undo step: until then the project's copy is as it was. A part of kind wire, ferrule or
+in one undo step: until then the project's copy is as it was. The card names each field that changes by its word on
+the sheet, with its values as the sheet shows them ("Mounts on: TS 35 × 7.5", Comes with by the part's number), and
+never an identifier, a version requirement or a member's path. A part of kind wire, ferrule or
 marker is refused as something another part comes with: the consumables count it (§2.5).
 
 **Remove…** takes a part out of My parts, or out of the project when it is only there. It stands greyed while
@@ -313,8 +315,11 @@ A person sees three things and no more (§3.1 has the rules):
   his to give. Where devices of the open project are the other part, Save offers to use his for them, names them,
   and says what does not carry over.
 - **Only in this project**: a part the project holds that no library he can read has, such as one that came with a
-  colleague's project. He changes it freely, for this project; **Keep in my parts** puts it among his, and Keep all
-  in my parts does so for every such part of the project.
+  colleague's project. He changes it freely, for this project; **Keep in my parts** puts it among his with the parts
+  only in this project that it names, and the toast names them ("EX-TB-1 is kept in My parts with Example EX-EP-1").
+
+A part is one row wherever it is listed: a part of My parts the project holds is one row, Mine, and the project's copy
+it was kept from is not listed beside it (§3.1).
 
 A part of My parts that was changed since the open project took it says so on its sheet and in the list ("Changed in
 My parts since this project took it. See changes…"); nothing changes in the project until he says so (§3.1).
@@ -339,8 +344,9 @@ My parts since this project took it. See changes…"); nothing changes in the pr
   share on one sheet: a value they all have, or "mixed". A value typed goes to all of them, and "mixed" is never
   written; Save saves each as its next version in My parts, with one card for the devices of the open project that
   names how many parts and which fields before Apply, one undo step. A starter part among them, or one of a library he
-  cannot write, locks the sheet in a line that names it, with Make my own from it for each; a part only in this
-  project is kept in My parts first. The Connection points table is shared too where the selected parts have the same
+  cannot write, locks the sheet in a line that names it, with Make my own from it for each. Where parts only in this
+  project are among them, Save reads **Keep in my parts and save**: they are kept in My parts first (one step, §3.1),
+  and the value typed goes to the kept parts. The Connection points table is shared too where the selected parts have the same
   pins, a cell each by its pin and column; the other tables, the forms and the drawings are a single part's.
 - **A spreadsheet for a family.** Export as a table… writes the selected parts, or the open one, with the declared
   columns in the window's words (CSV or Excel, by the file's extension). Fifty terminals of one family are made there by copying rows; the import reads them back, new rows as new
@@ -354,9 +360,11 @@ My parts since this project took it. See changes…"); nothing changes in the pr
 The stock of the open project (§2.5) is a view of the list: In this project, narrowed to Workshop stock (the scope
 `stock` of `parts.find`, a chip beside the scopes), in the shop's order of preference under a heading per kind that
 says the rule ("Ferrules · the first that fits"), each row numbered among its kind. A row is dragged to another place
-among its kind; Add from my parts… (My parts: a part opened there is added from its sheet) and Add the generic stock
-add to it. The sheet of a wire, a ferrule, a marker or a gland says whether it is in the stock and where, with Up, Down
-and Take out, or Add to the stock (`parts.stock {op}`; each change one `workshop.stock`, one undo step). Project ▸ Edit
+among its kind, and a click on it opens its part; the chip's hint says where the stock is changed. Add from my parts…
+(My parts: a part opened there is added from its sheet) and Add the generic stock add to it. The sheet of a wire, a
+ferrule, a marker or a gland says whether it is in the stock and where, with Up, Down and Take out, or Add to the stock,
+which puts it first of its kind: a shop adds a part because it prefers it (`parts.stock {op}`; each change one
+`workshop.stock`, one undo step). Project ▸ Edit
 stock…, the project's Properties and the package dialog's Workshop stock… open the view (`parts.stock`). **Use this
 stock for new projects** keeps the stock, in its order, as the window's setting `shop_stock`, which a new project from
 the built-in basic project starts with (an item no longer found is left out; none found: the generic stock). Cut to is

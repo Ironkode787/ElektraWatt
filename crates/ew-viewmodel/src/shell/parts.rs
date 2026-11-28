@@ -381,7 +381,7 @@ fn refusal_words(why: &SetRefusal) -> String {
 /// A changed row's changes as the card of an update names them: each member's words, what it holds now and what it
 /// will hold.
 pub fn row_changes(row: &ew_api::parts_set::SetRow) -> Vec<(String, String, String)> {
-    super::part_dialog::card_fields(&row.changes)
+    super::part_dialog::card_fields(None, &row.changes)
 }
 
 /// What a row of the set is, in a sentence of What was read: refused with why, the same, a repeat; `None` for a new

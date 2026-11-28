@@ -525,17 +525,10 @@ impl ShellModel {
         self.symbol_editor.as_ref()
     }
 
-    /// The tiers a symbol is saved through: the configured ones, else the settings folder's, else the user's.
+    /// The tiers a symbol is saved through: the sessions' ([`ShellModel::configured_libraries`]), else the user's;
+    /// never tiers or an index in the working directory or beside the library.
     fn symbol_tiers(&self) -> Option<ew_api::library::LibraryTiers> {
-        // Without configured tiers, the settings folder's, as a remembered company path gives; never tiers or an
-        // index in the working directory or beside the library.
-        let config_dir = self.config.config_dir.as_deref();
         self.configured_libraries()
-            .or_else(|| {
-                config_dir.map(|d| {
-                    ew_api::library::LibraryTiers::under(d, &d.join("library-index"), Vec::new(), Vec::new())
-                })
-            })
             .or_else(|| ew_api::library::LibraryTiers::for_user(Vec::new(), Vec::new()))
     }
 

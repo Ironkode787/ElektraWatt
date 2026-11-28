@@ -27,7 +27,8 @@ You need an open project.
    group of the sheet that lacks something has a dot in the list of groups.
    Leave what you do not know: the part saves without it, and Ready for keeps saying it.
 5. **Save**. From the part dialog the button reads **Save and use for -102Q1**: the part goes to the devices you were
-   choosing for, and you are back on the page.
+   choosing for, and you are back on the page. A part it names that is only in this project, such as an end plate
+   that came with a colleague's project, goes into My parts with it, and the message names it.
 
 A field that does not read is refused under it, in words. Save is refused only when the part has no maker or no number,
 or when My parts or the project has a part of that maker and number already: open that one from the list instead.
@@ -106,8 +107,9 @@ switch, 8 ports) and EW-GEN-PND-1 (a PROFINET device, 2 ports).
    last one of its edge, the box growing to take it; a box that would then run past the drawing area goes back along
    that edge until it fits, its wires with it. The card names each box drawn anew and its page before **Apply**.
 
-A part only in this project has **Keep in my parts** in the bar: it is written into My parts, and the project's devices
-take that copy. **Remove** takes a part of your own out of My parts (it asks first); a project that uses it keeps its
+A part only in this project has **Keep in my parts** in the bar: it is written into My parts with the parts only in
+this project that it names (its mounting plate, an end plate it comes with), and the project's devices take those
+copies; the message names the parts kept with it. A part is then one row of the list, **Mine**. **Remove** takes a part of your own out of My parts (it asks first); a project that uses it keeps its
 copy. **Back** returns to where you came from.
 
 ## Bring parts in from a file
@@ -150,7 +152,8 @@ parts; a project takes a part when a device uses it. **Discard** drops the set.
    in one step, which one **Undo** takes back in the project (My parts keeps what you saved).
 
 A starter part among them is not yours to change: a line names it, and **Make my own from** it starts a part of your
-own from it. A part only in this project is kept in My parts first (**Keep in my parts**).
+own from it. Where parts only in this project are among them, **Save** reads **Keep in my parts and save**: they are
+kept in My parts first, and the value you typed goes to them.
 
 **Export** in the bar of Parts writes the selected parts, or the open one, as a table (CSV, or Excel for a name ending
 in `.xlsx`), one column per field in the window's words. A family of fifty terminals is made in a spreadsheet from it:

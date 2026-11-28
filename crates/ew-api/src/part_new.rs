@@ -8,9 +8,11 @@
 //! **Where it is saved.** With [`PartSheet::to_library`] and a user library folder, the part goes into the person's
 //! own parts library ("My parts", [`crate::eplan::USER_PARTS_KEY`], where the EPLAN import adds parts too) and the
 //! project embeds that library copy (`library.embed`): the next project finds it there, and a change of it in
-//! Parts gives My parts its next version ([`Session::own_part_update`]). Otherwise it is a project-local part
-//! (`parts.import`). A new part never overwrites another: its item ID is new, and a part of the same number and
-//! manufacturer in the project or in My parts refuses the save at the part number.
+//! Parts gives My parts its next version ([`Session::own_part_update`]). The parts only in this project that it names
+//! (its plate, what it comes with, a piece's symbol) go into My parts with it in the same write, and the command is
+//! then the `part.keep` that moves their uses to the kept copies (`Session::keep_named`). Otherwise it is a
+//! project-local part (`parts.import`). A new part never overwrites another: its item ID is new, and a part of the
+//! same number and manufacturer in the project or in My parts refuses the save at the part number.
 //!
 //! **What it holds.** The identity, the technical values and the bus section the form gives. Its function template
 //! is the one a placement needs: a part without pins whose first interface has a starter port function is drawn by
@@ -35,6 +37,8 @@ pub struct NewPart {
     pub command: AnyCommand,
     /// The name of the library the part was added to; `None` for a project-local part.
     pub library: Option<String>,
+    /// The parts only in this project that it names, kept in that library with it, each by its maker and number.
+    pub with: Vec<String>,
 }
 
 /// What taking a part out of My parts did ([`Session::remove_own_part`]).
@@ -384,21 +388,21 @@ impl Session {
         let Some(lib) = library else {
             return self.project_part(part, &maker, item);
         };
-        let name = self.write_my_part(part, lib, draft)?;
-        let docs = self.closure_docs(&[lib_ref(lib, item)]).map_err(|e| {
-            PartDraftError::Field(message(
-                "part",
-                key!("error-part-library"),
-                &[&name, &e.to_string()],
-            ))
-        })?;
-        let copies = docs.iter().filter_map(|d| serde_json::to_value(d).ok()).collect();
-        let command = AnyCommand::of(&EmbedLibraryCopies { copies }).map_err(|e| {
-            PartDraftError::Field(message("part", key!("error-part-value"), &[&e.to_string()]))
-        })?;
+        // The parts only in this project that it names go into My parts with it, in the one write.
+        let mut kept = crate::parts::Kept::default();
+        let (name, part) = self.my_part(part, lib, draft, &mut kept)?;
+        kept.written.push(LibDocument::Part(part));
+        let copies = self.write_kept(lib, &kept, &[crate::part_offers::lib_ref(lib, item)])?;
+        let command = match kept.moves.split_first() {
+            None => AnyCommand::of(&EmbedLibraryCopies { copies }).map_err(|e| {
+                PartDraftError::Field(message("part", key!("error-part-value"), &[&e.to_string()]))
+            })?,
+            Some((first, also)) => crate::parts::keep_command(*first, also, copies),
+        };
         Ok(NewPart {
             command,
             library: Some(name),
+            with: kept.with.into_iter().map(|(_, w)| w).collect(),
         })
     }
 
@@ -412,18 +416,24 @@ impl Session {
         let part = self.new_part_item(draft)?;
         let lib = crate::eplan::user_parts_library(self.libraries_mut())
             .map_err(|_| PartDraftError::Field(message("part", key!("error-part-no-my-parts"), &[])))?;
-        let name = self.write_my_part(part, lib, draft)?;
+        let mut kept = crate::parts::Kept::default();
+        let (name, part) = self.my_part(part, lib, draft, &mut kept)?;
+        kept.written.push(LibDocument::Part(part));
+        self.write_kept(lib, &kept, &[crate::part_offers::lib_ref(lib, draft.copy)])?;
         Ok((lib, name))
     }
 
-    /// Writes the new part `part` of `draft` into My parts `lib`, its maker made there where it has none: the library's
-    /// name. Refused on `part_number` (`error-part-exists`) where My parts holds a part of that number and maker.
-    fn write_my_part(
-        &mut self,
-        mut part: Part,
+    /// The new part `part` of `draft` as an item of My parts `lib`, its maker made there where it has none (into
+    /// `kept`'s documents) and the parts only in this project that it names kept with it ([`Session::keep_named`]),
+    /// with the library's name; nothing is written. Refused on `part_number` (`error-part-exists`) where My parts holds
+    /// a part of that number and maker.
+    fn my_part(
+        &self,
+        part: Part,
         lib: Uuid,
         draft: &PartSheet,
-    ) -> Result<String, PartDraftError> {
+        kept: &mut crate::parts::Kept,
+    ) -> Result<(String, LibCopy<Part>), PartDraftError> {
         let maker = draft.text("manufacturer").trim().to_owned();
         let number = part.part_number.as_str().to_owned();
         let item = draft.copy;
@@ -442,8 +452,13 @@ impl Session {
                 &[&number, &maker],
             )));
         }
-        let mut written = Vec::new();
-        part.manufacturer = self.my_maker(lib, &maker, &mut written)?;
+        let bad = |e: serde_json::Error| {
+            PartDraftError::Field(message("part", key!("error-part-value"), &[&e.to_string()]))
+        };
+        let mut value = serde_json::to_value(&part).map_err(bad)?;
+        self.keep_named(&mut value, lib, kept)?;
+        let mut part: Part = serde_json::from_value(value).map_err(bad)?;
+        part.manufacturer = self.my_maker(lib, &maker, &mut kept.written)?;
         let copy = finish(
             LibCopy {
                 id: v5::lib_copy_id(lib, item),
@@ -456,7 +471,6 @@ impl Session {
             },
             LibDocument::Part,
         );
-        written.push(LibDocument::Part(copy.clone()));
         let name = self
             .libraries()
             .libraries()
@@ -464,27 +478,19 @@ impl Session {
             .find(|l| l.id == lib)
             .map(|l| l.name)
             .unwrap_or_default();
-        self.libraries_mut().write(lib, &written).map_err(|e| {
-            PartDraftError::Field(message(
-                "part",
-                key!("error-part-library"),
-                &[&name, &e.to_string()],
-            ))
-        })?;
-        Ok(name)
+        Ok((name, copy))
     }
 
-    /// The manufacturer named `maker` in library `lib`: its record there, else a new one, added to `written`.
+    /// The manufacturer named `maker` in library `lib`: its record there or among `written`, else a new one, added to
+    /// `written`.
     pub(crate) fn my_maker(
         &self,
         lib: Uuid,
         maker: &str,
         written: &mut Vec<LibDocument>,
     ) -> Result<LibRef, PartDraftError> {
-        if let Some(r) = self
-            .libraries()
-            .documents(lib, Kind::Manufacturer)
-            .iter()
+        if let Some(r) = (self.libraries().documents(lib, Kind::Manufacturer).iter())
+            .chain(written.iter())
             .find_map(|d| match d {
                 LibDocument::Manufacturer(c) if maker_named(c, maker) => {
                     Some(lib_ref(c.library_id.as_uuid(), c.item_id.as_uuid()))
@@ -664,6 +670,7 @@ impl Session {
         Ok(NewPart {
             command,
             library: None,
+            with: Vec::new(),
         })
     }
 }

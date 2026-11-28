@@ -425,12 +425,15 @@ impl PartsPlace {
         self.sheet.is_none() && self.many.is_none() && self.set.is_some()
     }
 
-    /// The label of Save: Save n to My parts for an import's set, Save and use for the chooser's target from a
-    /// chooser, else Save.
+    /// The label of Save: Save n to My parts for an import's set, Keep in my parts and save for several parts some of
+    /// which are only in this project, Save and use for the chooser's target from a chooser, else Save.
     pub fn save_label(&self) -> String {
         if self.set_shown() {
             let n = self.set.as_deref().map_or(0, ImportSet::to_save);
             return strings::format(key!("parts-set-save"), &[&n.to_string()]);
+        }
+        if (self.many.as_deref()).is_some_and(|m| m.sheets.iter().any(|(_, l)| *l == Lives::OnlyHere)) {
+            return strings::text(key!("parts-save-keep")).to_owned();
         }
         match &self.origin {
             Origin::Chooser(c) => strings::format(key!("parts-save-use"), &[&c.target_text]),
@@ -1391,35 +1394,42 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `parts.keep` (Keep in my parts): the open part, only in this project, written into My parts, and the project's
-    /// devices given that part of his (one undo step).
+    /// `parts.keep` (Keep in my parts): the open part, only in this project, written into My parts with the parts only
+    /// in this project that it names, and the project's devices given those parts of his (one undo step); the toast
+    /// names the parts kept with it.
     pub(crate) fn act_parts_keep(&mut self) -> Outcome {
-        let Some(copy) = self
+        let Some((copy, title)) = self
             .parts
             .as_deref()
             .and_then(|p| p.sheet.as_ref())
             .filter(|o| o.lives == Lives::OnlyHere)
-            .map(|o| o.sheet.copy)
+            .map(|o| (o.sheet.copy, o.title()))
         else {
             return Outcome::refused(key!("reason-part-keep"));
         };
         let (Some(session), _) = self.parts_session_mut() else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        let cmd = match session.keep_in_my_parts(copy) {
-            Ok(c) => c,
-            Err(e) => return draft_refusal(e),
+        let kept = match session.keep_in_my_parts(&[copy]) {
+            Ok(k) => k,
+            Err(e) => return self.save_refused(e),
         };
-        let out = self.run_commit(&cmd);
+        let out = self.run_commit(&kept.command);
         if out == Outcome::Done {
             self.libraries_changed();
-            let kept = cmd.params["to"].as_str().and_then(|s| s.parse::<Uuid>().ok());
-            if let (Some(session), Some(kept)) = (self.parts_session(), kept)
-                && let Ok(sheet) = session.part_draft(kept)
+            let to = kept.command.params["to"].as_str().and_then(|s| s.parse::<Uuid>().ok());
+            if let (Some(session), Some(to)) = (self.parts_session(), to)
+                && let Ok(sheet) = session.part_draft(to)
             {
                 self.open_sheet(sheet, None);
             }
             self.parts_refresh();
+            let toast = if kept.with.is_empty() {
+                strings::format(key!("toast-part-kept"), &[&title])
+            } else {
+                strings::format(key!("toast-part-kept-with"), &[&title, &kept.with.join(", ")])
+            };
+            self.notify(toast, true);
         }
         out
     }
@@ -1671,7 +1681,7 @@ impl ShellModel {
                 let fields = plan
                     .copies
                     .first()
-                    .map(|c| card_fields(&c.fields))
+                    .map(|c| card_fields(self.parts_session(), &c.fields))
                     .unwrap_or_default();
                 let devices = plan.devices.iter().map(|d| self.tag_of(d.as_uuid())).collect();
                 let card = PartCard {
@@ -1721,7 +1731,7 @@ impl ShellModel {
         let devices: Vec<String> = plan.devices.iter().map(|d| self.tag_of(d.as_uuid())).collect();
         let card = PartCard {
             title,
-            fields: card_fields(&plan.fields),
+            fields: card_fields(Some(session), &plan.fields),
             devices,
             removed: plan.bom_removed.clone(),
             added: plan.bom_added.clone(),
@@ -1762,11 +1772,13 @@ impl ShellModel {
         // With no project the part goes into My parts alone (the library's ID kept to show it from there); else into
         // My parts and the project by the command.
         let made = if alone {
-            (session.new_part_in_my_parts(&open.sheet)).map(|(lib, name)| (None, Some(name), Some(lib)))
+            (session.new_part_in_my_parts(&open.sheet))
+                .map(|(lib, name)| (None, Some(name), Some(lib), Vec::new()))
         } else {
-            (session.new_part_command(&open.sheet)).map(|made| (Some(made.command), made.library, None))
+            (session.new_part_command(&open.sheet))
+                .map(|made| (Some(made.command), made.library, None, made.with))
         };
-        let (command, library, mine) = match made {
+        let (command, library, mine, with) = match made {
             Ok(made) => made,
             Err(e) => return self.save_refused(e),
         };
@@ -1788,6 +1800,12 @@ impl ShellModel {
             .expect("checked");
         let number = open.sheet.text("part_number").trim().to_owned();
         let toast = match &library {
+            // With no project open it is in My parts alone.
+            Some(_) if alone => strings::format(key!("parts-saved-mine"), &[&number]),
+            Some(name) if !with.is_empty() => strings::format(
+                key!("toast-part-new-library-with"),
+                &[&number, name, &with.join(", ")],
+            ),
             Some(name) => strings::format(key!("toast-part-new-library"), &[&number, name]),
             None => strings::format(key!("toast-part-new"), &[&number]),
         };

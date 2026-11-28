@@ -146,6 +146,21 @@ impl Session {
                 (None, None) => return Err(target()),
             };
             let lib = held.library_id.as_uuid();
+            // The parts only in this project that a part of My parts names go into My parts with it, and the project
+            // takes those copies with its update.
+            let mut item = item;
+            let mut kept = crate::parts::Kept::default();
+            if self.own_part_number(lib, held.item_id.as_uuid()).is_some() {
+                let bad = |e: serde_json::Error| {
+                    (
+                        i,
+                        PartDraftError::Field(message("part", key!("error-part-value"), &[&e.to_string()])),
+                    )
+                };
+                let mut value = serde_json::to_value(&item).map_err(bad)?;
+                self.keep_named(&mut value, lib, &mut kept).map_err(|e| (i, e))?;
+                item = serde_json::from_value(value).map_err(bad)?;
+            }
             let failed = |e: String| {
                 let name = draft.library.clone().unwrap_or_default();
                 (
@@ -175,7 +190,9 @@ impl Session {
             let doc = LibDocument::Part(copy);
             if in_project {
                 held_docs.push(doc.clone());
+                held_docs.extend(kept.written.iter().cloned());
             }
+            written.entry(lib).or_default().extend(kept.written);
             written.entry(lib).or_default().push(doc);
         }
         if written.is_empty() {

@@ -18,7 +18,24 @@ use serde_json::{Value, json};
 /// A writable copy of the sample on folio 101 with a 1P+N breaker placed from the starter part EW-GEN-MCB-2:
 /// -101F2, beside -102F1's held copy of EW-GEN-MCB-1.
 fn writable(tmp: &Tmp) -> ShellModel {
-    let mut s = tmp.sample_in(Mode::Headless, true, "101");
+    breaker_placed(tmp.sample_in(Mode::Headless, true, "101"))
+}
+
+/// [`writable`] in a window without a folder of its own, so without My parts: a part made in Parts there is only in
+/// this project (doc 07 §3.1).
+fn writable_without_my_parts(tmp: &Tmp) -> ShellModel {
+    let mut config = tmp.config();
+    config.config_dir = None;
+    let mut s = ShellModel::new(Mode::Headless, config);
+    let dir = tmp.sample_copy();
+    common::copy_dir(std::path::Path::new(common::SAMPLE), &dir);
+    done(&mut s, "file.open", json!({"dir": dir.to_string_lossy()}));
+    done(&mut s, "page.goto", json!({"folio": "101"}));
+    breaker_placed(s)
+}
+
+/// The shell `s` on the sample's 101 with -101F2 placed where the sample has none, nothing selected.
+fn breaker_placed(mut s: ShellModel) -> ShellModel {
     if s.dispatch("select.set", &json!({"refs": ["tag:-101F2"]})) != Outcome::Done {
         done(&mut s, "cursor.set", json!({"x_mm": 200.0, "y_mm": 100.0}));
         done(&mut s, "tool.place", json!({}));
@@ -231,14 +248,9 @@ fn a_breaker_offers_the_same_function_first() {
 fn favourites_and_recent_persist() {
     let tmp = Tmp::new("part-sel-3");
     let mut s = writable(&tmp);
-    // A part of the project's own, which no library holds (the sample's parts are all library copies): OWN-1.
-    done(&mut s, "parts.new", json!({"start": "box"}));
-    for (field, value) in [("part_number", "OWN-1"), ("manufacturer", "Own")] {
-        done(&mut s, "parts.field", json!({"field": field, "value": value}));
-    }
-    done(&mut s, "part.pin", json!({"add": true, "name": "1"}));
-    done(&mut s, "parts.save", json!({}));
-    done(&mut s, "parts.back", json!({}));
+    // A part of the project's own, which no library holds (the sample's parts are all library copies; a part made in
+    // Parts goes to My parts): OWN-1, as a colleague's project carries it.
+    common::import_parts(&mut s, &tmp, "OWN-1,Own,OWN-1,device,,Own part,piece,,,,,,,,,,,\n");
     select(&mut s, "-101F2");
     done(&mut s, "part.choose", json!({}));
     let vlv = item_text(&s, "EW-GEN-VLV-1");
@@ -459,7 +471,7 @@ fn own_mcb(s: &mut ShellModel) {
 #[test]
 fn the_part_editor_refuses_with_a_message() {
     let tmp = Tmp::new("part-sel-5");
-    let mut s = writable(&tmp);
+    let mut s = writable_without_my_parts(&tmp);
     own_mcb(&mut s);
     done(&mut s, "parts.open", json!({ "part": "MCB-OWN" }));
     assert_eq!(lines(&s, "open "), ["open \"MCB-OWN\" Only in this project"]);
@@ -530,7 +542,7 @@ fn the_part_editor_refuses_with_a_message() {
 #[test]
 fn an_edit_in_place_is_previewed() {
     let tmp = Tmp::new("part-sel-6");
-    let mut s = writable(&tmp);
+    let mut s = writable_without_my_parts(&tmp);
     own_mcb(&mut s);
     done(&mut s, "parts.open", json!({ "part": "MCB-OWN" }));
     let before = lines(&s, "field \"Description\"");

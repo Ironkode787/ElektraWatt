@@ -308,6 +308,8 @@ error-part-new-id = No new part could be made: the system gave no random number;
 error-part-exists = { $p1 } { $p0 } is in My parts or in this project already: open it from the list, or give the new part a part number of its own
 error-part-library = { $p0 } could not be written: { $p1 }
 error-part-no-my-parts = With no project open a new part is saved in My parts, and My parts cannot be made here: open a project to keep the part in it
+error-part-keep-no-my-parts = My parts cannot be made here, as this window has no folder of its own for it: the part stays in this project
+error-part-names-unknown = It names a part that no library you have holds and this project does not hold: choose that part again in its field
 reason-part-symbol-unsaved = Save the symbol to a library first; the part then names it
 reason-part-not-own = This part is not in your parts library: only a part of your own is taken out of it
 # The PLC section of a new part.
