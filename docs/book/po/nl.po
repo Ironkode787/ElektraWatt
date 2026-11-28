@@ -1987,17 +1987,12 @@ msgstr ""
 
 #: src/tutorials/bus-network.md:8
 msgid ""
-"A bus-topology page shows the network the way TIA Portal's network view "
-"does: each device as one symbol with a compartment per bus interface "
-"(PROFINET X1, PROFIBUS DP) that names it and prints its address, a socket "
-"per port, and the bus lines between the sockets. The power and the I/O "
-"wiring of the same devices stay on the schematic pages."
-msgstr ""
-"Een bustopologiepagina toont het netwerk zoals de netwerkweergave van TIA "
-"Portal: elk apparaat als één symbool met een vak per businterface (PROFINET "
-"X1, PROFIBUS DP) dat de interface noemt en haar adres afdrukt, een "
-"aansluiting per poort, en de buslijnen tussen de aansluitingen. De voeding "
-"en de I/O-bedrading van dezelfde apparaten blijven op de schemapagina's."
+"A bus-topology page shows the network as a PLC tool's network view does: "
+"each device as one symbol with a compartment per bus interface (PROFINET X1, "
+"PROFIBUS DP) that names it and prints its address, a socket per port, and "
+"the bus lines between the sockets. The power and the I/O wiring of the same "
+"devices stay on the schematic pages."
+msgstr "Een bustopologiepagina toont het netwerk zoals de netwerkweergave van een PLC-programma: elk apparaat als één symbool met een vak per businterface (PROFINET X1, PROFIBUS DP) dat de interface noemt en haar adres afdrukt, een aansluiting per poort, en de buslijnen tussen de aansluitingen. De voeding en de I/O-bedrading van dezelfde apparaten blijven op de schemapagina's."
 
 #: src/tutorials/bus-network.md:19
 msgid ""

@@ -5,9 +5,9 @@ module and an unmanaged switch, all from the generic starter parts, then a frequ
 type into Parts. You give the nodes their names and IP addresses, set the cable and its plugs on one bus
 line, and check the network. It takes about fifteen minutes.
 
-A bus-topology page shows the network the way TIA Portal's network view does: each device as one symbol with a
-compartment per bus interface (PROFINET X1, PROFIBUS DP) that names it and prints its address, a socket per port, and
-the bus lines between the sockets. The power and the I/O wiring of the same devices stay on the schematic pages.
+A bus-topology page shows the network as a PLC tool's network view does: each device as one symbol with a
+compartment per bus interface (PROFINET X1, PROFIBUS DP) that names it and prints its address, a socket per port,
+and the bus lines between the sockets. The power and the I/O wiring of the same devices stay on the schematic pages.
 
 ## What you need
 
