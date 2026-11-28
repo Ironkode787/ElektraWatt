@@ -303,8 +303,9 @@ part and the field as facts; the shell makes the offer for every outcome that ca
 A person sees three things and no more (§3.1 has the rules):
 
 - **Mine**: a part of My parts. He changes it freely; it is there in his next project.
-- **Not mine**: a starter part, or a part of a library he cannot write. One line under the heading says so with the
-  reason ("A starter part. It comes with the program and is the same on every PC, so it cannot be changed here") and
+- **Not mine**: a starter part, or a part of any other library, one he can write as well (a company library, a
+  colleague's): only My parts is his, and a library is named where its part is shown. One line under the heading
+  says so with the reason ("A starter part. It comes with the program and is the same on every PC, so it cannot be changed here") and
   offers **Make my own from it**: the same sheet as a new part with everything the other has, the maker and number
   his to give. Where devices of the open project are the other part, Save offers to use his for them, names them,
   and says what does not carry over.
