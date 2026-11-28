@@ -403,7 +403,8 @@ pub fn check_input_in(o: &Map<String, Value>, g: Geometry) -> Result<u64, String
             let inside = std::path::Path::new(path)
                 .components()
                 .all(|c| matches!(c, std::path::Component::Normal(_)));
-            if path.is_empty() || path.chars().count() > 260 || path.chars().any(char::is_control) || !inside {
+            if path.is_empty() || path.chars().count() > 260 || path.chars().any(char::is_control) || !inside
+            {
                 return Err("`path` names a file of your work folder, such as plan.xlsx".to_owned());
             }
         }

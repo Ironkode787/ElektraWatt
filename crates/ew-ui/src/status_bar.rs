@@ -93,13 +93,23 @@ fn look(t: &Tokens, tone: Tone) -> (egui::Color32, TypeToken) {
 }
 
 /// Paints one field into `ui`'s layout; a click on a clickable field pushes its event.
-fn field(ui: &mut Ui, t: &Tokens, shell: &ShellModel, f: &StatusField, narrow: bool, events: &mut Vec<Event>) {
+fn field(
+    ui: &mut Ui,
+    t: &Tokens,
+    shell: &ShellModel,
+    f: &StatusField,
+    narrow: bool,
+    events: &mut Vec<Event>,
+) {
     let (colour, ty) = look(t, f.tone);
     let font = theme::font(&ty);
     let text = shown_text(shell, f, narrow);
     let tip = if f.kind == StatusKind::Revision && text != f.text {
-        format!("{}
-{}", f.text, f.tip)
+        format!(
+            "{}
+{}",
+            f.text, f.tip
+        )
     } else {
         f.tip.clone()
     };

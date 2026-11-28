@@ -895,7 +895,10 @@ fn closed_door(q: &Q) -> (Vec<Finding>, Vec<DoorVerdict>) {
                     unjudged: Vec::new(),
                     lack: door_lack(
                         q,
-                        q.devices().get(e.device).and_then(|d| primary_part(q, d)).as_ref(),
+                        q.devices()
+                            .get(e.device)
+                            .and_then(|d| primary_part(q, d))
+                            .as_ref(),
                     ),
                     hits: 0,
                 });

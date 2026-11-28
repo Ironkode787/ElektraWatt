@@ -468,11 +468,9 @@ pub fn revision_words(model: &ShellModel) -> Option<(String, String)> {
             let full = match since {
                 // A change no page prints (a wire's length) opens the revision and changes no page.
                 Some((last, 0)) => strings::format(key!("status-revision-unchanged"), &[&label, &last]),
-                Some((last, pages)) => strings::format_counted(
-                    count_key!("status-revision-changed"),
-                    pages,
-                    &[&label, &last],
-                ),
+                Some((last, pages)) => {
+                    strings::format_counted(count_key!("status-revision-changed"), pages, &[&label, &last])
+                }
                 None => short.clone(),
             };
             (full, short)

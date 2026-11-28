@@ -94,7 +94,11 @@ pub enum RevisionStep {
 
 /// The step a gate that cannot run offers: Save where saving lets it run.
 fn gate_step(e: &GateError) -> Option<RevisionStep> {
-    matches!(e, GateError::Unsaved | GateError::NoManifest | GateError::Digest(_)).then_some(RevisionStep::Save)
+    matches!(
+        e,
+        GateError::Unsaved | GateError::NoManifest | GateError::Digest(_)
+    )
+    .then_some(RevisionStep::Save)
 }
 
 impl RevisionState {
@@ -433,7 +437,9 @@ impl ShellModel {
 
     /// The step the open revision dialog offers beside Close, while it cannot go on.
     pub fn revision_step(&self) -> Option<RevisionStep> {
-        self.revision.step.filter(|_| self.in_revision_form() && self.revision.blocked)
+        self.revision
+            .step
+            .filter(|_| self.in_revision_form() && self.revision.blocked)
     }
 
     /// What the incomplete-release offer lets the person do: complete the release with the archive, discard the

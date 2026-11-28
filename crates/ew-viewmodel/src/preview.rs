@@ -65,7 +65,12 @@ pub fn field_words(kind: &str, fields: &[String]) -> Vec<String> {
 /// place.
 pub fn change_line(e: &PreviewEntity) -> [String; 4] {
     if let Some(words) = &e.words {
-        return [String::new(), String::new(), crate::strings::render(words), String::new()];
+        return [
+            String::new(),
+            String::new(),
+            crate::strings::render(words),
+            String::new(),
+        ];
     }
     let (change, kind) = entity_words(e);
     let fields = field_words(&e.kind, &e.fields);

@@ -359,7 +359,9 @@ fn place_offers(text: &str, offers: &[Offer]) -> Vec<Offer> {
     crate::rail::LEFT
         .iter()
         .filter_map(|(word, _, pane)| match pane {
-            crate::layout::PaneKind::Navigator(kind) => Some((*word, *kind, crate::rail::left_label(word, *pane))),
+            crate::layout::PaneKind::Navigator(kind) => {
+                Some((*word, *kind, crate::rail::left_label(word, *pane)))
+            }
             _ => None,
         })
         .filter(|(word, _, title)| {
