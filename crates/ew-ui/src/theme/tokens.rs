@@ -344,6 +344,10 @@ pub struct Tokens {
     pub size_panel_header: f32,
     pub size_dock_tab_bar: f32,
     pub size_rail: f32,
+    /// The left rail's width where it names its entries under their icons ([`crate::rail::LABELS_FROM`] and wider):
+    /// a name in `type.small` on at most two lines, a long word broken at its soft hyphen (the owner chose this rail
+    /// from pictures, 2026-11-28).
+    pub size_rail_labelled: f32,
     pub size_rail_button: f32,
     pub size_status: f32,
     pub size_status_field: f32,
@@ -661,6 +665,7 @@ impl Tokens {
             ("size.panel_header", Px(self.size_panel_header)),
             ("size.dock_tab_bar", Px(self.size_dock_tab_bar)),
             ("size.rail", Px(self.size_rail)),
+            ("size.rail_labelled", Px(self.size_rail_labelled)),
             ("size.rail_button", Px(self.size_rail_button)),
             ("size.status", Px(self.size_status)),
             ("size.status_field", Px(self.size_status_field)),
@@ -1057,6 +1062,7 @@ pub fn tokens(theme: Theme, density: Density) -> Tokens {
         size_panel_header: 32.0,
         size_dock_tab_bar: 32.0,
         size_rail: 40.0,
+        size_rail_labelled: 110.0,
         size_rail_button: 32.0,
         size_status: 26.0,
         size_status_field: 22.0,

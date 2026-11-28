@@ -27,6 +27,11 @@ With a project open the window shows the page list, the page view and the status
 page read-only. `Page Down` and `Page Up` move between pages, `Ctrl+G` goes to a folio, `Ctrl+Z` and `Ctrl+Shift+Z`
 undo and redo, `Ctrl+S` saves and `Ctrl+Shift+S` saves under a new name.
 
+The rail at the window's left opens the panels: Project, Terminal strips, Cables and the others, with History at its
+foot. In a window 1600 points wide or wider each icon has its panel's name under it, a long name on two lines; a
+narrower window shows the icons alone, and each names its panel when you rest the pointer on it. `Ctrl+1` to `Ctrl+9`
+open the first nine panels.
+
 The status bar says at its left where the project's revision stands: "V1.0 open" for a project never released, "V1.0
 approved" once the checker approved it, "V1.0 released 20-11-2026" after a release, and "V2.0 open · 3 pages changed
 since V1.0" once a change opened the next revision. That first change says so in a toast, "This change opens revision V2.0: V1.0 stays as released", with

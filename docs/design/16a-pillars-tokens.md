@@ -390,6 +390,7 @@ padding). Spacing tokens (a subset of Carbon's scale plus `space.icon`):
 | `size.panel_header` | 32 | 32 | Navigator, Properties and palette headers |
 | `size.dock_tab_bar` | 32 | 32 | Canvas-tab bar (tabs 28 high) and the bottom dock's tab row |
 | `size.rail` | 40 | 40 | Rail width; rail buttons 32 square |
+| `size.rail_labelled` | 110 | 110 | The left rail's width where it names its entries under their icons (1600 points and wider, §5.4) |
 | `size.status` | 26 | 26 | Status bar; its fields 22 high |
 | `size.panel.left` | 280 (220 to 640) | 280 | Navigator and Properties column; Properties takes half its height; its least default width (shown 480 wide at 1920 and 640 at 2560 while not dragged, §2) |
 | `size.panel.left_max` | 640 | 640 | The widest the left column is shown while it keeps its default share (from about 2380) |

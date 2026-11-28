@@ -394,6 +394,8 @@ fn texts(ftl: &str) -> String {
                 match c {
                     '{' => depth += 1,
                     '}' => depth = depth.saturating_sub(1),
+                    // A soft hyphen marks where the rail may break a name: the word is whole.
+                    '\u{ad}' => {}
                     c if depth == 0 => words.push(c),
                     _ => {}
                 }

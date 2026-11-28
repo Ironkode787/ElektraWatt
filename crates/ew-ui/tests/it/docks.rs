@@ -37,22 +37,23 @@ fn frame(h: &Harness<'_, App>) -> Rect {
     h.ctx.content_rect().shrink(8.0)
 }
 
-/// The rail buttons (the left rail's, then the right rail's), by their left edge then their top.
+/// The rail buttons (the left rail's, then the right rail's), by their left edge then their top: at 1920 the left
+/// rail's are 102 wide with their names under their icons, the right rail's 32-px squares.
 fn rail_buttons(h: &Harness<'_, App>, left: bool) -> Vec<(String, Rect)> {
     let f = frame(h);
     let mut out: Vec<(String, Rect)> = h
         .get_all_by_role(egui::Role::Button)
         .filter(|n| {
             let r = n.rect();
-            r.width() > 31.0
-                && r.width() < 33.0
-                && r.height() > 31.0
-                && r.height() < 33.0
-                && if left {
-                    r.right() <= f.left() + 40.5
-                } else {
-                    r.left() >= f.right() - 40.5
-                }
+            if left {
+                r.width() > 101.0 && r.width() < 103.0 && r.height() > 31.0 && r.right() <= f.left() + 110.5
+            } else {
+                r.width() > 31.0
+                    && r.width() < 33.0
+                    && r.height() > 31.0
+                    && r.height() < 33.0
+                    && r.left() >= f.right() - 40.5
+            }
         })
         .map(|n| (n.accesskit_node().label().unwrap_or_default(), n.rect()))
         .collect();
@@ -72,7 +73,8 @@ fn the_layout_matches_the_mockup() {
     let tmp = Tmp::new();
     let mut h = window(&tmp);
     let f = frame(&h);
-    // The rails: 40 wide; 32-px buttons centred in them.
+    // The left rail at 1920: 110 wide, each entry its icon with its name under it (the owner chose this rail from
+    // pictures, 2026-11-28), 102 wide and at least 32 high, centred in it; the right rail: 40 wide, 32-px buttons.
     let left = rail_buttons(&h, true);
     let names: Vec<&str> = left.iter().map(|(n, _)| n.as_str()).collect();
     assert_eq!(
@@ -88,9 +90,9 @@ fn the_layout_matches_the_mockup() {
     );
     assert_eq!(names.last(), Some(&"History"), "History at the foot");
     for (name, r) in &left {
-        assert!(near(r.center().x, f.left() + 20.0, 1.0), "{name} {r:?}");
+        assert!(near(r.center().x, f.left() + 55.0, 1.0), "{name} {r:?}");
         assert!(
-            near(r.width(), 32.0, 1.0) && near(r.height(), 32.0, 1.0),
+            near(r.width(), 102.0, 1.0) && r.height() >= 32.0,
             "{name} {r:?}"
         );
     }
@@ -109,15 +111,16 @@ fn the_layout_matches_the_mockup() {
     assert!(near(ready.height(), 22.0, 0.5), "{ready:?}");
     assert!(ready.left() < f.left() + 1.0, "{ready:?}");
     // The left column and the canvas: the column is shown 480 wide at 1920 (doc 16a §2, with the tile gaps), the
-    // page view the rest (G5, G8: 70.8 % of the window within one percentage point, at least ADR-0031's 65 %).
+    // page view the rest (G5, G8: 67.2 % of the window within one percentage point since the left rail names its
+    // entries, 70 px wider than the 70.8 % of icons alone; at least ADR-0031's 65 %).
     let (bar, _, pane) = h.state().command_surface_rects();
     let (bar, pane) = (bar.unwrap(), pane.unwrap());
-    let dock = f.width() - 80.0;
-    let column = pane.left() - (f.left() + 40.0);
+    let dock = f.width() - 150.0;
+    let column = pane.left() - (f.left() + 110.0);
     assert!(near(column, 480.0, 10.0), "the left column {column} of {dock}");
     // The harness's 16 px of margin are the canvas's at a real 1920-px window.
     let share = (pane.width() + 16.0) / (f.width() + 16.0);
-    assert!(near(share, 0.708, 0.012), "the canvas share {share}");
+    assert!(near(share, 0.672, 0.012) && share >= 0.65, "the canvas share {share}");
     // Pages above Properties, 50 : 50 within three percentage points.
     let props = h
         .get_all_by_role(egui::Role::Button)
@@ -197,7 +200,7 @@ fn a_click_on_the_shown_entry_collapses_the_column() {
     let f = frame(&h);
     h.get_all_by_role(egui::Role::Button)
         .find(|n| {
-            n.accesskit_node().label().as_deref() == Some("Project") && n.rect().right() <= f.left() + 40.5
+            n.accesskit_node().label().as_deref() == Some("Project") && n.rect().right() <= f.left() + 110.5
         })
         .expect("the rail's Project button")
         .click();

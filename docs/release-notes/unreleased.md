@@ -1118,3 +1118,6 @@ change here.
   where there are several
 - behaviour-change: the Paste tool's label lists the tags the paste will give in the tags' own order ("-1E1, -1S1,
   -1S2"); it followed the new devices' IDs, so the same paste could read in another order the next time
+- behaviour-change: in a window 1600 points wide or wider the left rail is 110 px wide and names each panel under its
+  icon, a long name on two lines (a Dutch name breaks where its text marks it, "Onderbrekings-" / "punten"); a
+  narrower window keeps the rail of icons with their tooltips. At 1920 × 1080 the canvas keeps 67 % of the width

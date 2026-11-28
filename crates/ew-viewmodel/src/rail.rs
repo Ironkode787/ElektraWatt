@@ -57,6 +57,9 @@ pub struct RailButton {
     pub word: &'static str,
     /// The entry's name (its accessible name and its tooltip's first line).
     pub label: String,
+    /// The same name with the soft hyphens it is written with (`strings::text_with_breaks`): where the left rail,
+    /// naming its entries under their icons, may break a long word; empty on the right rail, which never names them.
+    pub caption: String,
     /// The icon key.
     pub icon: &'static str,
     /// What a click does.
@@ -196,6 +199,7 @@ pub fn rail(model: &ShellModel) -> RailModel {
             RailButton {
                 word,
                 label: strings::text(left_label(word, *pane)).to_owned(),
+                caption: strings::text_with_breaks(left_label(word, *pane)).to_owned(),
                 icon,
                 target: RailTarget::Pane(*pane),
                 shortcut: keys.get(i).cloned().unwrap_or_default(),
@@ -206,6 +210,7 @@ pub fn rail(model: &ShellModel) -> RailModel {
     let foot = RailButton {
         word: "history",
         label: strings::text(key!("pane-history")).to_owned(),
+        caption: strings::text_with_breaks(key!("pane-history")).to_owned(),
         icon: "history",
         target: RailTarget::Action("history.show"),
         shortcut: String::new(),
@@ -216,6 +221,7 @@ pub fn rail(model: &ShellModel) -> RailModel {
         .map(|(word, key, icon, action)| RailButton {
             word,
             label: strings::text(*key).to_owned(),
+            caption: String::new(),
             icon,
             target: RailTarget::Action(action),
             shortcut: String::new(),

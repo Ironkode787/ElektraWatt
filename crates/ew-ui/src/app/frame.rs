@@ -427,8 +427,13 @@ impl App {
                 } else {
                     Panel::right(side)
                 };
+                let width = if left {
+                    crate::rail::left_width(ctx, tokens)
+                } else {
+                    tokens.size_rail
+                };
                 panel
-                    .exact_size(tokens.size_rail)
+                    .exact_size(width)
                     .resizable(false)
                     .show_separator_line(false)
                     .frame(egui::Frame::NONE.fill(chrome))

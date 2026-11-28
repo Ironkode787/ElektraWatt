@@ -36,9 +36,9 @@ The window is [the mockup](assets/design-language-mockup.html)'s (open it in a b
 ```
 
 At 1920 × 1080 and 100 %, Comfortable: command bar 85 px (tab row 32, command row 52 with its top hairline, the
-bottom line 1; Compact 69), canvas-tab bar 32 px, status bar 26 px, left rail 40 + left column 480 px, right rail
-40 px, so the canvas is 1360 × 937 px: 71 % of the width
-(ADR-0031 decision 5 requires at least 65 %). The bottom dock, when open, takes 350/1000 of that height, at least 300 px (§5.7). At
+bottom line 1; Compact 69), canvas-tab bar 32 px, status bar 26 px, left rail 110 (its entries named, §5.4) + left
+column 480 px, right rail 40 px, so the canvas is 1290 × 937 px: 67 % of the width (ADR-0031 decision 5 requires at
+least 65 %; the owner chose the named rail from pictures, 2026-11-28). The bottom dock, when open, takes 350/1000 of that height, at least 300 px (§5.7). At
 2560 × 1440 the left column is 640 px and the canvas 1840 × 1297 px (72 %). The sheet is centred on the surround at
 up to 92 % of the canvas width.
 
@@ -186,7 +186,12 @@ Show · On"). Frame statistics is drawn with its icon where its siblings show th
   Connections, PLC, Interruption points, Parts in use and Report blocks; **History** sits at the rail's foot and
   opens the bottom dock's History tab. The active entry has `color.accent.subtle` fill, an accent icon and a 2-px
   accent indicator bar (`radius.mark`) 4 px left of the button, inset 8 px top and bottom. Each has an accessible
-  name and a tooltip with its key. This replaces the overflowing tab strip: every navigator is one click and
+  name and a tooltip with its key. In a window 1600 points wide and wider the rail is `size.rail_labelled` (110) and
+  names each entry under its icon, the button the rail's width less `space.2` on each side: the pane's own name in
+  `type.small`, centred, on at most two lines by one rule: words fill a line; a long word breaks where its text holds a
+  soft hyphen (the Dutch "Onderbrekings-" / "punten"), the line ending in "-"; a line still too wide is cut with "…",
+  whole in the tooltip. A narrower window (1280 × 800 among them, which only has to stay usable) keeps the 40-px rail
+  of icons, so its canvas keeps those 70 px. This replaces the overflowing tab strip: every navigator is one click and
   one name away. Clicking the active one collapses the column (the canvas gets the width); Ctrl+1 to Ctrl+9 select by
   position (the keys of `rail.entry`, which a keymap rebinds like any other). Messages is not on the rail; it lives in the bottom dock.
 - **The navigator panel** (`size.panel.left`, `color.surface.panel`, a 1-px `color.border.default` on its right): a

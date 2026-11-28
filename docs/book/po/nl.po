@@ -3222,6 +3222,16 @@ msgstr ""
 
 #: src/how-to/application-window.md:30
 msgid ""
+"The rail at the window's left opens the panels: Project, Terminal strips, "
+"Cables and the others, with History at its foot. In a window 1600 points "
+"wide or wider each icon has its panel's name under it, a long name on two "
+"lines; a narrower window shows the icons alone, and each names its panel "
+"when you rest the pointer on it. `Ctrl+1` to `Ctrl+9` open the first nine "
+"panels."
+msgstr ""
+
+#: src/how-to/application-window.md:35
+msgid ""
 "The status bar says at its left where the project's revision stands: \"V1.0 "
 "open\" for a project never released, \"V1.0 approved\" once the checker "
 "approved it, \"V1.0 released 20-11-2026\" after a release, and \"V2.0 open · "
@@ -3233,22 +3243,22 @@ msgid ""
 "**Revisions** and **Rework list**."
 msgstr ""
 
-#: src/how-to/application-window.md:37
+#: src/how-to/application-window.md:42
 msgid "Sample project"
 msgstr ""
 
-#: src/how-to/application-window.md:39
+#: src/how-to/application-window.md:44
 msgid ""
 "**File, Open sample project** opens the sample project read-only, so that "
 "nothing is written into the installation. **Save as…** writes a copy into a "
 "directory of your own and continues in the copy."
 msgstr ""
 
-#: src/how-to/application-window.md:42
+#: src/how-to/application-window.md:47
 msgid "Import a QElectroTech project"
 msgstr ""
 
-#: src/how-to/application-window.md:44
+#: src/how-to/application-window.md:49
 msgid ""
 "**File, Import...**, beside **Open...**, asks for a `.qet` file and then for "
 "a new, empty directory. The importer reads the file into a new project and "
@@ -3258,11 +3268,11 @@ msgid ""
 "read-only."
 msgstr ""
 
-#: src/how-to/application-window.md:49
+#: src/how-to/application-window.md:54
 msgid "Unsaved changes and recovery"
 msgstr ""
 
-#: src/how-to/application-window.md:51
+#: src/how-to/application-window.md:56
 msgid ""
 "Closing, quitting or opening another project with unsaved changes asks "
 "whether to save, discard or cancel. If the application ends while a project "
@@ -3272,11 +3282,11 @@ msgid ""
 "the project for editing."
 msgstr ""
 
-#: src/how-to/application-window.md:56
+#: src/how-to/application-window.md:61
 msgid "Command palette"
 msgstr ""
 
-#: src/how-to/application-window.md:58
+#: src/how-to/application-window.md:63
 msgid ""
 "`Ctrl+K` (or `Ctrl+Shift+P`) opens the palette: type a part of a name and "
 "press `Enter` to run the selected entry. Beside the commands it finds a page "
@@ -3288,28 +3298,28 @@ msgid ""
 "last with the reason. `Escape` closes it."
 msgstr ""
 
-#: src/how-to/application-window.md:64
+#: src/how-to/application-window.md:69
 msgid "Keyboard shortcuts"
 msgstr ""
 
-#: src/how-to/application-window.md:66
+#: src/how-to/application-window.md:71
 msgid ""
 "**Help, Keyboard shortcuts** lists the bindings of the EW preset. `F1` opens "
 "the guide at what is under the pointer "
 "([below](#help-for-what-is-under-the-pointer))."
 msgstr ""
 
-#: src/how-to/application-window.md:69
+#: src/how-to/application-window.md:74
 msgid "Help for what is under the pointer"
 msgstr ""
 
-#: src/how-to/application-window.md:71
+#: src/how-to/application-window.md:76
 msgid ""
 "Point at something and press `F1`: the guide opens at the page about it. It "
 "answers for the most specific thing under the hand:"
 msgstr ""
 
-#: src/how-to/application-window.md:74
+#: src/how-to/application-window.md:79
 msgid ""
 "what the pointer rests on: a button of the command bar or a menu entry (the "
 "page of its command), a row of Properties (what that row means, in "
@@ -3320,27 +3330,27 @@ msgid ""
 "[Things on a page](../reference/window/things.md);"
 msgstr ""
 
-#: src/how-to/application-window.md:79
+#: src/how-to/application-window.md:84
 msgid ""
 "else what has the keys: the row of a list or of Properties the cursor is on;"
 msgstr ""
 
-#: src/how-to/application-window.md:80
+#: src/how-to/application-window.md:85
 msgid "else what is selected on the page;"
 msgstr ""
 
-#: src/how-to/application-window.md:81
+#: src/how-to/application-window.md:86
 msgid "else the active tool;"
 msgstr ""
 
-#: src/how-to/application-window.md:82
+#: src/how-to/application-window.md:87
 msgid ""
 "else the screen: an open dialog or wizard (those come first), Parts and its "
 "drawing, a station's view, the guide of the page's kind (a fluid, "
 "bus-topology or panel layout page), the project view or the start page."
 msgstr ""
 
-#: src/how-to/application-window.md:85
+#: src/how-to/application-window.md:90
 msgid ""
 "While the pointer rests on something, the status bar says what `F1` opens "
 "there, such as \"F1: Wires\", and a button's or a menu entry's tooltip ends "
@@ -3352,11 +3362,11 @@ msgid ""
 "the guide has one."
 msgstr ""
 
-#: src/how-to/application-window.md:91
+#: src/how-to/application-window.md:96
 msgid "Appearance"
 msgstr ""
 
-#: src/how-to/application-window.md:93
+#: src/how-to/application-window.md:98
 msgid ""
 "The **View** menu sets how the window looks and behaves: **Theme**, "
 "**Density**, **UI scale**, **Minimum text size**, **Reduce motion**, **Show "
@@ -3367,11 +3377,11 @@ msgid ""
 "draws. The settings are kept for the next start."
 msgstr ""
 
-#: src/how-to/application-window.md:99
+#: src/how-to/application-window.md:104
 msgid "Notifications"
 msgstr ""
 
-#: src/how-to/application-window.md:101
+#: src/how-to/application-window.md:106
 msgid ""
 "What a command did, such as \"Cable -1W1 made from 2 wires\", shows as a "
 "toast at the window's corner for a few seconds; a pointer resting on it "
@@ -3380,11 +3390,11 @@ msgid ""
 "session."
 msgstr ""
 
-#: src/how-to/application-window.md:105
+#: src/how-to/application-window.md:110
 msgid "Workspaces"
 msgstr ""
 
-#: src/how-to/application-window.md:107
+#: src/how-to/application-window.md:112
 msgid ""
 "The project view is a dock: drag the border between two panes to resize "
 "them, and drag a pane's title onto another pane to rearrange or tab it. The "
@@ -3399,11 +3409,11 @@ msgid ""
 "directory; the layout is saved a second after its last change."
 msgstr ""
 
-#: src/how-to/application-window.md:116
+#: src/how-to/application-window.md:121
 msgid "First-run setup"
 msgstr ""
 
-#: src/how-to/application-window.md:118
+#: src/how-to/application-window.md:123
 msgid ""
 "On the first start the application asks for the language and what you come "
 "from (EPLAN, QElectroTech, KiCad or other), says what it does with your data "
@@ -3413,11 +3423,11 @@ msgid ""
 "First-run setup** runs it again. Nothing in it makes a network connection."
 msgstr ""
 
-#: src/how-to/application-window.md:123
+#: src/how-to/application-window.md:128
 msgid "About"
 msgstr ""
 
-#: src/how-to/application-window.md:125
+#: src/how-to/application-window.md:130
 msgid ""
 "**Help, About ElektraWatt** shows the version, the page-view renderer, the "
 "privacy state, the licence, the engineering-verification disclaimer, the "

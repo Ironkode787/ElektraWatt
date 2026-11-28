@@ -176,7 +176,14 @@ struct Locale {
     tag: String,
     language: Option<Language>,
     texts: BTreeMap<Box<str>, &'static str>,
+    /// The texts that mark where a word may break with a soft hyphen ([`SOFT_HYPHEN`]), as written; `texts` holds them
+    /// without it.
+    breaks: BTreeMap<Box<str>, &'static str>,
 }
+
+/// The soft hyphen (U+00AD): in a text, where a long word may break across two lines, which only the left rail's
+/// names do ([`text_with_breaks`]); every other text is served without it.
+pub const SOFT_HYPHEN: char = '\u{ad}';
 
 impl Locale {
     /// The language `tag` from the Fluent sources `sources` of the shipped language `shipped` (`nl-NL` for `nl`: a
@@ -205,17 +212,25 @@ impl Locale {
         let shown: Vec<String> = (0..ARGS.len()).map(|i| format!("{{{i}}}")).collect();
         let args = arguments(&shown);
         let mut texts = BTreeMap::new();
+        let mut breaks = BTreeMap::new();
         // The keys of en-GB only: no code names another.
         for key in en_gb.unwrap_or(&language).keys() {
             let Some(text) = language.format(key, None, &args, OnError::Keep) else {
                 continue;
             };
-            texts.insert(Box::from(key), &*Box::leak(text.into_boxed_str()));
+            if text.contains(SOFT_HYPHEN) {
+                let plain = text.replace(SOFT_HYPHEN, "");
+                breaks.insert(Box::from(key), &*Box::leak(text.into_boxed_str()));
+                texts.insert(Box::from(key), &*Box::leak(plain.into_boxed_str()));
+            } else {
+                texts.insert(Box::from(key), &*Box::leak(text.into_boxed_str()));
+            }
         }
         Locale {
             tag: tag.to_owned(),
             language: Some(language),
             texts,
+            breaks,
         }
     }
 
@@ -234,6 +249,7 @@ impl Locale {
             tag: PSEUDO.to_owned(),
             language: None,
             texts,
+            breaks: BTreeMap::new(),
         }
     }
 
@@ -264,7 +280,9 @@ impl Locale {
         if count && let Some((_, first)) = values.first_mut() {
             *first = Value::Number(&given[0]);
         }
-        language.format(key, None, &values, OnError::Keep)
+        language
+            .format(key, None, &values, OnError::Keep)
+            .map(|t| t.replace(SOFT_HYPHEN, ""))
     }
 }
 
@@ -793,6 +811,20 @@ pub fn command_title(name: &str) -> &str {
 /// The text of `key`; `?` for a key without a text (a missing text is a bug a test catches).
 pub fn text(key: Key<'_>) -> &'static str {
     lookup(key.as_str()).unwrap_or("?")
+}
+
+/// [`text`] with the soft hyphens it is written with ([`SOFT_HYPHEN`]): where its long words may break across two
+/// lines (the left rail's names).
+pub fn text_with_breaks(key: Key<'_>) -> &'static str {
+    let key = key.as_str();
+    let current = current();
+    current
+        .breaks
+        .get(key)
+        .or_else(|| current.texts.get(key))
+        .or_else(|| en_gb().breaks.get(key))
+        .copied()
+        .unwrap_or_else(|| text(Key::run_time(key)))
 }
 
 /// The text of `key` in the UI language with its arguments `{ $p0 }`, `{ $p1 }`, … from `args`, each passed as a
