@@ -189,6 +189,8 @@ pub enum Category {
     Plc,
     /// The assembly aspect.
     Assembly,
+    /// With what a bus page draws a device (doc 10 §2.7).
+    BusSymbol,
     /// Every other listed member.
     Other,
     /// Members the schema does not list (the flattened `extra` maps).
@@ -197,7 +199,7 @@ pub enum Category {
 
 impl Category {
     /// Every category in display order.
-    pub const ALL: [Category; 16] = [
+    pub const ALL: [Category; 17] = [
         Category::Identity,
         Category::Part,
         Category::Electrical,
@@ -212,6 +214,7 @@ impl Category {
         Category::Cable,
         Category::Plc,
         Category::Assembly,
+        Category::BusSymbol,
         Category::Other,
         Category::Extra,
     ];
@@ -233,6 +236,7 @@ impl Category {
             Category::Cable => "cable",
             Category::Plc => "plc",
             Category::Assembly => "assembly",
+            Category::BusSymbol => "bus_symbol",
             Category::Other => "other",
             Category::Extra => "extra",
         }

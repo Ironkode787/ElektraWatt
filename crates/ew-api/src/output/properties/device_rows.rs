@@ -758,3 +758,59 @@ impl Session {
         out
     }
 }
+
+/// The Bus symbol rows' Drawn with of a device's bus symbol selected on a page (doc 10 §2.7): with what a bus page
+/// draws the device, the program's symbol from its part's network ports or the part's own, the note on how it follows
+/// the part, and the way to another look (Make my own from it…, which opens Parts at the part's card "On a bus page";
+/// with his own, the drawing); `None` for a device without a part with network ports.
+pub(super) fn bus_symbol_row(q: &Q, device: Id<Device>) -> Option<Built> {
+    let parts = q.parts();
+    let (copy, part) = q.devices().get(device)?.parts.iter().find_map(|u| {
+        let c = parts.get(u.part.copy)?;
+        ew_derive::has_bus_ports(&c.item).then(|| (u.part.copy, c.item.clone()))
+    })?;
+    let number = part.part_number.to_string();
+    let own = ew_derive::own_bus_symbol(q, &part).map(|s| ew_derive::text_in(&s.name, None).to_owned());
+    let (text, note, link) = match (&own, &part.bus_symbol) {
+        (Some(name), Some(r)) => (
+            format!("own: {name}"),
+            text!("bus-symbol-own-note", name.clone()),
+            super::RowLink {
+                label: text!("bus-symbol-open"),
+                actions: vec![(
+                    "parts.open",
+                    serde_json::json!({"symbol": format!("library:{}:{}", r.library.as_uuid(), r.item.as_uuid())}),
+                )],
+            },
+        ),
+        _ => (
+            "the program's".to_owned(),
+            text!("bus-symbol-derived-note", number.clone()),
+            super::RowLink {
+                label: text!("bus-symbol-make-own"),
+                actions: vec![(
+                    "parts.open",
+                    serde_json::json!({"part": format!("id:{}", copy.as_uuid()), "field": "bus_symbol"}),
+                )],
+            },
+        ),
+    };
+    let mut row = derived(DerivedRow {
+        kind: "representation",
+        name: "bus_symbol",
+        partner: None,
+        category: Category::BusSymbol,
+        ty: FieldType::Text,
+        value: RowValue::One {
+            json: serde_json::json!({"part": number, "own": own}),
+            text,
+        },
+        provenance: Provenance::Derived {
+            via: text!("via-part"),
+        },
+        actions: Vec::new(),
+    });
+    row.row.note = Some(note);
+    row.row.link = Some(link);
+    Some(row)
+}

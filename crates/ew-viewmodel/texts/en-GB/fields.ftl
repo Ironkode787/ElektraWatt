@@ -95,6 +95,7 @@ category-terminal = Terminal
 category-cable = Cable
 category-plc = PLC
 category-assembly = Assembly
+category-bus_symbol = Bus symbol
 category-other = Other
 category-extra = Extra
 choice-colour-en60204-machine = EN 60204-1 machine (not yet checked)
@@ -129,6 +130,10 @@ field-device-derived-solenoid-item = Solenoid
 field-help-device-derived-solenoid-item = A solenoid of the valve: where its coil is drawn, and the PLC output that drives it. Click it to go there, or to draw the coil on an electrical page while it is not drawn.
 field-representation-derived-solenoid-of = Valve
 field-help-representation-derived-solenoid-of = The valve this coil is a solenoid of. Click it to go to the valve.
+field-representation-derived-bus-symbol = Drawn with
+field-help-representation-derived-bus-symbol = With what a bus page draws the device: the program's symbol from its part's network ports, or the part's own.
+field-function-derived-sockets = Sockets
+field-help-function-derived-sockets = The sockets this network port has on the bus symbol, as its part's network ports give them.
 # The library tiers, access and index words, and the Blocks kinds without words of their own.
 category-main = Main
 

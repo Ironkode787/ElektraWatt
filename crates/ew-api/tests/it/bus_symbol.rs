@@ -339,6 +339,47 @@ fn properties_of_a_bus_symbol_has_a_section_per_network_port() {
     assert!(one.sections.iter().all(|x| x.port.is_none()));
 }
 
+/// Properties of a bus symbol says with what it is drawn, in its Bus symbol rows: the program's symbol from the part's
+/// network ports, with the note that it follows the part and Make my own from it…, which opens Parts at the part's bus
+/// symbol. Each network port's section says its sockets: X1's two by their ports, X2's one by its name.
+#[test]
+fn properties_say_with_what_a_bus_symbol_is_drawn_and_each_port_s_sockets() {
+    use ew_api::output::{Category, RowValue};
+    let (project, records, lib) = parts("rio1");
+    let s = ew_api::Session::from_records(project, records, lib, ew_api::SessionOptions::default())
+        .expect("a session");
+    let sheet = s.property_sheet(&[id::<()>(UPRIGHT).as_uuid()]);
+    let row = |key: &str| {
+        sheet
+            .sections
+            .iter()
+            .flat_map(|x| x.rows.iter())
+            .find(|r| r.key == key)
+            .unwrap_or_else(|| panic!("{key}"))
+    };
+    let drawn = row("representation/derived.bus_symbol");
+    assert_eq!(drawn.category, Category::BusSymbol);
+    let RowValue::One { json, .. } = &drawn.value else {
+        panic!("one value")
+    };
+    assert_eq!(*json, json!({"part": "HS-2", "own": null}), "the program's, from HS-2's ports");
+    assert!(drawn.note.is_some(), "it follows the part");
+    let link = drawn.link.as_ref().expect("Make my own from it…");
+    assert_eq!(
+        link.actions,
+        [(
+            "parts.open",
+            json!({"part": format!("id:{}", uid(HEAD)), "field": "bus_symbol"})
+        )]
+    );
+    let sockets = |key: &str| match &row(key).value {
+        RowValue::One { text, .. } => text.clone(),
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(sockets("function@X1/derived.sockets"), "P1 · P2");
+    assert_eq!(sockets("function@X2/derived.sockets"), "X2");
+}
+
 /// A starter station of two interfaces (EW-GEN-CPU-2: DP, X1) placed on a bus page by `bus.place_ports` as the tool
 /// sends it: one symbol, and a port function per interface, each typed for its bus and made of its bus's port function
 /// definition (an X1 address takes a PROFINET name).
@@ -465,14 +506,15 @@ fn a_part_s_own_bus_symbol_draws_its_devices_and_ew_bus_011_names_what_it_lacks(
         lib.retain(|d| !swap(d));
         lib.push(serde_json::from_value(coupler(x1_ports)).expect("the coupler"));
         lib.push(serde_json::from_value(doc).expect("the own symbol"));
-        (
-            Model::from_records(project, records, lib).unwrap_or_else(|e| panic!("model: {e:?}")),
-            own,
-        )
+        (project, records, lib, own)
+    };
+    let model = |(project, records, lib, _): (Project, Vec<Record>, Vec<LibDocument>, ew_schema::SymbolDef)| {
+        Model::from_records(project, records, lib).unwrap_or_else(|e| panic!("model: {e:?}"))
     };
     let rule = ew_checks::rule("EW-BUS-011").expect("EW-BUS-011");
-    let (model, own) = with_own(2);
-    let q = Q::new(&model);
+    let own = with_own(2).3;
+    let made = model(with_own(2));
+    let q = Q::new(&made);
     let stored: Representation = (**q.reps().get(id(COUPLED)).expect("the coupler")).clone();
     let (drawn, rep) = ew_derive::drawn(&q, &stored).expect("drawn");
     assert_eq!(
@@ -484,12 +526,66 @@ fn a_part_s_own_bus_symbol_draws_its_devices_and_ew_bus_011_names_what_it_lacks(
         rule.run(&q, &ew_checks::Scope::Project).is_empty(),
         "every socket drawn"
     );
-    let (model, _) = with_own(3);
-    let q = Q::new(&model);
+    let made = model(with_own(3));
+    let q = Q::new(&made);
     let found = rule.run(&q, &ew_checks::Scope::Project);
     assert_eq!(found.len(), 1, "{found:?}");
     let text = ew_checks::render(&found[0], "en-GB");
     assert!(text.contains("X1 P3") && text.contains("CPL-PN-DP"), "{text}");
     let fix = found[0].fix.as_ref().expect("Open the bus symbol");
     assert_eq!(fix.command, "parts.open");
+    // Properties of the coupler says it is drawn with the part's own symbol, and its link opens that drawing.
+    let (project, records, lib, _) = with_own(2);
+    let s = ew_api::Session::from_records(project, records, lib, ew_api::SessionOptions::default())
+        .expect("a session");
+    let sheet = s.property_sheet(&[id::<()>(COUPLED).as_uuid()]);
+    let drawn = sheet
+        .sections
+        .iter()
+        .flat_map(|x| x.rows.iter())
+        .find(|r| r.key == "representation/derived.bus_symbol")
+        .expect("Drawn with");
+    let ew_api::output::RowValue::One { json, .. } = &drawn.value else {
+        panic!("one value")
+    };
+    assert!(json["own"].is_string(), "his own, by its name: {json}");
+    let link = drawn.link.as_ref().expect("the way to the drawing");
+    assert_eq!(
+        link.actions,
+        [(
+            "parts.open",
+            json!({"symbol": format!("library:{}:{}", uid(0x9000), uid(own_item))})
+        )]
+    );
+}
+
+/// The part's card "On a bus page" pictures its bus symbol as a page prints it: with its texts, shaped by the page's
+/// means (the part in the header, each compartment's interface, the sockets' labels, an address by its placeholder).
+#[test]
+fn the_picture_on_a_bus_page_prints_the_symbol_s_texts() {
+    let (project, records, lib) = parts("rio1");
+    let head: ew_schema::Part = lib
+        .iter()
+        .find_map(|d| match d {
+            LibDocument::Part(p) if p.item.part_number.as_str() == "HS-2" => Some(p.item.clone()),
+            _ => None,
+        })
+        .expect("HS-2");
+    let s = ew_api::Session::from_records(project, records, lib, ew_api::SessionOptions::default())
+        .expect("a session");
+    let picture = s.part_bus_symbol(&head).expect("network ports");
+    fn runs(items: &[ew_dl::Item], out: &mut Vec<String>) {
+        for i in items {
+            match &i.kind {
+                ItemKind::Glyphs(run) => out.push(run.text.clone()),
+                ItemKind::Group(g) => runs(&g.items, out),
+                _ => {}
+            }
+        }
+    }
+    let mut texts = Vec::new();
+    runs(&picture.list.items, &mut texts);
+    for printed in ["HS-2", "X1", "X2", "P1", "P2", "TBD"] {
+        assert!(texts.iter().any(|t| t.contains(printed)), "{printed} in {texts:?}");
+    }
 }

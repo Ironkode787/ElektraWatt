@@ -749,12 +749,12 @@ impl Session {
             Kind::Connection => Self::derived_rows_of_connection(q, cx, targets, jsons),
             Kind::Page => Self::derived_rows_of_page(q, cx, targets, jsons),
             Kind::Representation => Self::derived_rows_of_representation(q, cx, targets),
-            // An interruption point's potential, as a wire's.
+            // A network port's sockets; an interruption point's potential, as a wire's.
             Kind::Function => {
                 let ends: Vec<Vec<EndpointKey>> =
                     targets.iter().map(|f| ip_ends(q, Id::from_uuid(*f))).collect();
                 if ends.iter().any(Vec::is_empty) {
-                    return Vec::new();
+                    return super::bus_rows::sockets_row(q, targets).into_iter().collect();
                 }
                 let mut out = vec![potential_row(q, cx, "function", &ends)];
                 // A marked supply point: where it comes from, the place and the device there, each changed in

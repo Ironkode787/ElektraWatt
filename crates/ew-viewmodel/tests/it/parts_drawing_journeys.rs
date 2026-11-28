@@ -1086,8 +1086,8 @@ fn on_a_bus_page(s: &ShellModel) -> ew_viewmodel::ew_api::output::PartBusSymbol 
 }
 
 /// A coupler of his own on two buses (X1 on PROFINET with two ports, DP on PROFIBUS): its sheet pictures the program's
-/// bus symbol "On a bus page"; Make my own from it… opens that symbol as a drawing of his own with a socket for each
-/// port; a text moved into a socket's way out is refused in words and taken back; Done gives the part the symbol, the
+/// bus symbol "On a bus page"; Make my own from it… opens that symbol as a drawing of his own, what it is "Bus symbol of
+/// CPL-PN-DP", with a socket for each port; a text moved into a socket's way out is refused in words and taken back; Done gives the part the symbol, the
 /// part's Save keeps it, and the picture is his. With X1 at three ports the picture says X1 P3 is not drawn; Use the
 /// program's symbol again drops his own.
 #[test]
@@ -1123,6 +1123,7 @@ fn make_my_own_bus_symbol_and_use_the_program_s_again() {
     );
     let outline = editor.outline();
     let sockets: Vec<&str> = outline.groups[0].rows.iter().map(|r| r.label.as_str()).collect();
+    assert!(outline.what.contains("Bus symbol of CPL-PN-DP"), "{}", outline.what);
     assert_eq!(outline.groups[0].label, "Sockets");
     assert_eq!(sockets, ["X1 P1", "X1 P2", "DP"]);
     assert!(outline.todo.is_empty(), "{:?}", outline.todo);

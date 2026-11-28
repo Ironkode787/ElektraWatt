@@ -35,6 +35,46 @@ pub(super) fn binding_in_words(q: &Q, built: &mut [Built]) {
     }
 }
 
+/// The Sockets row of one network port's function (doc 10 §2.7): the sockets its interface has on the bus symbol, as
+/// the part's network ports give them ("P1 · P2"), the interface's name for its one socket; `None` for anything else.
+pub(super) fn sockets_row(q: &Q, targets: &[Uuid]) -> Option<Built> {
+    let [one] = targets else {
+        return None;
+    };
+    let function = q.functions().get(Id::from_uuid(*one))?;
+    let port = function.bus_port.as_ref()?;
+    let parts = q.parts();
+    let interface = q
+        .devices()
+        .get(function.device?)?
+        .parts
+        .iter()
+        .filter_map(|u| parts.get(u.part.copy))
+        .flat_map(|c| ew_derive::bus_interfaces(&c.item))
+        .find(|i| i.interface == port.interface && i.port_label == port.port_label)?;
+    let words: Vec<String> = interface
+        .sockets
+        .iter()
+        .map(|(_, label)| label.clone().unwrap_or_else(|| interface.words()))
+        .collect();
+    let text = words.join(" · ");
+    Some(derived(DerivedRow {
+        kind: "function",
+        name: "sockets",
+        partner: None,
+        category: Category::Other,
+        ty: FieldType::Text,
+        value: RowValue::One {
+            json: Value::from(words),
+            text,
+        },
+        provenance: Provenance::Derived {
+            via: text!("via-part"),
+        },
+        actions: Vec::new(),
+    }))
+}
+
 /// A bus port's address row in words, as reports print it (`ew_derive::net_address_text`): `TBD` for the
 /// open item, nothing for a port without an address, `3`, `cpx-1 192.168.0.10`, `pos 2 alias 1001`, `port 3`.
 pub(super) fn bus_address_in_words(built: &mut [Built]) {

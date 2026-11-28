@@ -1403,6 +1403,16 @@ pub fn ports_in_words(sheet: &mut PropertySheet) {
         {
             *text = strings::text(key!("props-port-no-medium")).to_owned();
         }
+        // With what a bus page draws the device: the program's symbol, or the part's own (its note names them).
+        if let RowValue::One { json, text } = &mut row.value
+            && row.key == "representation/derived.bus_symbol"
+        {
+            *text = if json.get("own").is_some_and(Value::is_string) {
+                strings::text(key!("props-bus-symbol-own")).to_owned()
+            } else {
+                strings::text(key!("props-bus-symbol-program")).to_owned()
+            };
+        }
         // A bus device in no PLC: what to do, as its choices do it.
         if let RowValue::One { json, text } = &mut row.value
             && row.key == "device/derived.plc"

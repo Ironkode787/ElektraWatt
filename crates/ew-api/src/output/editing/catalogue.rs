@@ -1338,11 +1338,39 @@ impl Session {
         let geometry = ew_scene::symbol::lower(&symbol, ew_units::Orient2::R0);
         let b = geometry.bounds;
         let shift = ew_units::Pt2::new(ew_units::Nm(-b.min().x.0), ew_units::Nm(-b.min().y.0));
+        // Its texts as a page prints them, shaped by the page's means: the interface names and socket labels, the part
+        // in the header, the tag and each address by its placeholder (no device is drawn).
+        let styles = crate::output::text_style_table(&q);
+        let mut items = geometry.graphics.items;
+        for t in &geometry.texts {
+            use ew_scene::symbol::TextSource;
+            let content = match &t.source {
+                TextSource::Static(text) => ew_derive::text_in(text, None).to_owned(),
+                TextSource::Slot(ew_schema::SlotKind::Tag) => "-?".to_owned(),
+                TextSource::Slot(ew_schema::SlotKind::PartNumber) => crate::output::bus_part_words(&q, part),
+                TextSource::Slot(ew_schema::SlotKind::BusAddress) => "TBD".to_owned(),
+                TextSource::Slot(_) => String::new(),
+            };
+            let key = match (&t.style_key, &t.source) {
+                (Some(key), _) => key.as_str(),
+                (None, TextSource::Slot(kind)) => ew_scene::symbol::default_style_key(false, kind),
+                (None, TextSource::Static(_)) => ew_scene::symbol::DEFAULT_TEXT_STYLE,
+            };
+            let content = match t.max_width {
+                Some(room) => crate::output::cut_in_style(&q, key, &content, room),
+                None => content,
+            };
+            items.extend(
+                ew_scene::page::symbol_preview_text(t, key, &content, crate::output::fonts(&q), &styles)
+                    .list
+                    .items,
+            );
+        }
         let mut list = ew_dl::DisplayList::new();
         list.push(ew_dl::Item::group(
             Some(ew_dl::Transform::from_translation(shift)),
             None,
-            geometry.graphics.items,
+            items,
         ));
         let size = (
             ew_units::Nm((b.max().x.0 - b.min().x.0).max(1)),
@@ -1362,7 +1390,7 @@ impl Session {
 /// A part's bus symbol as its sheet pictures it "On a bus page" ([`Session::part_bus_symbol`]).
 #[derive(Clone, Debug)]
 pub struct PartBusSymbol {
-    /// The picture, as a page draws the symbol's lines and texts.
+    /// The picture, as a page prints the symbol: its lines and its texts, a placeholder for each value of a device.
     pub list: ew_dl::DisplayList,
     /// Its width and height.
     pub size: (ew_units::Nm, ew_units::Nm),

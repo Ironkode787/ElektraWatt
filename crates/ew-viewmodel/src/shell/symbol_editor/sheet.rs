@@ -418,8 +418,12 @@ impl SymbolEditor {
         }
     }
 
-    /// What the symbol is, in a panel builder's words: its [`what_kinds`] words, else its function type's own.
+    /// What the symbol is, in a panel builder's words: a part's bus symbol by its part ("Bus symbol of CPL-PN-DP"), its
+    /// [`what_kinds`] words, else its function type's own.
     fn what_words(&self) -> String {
+        if let super::Drawing::BusSymbol(b) = &self.purpose {
+            return strings::format(key!("symbol-what-bus"), &[&b.part]);
+        }
         let kind = self
             .what()
             .and_then(|w| what_kinds().into_iter().find(|(k, _)| *k == w));
@@ -854,9 +858,14 @@ impl SymbolEditor {
     pub fn symbol_rows(&self) -> Vec<SheetRow> {
         let d = &self.draft;
         // Locked only for another library's function: a starter function is changed here.
-        let locked =
+        let mut locked =
             (d.function_ref.is_some() && self.what().is_none()).then(|| label("symbol-function-locked"));
         let mut what = what_kinds();
+        // A part's bus symbol is that and nothing else: what it is names it and its part.
+        if matches!(self.purpose, super::Drawing::BusSymbol(_)) {
+            what = Vec::new();
+            locked = Some(label("symbol-what-bus-locked"));
+        }
         // A symbol of a function no entry is shows as what its type is, the list's last line.
         let current = match self.what().filter(|w| what.iter().any(|(k, _)| k == w)) {
             Some(w) => w,
