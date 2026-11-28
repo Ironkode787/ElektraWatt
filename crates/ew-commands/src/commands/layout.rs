@@ -2320,12 +2320,13 @@ impl Command for SetEnclosurePart {
                 })
             }
         };
-        let plate_size = plate.and_then(|p| part_copy(tx, p)).map(|c| {
-            match &c.item.sections.mounting_plate {
-                Some(s) if s.width.is_some() && s.height.is_some() => (s.width, s.height),
-                _ => c.item.mech.as_ref().map_or((None, None), |m| (m.width, m.height)),
-            }
-        });
+        let plate_size =
+            plate
+                .and_then(|p| part_copy(tx, p))
+                .map(|c| match &c.item.sections.mounting_plate {
+                    Some(s) if s.width.is_some() && s.height.is_some() => (s.width, s.height),
+                    _ => c.item.mech.as_ref().map_or((None, None), |m| (m.width, m.height)),
+                });
         let doors_before = ew_derive::layout::door_count(&before);
         let doors_after = ew_derive::layout::door_count(&section);
         for s in surfaces {
@@ -2341,7 +2342,8 @@ impl Command for SetEnclosurePart {
                     }
                 }
                 SurfaceKind::Door => {
-                    let at = (0..doors_before).find(|i| ew_derive::layout::door_left(&before, *i) == s.frame.t[0]);
+                    let at =
+                        (0..doors_before).find(|i| ew_derive::layout::door_left(&before, *i) == s.frame.t[0]);
                     if let Some(i) = at.filter(|i| *i < doors_after) {
                         let size = ew_derive::layout::face_size(&section, &s.kind, Some(i));
                         if let Some((frame, usable)) =
@@ -2355,7 +2357,9 @@ impl Command for SetEnclosurePart {
                 }
                 SurfaceKind::Left | SurfaceKind::Right | SurfaceKind::Top | SurfaceKind::Bottom => {
                     let size = ew_derive::layout::face_size(&section, &s.kind, None);
-                    if let Some((frame, usable)) = ew_derive::layout::surface_frame(&section, &s.kind, None, size) {
+                    if let Some((frame, usable)) =
+                        ew_derive::layout::surface_frame(&section, &s.kind, None, size)
+                    {
                         next.frame = frame;
                         next.usable = usable;
                     }

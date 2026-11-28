@@ -324,12 +324,19 @@ impl ShellModel {
         let Some(plan) = save.plan.clone() else {
             session.write_own_save(&save).map_err(|e| (0, e))?;
             self.libraries_changed();
-            let out = save.command.as_ref().map_or(Outcome::Done, |c| self.run_commit(c));
+            let out = save
+                .command
+                .as_ref()
+                .map_or(Outcome::Done, |c| self.run_commit(c));
             self.own_saved(&save, Some(said));
             return Ok(out);
         };
         let session = self.parts_session();
-        let fields = plan.copies.iter().flat_map(|c| card_fields(session, &c.fields)).collect();
+        let fields = plan
+            .copies
+            .iter()
+            .flat_map(|c| card_fields(session, &c.fields))
+            .collect();
         let devices = plan.devices.iter().map(|d| self.tag_of(d.as_uuid())).collect();
         let card = PartCard {
             title: title.to_owned(),
@@ -360,10 +367,11 @@ impl ShellModel {
     /// Apply of a part card: where its Save waits ([`ShellModel::save_own`]), My parts is written first, then the card's
     /// step is committed; a write that fails leaves the card and the project as they were.
     pub(crate) fn apply_own_save(&mut self, card: crate::properties::Card) -> Outcome {
-        let save = self
-            .parts_save
-            .take()
-            .filter(|s| s.plan.as_ref().is_some_and(|p| p.command.params == card.edit.params));
+        let save = self.parts_save.take().filter(|s| {
+            s.plan
+                .as_ref()
+                .is_some_and(|p| p.command.params == card.edit.params)
+        });
         let Some(save) = save else {
             return self.apply_bulk_card(card);
         };

@@ -1019,7 +1019,11 @@ fn list_row(ui: &mut Ui, row: &PartFound, open: bool, place: Option<usize>) -> e
         t.text_secondary.color32(),
     );
     let chip = if row.mine_too {
-        format!("{} \u{b7} {}", chip_word(&row.lives), strings::text(key!("parts-chip-mine")))
+        format!(
+            "{} \u{b7} {}",
+            chip_word(&row.lives),
+            strings::text(key!("parts-chip-mine"))
+        )
     } else {
         chip_word(&row.lives)
     };
@@ -1165,7 +1169,11 @@ fn pictures_column(ui: &mut Ui, shell: &ShellModel, place: &PartsPlace, events: 
             if let Some(m) = &open.missing {
                 ui.horizontal_wrapped(|ui| {
                     mark(ui, IconId::alert_triangle, t.warning.color32());
-                    ui.label(RichText::new(m).font(theme::font(&t.type_small)).color(t.warning.color32()));
+                    ui.label(
+                        RichText::new(m)
+                            .font(theme::font(&t.type_small))
+                            .color(t.warning.color32()),
+                    );
                 });
                 ui.add_space(t.space_3);
             }

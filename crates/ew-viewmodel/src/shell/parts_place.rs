@@ -712,7 +712,8 @@ impl ShellModel {
             return;
         };
         let lives = session.sheet_lives(&sheet);
-        let mine_too = lives == Lives::OnlyHere && sheet.source.is_some_and(|(_, item)| session.in_my_parts(item));
+        let mine_too =
+            lives == Lives::OnlyHere && sheet.source.is_some_and(|(_, item)| session.in_my_parts(item));
         let missing = missing_words(&session.names_missing(&session.sheet_part(&sheet)));
         let lacks = session.sheet_lacks(&sheet);
         let ready = session.sheet_ready(&sheet);

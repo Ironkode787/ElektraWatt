@@ -11,9 +11,9 @@ use std::collections::BTreeMap;
 use ew_ids::{Id, Uuid};
 use ew_schema::{Kind, LibCopy, LibDocument, Part};
 
-use crate::{AnyCommand, Session};
 use crate::part_editor::{PartDraftError, PartSheet, message};
 use crate::parts_set::SHARED_SIZES;
+use crate::{AnyCommand, Session};
 
 /// The identity's fields several parts may share: what they are and how they are sold, never what tells one from
 /// another (the maker, the number, the order number, the GTIN).
@@ -152,17 +152,20 @@ impl Session {
             if let Some(h) = held.as_ref().filter(|h| self.only_here(h.library_id.as_uuid())) {
                 let lib = match mine {
                     Some(l) => l,
-                    None => *mine.insert(crate::eplan::user_parts_library(self.libraries_mut()).map_err(|_| {
-                        (
-                            i,
-                            PartDraftError::Field(message("part", key!("error-part-keep-no-my-parts"), &[])),
-                        )
-                    })?),
+                    None => *mine.insert(crate::eplan::user_parts_library(self.libraries_mut()).map_err(
+                        |_| {
+                            (
+                                i,
+                                PartDraftError::Field(message(
+                                    "part",
+                                    key!("error-part-keep-no-my-parts"),
+                                    &[],
+                                )),
+                            )
+                        },
+                    )?),
                 };
-                let typed = LibCopy {
-                    item,
-                    ..h.clone()
-                };
+                let typed = LibCopy { item, ..h.clone() };
                 self.keep_part(&typed, lib, &mut kept).map_err(|e| (i, e))?;
                 asked.push(h.item_id.as_uuid());
                 count += 1;
@@ -237,7 +240,10 @@ impl Session {
             return Err((0, PartDraftError::Refused(key!("reason-part-unchanged"))));
         }
         if let Some(lib) = mine.filter(|_| !kept.written.is_empty()) {
-            writes.entry(lib).or_default().extend(kept.written.iter().cloned());
+            writes
+                .entry(lib)
+                .or_default()
+                .extend(kept.written.iter().cloned());
         }
         // Every library is checked before anything is written: one that cannot be written refuses them all.
         let infos = self.libraries().libraries();
@@ -245,7 +251,10 @@ impl Session {
             .keys()
             .find(|l| !infos.iter().any(|i| i.id == **l && i.writable))
         {
-            let name = infos.iter().find(|l| l.id == *lib).map_or_else(String::new, |l| l.name.clone());
+            let name = infos
+                .iter()
+                .find(|l| l.id == *lib)
+                .map_or_else(String::new, |l| l.name.clone());
             return Err((
                 0,
                 PartDraftError::Field(message(
@@ -268,9 +277,15 @@ impl Session {
             (held_new.iter().chain(&kept.written))
                 .flat_map(crate::library::closure_refs)
                 .map(|(l, i, _)| (l, i))
-                .chain(kept.items.iter().filter(|i| !written_items.contains(i)).map(|i| (lib, *i)))
+                .chain(
+                    kept.items
+                        .iter()
+                        .filter(|i| !written_items.contains(i))
+                        .map(|i| (lib, *i)),
+                )
                 .filter(|(l, i)| {
-                    !written_items.contains(i) && q.parts().get(ew_ids::v5::lib_copy_id::<Part>(*l, *i)).is_none()
+                    !written_items.contains(i)
+                        && q.parts().get(ew_ids::v5::lib_copy_id::<Part>(*l, *i)).is_none()
                 })
                 .map(|(l, i)| crate::part_offers::lib_ref(l, i))
                 .collect()
@@ -299,7 +314,9 @@ impl Session {
             });
             (None, command)
         } else {
-            let plan = self.update_keeping(&docs, &forced, &kept.moves, &[]).map_err(refused)?;
+            let plan = self
+                .update_keeping(&docs, &forced, &kept.moves, &[])
+                .map_err(refused)?;
             (Some(plan), None)
         };
         Ok(OwnSave {

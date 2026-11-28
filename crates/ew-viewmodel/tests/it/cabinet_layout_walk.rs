@@ -150,7 +150,11 @@ fn off_a_layout_page_the_enclosure_is_drawn_on_a_new_layout_page() {
     done(&mut s, "layout.enclosure_new", json!({}));
     assert_eq!(
         buttons(&s),
-        ["Draw -UC1 of +CAB1 on a new panel layout page", "Change its cabinet…", "Cancel"]
+        [
+            "Draw -UC1 of +CAB1 on a new panel layout page",
+            "Change its cabinet…",
+            "Cancel"
+        ]
     );
     let DialogAnswer::Action(action, params) = spec(s.dialog().unwrap(), &s).primary.answer else {
         panic!("the Primary is its own action")

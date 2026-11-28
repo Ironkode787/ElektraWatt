@@ -678,7 +678,11 @@ fn a_save_of_his_part_writes_my_parts_only_on_apply() {
     done(&mut s, "parts.save", json!({}));
     done(&mut s, "parts.back", json!({}));
     done(&mut s, "page.goto", json!({"folio": "102"}));
-    done(&mut s, "select.set", json!({"refs": ["tag:-X1021:1", "tag:-X1021:2"]}));
+    done(
+        &mut s,
+        "select.set",
+        json!({"refs": ["tag:-X1021:1", "tag:-X1021:2"]}),
+    );
     done(&mut s, "part.choose", json!({}));
     done(&mut s, "part.pick", json!({"part": "EX-TB-M"}));
     let comes_with = |s: &mut ShellModel| {
@@ -696,22 +700,41 @@ fn a_save_of_his_part_writes_my_parts_only_on_apply() {
     };
     comes_with(&mut s);
     assert!(s.properties().card().is_some(), "the card waits");
-    assert!(s.describe().contains("kept \"Example EX-EP-1\""), "{}", s.describe());
+    assert!(
+        s.describe().contains("kept \"Example EX-EP-1\""),
+        "{}",
+        s.describe()
+    );
     done(&mut s, "preview.cancel", json!({}));
     assert_eq!(rows(&mut s, "EX-EP-1", "mine"), [], "Cancel wrote nothing");
-    assert!(my_parts_accessories(&tmp, "EX-TB-M").is_empty(), "My parts' terminal as it was");
+    assert!(
+        my_parts_accessories(&tmp, "EX-TB-M").is_empty(),
+        "My parts' terminal as it was"
+    );
     done(&mut s, "parts.discard", json!({}));
     comes_with(&mut s);
     let n = s.recorded_commands().len();
-    assert_eq!(s.dispatch("preview.apply", &json!({})), Outcome::Done, "{}", said(&s));
+    assert_eq!(
+        s.dispatch("preview.apply", &json!({})),
+        Outcome::Done,
+        "{}",
+        said(&s)
+    );
     assert_eq!(s.recorded_commands().len(), n + 1, "one step");
-    assert!(toast(&s).contains("Kept in My parts with it: Example EX-EP-1"), "{}", toast(&s));
+    assert!(
+        toast(&s).contains("Kept in My parts with it: Example EX-EP-1"),
+        "{}",
+        toast(&s)
+    );
     one_row_mine(&mut s, "EX-EP-1");
     assert_eq!(my_parts_accessories(&tmp, "EX-TB-M"), ["EX-EP-1"]);
     let named = |s: &mut ShellModel| {
         done(s, "parts.open", json!({"part": "EX-TB-M"}));
         let o = s.parts_place().and_then(|p| p.sheet.as_ref()).unwrap();
-        o.sheet.table("accessories").map(|t| t.rows.len()).unwrap_or_default()
+        o.sheet
+            .table("accessories")
+            .map(|t| t.rows.len())
+            .unwrap_or_default()
     };
     assert_eq!(named(&mut s), 1, "the project's terminal names its end plate");
     done(&mut s, "edit.undo", json!({}));
@@ -770,7 +793,12 @@ fn several_parts_naming_one_part_only_here_keep_it_once() {
     done(&mut s, "parts.open", json!({"part": params[0]}));
     done(&mut s, "parts.open", json!({"part": params[1], "add": true}));
     fill(&mut s, &[("mech.mount_kind", "ts35x15")]);
-    assert_eq!(s.dispatch("parts.save", &json!({})), Outcome::Done, "{}", said(&s));
+    assert_eq!(
+        s.dispatch("parts.save", &json!({})),
+        Outcome::Done,
+        "{}",
+        said(&s)
+    );
     if s.properties().card().is_some() {
         done(&mut s, "preview.apply", json!({}));
     }
@@ -809,11 +837,26 @@ fn a_keep_taken_back_is_one_row_and_keeps_again() {
     for number in ["EX-TB-1", "EX-EP-1"] {
         assert_eq!(rows(&mut s, number, "all"), [Lives::OnlyHere], "{number} once");
         let place = s.parts_place().unwrap();
-        assert!(place.found.iter().any(|f| f.offer.part_number == number && f.mine_too), "{number}: mine too");
+        assert!(
+            place
+                .found
+                .iter()
+                .any(|f| f.offer.part_number == number && f.mine_too),
+            "{number}: mine too"
+        );
     }
     done(&mut s, "parts.open", json!({"part": "EX-TB-1"}));
-    assert_eq!(s.dispatch("parts.keep", &json!({})), Outcome::Done, "{}", said(&s));
-    assert!(toast(&s).contains("Example EX-EP-1"), "the part that moves is named: {}", toast(&s));
+    assert_eq!(
+        s.dispatch("parts.keep", &json!({})),
+        Outcome::Done,
+        "{}",
+        said(&s)
+    );
+    assert!(
+        toast(&s).contains("Example EX-EP-1"),
+        "the part that moves is named: {}",
+        toast(&s)
+    );
     one_row_mine(&mut s, "EX-TB-1");
     one_row_mine(&mut s, "EX-EP-1");
     s.shutdown();
@@ -844,7 +887,11 @@ fn every_list_that_offers_parts_offers_a_kept_part_once() {
     let Some(Dialog::PartChoose(c)) = s.dialog() else {
         panic!("the part dialog")
     };
-    assert_eq!(c.offers.iter().filter(|o| o.part_number == "EX-TB-1").count(), 1, "the part dialog");
+    assert_eq!(
+        c.offers.iter().filter(|o| o.part_number == "EX-TB-1").count(),
+        1,
+        "the part dialog"
+    );
     done(&mut s, "ui.dismiss", json!({}));
     // The device browser.
     done(&mut s, "tool.place", json!({}));
@@ -854,7 +901,9 @@ fn every_list_that_offers_parts_offers_a_kept_part_once() {
     assert_eq!(browser, 1, "the device browser");
     done(&mut s, "ui.dismiss", json!({}));
     // The rail tool's parts (the layout's offers).
-    let rails = (s.draw_part_offers("rail").into_iter()).filter(|o| o.number == "EX-RL-1").count();
+    let rails = (s.draw_part_offers("rail").into_iter())
+        .filter(|o| o.number == "EX-RL-1")
+        .count();
     assert_eq!(rails, 1, "the rail tool");
     for number in ["EX-TB-1", "EX-RL-1"] {
         done(&mut s, "parts.open", json!({}));
@@ -882,8 +931,15 @@ fn a_part_naming_a_part_no_one_holds_is_offered_and_says_so() {
             ("sections.enclosure.depth", "300"),
         ],
     );
-    done(&mut s, "parts.new", json!({"start": "plate", "for_field": "sections.enclosure.plate"}));
-    fill(&mut s, &[("manufacturer", "Example"), ("part_number", "EX-CAB-8-MP")]);
+    done(
+        &mut s,
+        "parts.new",
+        json!({"start": "plate", "for_field": "sections.enclosure.plate"}),
+    );
+    fill(
+        &mut s,
+        &[("manufacturer", "Example"), ("part_number", "EX-CAB-8-MP")],
+    );
     done(&mut s, "parts.save", json!({}));
     done(&mut s, "parts.save", json!({}));
     s.shutdown();
@@ -899,7 +955,8 @@ fn a_part_naming_a_part_no_one_holds_is_offered_and_says_so() {
         .expect("the cabinet");
     cabinet["version"] = json!("0.1.1");
     cabinet["sections"]["enclosure"]["plate"]["library"] = json!("0195e6c1-0000-7000-8000-00000000c0de");
-    reg.write(lib, &[serde_json::from_value(cabinet).unwrap()]).expect("written");
+    reg.write(lib, &[serde_json::from_value(cabinet).unwrap()])
+        .expect("written");
     drop(reg);
     let mut s = tmp.empty_shell(Mode::Gui);
     common::make_project(&mut s, &tmp.0.join("next.ew"), &[]);
@@ -907,18 +964,32 @@ fn a_part_naming_a_part_no_one_holds_is_offered_and_says_so() {
     assert_eq!(rows(&mut s, "EX-CAB-8", "all"), [Lives::Mine], "still offered");
     let first = s.parts_place().unwrap().found[0].param();
     done(&mut s, "parts.open", json!({"part": first}));
-    let missing = s.describe().lines().find(|l| l.trim_start().starts_with("missing ")).map(str::to_owned);
+    let missing = s
+        .describe()
+        .lines()
+        .find(|l| l.trim_start().starts_with("missing "))
+        .map(str::to_owned);
     assert!(
-        missing.as_deref().is_some_and(|m| m.contains("Mounting plate") && m.contains("keep that part")),
+        missing
+            .as_deref()
+            .is_some_and(|m| m.contains("Mounting plate") && m.contains("keep that part")),
         "{missing:?}"
     );
     done(&mut s, "parts.back", json!({}));
-    done(&mut s, "page.new", json!({"folio": "926", "type": "panel_layout", "title": "Layout"}));
+    done(
+        &mut s,
+        "page.new",
+        json!({"folio": "926", "type": "panel_layout", "title": "Layout"}),
+    );
     done(&mut s, "page.goto", json!({"folio": "926"}));
     done(&mut s, "layout.enclosure_new", json!({}));
     let form = common::form(&s);
     let part = form.fields.iter().find(|f| f.name == "part").unwrap();
-    assert!(part.options.iter().any(|(_, w)| w.starts_with("EX-CAB-8")), "{:?}", part.options);
+    assert!(
+        part.options.iter().any(|(_, w)| w.starts_with("EX-CAB-8")),
+        "{:?}",
+        part.options
+    );
     s.shutdown();
 }
 
@@ -941,7 +1012,11 @@ fn an_enclosure_takes_his_cabinet_with_its_plate_in_one_step() {
             ("sections.enclosure.depth", "300"),
         ],
     );
-    done(&mut s, "parts.new", json!({"start": "plate", "for_field": "sections.enclosure.plate"}));
+    done(
+        &mut s,
+        "parts.new",
+        json!({"start": "plate", "for_field": "sections.enclosure.plate"}),
+    );
     fill(
         &mut s,
         &[
@@ -954,7 +1029,11 @@ fn an_enclosure_takes_his_cabinet_with_its_plate_in_one_step() {
     done(&mut s, "parts.save", json!({}));
     done(&mut s, "parts.save", json!({}));
     done(&mut s, "parts.back", json!({}));
-    done(&mut s, "page.new", json!({"folio": "926", "type": "panel_layout", "title": "Layout"}));
+    done(
+        &mut s,
+        "page.new",
+        json!({"folio": "926", "type": "panel_layout", "title": "Layout"}),
+    );
     done(&mut s, "page.goto", json!({"folio": "926"}));
     done(&mut s, "layout.enclosure_new", json!({}));
     assert_eq!(s.submit_form(), Outcome::Done, "the enclosure drawn on 926");
@@ -981,14 +1060,25 @@ fn an_enclosure_takes_his_cabinet_with_its_plate_in_one_step() {
     let text = s.describe();
     assert!(text.contains("field \"Mounting plate\""), "{text}");
     let n = s.recorded_commands().len();
-    assert_eq!(s.dispatch("preview.apply", &json!({})), Outcome::Done, "{}", said(&s));
+    assert_eq!(
+        s.dispatch("preview.apply", &json!({})),
+        Outcome::Done,
+        "{}",
+        said(&s)
+    );
     assert_eq!(s.recorded_commands().len(), n + 1, "one step");
     let parts_of = |s: &mut ShellModel, tag: &str| {
         done(s, "select.set", json!({"refs": [format!("tag:{tag}")]}));
         s.describe()
     };
-    assert!(parts_of(&mut s, "-UC1").contains("EX-CAB-8"), "-UC1 is his cabinet");
-    assert!(parts_of(&mut s, "-UC1-U1").contains("EX-CAB-8-MP"), "-UC1-U1 is his plate");
+    assert!(
+        parts_of(&mut s, "-UC1").contains("EX-CAB-8"),
+        "-UC1 is his cabinet"
+    );
+    assert!(
+        parts_of(&mut s, "-UC1-U1").contains("EX-CAB-8-MP"),
+        "-UC1-U1 is his plate"
+    );
     done(&mut s, "page.goto", json!({"folio": "926"}));
     assert_eq!(width(&s), 760_000_000, "the plate's page draws the new size");
     done(&mut s, "edit.undo", json!({}));

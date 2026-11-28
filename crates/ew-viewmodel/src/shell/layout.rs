@@ -1660,7 +1660,10 @@ impl ShellModel {
         self.dialog = None;
         let mut lines: Vec<String> = plan.outside.iter().map(strings::render).collect();
         if plan.plate_kept {
-            lines.push(strings::format(key!("enclosure-part-plate-kept"), &[&plan.number]));
+            lines.push(strings::format(
+                key!("enclosure-part-plate-kept"),
+                &[&plan.number],
+            ));
         }
         let card = crate::properties::PartCard {
             title: strings::format(key!("enclosure-part-card-title"), &[&plan.tag, &plan.number]),

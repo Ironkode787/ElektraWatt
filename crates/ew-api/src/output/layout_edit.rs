@@ -2792,9 +2792,16 @@ impl Session {
     /// throwaway engine: each surface whose size changes, and what then no longer lies inside its surface by the
     /// layout's own check (EW-LAY-010). `None` where `device` is no enclosure's device or the part is no cabinet (the
     /// part dialog then gives the device its part as for any other).
-    pub fn enclosure_part_plan(&self, device: Uuid, pick: &crate::PartPick) -> Option<Result<EnclosurePartPlan, crate::ApiError>> {
+    pub fn enclosure_part_plan(
+        &self,
+        device: Uuid,
+        pick: &crate::PartPick,
+    ) -> Option<Result<EnclosurePartPlan, crate::ApiError>> {
         let q = self.query();
-        let (enclosure, _) = q.table::<Enclosure>().iter().find(|(_, e)| e.device.as_uuid() == device)?;
+        let (enclosure, _) = q
+            .table::<Enclosure>()
+            .iter()
+            .find(|(_, e)| e.device.as_uuid() == device)?;
         let (copy, item, copies) = match pick {
             crate::PartPick::Held(c) => (*c, q.parts().get(Id::from_uuid(*c))?.item.clone(), Vec::new()),
             crate::PartPick::Library { library, item } => {
@@ -2808,11 +2815,19 @@ impl Session {
                     _ => None,
                 })?;
                 let copy = ew_ids::v5::lib_copy_id::<Part>(*library, *item).as_uuid();
-                (copy, part, docs.iter().filter_map(|d| serde_json::to_value(d).ok()).collect())
+                (
+                    copy,
+                    part,
+                    docs.iter().filter_map(|d| serde_json::to_value(d).ok()).collect(),
+                )
             }
         };
         item.sections.enclosure.as_ref()?;
-        let plate_kept = item.sections.enclosure.as_ref().is_some_and(|s| s.plate.is_none());
+        let plate_kept = item
+            .sections
+            .enclosure
+            .as_ref()
+            .is_some_and(|s| s.plate.is_none());
         let cmd = ew_commands::commands::SetEnclosurePart {
             enclosure,
             part: Id::from_uuid(copy),
@@ -2839,7 +2854,13 @@ impl Session {
                 .into_iter()
                 .find(|f| f.record.map(|r| r.as_uuid()) == Some(record))
                 .and_then(|f| f.size)
-                .map(|(w, h)| format!("{} \u{d7} {} mm", mm_text(q, i128::from(w.0)), mm_text(q, i128::from(h.0))))
+                .map(|(w, h)| {
+                    format!(
+                        "{} \u{d7} {} mm",
+                        mm_text(q, i128::from(w.0)),
+                        mm_text(q, i128::from(h.0))
+                    )
+                })
                 .unwrap_or_default()
         };
         let sizes = ew_derive::layout::surfaces(&q, enclosure)

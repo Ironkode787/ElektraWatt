@@ -226,7 +226,12 @@ impl Session {
                     let Some(copy) = q.parts().get(Id::from_uuid(c)) else {
                         continue;
                     };
-                    (copy.library_id.as_uuid(), copy.item.clone(), c, copy.item_id.as_uuid())
+                    (
+                        copy.library_id.as_uuid(),
+                        copy.item.clone(),
+                        c,
+                        copy.item_id.as_uuid(),
+                    )
                 }
                 PartPick::Library { library, item } => {
                     let Ok(LibDocument::Part(c)) = self.libraries().resolve(&lib_ref(library, item)) else {
@@ -293,7 +298,8 @@ impl Session {
     pub fn names_missing(&self, p: &Part) -> Vec<&'static str> {
         let q = self.query();
         let found = |r: &ew_schema::LibRef| {
-            q.parts().contains(v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid()))
+            q.parts()
+                .contains(v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid()))
                 || self.libraries().resolve(r).is_ok()
         };
         let mut out = Vec::new();
@@ -309,7 +315,8 @@ impl Session {
     /// Whether My parts holds item `item`: a part the project holds only on a copy of its own may be his too (kept
     /// before, the project's step taken back since), and its row says so.
     pub fn in_my_parts(&self, item: Uuid) -> bool {
-        crate::eplan::find_user_parts_library(self.libraries()).is_some_and(|l| self.own_part_number(l, item).is_some())
+        crate::eplan::find_user_parts_library(self.libraries())
+            .is_some_and(|l| self.own_part_number(l, item).is_some())
     }
 
     /// Whether a copy of library `library` is only in this project: the library is the project's own, or one this
@@ -492,7 +499,12 @@ impl Session {
     /// Keeps the project's part copy `c` (only in this project; its item as `c` holds it, which may be its sheet's
     /// texts) in My parts `lib` as the same item with what it names, into `kept`: its maker made there, its uses moving
     /// to the kept copy. A part of its maker and number that My parts holds as another item refuses it.
-    pub(crate) fn keep_part(&self, c: &LibCopy<Part>, lib: Uuid, kept: &mut Kept) -> Result<(), PartDraftError> {
+    pub(crate) fn keep_part(
+        &self,
+        c: &LibCopy<Part>,
+        lib: Uuid,
+        kept: &mut Kept,
+    ) -> Result<(), PartDraftError> {
         let item = c.item_id.as_uuid();
         kept.versions.insert(item, c.version.clone());
         let maker = ew_derive::manufacturer_name(&self.query(), &c.item.manufacturer);
@@ -516,7 +528,8 @@ impl Session {
         let new = crate::part_new::finish(new, LibDocument::Part);
         kept.moves.push((c.id.as_uuid(), new.id.as_uuid()));
         kept.items.push(item);
-        kept.with.push((item, format!("{maker} {number}").trim().to_owned()));
+        kept.with
+            .push((item, format!("{maker} {number}").trim().to_owned()));
         kept.written.push(LibDocument::Part(new));
         Ok(())
     }

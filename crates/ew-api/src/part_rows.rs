@@ -798,13 +798,9 @@ impl Session {
     /// that embed it; with its kind. `None` when no part has the number.
     pub(crate) fn part_by_number(&self, q: &Q, number: &str) -> Option<(LibRef, PartKind, Vec<Value>)> {
         let not_offered = self.not_offered();
-        if let Some((_, c)) = q
-            .parts()
-            .iter()
-            .find(|(id, c)| {
-                !not_offered.copy(id.as_uuid()) && c.item.part_number.as_str().eq_ignore_ascii_case(number)
-            })
-        {
+        if let Some((_, c)) = q.parts().iter().find(|(id, c)| {
+            !not_offered.copy(id.as_uuid()) && c.item.part_number.as_str().eq_ignore_ascii_case(number)
+        }) {
             let c: &LibCopy<Part> = c;
             return Some((
                 lib_ref(c.library_id.as_uuid(), c.item_id.as_uuid()),

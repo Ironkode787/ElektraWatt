@@ -2124,7 +2124,10 @@ fn parts_lines(place: &crate::shell::parts_place::PartsPlace, lines: &mut Vec<St
     lines.push(format!(
         "  open \"{}\" {}{}",
         user(&open.title()),
-        user(&crate::shell::parts_place::lives_words(&open.lives, open.mine_too)),
+        user(&crate::shell::parts_place::lives_words(
+            &open.lives,
+            open.mine_too
+        )),
         if open.changed { " changed" } else { "" }
     ));
     for lack in &open.lacks {
