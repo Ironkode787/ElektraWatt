@@ -614,7 +614,7 @@ impl Session {
         let q = self.query();
         let ty = field_catalogue(kind).and_then(|c| spec_of(&c, path).map(|s| s.ty.clone()));
         if let Some(ty) = ty {
-            return format_with(&SheetCx::new(&q), &ty, value);
+            return format_with(&SheetCx::new(&q, self), &ty, value);
         }
         value
             .as_str()
@@ -851,7 +851,7 @@ impl Session {
     /// memoised queries only and adds no memoised family.
     pub fn property_sheet(&self, ids: &[Uuid]) -> PropertySheet {
         let q = self.query();
-        let cx = SheetCx::new(&q);
+        let cx = SheetCx::new(&q, self);
         let source = cx.source.clone();
         let rev = self.world().rev.0;
         let languages = q

@@ -303,7 +303,7 @@ impl Session {
             [] => return Err(StripEditError::Invalid(text!("refusal-strip-nothing"))),
             _ => {}
         }
-        let sheet = SheetCx::new(&q);
+        let sheet = SheetCx::new(&q, self);
         let cx = WithPending {
             inner: &sheet,
             pending: pending

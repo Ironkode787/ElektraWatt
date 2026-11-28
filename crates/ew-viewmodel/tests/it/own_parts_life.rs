@@ -1211,3 +1211,54 @@ fn what_it_is_narrows_as_it_is_typed() {
     assert_eq!(choices(&s).len(), all, "the list is whole again");
     s.shutdown();
 }
+
+/// Review fix phase (M2): after a Keep, the strip editor takes the kept end plate by its number: one part, no choice
+/// between the kept copy and the project's copy it was kept from.
+#[test]
+fn the_strip_editor_takes_a_kept_part_by_its_number() {
+    let tmp = Tmp::new("life-m2-strip");
+    // Headless, so that a choice between copies is said in words rather than opened as a chooser.
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
+    project_parts(&mut s, &tmp, HERE);
+    done(&mut s, "parts.open", json!({"part": "EX-EP-1"}));
+    done(&mut s, "parts.keep", json!({}));
+    done(&mut s, "parts.back", json!({}));
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    done(&mut s, "strip.edit", json!({ "strip": "-X1021" }));
+    let row = common::strip_row(&s, "Terminal", "1");
+    common::strip_at(&mut s, &row);
+    assert_eq!(
+        s.dispatch(
+            "strip.add_accessory",
+            &json!({"kind": "end_plate", "part": "EX-EP-1"})
+        ),
+        Outcome::Done,
+        "{}",
+        said(&s)
+    );
+    assert!(
+        toast(&s).starts_with("Added end plate"),
+        "added, not a choice: {}",
+        said(&s)
+    );
+    s.shutdown();
+}
+
+/// Round 3 (M2): after a Keep of a wire part, a wire's Part row in Properties takes it by its number: one part, the kept
+/// copy, as every place that resolves a part by its number reads the one rule.
+#[test]
+fn a_wires_part_row_takes_a_kept_part_by_its_number() {
+    let tmp = Tmp::new("life-m2-wire");
+    let mut s = tmp.sample_in(Mode::Headless, true, "102");
+    project_parts(&mut s, &tmp, "EX-WR-1,Example,EX-WR-1,wire,,Wire 1.5 BU,m,,,,,,,,,,,\n");
+    done(&mut s, "parts.open", json!({"part": "EX-WR-1"}));
+    done(&mut s, "parts.keep", json!({}));
+    done(&mut s, "parts.back", json!({}));
+    done(&mut s, "page.goto", json!({"folio": "102"}));
+    done(&mut s, "select.set", json!({"refs": ["wire:-102F1:2 -> -X1021:1/a"]}));
+    let out = s.dispatch("props.set", &json!({"row": "connection/overrides.wire_part", "value": "EX-WR-1"}));
+    assert_eq!(out, Outcome::Done, "{}", said(&s));
+    let text = s.describe();
+    assert!(text.contains("EX-WR-1"), "the wire takes his part: {text}");
+    s.shutdown();
+}

@@ -525,7 +525,7 @@ impl crate::Session {
     /// JSON form: the sheet's technical values.
     pub(crate) fn parse_quantity_text(&self, text: &str) -> Result<Value, InputError> {
         let q = self.query();
-        let cx = super::properties::SheetCx::new(&q);
+        let cx = super::properties::SheetCx::new(&q, self);
         parse_input(&cx, &FieldType::Quantity, "", text).map(|p| p.value)
     }
 
@@ -538,7 +538,7 @@ impl crate::Session {
         text: &str,
     ) -> Result<Value, InputError> {
         let q = self.query();
-        let cx = super::properties::SheetCx::new(&q);
+        let cx = super::properties::SheetCx::new(&q, self);
         parse_input(&cx, ty, member, text).map(|p| p.value)
     }
 }

@@ -25,14 +25,36 @@ pub(crate) struct SheetCx<'q> {
     not_offered: crate::parts::NotOffered,
 }
 
+/// The project's source language, as a sheet's texts read it.
+pub(crate) fn source_language(q: &Q) -> Option<String> {
+    q.project().languages.as_ref().map(|l| l.source.to_string())
+}
+
+/// The printed code path of a structure node (`+J-E-2416`).
+pub(crate) fn node_path(q: &Q, node: Id<StructureNode>) -> Option<String> {
+    let path = q.get::<StructurePath>(node);
+    let aspect = path.aspect?;
+    let mut s = ResolvedStructure::default();
+    s.slots.insert(
+        aspect,
+        ResolvedSlot {
+            node,
+            codes: path.codes.clone(),
+            source: SlotSource::Explicit,
+        },
+    );
+    Some(s.render_aspect(aspect, &RdsSyntax::default()))
+}
+
 impl<'q> SheetCx<'q> {
-    pub(crate) fn new(q: &'q Q) -> SheetCx<'q> {
-        let source = q.project().languages.as_ref().map(|l| l.source.to_string());
+    /// The context of `q` in `session`: a part named by its number is resolved among the parts offered, by the one rule
+    /// of every list that offers parts (`Session::not_offered`), so no copy a part was kept from is a second choice.
+    pub(crate) fn new(q: &'q Q, session: &crate::Session) -> SheetCx<'q> {
         SheetCx {
             q,
-            source,
+            source: source_language(q),
             library: Vec::new(),
-            not_offered: crate::parts::NotOffered::default(),
+            not_offered: session.not_offered(),
         }
     }
 
@@ -40,7 +62,6 @@ impl<'q> SheetCx<'q> {
     pub(super) fn with_library_parts(mut self, session: &crate::Session) -> SheetCx<'q> {
         // A part's description in the sheet's language, else English, else the first.
         let lang = self.q.project().languages.as_ref().map(|l| l.source.clone());
-        self.not_offered = session.not_offered();
         self.library = session
             .library_parts()
             .into_iter()
@@ -70,18 +91,7 @@ impl<'q> SheetCx<'q> {
 
     /// The printed code path of a structure node (`+J-E-2416`).
     pub(super) fn node_path(&self, node: Id<StructureNode>) -> Option<String> {
-        let path = self.q.get::<StructurePath>(node);
-        let aspect = path.aspect?;
-        let mut s = ResolvedStructure::default();
-        s.slots.insert(
-            aspect,
-            ResolvedSlot {
-                node,
-                codes: path.codes.clone(),
-                source: SlotSource::Explicit,
-            },
-        );
-        Some(s.render_aspect(aspect, &RdsSyntax::default()))
+        node_path(self.q, node)
     }
 }
 

@@ -30,7 +30,7 @@ pub(in crate::output) fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> 
             let title = json.get("title").map(|t| ml_text(t, source)).unwrap_or_default();
             format!("{folio} {title}").trim().to_owned()
         }
-        Kind::StructureNode => SheetCx::new(q).node_path(Id::from_uuid(id)).unwrap_or_default(),
+        Kind::StructureNode => super::context::node_path(q, Id::from_uuid(id)).unwrap_or_default(),
         // A core by its cable's tag and its identification (`-1W1 BN`).
         Kind::Conductor => {
             let cable = json

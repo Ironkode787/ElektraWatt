@@ -61,8 +61,8 @@ impl Session {
             .ok_or_else(|| InputError::Invalid(text!("refusal-input-not-a-field", row_path, kind)))?;
         let member = last_member(row_path);
         let cx = match offers_library_parts(kind, &member, &ty) {
-            true => SheetCx::new(&q).with_library_parts(self),
-            false => SheetCx::new(&q),
+            true => SheetCx::new(&q, self).with_library_parts(self),
+            false => SheetCx::new(&q, self),
         };
         crate::output::fields::parse_input(&cx, &ty, &member, text)
     }
@@ -76,8 +76,8 @@ impl Session {
         let q = self.query();
         let member = last_member(row_path);
         let cx = match offers_library_parts(kind, &member, &ty) {
-            true => SheetCx::new(&q).with_library_parts(self),
-            false => SheetCx::new(&q),
+            true => SheetCx::new(&q, self).with_library_parts(self),
+            false => SheetCx::new(&q, self),
         };
         choices(&cx, &ty, &member, filter)
     }

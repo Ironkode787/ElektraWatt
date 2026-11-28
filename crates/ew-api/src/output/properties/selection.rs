@@ -15,7 +15,6 @@ use ew_schema::{Connection, Device};
 use serde_json::Value;
 
 use super::connection_rows::potential_of;
-use super::context::SheetCx;
 use super::{device_tag_text, folio_of, ml_text};
 use crate::Session;
 
@@ -163,7 +162,7 @@ fn selection_words(q: &Q, id: Uuid) -> Option<SelectionWords> {
         });
     }
     if let Some(b) = q.structure_boxes().get(Id::from_uuid(id)) {
-        let source = SheetCx::new(q).source;
+        let source = super::context::source_language(q);
         return Some(SelectionWords::StructureBox {
             caption: b
                 .caption
