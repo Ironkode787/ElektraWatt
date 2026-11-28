@@ -278,6 +278,10 @@ impl SetProjectSettings {
         let mut project = (*tx.project()).clone();
         project.settings.text_styles = styles;
         tx.set_project(project)?;
+        // A bus symbol derived from its part is sized by the text styles: its bus lines follow its sockets.
+        let devices: Vec<ew_ids::Id<ew_schema::Device>> =
+            tx.iter::<ew_schema::Device>().into_iter().map(|d| d.id).collect();
+        crate::commands::box_follow::follow_bus_symbols_of(tx, &devices)?;
         Ok(Outcome::default())
     }
 }

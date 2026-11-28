@@ -57,18 +57,29 @@ pub(crate) fn follow_part_boxes(
 }
 
 /// The bus symbols of the devices that use part copy `part`, after the part changed in this transaction (doc 10
-/// §2.7): a symbol is derived from the part at every draw, so nothing of it is stored; a bus line on its page whose
-/// socket stands elsewhere now than in the base (the part's ports gained or lost a socket) keeps its end there, and its
-/// route's last segment follows the socket, as a moved symbol's wires do. A socket the part no longer has leaves its
-/// line ending where it was.
+/// §2.7): [`follow_bus_symbols_of`] those devices.
 pub(crate) fn follow_bus_symbols(tx: &mut TxBuilder<'_>, part: Id<Part>) -> Result<(), CmdError> {
-    let base = ew_derive::Q::new(tx.base_model());
     let devices: Vec<Id<Device>> = tx
         .iter::<Device>()
         .into_iter()
         .filter(|d| d.parts.iter().any(|u| u.part.copy == part))
         .map(|d| d.id)
         .collect();
+    follow_bus_symbols_of(tx, &devices).map(|_| ())
+}
+
+/// The bus symbols of `devices` after their parts changed in this transaction (a part's ports, its own symbol named or
+/// dropped, another part assigned): each is drawn by the one rule (`ew_derive::drawn`) in the base and now, nothing of
+/// it stored; a bus line on its page whose socket stands elsewhere now keeps its end there, and its route's last
+/// segment follows the socket, as a moved symbol's wires do. A socket the symbol no longer draws leaves its line ending
+/// where it was: those ends are returned, each by its function and connection point, for the caller to say.
+pub(crate) fn follow_bus_symbols_of(
+    tx: &mut TxBuilder<'_>,
+    devices: &[Id<Device>],
+) -> Result<Vec<(Id<Function>, u16)>, CmdError> {
+    let base = ew_derive::Q::new(tx.base_model());
+    let devices = devices.to_vec();
+    let mut lost = Vec::new();
     let mut reps: BTreeSet<Id<Representation>> = BTreeSet::new();
     for d in devices {
         for f in tx.functions_of_device(d) {
@@ -93,8 +104,9 @@ pub(crate) fn follow_bus_symbols(tx: &mut TxBuilder<'_>, part: Id<Part>) -> Resu
                 Some(((c.function, c.idx), grid.settle_point(at)))
             })
             .collect();
-        let moves: BTreeMap<(Id<Function>, u16), Pt2> = crate::geometry::rep_cps(tx, &rep)
-            .into_iter()
+        let now = crate::geometry::rep_cps(tx, &rep);
+        let moves: BTreeMap<(Id<Function>, u16), Pt2> = now
+            .iter()
             .filter_map(|c| {
                 let from = before.get(&(c.function, c.idx))?;
                 let d = crate::geometry::sub(c.pos, *from).ok()?;
@@ -104,8 +116,27 @@ pub(crate) fn follow_bus_symbols(tx: &mut TxBuilder<'_>, part: Id<Part>) -> Resu
         if !moves.is_empty() {
             follow_moved_cps(tx, rep.page, grid, &moves, text!("refusal-move-what-update"))?;
         }
+        // A socket gone with a bus line at it.
+        let gone: Vec<(Id<Function>, u16)> = before
+            .keys()
+            .filter(|k| !now.iter().any(|c| (c.function, c.idx) == **k))
+            .copied()
+            .collect();
+        for c in tx.connections_on_page(rep.page) {
+            let Some(c) = tx.get::<Connection>(c) else {
+                continue;
+            };
+            for end in [&c.a, &c.b] {
+                if let Endpoint::Cp(f, idx) = end
+                    && gone.contains(&(*f, *idx))
+                    && !lost.contains(&(*f, *idx))
+                {
+                    lost.push((*f, *idx));
+                }
+            }
+        }
     }
-    Ok(())
+    Ok(lost)
 }
 
 /// One box of [`follow_part_boxes`]: the box `rep` of function `f`, whose CPs are `cps` now.

@@ -527,7 +527,7 @@ impl Rule for OwnBusSymbol {
             let Some(own) = ew_derive::own_bus_symbol(q, &part.item) else {
                 continue;
             };
-            let (missing, extra) = ew_derive::socket_mismatch(own, &part.item);
+            let (missing, extra) = ew_derive::socket_mismatch(&own.item, &part.item);
             if missing.is_empty() && extra.is_empty() {
                 continue;
             }

@@ -390,7 +390,9 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
                 .filter(|p| p.item.manufacturer.item.as_uuid() != ew_library::STARTER_GENERIC_MANUFACTURER)
                 .map(|p| manufacturer_name(q, &p.item.manufacturer)),
             // A bus symbol's part is its maker and its number in one text (doc 10 §2.7), the starter's "Generic" left out.
-            SlotKind::PartNumber if bus => device.and_then(|d| main_part(q, d)).map(|p| bus_part_words(q, &p.item)),
+            SlotKind::PartNumber if bus => device
+                .and_then(|d| main_part(q, d))
+                .map(|p| bus_part_words(q, &p.item)),
             SlotKind::PartNumber => device
                 .and_then(|d| main_part(q, d))
                 .map(|p| p.item.part_number.as_str().to_owned()),
@@ -464,7 +466,12 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
 fn cut_lines(q: &Q, def: &SymbolDef, slot: &ew_schema::TextSlot, text: &str, room: ew_units::Nm) -> String {
     let styles = crate::output::text_style_table(q);
     let terminal = ew_derive::terminal_symbol(q, def);
-    cut_in_style(q, ew_scene::symbol::slot_style_key(terminal, slot, &styles).0, text, room)
+    cut_in_style(
+        q,
+        ew_scene::symbol::slot_style_key(terminal, slot, &styles).0,
+        text,
+        room,
+    )
 }
 
 /// A bus symbol's part as its header prints it (doc 10 §2.7): its maker and its number in one text, the starter's

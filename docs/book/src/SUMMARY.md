@@ -55,6 +55,7 @@
     - [`bus.logical_net.create`](reference/commands/bus.logical_net.create.md)
     - [`bus.physical_net.create`](reference/commands/bus.physical_net.create.md)
     - [`bus.place_ports`](reference/commands/bus.place_ports.md)
+    - [`bus.place_symbols`](reference/commands/bus.place_symbols.md)
     - [`cable.create`](reference/commands/cable.create.md)
     - [`check.fix_all`](reference/commands/check.fix_all.md)
     - [`check.unwaive`](reference/commands/check.unwaive.md)

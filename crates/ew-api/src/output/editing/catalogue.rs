@@ -482,9 +482,8 @@ pub struct BusSymbolShape {
     pub sockets: Vec<(i64, i64)>,
 }
 
-/// The bus symbol `part` draws on a page of `grid` (`ew_derive::bus_symbol`).
-pub fn bus_symbol_shape(part: &Part, grid: ew_units::Grid) -> BusSymbolShape {
-    let s = ew_derive::bus_symbol(part, grid);
+/// The shape of bus symbol `s` (a part's, as `ew_derive::part_bus_symbol` gives it: his own or the derived one).
+pub fn bus_symbol_shape(s: &SymbolDef) -> BusSymbolShape {
     let body = s
         .graphics
         .iter()
@@ -815,7 +814,7 @@ fn catalogue_part(
             Vec::new()
         },
         bus_symbol: (page.kind == PageType::BusTopology && !part_interfaces(part).is_empty())
-            .then(|| bus_symbol_shape(part, page.grid)),
+            .then(|| bus_symbol_shape(&ew_derive::part_bus_symbol(q, part, page.grid))),
         terminal_valve,
         cell_symbol: terminal_valve && fits_cell(q, part),
         plc_bus: part.sections.plc.as_ref().is_none_or(|p| p.positions.is_none())
@@ -1168,9 +1167,15 @@ impl Session {
                 .find(|l| l.id == c.library_id.as_uuid())
                 .map(|l| l.name.clone())
                 .unwrap_or_default();
-            let Some(row) = catalogue_part(&q, set, &rows, c.id.as_uuid(), &c.item, source, &page) else {
+            let Some(mut row) = catalogue_part(&q, set, &rows, c.id.as_uuid(), &c.item, source, &page) else {
                 continue;
             };
+            // His own bus symbol comes with the part when it is placed: its ghost and room are already his.
+            if let (Some(shape), Some(r)) = (row.bus_symbol.as_mut(), c.item.bus_symbol.as_ref())
+                && let Ok(LibDocument::Symbol(own)) = self.libraries().resolve(r)
+            {
+                *shape = bus_symbol_shape(&own.item);
+            }
             let row = CataloguePart {
                 manufacturer,
                 library_name,
@@ -1318,7 +1323,7 @@ impl Session {
         let q = self.query();
         let own = part.bus_symbol.as_ref().and_then(|r| {
             ew_derive::own_bus_symbol(&q, part)
-                .cloned()
+                .map(|c| c.item.clone())
                 .or_else(|| match self.libraries().resolve(r) {
                     Ok(LibDocument::Symbol(c)) => Some(c.item),
                     _ => None,
@@ -1334,7 +1339,7 @@ impl Session {
             .find(|(_, p)| p.kind == PageType::BusTopology)
             .map_or(ew_units::Grid::MM4, |(_, p)| p.grid);
         let is_own = own.is_some();
-        let symbol = own.unwrap_or_else(|| ew_derive::bus_symbol(part, grid));
+        let symbol = own.unwrap_or_else(|| ew_derive::bus_symbol(part, grid, &ew_derive::text_styles(&q)));
         let geometry = ew_scene::symbol::lower(&symbol, ew_units::Orient2::R0);
         let b = geometry.bounds;
         let shift = ew_units::Pt2::new(ew_units::Nm(-b.min().x.0), ew_units::Nm(-b.min().y.0));

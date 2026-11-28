@@ -543,42 +543,35 @@ pub(crate) fn require_rep_on_grid(
     require_on_grid(tx, page, rep.pos, field)
 }
 
-/// The symbol a page draws `rep` with and the representation as it draws it: `ew_derive::drawn`'s rule over a
-/// transaction (a representation of the bus symbol `ew.gen.bus` drawn with its device's bus part's symbol and the pin
-/// map its sockets draw by). `None` when the symbol copy is not embedded.
-pub(crate) fn drawn(tx: &TxBuilder<'_>, rep: &Representation) -> Option<(Arc<SymbolDef>, Representation)> {
-    let copy: Arc<LibCopy<SymbolDef>> = tx.get::<LibCopy<SymbolDef>>(rep.symbol)?;
-    let port = |f: Id<Function>| {
-        let p = tx.get::<Function>(f)?.bus_port.clone()?;
-        Some((p.interface, p.port_label))
-    };
-    let symbol = if ew_derive::is_bus_copy(&copy.item) {
-        let grid = tx.get::<Page>(rep.page).map_or(Grid::MM4, |p| p.grid);
-        let device = rep.functions.first().and_then(|f| tx.get::<Function>(*f)?.device);
-        let part =
-            device.and_then(|d| crate::normalise::bus_ports::bus_part(tx, &tx.get::<Device>(d)?.parts));
-        let derived = match part {
-            Some(p) => ew_derive::bus_symbol(&p.item, grid),
-            // A device without a bus part: the interfaces its drawn functions carry, a socket each.
-            None => ew_derive::carried_symbol(
-                rep.functions
-                    .iter()
-                    .filter_map(|f| tx.get::<Function>(*f)?.bus_port.clone()),
-                grid,
-            ),
-        };
-        Arc::new(SymbolDef {
-            meta: copy.item.meta.clone(),
-            name: copy.item.name.clone(),
-            keywords: copy.item.keywords.clone(),
-            fndef: copy.item.fndef.clone(),
-            ..derived
-        })
-    } else {
-        Arc::new(copy.item.clone())
-    };
-    let rep = ew_derive::bus_pins(rep, &symbol, port).into_owned();
-    Some((symbol, rep))
+impl ew_derive::DrawnRows for TxBuilder<'_> {
+    fn symbol_copy(&self, id: Id<SymbolDef>) -> Option<Arc<LibCopy<SymbolDef>>> {
+        self.get::<LibCopy<SymbolDef>>(id)
+    }
+    fn function(&self, id: Id<Function>) -> Option<Arc<Function>> {
+        self.get::<Function>(id)
+    }
+    fn device(&self, id: Id<Device>) -> Option<Arc<Device>> {
+        self.get::<Device>(id)
+    }
+    fn part(&self, id: Id<ew_schema::Part>) -> Option<Arc<LibCopy<ew_schema::Part>>> {
+        self.get::<LibCopy<ew_schema::Part>>(id)
+    }
+    fn page_grid(&self, id: Id<Page>) -> Option<Grid> {
+        self.get::<Page>(id).map(|p| p.grid)
+    }
+    fn text_styles(&self) -> Arc<Vec<ew_schema::EffectiveStyle>> {
+        Arc::new(ew_schema::effective_text_styles(&self.project().settings))
+    }
+}
+
+/// The symbol a page draws `rep` with and the representation as it draws it, over the transaction:
+/// [`ew_derive::drawn`], the one rule (a bus symbol his own or derived from its device's bus part). `None` when the
+/// symbol copy is not embedded.
+pub(crate) fn drawn(
+    tx: &TxBuilder<'_>,
+    rep: &Representation,
+) -> Option<(ew_derive::DrawnSymbol, Representation)> {
+    ew_derive::drawn(tx, rep).map(|(symbol, rep)| (symbol, rep.into_owned()))
 }
 
 fn cps_of(tx: &TxBuilder<'_>, rep: &Representation) -> Vec<Result<RepCp, OutOfRange>> {

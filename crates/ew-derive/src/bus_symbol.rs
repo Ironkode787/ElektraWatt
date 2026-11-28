@@ -23,14 +23,15 @@
 //! **No text of a device lies on a cable:** every text stands inside the body, clear of the socket bands.
 
 use std::borrow::Cow;
+use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_schema::starter::{self, FN_GRAPHIC, GEN_BUS, VERSION_REQ};
 use ew_schema::{
-    Align, Bounds, BusPort, Dir4, Discipline, Extra, Function, KeyedList, LibRef, LinePrim, Part,
-    PartBusPort, Pen, PinMapEntry, Primitive, RectPrim, RepType, Representation, SlotKind, Stroke, SymbolCp,
-    SymbolDef, TextPrim, TextSlot,
+    Align, Bounds, BusPort, Device, Dir4, Discipline, EffectiveStyle, Extra, Function, KeyedList, LibCopy,
+    LibRef, LinePrim, Page, Part, PartBusPort, Pen, PinMapEntry, Primitive, RectPrim, RepType,
+    Representation, SlotKind, Stroke, SymbolCp, SymbolDef, TextPrim, TextSlot,
 };
 use ew_units::{Angle2, Grid, Nm, Pt2};
 
@@ -156,9 +157,10 @@ pub fn is_bus_symbol(symbol: &SymbolDef) -> bool {
     symbol.cps.iter().any(|c| c.interface.is_some())
 }
 
-/// The bus symbol of `part` on a page of `grid` (see the module documentation).
-pub fn bus_symbol(part: &Part, grid: Grid) -> SymbolDef {
-    body(&bus_interfaces(part), grid)
+/// The bus symbol of `part` on a page of `grid` in a project of the text styles `styles` (its effective table,
+/// `crate::text_styles`, as the page prints; a style it lacks at its new project's size) (see the module documentation).
+pub fn bus_symbol(part: &Part, grid: Grid, styles: &[EffectiveStyle]) -> SymbolDef {
+    body(&bus_interfaces(part), grid, styles)
 }
 
 /// The representation as a page draws it with `symbol`: for a bus symbol ([`is_bus_symbol`]) its pin map holds, for
@@ -200,65 +202,146 @@ pub fn bus_pins<'r>(
     Cow::Owned(drawn)
 }
 
+/// What the rule of [`drawn`] reads: [`Q`] over a snapshot, and the command layer's view of a transaction with its
+/// pending writes, so the page, the checks, the window's shapes and every command take a representation's symbol, his
+/// own included, from the one rule.
+pub trait DrawnRows {
+    /// The symbol copy `id`.
+    fn symbol_copy(&self, id: Id<SymbolDef>) -> Option<Arc<LibCopy<SymbolDef>>>;
+    /// The function `id`.
+    fn function(&self, id: Id<Function>) -> Option<Arc<Function>>;
+    /// The device `id`.
+    fn device(&self, id: Id<Device>) -> Option<Arc<Device>>;
+    /// The part copy `id`.
+    fn part(&self, id: Id<Part>) -> Option<Arc<LibCopy<Part>>>;
+    /// The connection grid of page `id`.
+    fn page_grid(&self, id: Id<Page>) -> Option<Grid>;
+    /// The project's effective text styles, which size a derived bus symbol as the page prints its texts.
+    fn text_styles(&self) -> Arc<Vec<EffectiveStyle>>;
+}
+
+impl DrawnRows for Q {
+    fn symbol_copy(&self, id: Id<SymbolDef>) -> Option<Arc<LibCopy<SymbolDef>>> {
+        self.symbols().get(id).cloned()
+    }
+    fn function(&self, id: Id<Function>) -> Option<Arc<Function>> {
+        self.functions().get(id).cloned()
+    }
+    fn device(&self, id: Id<Device>) -> Option<Arc<Device>> {
+        self.devices().get(id).cloned()
+    }
+    fn part(&self, id: Id<Part>) -> Option<Arc<LibCopy<Part>>> {
+        self.parts().get(id).cloned()
+    }
+    fn page_grid(&self, id: Id<Page>) -> Option<Grid> {
+        self.pages().get(id).map(|p| p.grid)
+    }
+    fn text_styles(&self) -> Arc<Vec<EffectiveStyle>> {
+        crate::text_styles(self)
+    }
+}
+
+/// The symbol a page draws a representation with ([`drawn`]): a symbol copy the project holds (any symbol's, or a
+/// part's own bus symbol), or a bus symbol derived from a part's network ports.
+#[derive(Clone, Debug)]
+pub enum DrawnSymbol {
+    /// A copy's item.
+    Copy(Arc<LibCopy<SymbolDef>>),
+    /// A derived bus symbol.
+    Derived(Arc<SymbolDef>),
+}
+
+impl DrawnSymbol {
+    /// The symbol itself, the copy's item cloned.
+    pub fn into_owned(self) -> SymbolDef {
+        match self {
+            DrawnSymbol::Copy(c) => c.item.clone(),
+            DrawnSymbol::Derived(s) => Arc::unwrap_or_clone(s),
+        }
+    }
+}
+
+impl std::ops::Deref for DrawnSymbol {
+    type Target = SymbolDef;
+    fn deref(&self) -> &SymbolDef {
+        match self {
+            DrawnSymbol::Copy(c) => &c.item,
+            DrawnSymbol::Derived(s) => s,
+        }
+    }
+}
+
+/// The first part of `device` with network ports (a device's bus part).
+pub fn bus_part(rows: &impl DrawnRows, device: &Device) -> Option<Arc<LibCopy<Part>>> {
+    device
+        .parts
+        .iter()
+        .find_map(|u| rows.part(u.part.copy).filter(|c| has_bus_ports(&c.item)))
+}
+
+/// The bus symbol a page of `grid` draws a device of `part` with: the part's own where it names one the project holds
+/// ([`own_bus_symbol`]), else [`bus_symbol`]. The window's shapes (the tool's ghost, Draw as one symbol) ask it too.
+pub fn part_bus_symbol(rows: &impl DrawnRows, part: &Part, grid: Grid) -> DrawnSymbol {
+    match own_bus_symbol(rows, part) {
+        Some(own) => DrawnSymbol::Copy(own),
+        None => DrawnSymbol::Derived(Arc::new(bus_symbol(part, grid, &rows.text_styles()))),
+    }
+}
+
 /// The symbol a page draws `rep` with and the representation as it draws it ([`bus_pins`]): a representation of
-/// `ew.gen.bus` is drawn with its device's bus symbol (of the device's first part use whose part has network ports:
-/// the part's own symbol where it names one the project holds, [`own_bus_symbol`], else [`bus_symbol`] on the page's
-/// grid; a device without such a part, with the interfaces its drawn functions carry, a socket each); any other with
-/// its copy's item. `None` when the project holds no copy of `rep.symbol`.
-pub fn drawn<'q, 'r>(
-    q: &'q Q,
+/// `ew.gen.bus` is drawn with its device's bus symbol (of its bus part, [`part_bus_symbol`] on the page's grid; a device
+/// without such a part, with the interfaces its drawn functions carry, a socket each); any other with its copy's item.
+/// `None` when the project holds no copy of `rep.symbol`. The one rule of the scene, `cp_point`, the checks, the
+/// window's shapes and the commands.
+pub fn drawn<'r>(
+    rows: &impl DrawnRows,
     rep: &'r Representation,
-) -> Option<(Cow<'q, SymbolDef>, Cow<'r, Representation>)> {
-    let copy = &q.symbols().get(rep.symbol)?.item;
+) -> Option<(DrawnSymbol, Cow<'r, Representation>)> {
+    let copy = rows.symbol_copy(rep.symbol)?;
     let port = |f: Id<Function>| {
-        let p = q.functions().get(f)?.bus_port.clone()?;
+        let p = rows.function(f)?.bus_port.clone()?;
         Some((p.interface, p.port_label))
     };
-    if !is_bus_copy(copy) {
-        let rep = bus_pins(rep, copy, port);
-        return Some((Cow::Borrowed(copy), rep));
+    if !is_bus_copy(&copy.item) {
+        let rep = bus_pins(rep, &copy.item, port);
+        return Some((DrawnSymbol::Copy(copy), rep));
     }
-    let grid = q.pages().get(rep.page).map_or(Grid::MM4, |p| p.grid);
-    let device = rep.functions.first().and_then(|f| q.functions().get(*f)?.device);
+    let grid = rows.page_grid(rep.page).unwrap_or(Grid::MM4);
+    let device = rep.functions.first().and_then(|f| rows.function(*f)?.device);
     let part = device.and_then(|d| {
-        let parts = q.parts();
-        q.devices()
-            .get(d)?
-            .parts
-            .iter()
-            .find_map(|u| parts.get(u.part.copy).filter(|c| has_bus_ports(&c.item)).cloned())
+        let device: Arc<Device> = rows.device(d)?;
+        bus_part(rows, &device)
     });
-    // His own symbol, where the part names one the project holds; never redrawn by the program.
-    if let Some(own) = part.as_ref().and_then(|p| own_bus_symbol(q, &p.item)) {
-        let rep = bus_pins(rep, own, port);
-        return Some((Cow::Borrowed(own), rep));
-    }
-    let derived = match part {
-        Some(p) => bus_symbol(&p.item, grid),
-        None => carried_symbol(
+    let symbol = match part {
+        Some(p) => part_bus_symbol(rows, &p.item, grid),
+        None => DrawnSymbol::Derived(Arc::new(carried_symbol(
             rep.functions
                 .iter()
-                .filter_map(|f| q.functions().get(*f)?.bus_port.clone()),
+                .filter_map(|f| rows.function(*f)?.bus_port.clone()),
             grid,
-        ),
+            &rows.text_styles(),
+        ))),
     };
-    let symbol = SymbolDef {
-        meta: copy.meta.clone(),
-        name: copy.name.clone(),
-        keywords: copy.keywords.clone(),
-        fndef: copy.fndef.clone(),
-        ..derived
+    // A derived symbol keeps the copy's identity (its key, name and function); his own is his.
+    let symbol = match symbol {
+        DrawnSymbol::Derived(derived) => DrawnSymbol::Derived(Arc::new(SymbolDef {
+            meta: copy.item.meta.clone(),
+            name: copy.item.name.clone(),
+            keywords: copy.item.keywords.clone(),
+            fndef: copy.item.fndef.clone(),
+            ..(*derived).clone()
+        })),
+        own => own,
     };
     let rep = bus_pins(rep, &symbol, port);
-    Some((Cow::Owned(symbol), rep))
+    Some((symbol, rep))
 }
 
 /// The bus symbol of one's own that `part` names (`Part.bus_symbol`), as the project holds its copy; `None` without
 /// one, or while the project does not hold it (the derived symbol draws then).
-pub fn own_bus_symbol<'q>(q: &'q Q, part: &Part) -> Option<&'q SymbolDef> {
+pub fn own_bus_symbol(rows: &impl DrawnRows, part: &Part) -> Option<Arc<LibCopy<SymbolDef>>> {
     let r = part.bus_symbol.as_ref()?;
-    let copy = ew_ids::v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid());
-    Some(&q.symbols().get(copy)?.item)
+    rows.symbol_copy(ew_ids::v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid()))
 }
 
 /// A socket of an interface in words: the interface, then the socket's label where it has several ("X1 P3", "DP").
@@ -425,17 +508,29 @@ pub fn compartment_address(port: &BusPort) -> Option<String> {
 
 /// The bus symbol of a device without a bus part on a page of `grid`: the interfaces its drawn functions' ports carry,
 /// in their order, a socket each.
-pub fn carried_symbol(ports: impl IntoIterator<Item = BusPort>, grid: Grid) -> SymbolDef {
+pub fn carried_symbol(
+    ports: impl IntoIterator<Item = BusPort>,
+    grid: Grid,
+    styles: &[EffectiveStyle],
+) -> SymbolDef {
     let interfaces: Vec<BusInterface> = ports
         .into_iter()
         .map(|p| BusInterface::with(p.interface, p.port_label, None))
         .collect();
-    body(&interfaces, grid)
+    body(&interfaces, grid, styles)
 }
 
 /// The em height of `style` in a new project.
 fn em(style: &str) -> i64 {
     ew_schema::standard_text_style(style).map_or(0, |s| s.em.0)
+}
+
+/// The em height of `style` in the text styles `styles`, else in a new project.
+fn em_in(styles: &[EffectiveStyle], style: &str) -> i64 {
+    styles
+        .iter()
+        .find(|s| s.key.as_str() == style)
+        .map_or_else(|| em(style), |s| s.em.0)
 }
 
 /// `em × share`, for a share `(num, den)`.
@@ -454,7 +549,7 @@ fn chars(text: &str) -> i64 {
 }
 
 /// The body of the interfaces `interfaces` on a page of `grid` (see the module documentation).
-fn body(interfaces: &[BusInterface], grid: Grid) -> SymbolDef {
+fn body(interfaces: &[BusInterface], grid: Grid, styles: &[EffectiveStyle]) -> SymbolDef {
     // k grid steps in nm, and the fewest whole steps (at least one) that hold `nm`.
     let at = |k: i64| grid.at(k).map_or(0, |n| n.0);
     let steps = |nm: i64| -> i64 {
@@ -462,7 +557,11 @@ fn body(interfaces: &[BusInterface], grid: Grid) -> SymbolDef {
         let k = (i128::from(nm.max(1)) * den + num - 1) / num.max(1);
         i64::try_from(k).unwrap_or(i64::MAX / 4).max(1)
     };
-    let (tag_em, data_em, socket_em) = (em(TAG_STYLE), em(DATA_STYLE), em(SOCKET_STYLE));
+    let (tag_em, data_em, socket_em) = (
+        em_in(styles, TAG_STYLE),
+        em_in(styles, DATA_STYLE),
+        em_in(styles, SOCKET_STYLE),
+    );
     let line = |em: i64| share(em, LINE);
     // Two sockets stand at least a turned label's line and its room apart.
     let pitch = steps(line(socket_em) + 2 * PAD);
@@ -705,7 +804,7 @@ mod tests {
     #[test]
     fn two_interfaces_are_two_compartments_with_their_sockets_on_their_edges() {
         for grid in [Grid::QET_10PX, Grid::MM4] {
-            let s = bus_symbol(&head_station(), grid);
+            let s = bus_symbol(&head_station(), grid, &[]);
             let Some(Primitive::Rect(body)) = s.graphics.first() else {
                 panic!("the body first")
             };
@@ -743,7 +842,7 @@ mod tests {
     /// edge, and its room ends inside the body.
     #[test]
     fn every_text_slot_stands_inside_the_body_clear_of_the_socket_bands() {
-        let s = bus_symbol(&head_station(), Grid::QET_10PX);
+        let s = bus_symbol(&head_station(), Grid::QET_10PX, &[]);
         let Some(Primitive::Rect(body)) = s.graphics.first() else {
             panic!("the body first")
         };
@@ -791,6 +890,7 @@ mod tests {
         let mut s = bus_symbol(
             &part(serde_json::json!([{"interface": "X1", "bus": "profinet", "role": "device", "ports": 4}])),
             Grid::MM4,
+            &[],
         );
         let mm = |v: i64| v * 1_000_000;
         let (w, h) = (mm(60), mm(40));
@@ -852,7 +952,7 @@ mod tests {
     /// has one; it draws every socket of the ports it was made from.
     #[test]
     fn a_symbol_of_one_s_own_names_the_sockets_it_lacks_and_has_too_many() {
-        let own = bus_symbol(&head_station(), Grid::MM4);
+        let own = bus_symbol(&head_station(), Grid::MM4, &[]);
         let with = |n: u16| {
             part(serde_json::json!([
                 {"interface": "X1", "bus": "profinet", "role": "device", "ports": n},
@@ -880,6 +980,7 @@ mod tests {
                 {"interface": "DP", "bus": "profibus_dp", "role": "device"},
             ])),
             Grid::MM4,
+            &[],
         );
         assert!(
             s.cps
@@ -887,7 +988,7 @@ mod tests {
                 .all(|c| c.interface.as_ref().map(Ident::as_str) == Some("DP"))
         );
         assert_eq!(s.cps.len(), 1);
-        let none = bus_symbol(&part(serde_json::json!([])), Grid::MM4);
+        let none = bus_symbol(&part(serde_json::json!([])), Grid::MM4, &[]);
         assert!(none.cps.is_empty());
         assert!(matches!(none.graphics.first(), Some(Primitive::Rect(_))));
     }

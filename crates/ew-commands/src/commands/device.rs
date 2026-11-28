@@ -1566,10 +1566,10 @@ impl Command for TransformReps {
             let body: Vec<Pt2> = match old.box_.as_ref() {
                 Some(b) if b.outline.is_empty() => b.cps.iter().map(|c| c.pos).collect(),
                 Some(b) => b.outline.clone(),
-                // A symbol turned about its insertion point jumped onto its neighbour.
-                None => tx
-                    .get::<LibCopy<SymbolDef>>(old.symbol)
-                    .and_then(|s| s.item.graphic_bounds())
+                // A symbol turned about its insertion point jumped onto its neighbour. Its body as the page draws it:
+                // a bus symbol's is its part's (`ew_derive::drawn`), not its copy's empty item.
+                None => crate::geometry::drawn(tx, &old)
+                    .and_then(|(s, _)| s.graphic_bounds())
                     .map(|(lo, hi)| vec![lo, hi])
                     .unwrap_or_default(),
             };
@@ -1602,10 +1602,10 @@ impl Command for TransformReps {
             // text frame, so the symbol turns under it about its middle and a turn and its reverse give its position
             // back. A black box turned by a half turn places its texts as on the same box unturned
             // (`ew_derive::text_frame`): its frame does not change, and nothing is written.
-            let frames = tx.get::<LibCopy<SymbolDef>>(old.symbol).map(|symbol| {
+            let frames = crate::geometry::drawn(tx, &old).map(|(symbol, _)| {
                 let frames = (
-                    ew_derive::text_frame(&old, &symbol.item),
-                    ew_derive::text_frame(&new, &symbol.item),
+                    ew_derive::text_frame(&old, &symbol),
+                    ew_derive::text_frame(&new, &symbol),
                 );
                 (symbol, frames)
             });
@@ -1632,7 +1632,7 @@ impl Command for TransformReps {
                     // Its angle as it prints, stored, so that it keeps its own alignment and does not take the turned
                     // symbol's (an angle stored is the sheet's, `ew_scene` `slot_texts`).
                     if o.angle.is_none() {
-                        o.angle = symbol.item.text_slots.get(usize::from(o.slot)).map(|s| s.rot);
+                        o.angle = symbol.text_slots.get(usize::from(o.slot)).map(|s| s.rot);
                     }
                     new.text_slots.insert(o);
                 }
@@ -1766,7 +1766,7 @@ fn pivot(grid: Grid, pos: Pt2, from: Orient2, to: Orient2, local: &[Pt2]) -> Res
 mod box_pivot_tests;
 
 mod bus_symbol;
-pub use bus_symbol::{PlaceBusSymbol, PortsTarget};
+pub use bus_symbol::{BusSymbolAt, PlaceBusSymbol, PlaceBusSymbols, PortsTarget};
 
 /// `rep.text_set` (`SetRepText`, doc 06 §2.5): moves, turns or hides one text of a representation's symbol on its page:
 /// sets the members given of the representation's override of slot `slot` and keeps the others. `pos` is a point of

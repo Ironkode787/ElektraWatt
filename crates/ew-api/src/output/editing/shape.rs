@@ -549,7 +549,8 @@ impl Session {
         out
     }
 
-    /// The bus symbol device `device` is drawn with on the drawn page `folio` (its bus part's, on the page's grid);
+    /// The bus symbol device `device` is drawn with on the drawn page `folio` (its bus part's, his own or the derived one
+    /// on the page's grid, `ew_derive::part_bus_symbol`);
     /// `None` for a device without a bus part or an unknown page.
     pub fn device_bus_symbol(&self, device: Uuid, folio: &str) -> Option<super::BusSymbolShape> {
         let q = self.query();
@@ -565,7 +566,9 @@ impl Session {
                     .get(u.part.copy)
                     .filter(|c| ew_derive::has_bus_ports(&c.item))
             })?;
-        Some(super::bus_symbol_shape(&part.item, grid))
+        Some(super::bus_symbol_shape(&ew_derive::part_bus_symbol(
+            &q, &part.item, grid,
+        )))
     }
 
     /// The CPs of function `function` as it derives them (`FunctionCps`): each CP index with its designation, in index

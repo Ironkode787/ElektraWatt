@@ -20,19 +20,18 @@ use std::sync::Arc;
 
 impl ShellModel {
     /// Draw as one symbol (doc 10 §2.7): each device of the selected boxes on a bus page is drawn with its bus symbol
-    /// where its first box stood (the leftmost, then the topmost), its boxes replaced (`bus.place_ports` with
-    /// `replace`), all in one undo step; refused in words, before anything changes, where a symbol would cover another
-    /// device or leave the drawing area.
+    /// where its first box stood (the leftmost, then the topmost), its boxes replaced, by one `bus.place_symbols`: all or
+    /// nothing, one undo step; refused in words, naming the device, where a symbol would cover another device (another
+    /// of the new symbols among them) or leave the drawing area.
     pub(crate) fn act_one_symbol(&mut self) -> Outcome {
         let devices = self.selected_bus_devices();
         if devices.is_empty() {
             return Outcome::refused(key!("reason-not-bus-box"));
         }
-        let (Some(folio), Some(canvas)) = (self.current_folio().map(str::to_owned), self.canvas()) else {
+        let Some(canvas) = self.canvas() else {
             return Outcome::refused(key!("reason-no-page"));
         };
-        let page = canvas.page();
-        let (tables, area) = (page.tables.clone(), crate::tools::ip::drawing_area(page));
+        let tables = canvas.page().tables.clone();
         let Some(cat) = self.catalogue() else {
             return Outcome::refused(key!("reason-no-catalogue"));
         };
@@ -47,17 +46,11 @@ impl ShellModel {
             Ok(copies) => copies,
             Err(out) => return out,
         };
-        let mut plans = Vec::new();
+        // One command for every device: all or nothing, one undo step; it refuses in words, naming the device, a symbol
+        // that would cover another device (one drawn before it in the same step among them) or leave the drawing area.
+        let mut done: Vec<String> = Vec::new();
+        let mut symbols = Vec::new();
         for (device, boxes) in &devices {
-            let tag = project.session.device_tag(*device).unwrap_or_default();
-            let room = || Outcome::Failed {
-                message: strings::format(key!("reason-one-symbol-room"), &[&tag]),
-            };
-            let Some(shape) = project.session.device_bus_symbol(*device, &folio) else {
-                return Outcome::Failed {
-                    message: strings::format(key!("rack-no-bus-interface"), &[&tag]),
-                };
-            };
             let Some(pos) = tables
                 .reps
                 .iter()
@@ -67,65 +60,27 @@ impl ShellModel {
             else {
                 continue;
             };
-            let body = [
-                pos.0 + shape.body[0],
-                pos.1 + shape.body[1],
-                pos.0 + shape.body[2],
-                pos.1 + shape.body[3],
-            ];
-            let outside = area.is_some_and(|a| {
-                shape
-                    .sockets
-                    .iter()
-                    .map(|s| (pos.0 + s.0, pos.1 + s.1))
-                    .chain([(body[0], body[1]), (body[2], body[3])])
-                    .any(|(x, y)| x < a[0] || x > a[2] || y < a[1] || y > a[3])
-            });
-            let covers = tables
-                .reps
-                .iter()
-                .filter(|r| r.device.is_some() && r.device != Some(*device))
-                .any(|r| {
-                    let o = r.black_box.as_ref().map_or(r.body, |b| {
-                        b.outline
-                            .iter()
-                            .fold([i64::MAX, i64::MAX, i64::MIN, i64::MIN], |a, p| {
-                                [a[0].min(p.0), a[1].min(p.1), a[2].max(p.0), a[3].max(p.1)]
-                            })
-                    });
-                    body[0] < o[2] && o[0] < body[2] && body[1] < o[3] && o[1] < body[3]
-                });
-            if outside || covers {
-                return room();
-            }
-            plans.push((*device, tag, pos, boxes.clone()));
-        }
-        let mut done: Vec<String> = Vec::new();
-        for (device, tag, pos, boxes) in plans {
-            let mut params = json!({
-                "page": tables.page.to_string(),
-                "symbol": copy.to_string(),
-                "target": {"device": {"device": device.to_string()}},
+            done.push(project.session.device_tag(*device).unwrap_or_default());
+            symbols.push(json!({
+                "device": device.to_string(),
                 "pos": [pos.0, pos.1],
                 "replace": boxes.iter().map(ToString::to_string).collect::<Vec<_>>(),
-            });
-            if done.is_empty() && !copies.is_empty() {
-                params["copies"] = Value::Array(copies.clone());
-            }
-            let out = self.run_commit(&ew_api::AnyCommand {
-                name: "bus.place_ports".into(),
-                params,
-            });
-            if out != Outcome::Done {
-                return out;
-            }
-            // One undo step for every device.
-            if !done.is_empty()
-                && let Some(pr) = &mut self.project
-            {
-                pr.session.fold_last_step();
-            }
-            done.push(tag);
+            }));
+        }
+        let mut params = json!({
+            "page": tables.page.to_string(),
+            "symbol": copy.to_string(),
+            "symbols": symbols,
+        });
+        if !copies.is_empty() {
+            params["copies"] = Value::Array(copies);
+        }
+        let out = self.run_commit(&ew_api::AnyCommand {
+            name: "bus.place_symbols".into(),
+            params,
+        });
+        if out != Outcome::Done {
+            return out;
         }
         // The new symbols are the selection: the replaced boxes are gone, and Properties shows what was drawn.
         self.sync_views();

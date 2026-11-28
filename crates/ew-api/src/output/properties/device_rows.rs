@@ -770,7 +770,7 @@ pub(super) fn bus_symbol_row(q: &Q, device: Id<Device>) -> Option<Built> {
         ew_derive::has_bus_ports(&c.item).then(|| (u.part.copy, c.item.clone()))
     })?;
     let number = part.part_number.to_string();
-    let own = ew_derive::own_bus_symbol(q, &part).map(|s| ew_derive::text_in(&s.name, None).to_owned());
+    let own = ew_derive::own_bus_symbol(q, &part).map(|s| ew_derive::text_in(&s.item.name, None).to_owned());
     let (text, note, link) = match (&own, &part.bus_symbol) {
         (Some(name), Some(r)) => (
             format!("own: {name}"),

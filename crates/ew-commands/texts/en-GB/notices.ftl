@@ -145,3 +145,4 @@ notice-valve-function = { $p0 } has the valve function of its new part; exchange
 notice-valve-line-gone = the line at port { $p0 } of { $p1 } went: the new valve has no port { $p0 }
 notice-fixing-choice-dropped = 1 hole moved or left out on { $p0 } is reset: the new fixing puts the holes elsewhere
 notice-fixing-choices-dropped = { $p1 } holes moved or left out on { $p0 } are reset: the new fixing puts the holes elsewhere
+notice-assign-bus-socket-gone = the new part has no socket for the bus line at { $p0 }: it ends where it was; connect it to a socket

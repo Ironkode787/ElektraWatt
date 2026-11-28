@@ -7,8 +7,7 @@ use std::collections::BTreeSet;
 
 use ew_ids::Id;
 use ew_schema::{
-    Connection, Endpoint, Junction, JunctionStyle, Kind, LibCopy, Page, PageItem, PageItemKind,
-    Representation, SymbolDef,
+    Connection, Endpoint, Junction, JunctionStyle, Kind, Page, PageItem, PageItemKind, Representation,
 };
 use ew_units::{Orient2, Pt2};
 use schemars::JsonSchema;
@@ -156,8 +155,7 @@ impl ApplyLayout {
             if let Some(grid) = &frame {
                 let mut points: Vec<Pt2> = crate::geometry::rep_cps(tx, next).iter().map(|c| c.pos).collect();
                 points.extend(
-                    tx.get::<LibCopy<SymbolDef>>(next.symbol)
-                        .and_then(|s| ew_derive::anchor_point_of(&s.item, next)),
+                    crate::geometry::drawn(tx, next).and_then(|(s, _)| ew_derive::anchor_point_of(&s, next)),
                 );
                 if points
                     .iter()

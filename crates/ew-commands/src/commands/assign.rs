@@ -301,6 +301,20 @@ impl Command for AssignPart {
         for strip in &strips {
             crate::commands::layout::push_after_growth(tx, *strip)?;
         }
-        Ok(Outcome::primary((Kind::Device, self.devices[0].cast())))
+        // A device's bus symbol drawn by another part: its bus lines follow its sockets, and a line at a socket the new
+        // part has not is said.
+        let lost = crate::commands::box_follow::follow_bus_symbols_of(tx, &self.devices)?;
+        let mut outcome = Outcome::primary((Kind::Device, self.devices[0].cast()));
+        if !lost.is_empty() {
+            let ends: Vec<ew_l10n::TextArg> = lost
+                .iter()
+                .map(|(f, idx)| crate::words::cp(tx, *f, *idx).into())
+                .collect();
+            outcome.notices.push(text!(
+                "notice-assign-bus-socket-gone",
+                crate::words::comma_list(ends)
+            ));
+        }
+        Ok(outcome)
     }
 }

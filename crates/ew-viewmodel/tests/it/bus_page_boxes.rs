@@ -140,10 +140,9 @@ fn a_device_placed_on_a_bus_page_is_one_symbol_inside_the_page_and_off_another_d
     assert_eq!(s.tool().name(), "black_box");
     let over = grid_point(&s, (k(&s, held[0]) + 1, k(&s, held[1]) + 1));
     cursor(&mut s, over);
-    assert_eq!(
-        refused(&mut s, "canvas.activate", json!({})),
-        "reason-ports-occupied"
-    );
+    // The command's words: the window refuses what a script is refused.
+    let words = crate::common::failed(&mut s, "canvas.activate", json!({}));
+    assert!(words.contains("another device stands where"), "{words}");
     assert_eq!(symbols(&s).len(), before.len(), "nothing placed");
     done(&mut s, "ui.dismiss", json!({}));
     // Near the right edge, in the empty foot of the page: one click.

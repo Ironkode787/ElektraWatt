@@ -400,6 +400,27 @@ fn exact_coordinate(x: Nm, g: Grid) -> Option<(i128, i128)> {
     }
 }
 
+/// Whether `point` lies in the drawing area of `frame`, its far edges included (a body or a socket may end on the
+/// frame's last line, where [`cell_in_grid`] names no cell), each coordinate read as [`cell_in_grid`] reads it.
+pub fn in_drawing_area(frame: &FrameGrid, g: Grid, point: Pt2) -> bool {
+    let origin = frame
+        .header_band
+        .map_or((0, 1), |h| (i128::from(h.num()), i128::from(h.den())));
+    let within = |x: Nm, step: Grid, count: u16| -> Option<bool> {
+        let (x, gd) = exact_coordinate(x, g)?;
+        let (a, b) = origin;
+        let (c, d) = (i128::from(step.num()), i128::from(step.den()));
+        let lhs = x.checked_mul(b)?.checked_mul(d)?;
+        let rhs = a.checked_mul(gd)?.checked_mul(d)?;
+        let den = c.checked_mul(gd)?.checked_mul(b)?;
+        let num = lhs.checked_sub(rhs)?;
+        let (q, r) = (num.div_euclid(den), num.rem_euclid(den));
+        Some((0..i128::from(count)).contains(&q) || (q == i128::from(count) && r == 0))
+    };
+    within(point.x, frame.columns.width, frame.columns.count).unwrap_or(false)
+        && within(point.y, frame.rows.height, frame.rows.count).unwrap_or(false)
+}
+
 /// The 0-based cell along one axis: `floor((x − origin) / step)` on exact rationals, if it lies in
 /// `0..count`. `x = p/s` nm (from [`exact_coordinate`]), `origin = a/b` nm, `step` the cell size.
 fn axis_cell(x: (i128, i128), origin: (i128, i128), step: Grid, count: u16) -> Option<u32> {
@@ -487,8 +508,8 @@ fn letter_label(letters: &[char], mut k: usize) -> String {
 ///   positions, image rectangles), `(min + max) / 2` with ties toward zero; the origin for no graphics.
 pub fn anchor_point(q: &Q, rep: Id<Representation>) -> Option<Pt2> {
     let rep = q.reps().get(rep)?;
-    let symbol = q.symbols().get(rep.symbol)?;
-    anchor_point_of(&symbol.item, rep)
+    let (symbol, _) = crate::drawn(q, rep)?;
+    anchor_point_of(&symbol, rep)
 }
 
 /// The anchor point of `rep` drawn with `symbol` (its symbol copy's item), in page nm; the pure core of

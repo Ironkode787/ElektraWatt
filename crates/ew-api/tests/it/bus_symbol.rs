@@ -362,7 +362,11 @@ fn properties_say_with_what_a_bus_symbol_is_drawn_and_each_port_s_sockets() {
     let RowValue::One { json, .. } = &drawn.value else {
         panic!("one value")
     };
-    assert_eq!(*json, json!({"part": "HS-2", "own": null}), "the program's, from HS-2's ports");
+    assert_eq!(
+        *json,
+        json!({"part": "HS-2", "own": null}),
+        "the program's, from HS-2's ports"
+    );
     assert!(drawn.note.is_some(), "it follows the part");
     let link = drawn.link.as_ref().expect("Make my own from it…");
     assert_eq!(
@@ -427,10 +431,20 @@ fn a_station_placed_on_a_bus_page_gets_a_port_function_per_interface() {
         .collect();
     copies.extend(s.port_fndef_copies(&fndefs));
     let symbol = s.starter_symbol_copy(key).expect("the bus symbol");
+    // A point of the page's grid, as the tool puts it.
+    let on = s
+        .query()
+        .pages()
+        .get(Id::from_uuid(page))
+        .expect("the page")
+        .grid
+        .at(20)
+        .expect("a point")
+        .0;
     s.execute(&AnyCommand {
         name: "bus.place_ports".into(),
         params: json!({
-            "page": page.to_string(), "symbol": symbol.to_string(), "pos": [20 * STEP, 20 * STEP],
+            "page": page.to_string(), "symbol": symbol.to_string(), "pos": [on, on],
             "target": {"from_part": {"part": part.id.as_uuid().to_string(), "letter": "A"}}, "copies": copies,
         }),
     })
@@ -479,7 +493,7 @@ fn a_part_s_own_bus_symbol_draws_its_devices_and_ew_bus_011_names_what_it_lacks(
             p
         };
         let made: ew_schema::Part = serde_json::from_value(coupler(2)).expect("a part");
-        let mut own = ew_derive::bus_symbol(&made, ew_units::Grid::QET_10PX);
+        let mut own = ew_derive::bus_symbol(&made, ew_units::Grid::QET_10PX, &[]);
         let bottom = own.cps.iter().map(|c| c.pos.y.0).max().expect("a socket");
         let mut cps: Vec<ew_schema::SymbolCp> = own.cps.iter().cloned().collect();
         for c in cps
@@ -508,9 +522,10 @@ fn a_part_s_own_bus_symbol_draws_its_devices_and_ew_bus_011_names_what_it_lacks(
         lib.push(serde_json::from_value(doc).expect("the own symbol"));
         (project, records, lib, own)
     };
-    let model = |(project, records, lib, _): (Project, Vec<Record>, Vec<LibDocument>, ew_schema::SymbolDef)| {
-        Model::from_records(project, records, lib).unwrap_or_else(|e| panic!("model: {e:?}"))
-    };
+    let model =
+        |(project, records, lib, _): (Project, Vec<Record>, Vec<LibDocument>, ew_schema::SymbolDef)| {
+            Model::from_records(project, records, lib).unwrap_or_else(|e| panic!("model: {e:?}"))
+        };
     let rule = ew_checks::rule("EW-BUS-011").expect("EW-BUS-011");
     let own = with_own(2).3;
     let made = model(with_own(2));
@@ -586,6 +601,35 @@ fn the_picture_on_a_bus_page_prints_the_symbol_s_texts() {
     let mut texts = Vec::new();
     runs(&picture.list.items, &mut texts);
     for printed in ["HS-2", "X1", "X2", "P1", "P2", "TBD"] {
-        assert!(texts.iter().any(|t| t.contains(printed)), "{printed} in {texts:?}");
+        assert!(
+            texts.iter().any(|t| t.contains(printed)),
+            "{printed} in {texts:?}"
+        );
+    }
+}
+
+/// A project whose small data text is twice its size (its Text styles page): a device with a two-line address and a
+/// socket on its bottom edge still prints every text inside its body, so none can reach a socket's stub: the bands are
+/// sized from the project's own text styles, as the page prints.
+#[test]
+fn a_project_with_larger_texts_keeps_every_text_of_a_bus_symbol_inside_its_body() {
+    let (mut project, records, lib) = parts("rio1");
+    let doubled = ew_schema::qet_px_em(18);
+    project.settings.text_styles.insert(
+        "data.small".parse().expect("a key"),
+        ew_schema::TextStyleSpec::of_size(doubled),
+    );
+    let model = Model::from_records(project, records, lib).unwrap_or_else(|e| panic!("model: {e:?}"));
+    let q = Q::new(&model);
+    for n in [UPRIGHT, COUPLED] {
+        let body = body(&q, n);
+        let texts = texts(&q, n);
+        assert!(texts.iter().any(|(t, _)| t.contains("192.168.")), "{texts:?}");
+        for (i, (t, b)) in texts.iter().enumerate() {
+            assert!(inside(*b, body), "{t:?} {b:?} leaves the body {body:?}");
+            for (u, c) in &texts[i + 1..] {
+                assert!(!overlap(*b, *c), "{t:?} lies on {u:?}");
+            }
+        }
     }
 }

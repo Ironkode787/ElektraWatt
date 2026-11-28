@@ -674,7 +674,7 @@ pub struct OwnSymbolGap {
 pub(crate) fn own_symbol_gaps(before: &Q, after: &Q) -> Vec<OwnSymbolGap> {
     let gap = |q: &Q, p: &Part| {
         ew_derive::own_bus_symbol(q, p)
-            .map(|s| ew_derive::socket_mismatch(s, p))
+            .map(|s| ew_derive::socket_mismatch(&s.item, p))
             .filter(|(m, e)| !m.is_empty() || !e.is_empty())
     };
     after

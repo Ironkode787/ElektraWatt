@@ -92,7 +92,9 @@ impl Session {
         // One bus symbol selected: with what it is drawn, and the way to another look.
         if let [one] = targets
             && let Some(rep) = q.reps().get(Id::from_uuid(*one))
-            && q.symbols().get(rep.symbol).is_some_and(|s| ew_derive::is_bus_copy(&s.item))
+            && q.symbols()
+                .get(rep.symbol)
+                .is_some_and(|s| ew_derive::is_bus_copy(&s.item))
             && let Some(device) = rep.functions.first().and_then(|f| q.functions().get(*f)?.device)
         {
             out.extend(super::device_rows::bus_symbol_row(q, device));

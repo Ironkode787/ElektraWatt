@@ -32,6 +32,7 @@ command-bond-create = Bond potentials
 command-bus-logical_net-create = Create logical bus network
 command-bus-physical_net-create = Create physical bus network
 command-bus-place_ports = Draw a device with its bus symbol
+command-bus-place_symbols = Draw several devices with their bus symbols
 command-bus-cable-set = Set the cable and plugs of a bus line
 command-box-black = Draw black box
 command-box-reshape = Reshape box

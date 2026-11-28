@@ -96,15 +96,20 @@ present only on a connector or device with a termination switch (FR-BUS-004).
   station address after the name, nothing for a passive interface). Each compartment is as wide as its sockets need
   and at least as wide as an IPv4 address; its sockets are `P1` … `Pn` of an interface that counts n, else one, the
   first half on its top edge and the rest on its bottom edge, each labelled by its port inside the body (a single
-  socket unlabelled: its compartment names it). The size follows from the part alone, never from an address or a tag,
-  so typing an address moves no socket; a text longer than its room is cut with "…" and stands whole in Properties
-  and the lists.
+  socket unlabelled: its compartment names it). The size follows from the part and the project's text styles alone
+  (the heights and widths of the styles the page prints its texts in), never from an address or a tag, so typing an
+  address moves no socket; a text longer than its room is cut with "…" and stands whole in Properties and the lists.
+  Changing a text style on the Text styles page draws every derived bus symbol in the new size, and the bus lines at
+  its sockets follow them in the same step; a symbol of one's own keeps its size.
   - **On the page** a device is a representation of the built-in symbol `ew.gen.bus`: its `functions` are the
     device's port functions in the part's interface order, and it carries neither `box` nor `pin_map`; a socket
     stands for connection point k of the function that carries its interface, by the pin map the page draws the
-    representation with (`ew_derive::drawn`, the one rule of the scene, `cp_point` and the commands). A part
+    representation with (`ew_derive::drawn`, the one rule over a record reader, `DrawnRows`, that the scene,
+    `cp_point`, the checks, the window's shapes and every command read, a snapshot and a transaction alike). A part
     changed in Parts is drawn changed at the next draw of every page; its Save names the devices whose sockets move
-    and moves the ends of their bus lines with them, in the one step of Save and update (doc 07 §2.5).
+    and moves the ends of their bus lines with them, in the one step of Save and update (doc 07 §2.5). Assigning
+    another part to a device (`part.assign`) does the same; a line at a socket the new part has not keeps its end and
+    is said in the toast.
   - **His own bus symbol.** Parts shows a part's bus symbol ("On a bus page") and offers Make my own from it…: the
     derived symbol opened as a drawing of his own, kept with his parts and named by the part (`Part.bus_symbol`).
     Its connection points keep the interface and port they draw (`SymbolCp.interface`, `SymbolCp.port_label`), its
@@ -127,9 +132,10 @@ present only on a connector or device with a termination switch (FR-BUS-004).
     device, else a new port function of its bus's starter FnDef (the PROFINET port's for a bus without one), whose
     port it gets as N5 gives one. `replace` names representations of the same device on the page that the symbol
     takes the place of, in the same step: a bus line at one of their connection points keeps its end, and its
-    route's last segment follows the new socket as a dragged symbol's wires do. The symbol stands inside the frame's
-    drawing area, moved in by whole grid steps where it would run past the edge, and is refused in words where it
-    would cover a device drawn on the page ("Another device stands here: place it on a free place").
+    route's last segment follows the new socket as a dragged symbol's wires do. The command refuses in words a
+    position off the page's grid, a socket or the body outside the frame's drawing area, and a body over another
+    device drawn on the page; the window's tool moves the symbol inside the area by whole grid steps where it fits and
+    asks the command, so a script and the window are refused alike.
   - **As one thing.** The symbol is selected, moved, turned and deleted as any symbol; deleting it deletes no
     function. Deleting one interface's function takes it out of the symbol's `functions` in the same step, and the
     symbol draws the others. Properties of the symbol shows a section per interface, Network port `<interface>`,
@@ -140,8 +146,9 @@ present only on a connector or device with a termination switch (FR-BUS-004).
     ([06a](06a-drafting.md) §5.2), clear of the wires where any place is clear. *Draw as one symbol*
     (`bus.one_symbol`, in a box's menu, offered while a selected box draws a port function on the page shown) draws
     each selected device with its bus symbol where its first box stood (the leftmost, then the topmost), the old
-    boxes replaced in one undo step (`bus.place_ports` with `replace`), and is refused in words where the symbol
-    would cover another device or leave the drawing area. Nothing converts a page by itself.
+    boxes replaced, all or nothing in one command and one undo step (`bus.place_symbols`): a symbol that would cover
+    another device, one of the new symbols among them, or leave the drawing area is refused in words, naming the
+    device, and none is drawn. Nothing converts a page by itself.
   - **Its tag.** A device placed first on a bus page takes its tag from that page (no other page draws
     it); when its own box is drawn later on a schematic page (Place here, the device browser's unplaced function, Draw on
     a page…), its tag becomes that page's, by the numbering rule that a device's tag names the page of its main function

@@ -161,6 +161,8 @@ fn unplaced_cable(device: &Device, page: Option<Id<Page>>) -> bool {
 trait Rows {
     fn row<T: ew_model::Entity>(&self, id: ew_model::RowId<T>) -> Option<Arc<T>>;
     fn project_settings_frames(&self) -> Option<serde_json::Value>;
+    /// The project's effective text styles.
+    fn text_styles(&self) -> Vec<ew_schema::EffectiveStyle>;
 }
 
 impl Rows for TxBuilder<'_> {
@@ -171,6 +173,10 @@ impl Rows for TxBuilder<'_> {
     fn project_settings_frames(&self) -> Option<serde_json::Value> {
         self.project().settings.extra.get("frames").cloned()
     }
+
+    fn text_styles(&self) -> Vec<ew_schema::EffectiveStyle> {
+        ew_schema::effective_text_styles(&self.project().settings)
+    }
 }
 
 impl Rows for Model {
@@ -180,6 +186,10 @@ impl Rows for Model {
 
     fn project_settings_frames(&self) -> Option<serde_json::Value> {
         self.project().settings.extra.get("frames").cloned()
+    }
+
+    fn text_styles(&self) -> Vec<ew_schema::EffectiveStyle> {
+        ew_schema::effective_text_styles(&self.project().settings)
     }
 }
 
@@ -202,10 +212,35 @@ pub fn anchor_cell_in(model: &Model, rep: Id<Representation>) -> Option<ew_deriv
     anchor_cell_with(model, rep)
 }
 
-/// The anchor point of a representation on its page (`ew_derive::anchor_point_of`), read from the model alone.
-fn anchor_point_with(rows: &impl Rows, rep: &Representation) -> Option<ew_units::Pt2> {
-    let symbol = rows.row::<LibCopy<SymbolDef>>(rep.symbol)?;
-    ew_derive::anchor_point_of(&symbol.item, rep)
+/// [`Rows`] as the one rule of a representation's symbol reads them ([`ew_derive::drawn`]).
+struct DrawnBy<'a, R>(&'a R);
+
+impl<R: Rows> ew_derive::DrawnRows for DrawnBy<'_, R> {
+    fn symbol_copy(&self, id: Id<SymbolDef>) -> Option<Arc<LibCopy<SymbolDef>>> {
+        self.0.row::<LibCopy<SymbolDef>>(id)
+    }
+    fn function(&self, id: Id<ew_schema::Function>) -> Option<Arc<ew_schema::Function>> {
+        self.0.row::<ew_schema::Function>(id)
+    }
+    fn device(&self, id: Id<Device>) -> Option<Arc<Device>> {
+        self.0.row::<Device>(id)
+    }
+    fn part(&self, id: Id<ew_schema::Part>) -> Option<Arc<LibCopy<ew_schema::Part>>> {
+        self.0.row::<LibCopy<ew_schema::Part>>(id)
+    }
+    fn page_grid(&self, id: Id<Page>) -> Option<ew_units::Grid> {
+        self.0.row::<Page>(id).map(|p| p.grid)
+    }
+    fn text_styles(&self) -> Arc<Vec<ew_schema::EffectiveStyle>> {
+        Arc::new(self.0.text_styles())
+    }
+}
+
+/// The anchor point of a representation on its page (`ew_derive::anchor_point_of`) with the symbol the page draws it
+/// with (`ew_derive::drawn`), read from the model alone.
+fn anchor_point_with<R: Rows>(rows: &R, rep: &Representation) -> Option<ew_units::Pt2> {
+    let (symbol, _) = ew_derive::drawn(&DrawnBy(rows), rep)?;
+    ew_derive::anchor_point_of(&symbol, rep)
 }
 
 fn anchor_cell_with(rows: &impl Rows, rep: Id<Representation>) -> Option<ew_derive::Cell> {

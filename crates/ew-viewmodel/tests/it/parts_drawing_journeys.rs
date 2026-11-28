@@ -1123,7 +1123,11 @@ fn make_my_own_bus_symbol_and_use_the_program_s_again() {
     );
     let outline = editor.outline();
     let sockets: Vec<&str> = outline.groups[0].rows.iter().map(|r| r.label.as_str()).collect();
-    assert!(outline.what.contains("Bus symbol of CPL-PN-DP"), "{}", outline.what);
+    assert!(
+        outline.what.contains("Bus symbol of CPL-PN-DP"),
+        "{}",
+        outline.what
+    );
     assert_eq!(outline.groups[0].label, "Sockets");
     assert_eq!(sockets, ["X1 P1", "X1 P2", "DP"]);
     assert!(outline.todo.is_empty(), "{:?}", outline.todo);

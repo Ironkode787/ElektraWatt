@@ -81,6 +81,7 @@ command-bond-create = Potentialen verbinden
 command-bus-logical_net-create = Logisch busnetwerk maken
 command-bus-physical_net-create = Fysiek busnetwerk maken
 command-bus-place_ports = Een apparaat met zijn bussymbool tekenen
+command-bus-place_symbols = Meerdere apparaten met hun bussymbool tekenen
 command-bus-cable-set = Kabel en stekkers van een buslijn instellen
 command-box-black = Black box tekenen
 command-box-reshape = Kader van vorm veranderen

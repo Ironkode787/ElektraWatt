@@ -31,8 +31,8 @@
 //! it would leave it, and is refused with its size where it is larger than the area (`reason-box-too-large`) and on
 //! another box (`reason-box-occupied`); the host ends the tool once it is placed (one click, one box). **A device on a
 //! bus page** ([`BoxTarget::Ports`], doc 10 §2.7) is placed the same way with its bus symbol, sized by its part
-//! (`bus.place_ports`): inside the drawing area with its sockets, and refused where its body would cover a device
-//! drawn on the page (`reason-ports-occupied`).
+//! (`bus.place_ports`), moved inside the drawing area with its sockets where it fits; what does not fit or would cover a
+//! device drawn on the page the command refuses in its words, as it refuses a script.
 //!
 //! **Grips** ([`grip_points`], [`reshape_by_grip`]): for an outline of `n` vertices in stored order, grips `0 … n−1`
 //! are the vertices and grips `n … 2n−1` the midpoints of the edges `v0v1, …, v(n−1)v0`. On a rectangle a vertex grip
@@ -391,9 +391,20 @@ impl BlackBoxTool {
     fn box_at(&self, cx: &ToolCx<'_>, grid: PageGridMap, at: (i64, i64)) -> Option<(BoxLayout, Option<i64>)> {
         // A bus symbol: its body and its sockets, the outline round them both, its top-left corner at the pointer.
         if let BoxTarget::Ports { shape, .. } = &self.target {
+            let side = |p: &(i64, i64)| {
+                if p.1 < shape.body[1] {
+                    Dir::Up
+                } else if p.1 > shape.body[3] {
+                    Dir::Down
+                } else if p.0 < shape.body[0] {
+                    Dir::Left
+                } else {
+                    Dir::Right
+                }
+            };
             let cps: Vec<BoxCpAt> = (0u16..)
                 .zip(&shape.sockets)
-                .map(|(i, p)| (i, *p, if p.1 < 0 { Dir::Up } else { Dir::Down }))
+                .map(|(i, p)| (i, *p, side(p)))
                 .collect();
             let corners = [(shape.body[0], shape.body[1]), (shape.body[2], shape.body[3])];
             let b = bounds(shape.sockets.iter().copied().chain(corners))?;
@@ -524,32 +535,6 @@ impl BlackBoxTool {
             return card_on_grid(&steps, cx.page.tables.grid, corner).map(|l| vec![l]);
         }
         layout(grid, first, at, self.cps(), self.outputs()).map(|l| vec![l])
-    }
-
-    /// Whether the body of a bus symbol at `pos` would cover a device drawn on the page shown (its box, else its body).
-    fn covers_a_device(&self, cx: &ToolCx<'_>, pos: (i64, i64)) -> bool {
-        let BoxTarget::Ports { shape, .. } = &self.target else {
-            return false;
-        };
-        let a = [
-            pos.0 + shape.body[0],
-            pos.1 + shape.body[1],
-            pos.0 + shape.body[2],
-            pos.1 + shape.body[3],
-        ];
-        cx.page
-            .tables
-            .reps
-            .iter()
-            .filter(|r| r.device.is_some())
-            .any(|r| {
-                let o = r
-                    .black_box
-                    .as_ref()
-                    .and_then(|b| bounds(b.outline.iter().copied()))
-                    .unwrap_or(r.body);
-                a[0] < o[2] && o[0] < a[2] && a[1] < o[3] && o[1] < a[3]
-            })
     }
 
     /// The `box.black` of the current rectangle, or the `bus.place_ports` of a ports target.
@@ -736,7 +721,10 @@ impl BlackBoxTool {
     fn click(&mut self, cx: &ToolCx<'_>) -> ToolOutput {
         self.dropped = false;
         if self.one_click() {
-            if let Some(((pos, outline, _), _)) = self.one_click_box(cx) {
+            // A bus symbol, moved inside the drawing area where it fits, asks `bus.place_ports`, which refuses in its
+            // words what does not fit or covers a device: one rule for the window and a script.
+            let ports = matches!(self.target, BoxTarget::Ports { .. });
+            if let Some(((pos, outline, _), _)) = self.one_click_box(cx).filter(|_| !ports) {
                 // A box larger than the drawing area says so, with its size.
                 let (area, grid) = (
                     super::ip::drawing_area(cx.page),
@@ -747,10 +735,6 @@ impl BlackBoxTool {
                     let [w, h, aw, ah] = sizes.map(mm);
                     let words = crate::strings::format(key!("reason-box-too-large"), &[&w, &h, &aw, &ah]);
                     return ToolOutput::RefusedWith(key!("reason-box-too-large"), words);
-                }
-                // A bus symbol never covers a device drawn on the page.
-                if self.covers_a_device(cx, pos) {
-                    return ToolOutput::Refused(key!("reason-ports-occupied"));
                 }
                 // A box never lands on another box (two terminals never stand on one spot).
                 if overlaps_a_box(cx, pos, &outline) {

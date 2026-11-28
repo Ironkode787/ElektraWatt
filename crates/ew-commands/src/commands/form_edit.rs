@@ -779,8 +779,7 @@ fn refuse_drawing_under(tx: &TxBuilder<'_>, id: Id<FormDef>, frame: &FormDef) ->
         {
             points.extend(crate::geometry::rep_cps(tx, &rep).iter().map(|c| c.pos));
             points.extend(
-                tx.get::<LibCopy<ew_schema::SymbolDef>>(rep.symbol)
-                    .and_then(|s| ew_derive::anchor_point_of(&s.item, &rep)),
+                crate::geometry::drawn(tx, &rep).and_then(|(s, _)| ew_derive::anchor_point_of(&s, &rep)),
             );
         }
         for c in tx.connections_on_page(page.id) {
