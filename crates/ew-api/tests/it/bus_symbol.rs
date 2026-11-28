@@ -633,3 +633,49 @@ fn a_project_with_larger_texts_keeps_every_text_of_a_bus_symbol_inside_its_body(
         }
     }
 }
+
+/// Draw as one symbol replaces the boxes an earlier version drew on a bus page, and nothing else: a box of the same
+/// switch's port function on a schematic page (the device browser's unplaced function drawn there) is no bus box.
+#[test]
+fn only_a_bus_page_s_boxes_are_what_draw_as_one_symbol_replaces() {
+    let (project, mut records, mut lib) = parts("rio1");
+    let frame = ew_library::starter::item("ew.gen.blackbox@qet10").expect("the black-box frame");
+    let frame: Value = serde_json::from_str(frame.json).expect("json");
+    let frame_copy = frame["id"].as_str().expect("an id").to_owned();
+    lib.push(serde_json::from_value(frame).expect("the frame's copy"));
+    let more = [
+        json!({"$k": "page", "id": uid(0x11), "folio": {"number": 101}, "kind": "multi_line", "structure": {},
+            "title": {"en": "Supply"}, "grid": {"num": 7_937_500, "den": 3}}),
+        json!({"$k": "device", "id": uid(0x90), "tag": {"letter": "K", "counter": 2},
+            "parts": [{"part": {"copy": uid(SWITCH)}, "qty": "1"}]}),
+        json!({"$k": "function", "id": uid(0x91), "device": uid(0x90), "def": uid(PORT_DEF), "role": "main",
+            "bus_port": profinet("X1", "sw2", "192.168.0.3")}),
+        json!({"$k": "device", "id": uid(0x94), "tag": {"letter": "K", "counter": 3},
+            "parts": [{"part": {"copy": uid(SWITCH)}, "qty": "1"}]}),
+        json!({"$k": "function", "id": uid(0x95), "device": uid(0x94), "def": uid(PORT_DEF), "role": "main",
+            "bus_port": profinet("X1", "sw3", "192.168.0.4")}),
+    ];
+    let boxed = |n: u128, function: u128, page: u128, rep_type: &str| {
+        json!({"$k": "representation", "id": uid(n), "functions": [uid(function)], "page": uid(page),
+            "symbol": frame_copy, "pos": [10 * STEP, 70 * STEP], "rep_type": rep_type,
+            "box": {"outline": [[0, 0], [6 * STEP, 0], [6 * STEP, 3 * STEP], [0, 3 * STEP]],
+                    "cps": [{"idx": 0, "pos": [3 * STEP, 0], "dir": "up"}]}})
+    };
+    for r in more.into_iter().chain([
+        boxed(0x46, 0x91, 0x11, "multi_line"),
+        boxed(0x47, 0x95, PAGE, "topology"),
+    ]) {
+        records.push(serde_json::from_value(r.clone()).unwrap_or_else(|e| panic!("{r}: {e}")));
+    }
+    let s = ew_api::Session::from_records(project, records, lib, ew_api::SessionOptions::default())
+        .expect("a session");
+    assert_eq!(
+        s.bus_boxes("105"),
+        [(id::<()>(0x47).as_uuid(), id::<()>(0x94).as_uuid())],
+        "the bus page's box"
+    );
+    assert!(
+        s.bus_boxes("101").is_empty(),
+        "a schematic page's box stays a box"
+    );
+}

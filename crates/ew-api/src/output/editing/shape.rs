@@ -526,14 +526,20 @@ impl Session {
             .collect()
     }
 
-    /// The boxes on the drawn page `folio` that draw a port function, as earlier versions drew a bus device (a box per
-    /// interface, doc 10 §2.7): each box's representation with its device, in representation ID order. What Draw as
-    /// one symbol replaces.
+    /// The boxes on the drawn bus-topology page `folio` that draw a port function, as earlier versions drew a bus device
+    /// (a box per interface, doc 10 §2.7): each box's representation with its device, in representation ID order. What
+    /// Draw as one symbol replaces; none on a page of another type, where a device's box stays its box.
     pub fn bus_boxes(&self, folio: &str) -> Vec<(Uuid, Uuid)> {
         let q = self.query();
         let Some((_, page)) = drawn_page(&q, folio) else {
             return Vec::new();
         };
+        if q.pages()
+            .get(page)
+            .is_none_or(|p| p.kind != ew_schema::PageType::BusTopology)
+        {
+            return Vec::new();
+        }
         let mut out: Vec<(Uuid, Uuid)> = q
             .idx()
             .reps_by_page(page)
