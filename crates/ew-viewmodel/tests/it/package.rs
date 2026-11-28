@@ -4,7 +4,7 @@
 //! Output ▸ Workshop ▸ Package… on a copy of the sample (doc 13-package §8.5): in a script `package.export` writes the
 //! package and its toast names it; in the window the dialog lists what goes in and what stood in the release check,
 //! a way that no longer holds first, whose fix closes the dialog and opens Route's card; a member without content has
-//! no tick, and a file that exists is asked about first.
+//! no tick, and a file that exists is asked about first. A line about a part's missing field offers Edit part… at it.
 
 use crate::common;
 
@@ -194,5 +194,79 @@ fn a_missing_marker_part_offers_the_workshop_stock() {
     let place = s.parts_place().expect("Parts");
     assert_eq!(place.scope, ew_viewmodel::ew_api::parts::PartScope::Stock);
     assert!(!place.found.is_empty(), "the sample's stock");
+    s.shutdown();
+}
+
+/// A 0.75 mm² ferrule he makes in Parts without its sleeve length, first among the stock's ferrules: the wire list's line
+/// about it offers Edit part…, which closes the dialog and opens Parts on his ferrule at its sleeve length; a line about
+/// the stock keeps Workshop stock…. In the Dutch window the line and its offer are Dutch.
+#[test]
+fn a_part_without_a_field_the_package_reads_offers_edit_part_at_the_field() {
+    let tmp = Tmp::new("package-lack-part");
+    let mut s = tmp.sample_in(Mode::Gui, true, "907");
+    done(&mut s, "parts.open", json!({}));
+    done(&mut s, "parts.new", json!({"start": "ferrule"}));
+    for (field, value) in [
+        ("manufacturer", "Example"),
+        ("part_number", "MY-FER-075"),
+        ("sections.ferrule.csa_min", "0.75"),
+        ("sections.ferrule.csa_max", "0.75"),
+    ] {
+        done(&mut s, "parts.field", json!({"field": field, "value": value}));
+    }
+    done(&mut s, "parts.save", json!({}));
+    done(&mut s, "parts.stock", json!({"op": "add"}));
+    done(&mut s, "parts.stock", json!({"op": "move", "to": 1}));
+    done(&mut s, "parts.back", json!({}));
+    let line = |s: &ew_viewmodel::shell::ShellModel| {
+        package(s)
+            .rows
+            .iter()
+            .flat_map(|r| &r.lacks)
+            .find(|l| l.text.starts_with("MY-FER-075: "))
+            .cloned()
+            .expect("the line about his ferrule")
+    };
+    done(&mut s, "package.export", json!({}));
+    let lack = line(&s);
+    assert_eq!(
+        (lack.text.as_str(), lack.offer.as_str()),
+        (
+            "MY-FER-075: Without a sleeve length the wire list prints no strip length.",
+            "Edit part\u{2026}"
+        )
+    );
+    assert_eq!(lack.action.0, "parts.open");
+    assert_eq!(lack.action.1["field"], "sections.ferrule.sleeve");
+    let stock: Vec<&str> = package(&s)
+        .rows
+        .iter()
+        .flat_map(|r| &r.lacks)
+        .filter(|l| l.action.0 == "parts.stock")
+        .map(|l| l.offer.as_str())
+        .collect();
+    assert!(
+        !stock.is_empty() && stock.iter().all(|o| *o == "Workshop stock\u{2026}"),
+        "{stock:?}"
+    );
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "view.language", json!({ "value": "nl" }));
+    done(&mut s, "package.export", json!({}));
+    let nl = line(&s);
+    assert_eq!(
+        (nl.text.as_str(), nl.offer.as_str()),
+        (
+            "MY-FER-075: Zonder hulslengte drukt de draadlijst geen striplengte af.",
+            "Artikel bewerken\u{2026}"
+        )
+    );
+    done(&mut s, nl.action.0, nl.action.1.clone());
+    assert!(s.dialog().is_none(), "the dialog closes: {:?}", s.dialog());
+    let open = s
+        .parts_place()
+        .and_then(|p| p.sheet.as_ref())
+        .expect("Parts on his ferrule");
+    assert_eq!(open.sheet.text("part_number"), "MY-FER-075");
+    assert_eq!(open.field, Some("sections.ferrule.sleeve"));
     s.shutdown();
 }

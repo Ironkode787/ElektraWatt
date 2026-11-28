@@ -291,8 +291,8 @@ pub use new_project::{
     NewProjectKind, ProjectTemplate, SaveAsBasicError, TemplateSummary, shipped_frames, template_summary,
 };
 pub use package::{
-    NoLength, NoLengthWhy, Package, PackageAsk, PackageError, PackageJob, PackageMember, PackagePlan,
-    PlannedMember, write_package,
+    NoLength, NoLengthWhy, Package, PackageAsk, PackageError, PackageJob, PackageLack, PackageMember,
+    PackagePlan, PlannedMember, write_package,
 };
 pub use release::{Approval, ApproveError, FOUR_EYES_RULE, Gate, GateError, role_name};
 pub use release_run::{

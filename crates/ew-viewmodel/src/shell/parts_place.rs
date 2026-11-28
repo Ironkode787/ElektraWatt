@@ -790,6 +790,10 @@ impl ShellModel {
         {
             return out;
         }
+        // The package dialog's Edit part… of a lack line leads away from it, as its Workshop stock… does.
+        if sheet.is_some() && matches!(self.dialog, Some(Dialog::Package(_))) {
+            self.dialog = None;
+        }
         self.enter_place();
         let like = self.parts.as_deref().and_then(|p| p.asking) == Some(Asking::LikeWhich);
         if let Some(sheet) = sheet {

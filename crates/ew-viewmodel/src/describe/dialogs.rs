@@ -164,9 +164,16 @@ pub(super) fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                     r.holds,
                     r.form
                 ));
-                // Each with its way to the stock: Workshop stock… (`parts.stock`).
+                // Each with its way: Edit part… at a part's field (`parts.open`), else Workshop stock… (`parts.stock`).
                 for lack in &r.lacks {
-                    lines.push(format!("    lacks \"{lack}\" offers parts.stock"));
+                    let at = lack.action.1["field"]
+                        .as_str()
+                        .map(|f| format!(" at {f}"))
+                        .unwrap_or_default();
+                    lines.push(format!(
+                        "    lacks \"{}\" offers {}{at}",
+                        lack.text, lack.action.0
+                    ));
                 }
             }
             lines.push(format!("  check \"{}\"", d.ready));

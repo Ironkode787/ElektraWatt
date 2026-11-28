@@ -122,8 +122,15 @@ fn goes_in(ui: &mut Ui, t: &Tokens, d: &PackageDialog, events: &mut Vec<Event>) 
     // The label files' Change… stands in the form column, where the other rows have their form.
     let change = strings::text(key!("package-change"));
     let w3 = w3.max(widest(ui, &body, &mut std::iter::once(change)));
-    let offer = strings::text(key!("package-workshop-stock"));
-    let link = widest(ui, &body, &mut std::iter::once(offer));
+    // The lack lines' offers (Edit part…, Workshop stock…) stand at the right, as wide as the widest.
+    let link = widest(
+        ui,
+        &body,
+        &mut d
+            .rows
+            .iter()
+            .flat_map(|r| r.lacks.iter().map(|l| l.offer.as_str())),
+    );
     let w2 = (full - w1 - w3 - 2.0 * gap).max(0.0);
     for r in &d.rows {
         ui.horizontal_top(|ui| {
@@ -165,8 +172,8 @@ fn goes_in(ui: &mut Ui, t: &Tokens, d: &PackageDialog, events: &mut Vec<Event>) 
                 }
             });
         });
-        // What it lacks of part data, under what it holds, with the way to it: Workshop stock…, where a person adds a
-        // marker that marks the set (Parts on the Workshop stock, `parts.stock`).
+        // What it lacks of part data, under what it holds, with the way to it the shell gives: Edit part… at a part's
+        // missing field, or Workshop stock…, where a person adds a marker that marks the set.
         for lack in &r.lacks {
             ui.horizontal_top(|ui| {
                 ui.spacing_mut().item_spacing.x = gap;
@@ -174,11 +181,11 @@ fn goes_in(ui: &mut Ui, t: &Tokens, d: &PackageDialog, events: &mut Vec<Event>) 
                 cell(ui, (w2 + w3 - link).max(0.0), |ui| {
                     ui.horizontal_top(|ui| {
                         icon(ui, t, crate::icons::IconId::alert_triangle, t.warning);
-                        ui.add(egui::Label::new(components::small_secondary(t, lack)).wrap());
+                        ui.add(egui::Label::new(components::small_secondary(t, &lack.text)).wrap());
                     });
                 });
-                if ui.link(offer).clicked() {
-                    events.push(Event::Action("parts.stock", json!({})));
+                if ui.link(&lack.offer).clicked() {
+                    events.push(Event::Action(lack.action.0, lack.action.1.clone()));
                 }
             });
         }

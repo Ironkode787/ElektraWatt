@@ -6145,8 +6145,9 @@ msgid ""
 "content has no tick, such as the drawings for drilling of a cabinet without "
 "holes. A line says what a member lacks of a part or of the workshop stock, "
 "such as a marker part for cables or a ring lug for a size, with **Workshop "
-"stock…**, which opens the stock in Parts; **Change…** changes the label "
-"file's form."
+"stock…**, which opens the stock in Parts, or a field of one part, such as a "
+"ferrule's sleeve length, with **Edit part…**, which opens that part in Parts "
+"at the field; **Change…** changes the label file's form."
 msgstr ""
 "Links, **Wat erin gaat**: de tekeningen, de draadlijst, de montagelijsten, "
 "de afkortlijst, de verbruiksmaterialen, de gatentabel, de labelbestanden en "
@@ -6156,9 +6157,11 @@ msgstr ""
 "Een regel zegt wat een deel mist van een artikel of van de "
 "werkplaatsvoorraad, zoals een merkerartikel voor kabels of een kabelschoen "
 "voor een doorsnede, met **Werkplaatsvoorraad…**, dat de voorraad in "
-"Artikelen opent; **Wijzigen…** wijzigt de vorm van het labelbestand."
+"Artikelen opent, of een veld van één artikel, zoals de hulslengte van een "
+"adereindhuls, met **Artikel bewerken…**, dat dat artikel in Artikelen bij "
+"het veld opent; **Wijzigen…** wijzigt de vorm van het labelbestand."
 
-#: src/how-to/workshop-package.md:49
+#: src/how-to/workshop-package.md:51
 msgid ""
 "On the right, always in view, **Before it goes to the workshop** shows the "
 "release check: \"Ready: nothing stands in the way.\", or what stands, such "
@@ -6175,7 +6178,7 @@ msgstr ""
 "noemt de draden of apparaten van een bevinding, haar knop herstelt haar, en "
 "**Meldingen openen** toont ze allemaal."
 
-#: src/how-to/workshop-package.md:53
+#: src/how-to/workshop-package.md:55
 msgid ""
 "A wire without a length stops nothing. The right pane and the package's "
 "contents name the wires without a length and say why, such as \"3 wires have "
@@ -6187,7 +6190,7 @@ msgstr ""
 "hebben geen lengte: van elk wordt één einde ter plaatse gemaakt\", of dat "
 "Routeren een draad van de kast er een geeft."
 
-#: src/how-to/workshop-package.md:56
+#: src/how-to/workshop-package.md:58
 msgid ""
 "Below, the revision decides draft or release. While a revision is open, such "
 "as \"V1.0 is open, not released.\", the package is a draft: \"The package is "
@@ -6202,7 +6205,7 @@ msgstr ""
 "manifest en het inhoudsbestand.\" Het pakket van een vrijgegeven revisie "
 "draagt geen markering, en een tweede pakket ervan is hetzelfde bestand."
 
-#: src/how-to/workshop-package.md:60
+#: src/how-to/workshop-package.md:62
 msgid ""
 "To hand the package to someone outside the company, tick **Without personal "
 "data**: it leaves out the name and the address of each party marked as "
@@ -6215,7 +6218,7 @@ msgstr ""
 "zonder zo'n partij zegt \"Geen partij van dit project is gemarkeerd als "
 "persoonsgegevens (Projecteigenschappen ▸ Partijen)\"."
 
-#: src/how-to/workshop-package.md:63
+#: src/how-to/workshop-package.md:65
 msgid ""
 "Under **File**, **Choose…** sets where the ZIP goes, such as `SAMPLE-E V1.0 "
 "draft package.zip`. Choose **Write draft package** (or **Write package** for "
@@ -6229,11 +6232,11 @@ msgstr ""
 "wordt eerst gevraagd (\"… bestaat al. Vervangen?\"). Het pakket wordt "
 "geschreven als taak, en de toast noemt het bestand met **In map tonen**."
 
-#: src/how-to/workshop-package.md:67
+#: src/how-to/workshop-package.md:69
 msgid "What the shop finds in the ZIP"
 msgstr "Wat de werkplaats in het ZIP-bestand vindt"
 
-#: src/how-to/workshop-package.md:69
+#: src/how-to/workshop-package.md:71
 msgid ""
 "At the top, `Contents.txt`, which says the revision, whether it is a draft, "
 "what the release check found, which wires have no length and why, what the "
@@ -6246,7 +6249,7 @@ msgstr ""
 "van haar artikelen, en wat elk bestand is; en de tekeningen als één PDF, "
 "elke pagina in paginavolgorde."
 
-#: src/how-to/workshop-package.md:72
+#: src/how-to/workshop-package.md:74
 msgid ""
 "In `Lists`, each workshop list as an Excel file; in `Labels`, the label "
 "files; in `Drilling`, the template and the DXF of each surface with holes; "
@@ -6258,7 +6261,7 @@ msgstr ""
 "DXF. Daarnaast `manifest.json`, dezelfde lijst voor een programma, met een "
 "SHA-256 van elk bestand."
 
-#: src/how-to/workshop-package.md:75
+#: src/how-to/workshop-package.md:77
 msgid ""
 "The same three exports run on the command line: `ew export labels`, `ew "
 "export drilling` and `ew export package` ([Use the command line on the "

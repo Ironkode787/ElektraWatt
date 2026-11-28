@@ -36,8 +36,44 @@ pub struct PackageRow {
     pub form: String,
     /// Whether it goes in.
     pub on: bool,
-    /// What it lacks of part data, each in a sentence.
-    pub lacks: Vec<String>,
+    /// What it lacks of part data, each in a sentence with the way to it.
+    pub lacks: Vec<LackLine>,
+}
+
+/// One thing a member lacks of part data, as the dialog says it under the member: its sentence and the way to it.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct LackLine {
+    /// Its sentence in the window's language.
+    pub text: String,
+    /// Its offer's words: Edit part… for a part's missing field, Workshop stock… for the stock.
+    pub offer: String,
+    /// The action the offer runs: `parts.open {part, field}` (Parts on the part at the field, as a finding's Edit
+    /// part…) or `parts.stock` (Parts narrowed to the workshop stock).
+    pub action: (&'static str, Value),
+}
+
+impl LackLine {
+    /// The line of `lack`, its offer's words in the language `lang`.
+    fn of(lack: &ew_api::PackageLack, lang: &str) -> LackLine {
+        let (offer, action) = match lack.part {
+            Some(part) => (
+                ew_api::checks::messages::lack_label(lang),
+                (
+                    "parts.open",
+                    serde_json::json!({"part": format!("id:{}", part.copy), "field": part.field}),
+                ),
+            ),
+            None => (
+                strings::text(key!("package-workshop-stock")).to_owned(),
+                ("parts.stock", serde_json::json!({})),
+            ),
+        };
+        LackLine {
+            text: strings::render(&lack.text),
+            offer,
+            action,
+        }
+    }
 }
 
 /// One finding of the release check as the dialog lists it.
@@ -182,7 +218,7 @@ impl ShellModel {
                 content: m.holds.is_some(),
                 form: strings::render(&m.form),
                 on: m.holds.is_some() && !off(m.member),
-                lacks: m.lacks.iter().map(strings::render).collect(),
+                lacks: m.lacks.iter().map(|l| LackLine::of(l, lang)).collect(),
             })
             .collect();
         let shown = |key: &str| old.is_some_and(|d| d.findings.iter().any(|f| f.key == key && f.shown));

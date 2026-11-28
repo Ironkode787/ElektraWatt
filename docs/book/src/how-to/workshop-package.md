@@ -45,7 +45,9 @@ holes of the cabinet's surfaces ([Place devices in the door, and make holes and 
     hole table, the label files and the drawings for drilling, each ticked and with what it holds, such as "54 wires,
     2 bridges". Untick what the shop does not need. A member without content has no tick, such as the drawings for
     drilling of a cabinet without holes. A line says what a member lacks of a part or of the workshop stock, such as
-    a marker part for cables or a ring lug for a size, with **Workshop stock…**, which opens the stock in Parts; **Change…** changes the label file's form.
+    a marker part for cables or a ring lug for a size, with **Workshop stock…**, which opens the stock in Parts, or a
+    field of one part, such as a ferrule's sleeve length, with **Edit part…**, which opens that part in Parts at the
+    field; **Change…** changes the label file's form.
 11. On the right, always in view, **Before it goes to the workshop** shows the release check: "Ready: nothing stands
     in the way.", or what stands, such as "3 things: 1 stops a release, 2 are warnings.". An error stops only a package
     of a released revision; a warning or an info is shown and stops nothing. **Show** lists a finding's wires or

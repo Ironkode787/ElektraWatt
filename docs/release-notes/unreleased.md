@@ -651,7 +651,8 @@ change here.
   package asks; `ReportKindDef::workshop` marks the lists the package carries; the print set can stamp a draft mark
 - behaviour-change: Output ▸ Workshop ▸ Package… (`package.export`) writes the package for the workshop from a dialog
   of two panes: what goes in, each member with its tick, what it holds and its form, the label file's profile with
-  Change…, and what a member lacks of part data with Workshop stock…; the release check's findings with Show and their
+  Change…, and what a member lacks of part data with its way to it (Edit part… at a part's missing field, Workshop
+  stock… for what the stock lacks); the release check's findings with Show and their
   fix (Edit part… for a part's missing field), a line per reason for the wires without a length that no finding names,
   Open Messages, the revision (draft or released) and Without personal data; the file with Choose…. It runs as a job
   with its toast; a file of that name is asked about before it is replaced

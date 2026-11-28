@@ -474,7 +474,8 @@ fn a_project_without_a_layout_counts_its_wires_without_a_length() {
 /// What the wire list and the label files need of the workshop stock and do not find is said under their rows and in
 /// Contents, in the words of the field's reader, with parts made here (owner, 2026-11-26): a ferrule without a sleeve
 /// length, a wire marker without its characters per line, the sample's ring lug end (101.4, set by hand) that no stock
-/// part takes, and the wires that no wire part of the stock matches (the sample's stock holds none).
+/// part takes, and the wires that no wire part of the stock matches (the sample's stock holds none). A line about one
+/// part's missing field carries the part and the field, which Edit part… opens; a line about the stock carries none.
 #[test]
 fn what_the_lists_lack_of_the_stock_is_said() {
     let mut s = common::sample();
@@ -518,11 +519,29 @@ fn what_the_lists_lack_of_the_stock_is_said() {
         serde_json::json!({"stock": stock, "copies": [ferrule_doc, marker_doc]}),
     );
     let plan = s.package_plan(&ask());
-    let lacks_of = |m: PackageMember| -> Vec<String> {
-        let member = plan.members.iter().find(|p| p.member == m).expect("the member");
-        member.lacks.iter().map(ToString::to_string).collect()
-    };
+    let member = |m: PackageMember| plan.members.iter().find(|p| p.member == m).expect("the member");
+    let lacks_of = |m: PackageMember| -> Vec<String> { member(m).lacks.iter().map(|l| l.text.to_string()).collect() };
     let wires = lacks_of(PackageMember::List("wire_list"));
+    let part_of = |said: &str| {
+        member(PackageMember::List("wire_list"))
+            .lacks
+            .iter()
+            .find(|l| l.text.to_string() == said)
+            .map(|l| l.part)
+    };
+    assert_eq!(
+        part_of("MY-FER-075: Without a sleeve length the wire list prints no strip length."),
+        Some(Some(ew_derive::part_fields::PartLack {
+            copy: ferrule,
+            field: "sections.ferrule.sleeve"
+        })),
+        "the ferrule's line is about its sleeve length"
+    );
+    assert_eq!(
+        part_of("No ring lug of the workshop stock takes 2.5 mm²: those ends are listed without a part."),
+        Some(None),
+        "a line about the stock names no part"
+    );
     for said in [
         "MY-FER-075: Without a sleeve length the wire list prints no strip length.",
         "No ring lug of the workshop stock takes 2.5 mm²: those ends are listed without a part.",
