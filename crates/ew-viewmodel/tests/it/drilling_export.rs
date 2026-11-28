@@ -71,9 +71,7 @@ fn drilling_is_greyed_without_holes_and_writes_the_door_s_drawings() {
     );
     let toast = s.notifications().newest_visible().cloned().expect("a toast");
     assert!(
-        toast
-            .text
-            .ends_with(": a template and a DXF for Door."),
+        toast.text.ends_with(": a template and a DXF for Door."),
         "{}",
         toast.text
     );

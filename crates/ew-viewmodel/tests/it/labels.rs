@@ -243,9 +243,17 @@ fn label_file_columns_keep_what_this_build_does_not_know() {
 fn changed_since_a_release_lists_the_labels_it_will_print() {
     let tmp = Tmp::new("labels-changed-since");
     let mut s = tmp.sample_in(ew_viewmodel::shell::Mode::Gui, true, "101");
-    done(&mut s, "revision.set_author", json!({ "role": "author", "confirm": true }));
+    done(
+        &mut s,
+        "revision.set_author",
+        json!({ "role": "author", "confirm": true }),
+    );
     done(&mut s, "file.save", json!({}));
-    done(&mut s, "revision.approve", json!({ "role": "customer", "typed": "V1.0" }));
+    done(
+        &mut s,
+        "revision.approve",
+        json!({ "role": "customer", "typed": "V1.0" }),
+    );
     done(
         &mut s,
         "revision.approve",
