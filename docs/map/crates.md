@@ -454,7 +454,7 @@ All domain queries and the tracked-read context `Q` (ARCH §6, ADR-0002, ADR-000
 | `src/rework.rs` |  | The rework list (doc 13 §3.5): what the fitter changes in a built cabinet between a release and now. |
 | `src/settings.rs` |  | Project settings members as queries: `settings_member(name)` (ARCH §6.4, ADR-0002 amendment 4). |
 | `src/stitch.rs` |  | The stitch graph over local nets: `stitch_graph()` (ARCH §6.4, doc 08 §3.3). |
-| `src/strip_assembly.rs` |  | `assembly_rows(strip)`: what the assembly list prints of one strip (doc 13 §6.1, FR-MFG-016): where it goes and how long it is, then every item in the order the fitter mounts it from the rail's left end. |
+| `src/strip_assembly.rs` |  | `assembly_rows(strip)`: what the assembly list prints of one strip (doc 13 §6.1, FR-MFG-016): where it goes and how long it is, then every item in the order the fitter mounts it from the rail's start. |
 | `src/strip_bridges.rs` |  | `strip_bridges(strip)`: the terminal bridges of one strip, grouped (doc 08 §2.3, §6.5). |
 | `src/structure.rs` |  | Structure: node paths and the resolved structure of pages and devices (doc 03 §5, §8.1–§8.2 step 5, FR-PRJ-019, FR-NUM-002). |
 | `src/tag.rs` |  | Device tags (doc 03 §8.2–§8.5, FR-NUM-001, FR-NUM-002, FR-DEV-021, ADR-0026, D-27, D-41). |
