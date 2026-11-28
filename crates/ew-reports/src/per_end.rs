@@ -101,3 +101,45 @@ pub fn per_end_of(columns: &[ColumnDef], keys: &[&str]) -> Option<Vec<EndColumn>
     }
     Some(out)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::rowset::CellType;
+
+    fn column(key: &str) -> ColumnDef {
+        ColumnDef::new(key, CellType::Text, ew_l10n::Text::bare(key.to_owned()))
+    }
+
+    /// A pair prints as one column, its From cell above its To cell, after the End column that the first pair's own
+    /// headings fill; a column without a pair prints on the first line; a block whose printed columns pair nothing has
+    /// no such page.
+    #[test]
+    fn a_pair_is_one_column_of_two_lines() {
+        let columns = vec![
+            column("no"),
+            column("from").other_end("to", ew_l10n::Text::bare("Device".to_owned())),
+            column("to"),
+            column("colour"),
+            column("from_end").other_end("to_end", ew_l10n::Text::bare("Treatment".to_owned())),
+            column("to_end"),
+        ];
+        let form = per_end_of(&columns, &["no", "from", "to", "colour", "from_end", "to_end"]).expect("pairs");
+        let lines: Vec<[EndLine; 2]> = form.iter().map(|c| c.lines.clone()).collect();
+        let words = |c: &ColumnDef| EndLine::Words(c.label.clone());
+        assert_eq!(
+            lines,
+            [
+                [EndLine::Cell(0), EndLine::Empty],
+                [words(&columns[1]), words(&columns[2])],
+                [EndLine::Cell(1), EndLine::Cell(2)],
+                [EndLine::Cell(3), EndLine::Empty],
+                [EndLine::Cell(4), EndLine::Cell(5)],
+            ]
+        );
+        assert_eq!(ew_derive::text_in(&form[2].heading, None), "Device");
+        assert!(per_end_of(&columns, &["no", "colour"]).is_none());
+        // A pair whose To column is not printed is no pair.
+        assert!(per_end_of(&columns, &["no", "from", "colour"]).is_none());
+    }
+}

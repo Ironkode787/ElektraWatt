@@ -410,3 +410,53 @@ fn a_set_on_a3_prints_its_lists_on_a3() {
     let first = i64::try_from(table(&s, page).rows.len()).expect("rows");
     assert!(first <= a3_rows && a3_rows - first < 2, "{first} of {a3_rows}");
 }
+
+/// The wire list's first page says how to read the papers (doc 13 §3.1), from the project's settings: the reserve and
+/// the door loop a length holds, the marking, the strips whose field is on side 1; then each wire on two lines, the
+/// From end above the To end. Its second page says nothing of it.
+#[test]
+fn the_wire_lists_first_page_says_how_to_read_it_from_the_settings() {
+    let (mut project, mut records, lib) = common::sample_records();
+    let ws = &mut project.settings.workshop;
+    ws.reserve = Some(ew_units::Nm::from_mm(80));
+    ws.door_loop = Some(ew_units::Nm::from_mm(250));
+    ws.marking = ew_schema::Marking::WireNumber;
+    for r in &mut records {
+        if let ew_schema::Record::Device(d) = r
+            && let Some(strip) = d.aspects.strip.as_mut()
+        {
+            strip.field_side = ew_schema::Side::Side1;
+        }
+    }
+    let s = common::session_of(project, records, lib);
+    let pages = pages_of(&s, 907);
+    let first: Vec<String> = table(&s, pages[0])
+        .rows
+        .iter()
+        .map(|r| r.cells.join("|"))
+        .collect();
+    assert_eq!(first[0], "How to read these papers", "{first:#?}");
+    for words in [
+        "50 mm at each end",
+        "80 mm at each end and 250 mm across a door's hinge",
+        "A wire's marker carries the wire's number.",
+        "On -X1011, -X1021, -X1031 it is the other way round: side 1 is the field.",
+    ] {
+        assert_eq!(
+            first.iter().any(|l| l.contains(words)),
+            words != "50 mm at each end",
+            "{words}: {first:#?}"
+        );
+    }
+    // The first wire: its From end, then its To end under it.
+    let at = first
+        .iter()
+        .position(|l| l.contains("|From|"))
+        .expect("a wire");
+    assert!(first[at + 1].starts_with("|To|"), "{first:#?}");
+    let second = table(&s, pages[1]);
+    assert!(
+        !second.rows.iter().any(|r| r.cells[0] == "How to read these papers"),
+        "the head is the first page's"
+    );
+}
