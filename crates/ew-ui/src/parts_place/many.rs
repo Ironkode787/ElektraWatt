@@ -149,7 +149,7 @@ fn groups(ui: &mut Ui, many: &ManySheet, editable: bool, mixed: &str, events: &m
         if cells.is_empty() && table.is_none() {
             continue;
         }
-        let line = strings::lookup(&format!("part-line-{}", group.name().replace('_', "-")));
+        let line = ew_viewmodel::shell::parts_place::group_line(group);
         crate::parts_sheet::group_heading(
             ui,
             strings::text(strings::Key::run_time(group.word())),

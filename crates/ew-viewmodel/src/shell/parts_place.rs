@@ -35,6 +35,59 @@ pub fn lives_word(lives: &Lives) -> String {
     }
 }
 
+/// The one line under a group's heading on the sheet of Parts (doc 16a §6.27), where the group has one.
+pub fn group_line(group: Group) -> Option<&'static str> {
+    let key = match group {
+        Group::Schematic => key!("part-line-schematic"),
+        Group::Cabinet => key!("part-line-cabinet"),
+        Group::Connections => key!("part-line-connections"),
+        Group::Ports => key!("part-line-ports"),
+        Group::Plc => key!("part-line-plc"),
+        Group::Technical => key!("part-line-technical"),
+        Group::GoesWith => key!("part-line-goes-with"),
+        _ => return None,
+    };
+    Some(strings::text(key))
+}
+
+/// The hint of a group's heading on the sheet of Parts, where the group has one.
+pub fn group_hint(group: Group) -> Option<&'static str> {
+    let key = match group {
+        Group::Ports => key!("part-hint-ports"),
+        Group::Plc => key!("part-hint-plc"),
+        Group::Connections => key!("part-hint-connections"),
+        Group::Cabinet => key!("part-hint-cabinet"),
+        Group::Gland => key!("part-hint-gland"),
+        _ => return None,
+    };
+    Some(strings::text(key))
+}
+
+/// The line over a table of the sheet of Parts, by the table's member (`accessories`), where it has one.
+pub fn table_hint(path: &str) -> Option<&'static str> {
+    let key = match path {
+        "accessories" => key!("part-hint-accessories"),
+        "variants" => key!("part-hint-variants"),
+        _ => return None,
+    };
+    Some(strings::text(key))
+}
+
+/// The button that adds a row to a table of the sheet of Parts, by the table's member; `None` for a table whose rows
+/// are not added there (the pins' table, whose rows the pins' form makes).
+pub fn table_add_word(path: &str) -> Option<&'static str> {
+    let key = match path {
+        "accessories" => key!("part-table-add-accessories"),
+        "variants" => key!("part-table-add-variants"),
+        "mech.holes" => key!("part-table-add-mech-holes"),
+        "sections.enclosure.doors" => key!("part-table-add-sections-enclosure-doors"),
+        "configured.components" => key!("part-table-add-configured-components"),
+        "sections.fluid.ports" => key!("part-table-add-sections-fluid-ports"),
+        _ => return None,
+    };
+    Some(strings::text(key))
+}
+
 /// The symbols each piece of `sheet` can be drawn with, in the window's language ([`ew_api::Session::piece_symbols`]).
 fn piece_symbols_of(session: &ew_api::Session, sheet: &PartSheet) -> Vec<Vec<(String, String)>> {
     let lang = strings::rule_language().split('-').next().unwrap_or("en");

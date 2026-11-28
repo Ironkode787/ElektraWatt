@@ -13,7 +13,9 @@ use ew_viewmodel::ew_api::output::Uuid;
 use ew_viewmodel::ew_api::part_fields::Group;
 use ew_viewmodel::ew_api::parts::{Lives, PartFound, PartScope};
 use ew_viewmodel::shell::ShellModel;
-use ew_viewmodel::shell::parts_place::{Asking, LIST_ROWS, OpenSheet, PartsPlace, lives_word};
+use ew_viewmodel::shell::parts_place::{
+    Asking, LIST_ROWS, OpenSheet, PartsPlace, group_hint, group_line, lives_word, table_add_word, table_hint,
+};
 use ew_viewmodel::{count_key, key, strings};
 use serde_json::json;
 
@@ -597,8 +599,7 @@ fn link_chip(ui: &mut Ui, text: &str) -> egui::Response {
 /// it).
 fn group_body(ui: &mut Ui, open: &OpenSheet, group: Group, anew: bool, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
-    let line = strings::lookup(&format!("part-line-{}", group.name().replace('_', "-")));
-    let tip = strings::lookup(&format!("part-hint-{}", group.name()));
+    let (line, tip) = (group_line(group), group_hint(group));
     crate::parts_sheet::group_heading(ui, strings::text(strings::Key::run_time(group.word())), line, tip);
     let editable = open.editable() && open.sheet.section_editable(group);
     let save = group_fields(ui, open, group, editable, anew, events);
@@ -670,7 +671,7 @@ fn group_fields(
                 ui.add_space(t.space_2);
             }
             for table in d.tables.iter().filter(|x| x.group == group && d.shows(x.path)) {
-                if let Some(text) = strings::lookup(&format!("part-hint-{}", table.path)) {
+                if let Some(text) = table_hint(table.path) {
                     ui.add(egui::Label::new(components::small_secondary(&t, text)).wrap());
                 }
                 if table.key.is_some() {
@@ -1815,12 +1816,11 @@ fn declared_table(
     {
         ui.label(RichText::new(text).color(t.error.color32()));
     }
-    if editable && table.key.is_none() {
+    if editable
+        && table.key.is_none()
+        && let Some(add) = table_add_word(table.path)
+    {
         ui.add_space(t.space_2);
-        let add = strings::text(strings::Key::run_time(&format!(
-            "part-table-add-{}",
-            table.path.replace('.', "-")
-        )));
         if ui.button(format!("+ {add}")).clicked() {
             events.push(Event::Action("parts.row", json!({ "table": table.path })));
         }
