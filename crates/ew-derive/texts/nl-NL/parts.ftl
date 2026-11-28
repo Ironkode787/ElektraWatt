@@ -376,6 +376,8 @@ part-field-plc-pin-of-in = aansluiting van een kanaal
 
 ## Netwerkpoorten
 
+part-field-bus-symbol = Bussymbool
+part-field-bus-symbol-in = bussymbool
 part-field-bus-interface = Interface
 part-field-bus-interface-in = interface
 part-field-bus-port-label = Poortlabel
@@ -596,6 +598,7 @@ part-not-here-solenoids = Het heeft geen spoelen: er is geen spoel te controlere
 part-not-here-plc = Het is geen PLC-module of -station: dit geldt niet.
 part-says-main = Welk deel het kenmerk van het apparaat op de pagina draagt.
 part-says-piece-symbol = Het symbool waarmee een pagina het deel tekent; zonder, het eerste symbool van wat het deel is.
+part-says-bus-symbol = Het eigen symbool waarmee een buspagina elk apparaat van het artikel tekent; zonder, dat van het programma, uit de netwerkpoorten.
 part-feature-duct-fill = Vulling van de kabelgoot
 part-feature-wire-way = Weg van de draden
 part-says-clearance-front = Zonder { $p0 } houdt de controle van de gesloten deur geen ruimte voor het artikel vrij.

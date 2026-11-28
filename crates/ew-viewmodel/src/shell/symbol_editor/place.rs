@@ -28,6 +28,17 @@ pub enum Drawing {
     Page(PageDrawing),
     /// The symbol of a piece of the open part: Done saves it and gives the piece the symbol.
     Piece(PieceDrawing),
+    /// The open part's bus symbol of his own (Make my own from it…, doc 10 §2.7): Done saves it and the part names it.
+    BusSymbol(BusDrawing),
+}
+
+/// The part whose bus symbol of his own is drawn.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct BusDrawing {
+    /// The part's number.
+    pub part: String,
+    /// The part as its sheet read when the drawing opened: To do names a socket of its network ports the drawing lacks.
+    pub ports: Box<schema::Part>,
 }
 
 /// The piece of the open part a symbol is drawn for.
@@ -89,6 +100,7 @@ impl SymbolEditor {
                 key!("parts-strip-symbol-piece"),
                 &[&p.piece, &p.part],
             )),
+            Drawing::BusSymbol(b) => Some(strings::format(key!("parts-strip-bus-symbol"), &[&b.part])),
         }
     }
 
@@ -99,7 +111,7 @@ impl SymbolEditor {
         }
         match &self.purpose {
             Drawing::Page(_) => strings::text(key!("parts-back-without-it")),
-            Drawing::Piece(_) => strings::text(key!("parts-to-the-part")),
+            Drawing::Piece(_) | Drawing::BusSymbol(_) => strings::text(key!("parts-to-the-part")),
             Drawing::Symbol => strings::text(key!("parts-back")),
         }
     }
@@ -115,7 +127,7 @@ impl SymbolEditor {
                 ..
             }) => strings::format(key!("parts-save-use"), &[tag]),
             Drawing::Page(p) => strings::format(key!("parts-save-place"), &[&p.folio]),
-            Drawing::Piece(_) => strings::text(key!("parts-done")).to_owned(),
+            Drawing::Piece(_) | Drawing::BusSymbol(_) => strings::text(key!("parts-done")).to_owned(),
             Drawing::Symbol => strings::text(key!("parts-save")).to_owned(),
         }
     }
@@ -454,6 +466,7 @@ impl ShellModel {
                 let part = string_param(p, "part").ok().flatten().map(str::to_owned);
                 return self.arrange_box(part.as_deref());
             }
+            Ok(Some("bus_symbol")) => return self.own_bus_symbol(p),
             Ok(Some("symbol") | None) => {}
             Ok(Some(_)) => return failed(key!("error-bad-param"), &["what"]),
             Err(e) => return e,
@@ -827,7 +840,62 @@ impl ShellModel {
                 )
             }
             Drawing::Page(page) => self.place_saved(&address, &page),
+            // The part names his own symbol; its Save writes it, as any change of the sheet.
+            Drawing::BusSymbol(_) => {
+                if let Some(editor) = &mut self.symbol_editor {
+                    editor.shown = false;
+                }
+                self.dispatch("parts.field", &json!({"field": "bus_symbol", "value": address}))
+            }
         }
+    }
+
+    /// Make my own from it… under the open part's picture "On a bus page" (`parts.draw {what: bus_symbol}`, doc 10
+    /// §2.7): the bus symbol a page draws the part's devices with now (his own, else the program's) as a new drawing of
+    /// his own, named after the part; Done saves it with his parts and the part names it.
+    fn own_bus_symbol(&mut self, p: &Map<String, Value>) -> Outcome {
+        let Some(open) = self.parts.as_deref().and_then(|p| p.sheet.as_ref()) else {
+            return Outcome::refused(key!("reason-no-part-open"));
+        };
+        if !open.editable() || !(open.sheet.new || open.sheet.own) {
+            return Outcome::refused(key!("reason-part-not-yours"));
+        }
+        let part = open.title();
+        let Some(session) = self.parts_session() else {
+            return Outcome::refused(key!("reason-no-parts-place"));
+        };
+        let ports = session.sheet_part(&open.sheet);
+        let Some(shown) = session.part_bus_symbol(&ports) else {
+            return Outcome::refused(key!("reason-part-no-bus-ports"));
+        };
+        if let Some(out) = self.in_hand_asks("parts.draw", p) {
+            return out;
+        }
+        let mut draft = match self.copy_draft(ew_api::symbols::schema::starter::GEN_BUS) {
+            Ok(d) => d,
+            Err(message) => return Outcome::Failed { message },
+        };
+        let name = strings::format(key!("parts-bus-symbol-name"), &[&part]);
+        let named = SymbolDraft::new("", &name)
+            .map(|d| d.symbol.name)
+            .unwrap_or_default();
+        draft.symbol = schema::SymbolDef {
+            meta: draft.symbol.meta.clone(),
+            name: named,
+            fndef: draft.symbol.fndef.clone(),
+            ..shown.symbol
+        };
+        draft.key = super::key_of_name(&name);
+        self.open_drawing(
+            draft,
+            Drawing::BusSymbol(BusDrawing {
+                part,
+                ports: Box::new(ports),
+            }),
+            None,
+            None,
+        );
+        Outcome::Done
     }
 
     /// The symbol in hand saved with his parts, as every Save of it does (the strip's, Ctrl+S and File ▸ Save through

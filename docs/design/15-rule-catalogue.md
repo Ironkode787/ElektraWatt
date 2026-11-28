@@ -49,7 +49,7 @@ When a finding has several primary targets, `finding_node` breaks the tie on the
 | EW-TERM | EW-TERM | 001 | complete | — | — |
 | EW-POT | EW-POT | 005 | all except EW-POT-007, -010, -018, -019 | complete | EW-POT-020 |
 | EW-PLC | EW-PLC, EW-SAF, EW-PRC | 110 | EW-PLC-001, -002, -003, -007, -008, -012, -015 | complete | — |
-| EW-BUS | EW-BUS, EW-IOL | 111 | EW-BUS-001, -004 | complete | EW-BUS-008 |
+| EW-BUS | EW-BUS, EW-IOL | 111 | EW-BUS-001, -004, -011 | complete | EW-BUS-008 |
 | EW-FL | EW-FL | 120 | EW-FL-001, -002, -004, -011, -013 | complete | EW-FL-003 |
 | EW-LAYOUT | EW-LAY | 130 | EW-LAY-001 … 004, 006 (2D), 010, 016 | complete | EW-LAY-013 |
 | EW-THM | EW-THM | 131 | — | complete | — |
@@ -150,6 +150,8 @@ The pack's 1.0 content: EW-PLC-004, -005, -009, -010, -011, -013 and -014, EW-SA
 | ID | Name | Checks | Kind | Modes | Severity | Scope | Rel | Req. | D (defects) | Def. |
 |---|---|---|---|---|---|---|---|---|---|---|
 | EW-BUS-008 | E-bus budget | The EtherCAT E-bus current budget is exceeded | conflict | o r | error | station | 1.x | FR-BUS-020 | — | 10 §3.10 |
+
+EW-BUS-011 (a part's own bus symbol out of step with its network ports, [10](10-bus.md) §2.7) runs in the scope `project`, once per part, with the quick fix Open the bus symbol.
 
 The pack's 1.0 content: EW-BUS-002, -003, -005, -006, -007, -009 and -010 and EW-IOL-001 and -002, with en-GB and nl-NL messages and rule notes; the ranges, lengths and station counts they read are unverified data of the rules ([10](10-plc-and-bus.md) §3.10). EW-BUS-008 stays 1.x.
 

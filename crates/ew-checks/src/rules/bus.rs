@@ -487,3 +487,84 @@ impl Rule for Termination {
         out
     }
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// EW-BUS-011
+
+/// EW-BUS-011 "Own bus symbol out of step" (doc 10 §2.7): conflict, o r, warning, part (as built: project)
+/// (FR-BUS-006).
+pub const OWN_BUS_SYMBOL: RuleMeta = RuleMeta {
+    id: "EW-BUS-011",
+    message: key!("rule-ew-bus-011"),
+    code: "111011",
+    kind: RuleKind::Conflict,
+    modes: Modes::letters("or"),
+    severity: Severity::Warning,
+    release_severity: None,
+    scope: ScopeKind::Project,
+    supersedes: &[],
+    release: Release::Mvp,
+};
+
+/// EW-BUS-011: a part the project holds whose own bus symbol (`Part.bus_symbol`, held too) lacks a socket of its network
+/// ports or draws one they no longer have ([`ew_derive::socket_mismatch`]); once per part, its devices and the part the
+/// targets, the sockets in words, with the way to the drawing (Open the bus symbol). The program never redraws his
+/// symbol: he draws the socket, or uses the program's symbol again.
+#[derive(Clone, Copy, Debug)]
+pub struct OwnBusSymbol;
+
+impl Rule for OwnBusSymbol {
+    fn meta(&self) -> &'static RuleMeta {
+        &OWN_BUS_SYMBOL
+    }
+
+    fn run(&self, q: &Q, scope: &Scope) -> Vec<Finding> {
+        if *scope != Scope::Project {
+            return Vec::new();
+        }
+        let mut out = Vec::new();
+        for (copy, part) in q.parts().iter() {
+            let Some(own) = ew_derive::own_bus_symbol(q, &part.item) else {
+                continue;
+            };
+            let (missing, extra) = ew_derive::socket_mismatch(own, &part.item);
+            if missing.is_empty() && extra.is_empty() {
+                continue;
+            }
+            let devices = q
+                .devices()
+                .iter()
+                .filter(|(_, d)| d.parts.iter().any(|u| u.part.copy == copy))
+                .map(|(id, _)| Target::new(Kind::Device, id));
+            let name = part.item.part_number.to_string();
+            let symbol = part
+                .item
+                .bus_symbol
+                .as_ref()
+                .map(|r| ew_ids::v5::lib_copy_id::<()>(r.library.as_uuid(), r.item.as_uuid()).as_uuid());
+            let form = match (missing.is_empty(), extra.is_empty()) {
+                (false, true) => "lacks",
+                (true, false) => "extra",
+                _ => "both",
+            };
+            out.push(
+                Finding::new(
+                    &OWN_BUS_SYMBOL,
+                    devices.chain([Target::new(Kind::Part, copy)]),
+                    format!("own:{}", copy.as_uuid()),
+                    name.clone(),
+                )
+                .arg("form", form)
+                .arg("part", name)
+                .arg("missing", missing.join(", "))
+                .arg("extra", extra.join(", "))
+                .with_fix(QuickFix {
+                    label: text!("fix-open-bus-symbol"),
+                    command: "parts.open".to_owned(),
+                    params: serde_json::json!({ "symbol": format!("id:{}", symbol.unwrap_or_default()) }),
+                }),
+            );
+        }
+        out
+    }
+}

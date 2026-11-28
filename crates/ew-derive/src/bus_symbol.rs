@@ -201,9 +201,10 @@ pub fn bus_pins<'r>(
 }
 
 /// The symbol a page draws `rep` with and the representation as it draws it ([`bus_pins`]): a representation of
-/// `ew.gen.bus` is drawn with its device's bus symbol (the device's first part use whose part has network ports,
-/// [`bus_symbol`] on the page's grid; a device without one, with the interfaces its drawn functions carry, a socket
-/// each); any other with its copy's item. `None` when the project holds no copy of `rep.symbol`.
+/// `ew.gen.bus` is drawn with its device's bus symbol (of the device's first part use whose part has network ports:
+/// the part's own symbol where it names one the project holds, [`own_bus_symbol`], else [`bus_symbol`] on the page's
+/// grid; a device without such a part, with the interfaces its drawn functions carry, a socket each); any other with
+/// its copy's item. `None` when the project holds no copy of `rep.symbol`.
 pub fn drawn<'q, 'r>(
     q: &'q Q,
     rep: &'r Representation,
@@ -227,6 +228,11 @@ pub fn drawn<'q, 'r>(
             .iter()
             .find_map(|u| parts.get(u.part.copy).filter(|c| has_bus_ports(&c.item)).cloned())
     });
+    // His own symbol, where the part names one the project holds; never redrawn by the program.
+    if let Some(own) = part.as_ref().and_then(|p| own_bus_symbol(q, &p.item)) {
+        let rep = bus_pins(rep, own, port);
+        return Some((Cow::Borrowed(own), rep));
+    }
     let derived = match part {
         Some(p) => bus_symbol(&p.item, grid),
         None => carried_symbol(
@@ -245,6 +251,161 @@ pub fn drawn<'q, 'r>(
     };
     let rep = bus_pins(rep, &symbol, port);
     Some((Cow::Owned(symbol), rep))
+}
+
+/// The bus symbol of one's own that `part` names (`Part.bus_symbol`), as the project holds its copy; `None` without
+/// one, or while the project does not hold it (the derived symbol draws then).
+pub fn own_bus_symbol<'q>(q: &'q Q, part: &Part) -> Option<&'q SymbolDef> {
+    let r = part.bus_symbol.as_ref()?;
+    let copy = ew_ids::v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid());
+    Some(&q.symbols().get(copy)?.item)
+}
+
+/// A socket of an interface in words: the interface, then the socket's label where it has several ("X1 P3", "DP").
+fn socket_words(interface: &BusInterface, socket: &Socket) -> String {
+    match &socket.1 {
+        Some(label) => format!("{} {label}", interface.words()),
+        None => interface.words(),
+    }
+}
+
+/// How a bus symbol of one's own differs from the part's network ports, each socket in words ("X1 P3", "DP"): the
+/// sockets of the ports it does not draw, then those it draws that the ports no longer have. Both empty: it draws
+/// every socket. The part's Save card, What it lacks, the drawing's To do and EW-BUS-011 all say it from here.
+pub fn socket_mismatch(symbol: &SymbolDef, part: &Part) -> (Vec<String>, Vec<String>) {
+    let interfaces = bus_interfaces(part);
+    let drawn = |i: &BusInterface, fn_cp: u16| {
+        symbol.cps.iter().any(|c| {
+            c.interface.as_ref() == Some(&i.interface) && c.port_label == i.port_label && c.fn_cp == fn_cp
+        })
+    };
+    let missing = interfaces
+        .iter()
+        .flat_map(|i| i.sockets.iter().map(move |s| (i, s)))
+        .filter(|(i, s)| !drawn(i, s.0))
+        .map(|(i, s)| socket_words(i, s))
+        .collect();
+    let extra = symbol
+        .cps
+        .iter()
+        .filter_map(|c| Some((c.interface.clone()?, c)))
+        .filter(|(interface, c)| {
+            !interfaces.iter().any(|i| {
+                i.interface == *interface
+                    && i.port_label == c.port_label
+                    && i.sockets.iter().any(|s| s.0 == c.fn_cp)
+            })
+        })
+        .map(|(interface, c)| {
+            let i = BusInterface::with(interface, c.port_label.clone(), None);
+            format!("{} P{}", i.words(), u32::from(c.fn_cp) + 1)
+        })
+        .collect();
+    (missing, extra)
+}
+
+/// Whether every text of the bus symbol `symbol` stands inside its body (its first rectangle), clear of its sockets'
+/// ways out: the one rule that no text of a device lies on a cable (doc 10 §2.7). A socket's way out is the strip inside
+/// the body at the edge its stub leaves from, a label's line wide and as deep as its label "Pn" reaches (or a pad for a
+/// socket without one); the socket's own label stands in it. A text's box is measured as the derivation sizes it:
+/// the characters at their widest advance, a slot its room. A symbol without a body has no rule.
+pub fn texts_clear(symbol: &SymbolDef) -> bool {
+    let Some(Primitive::Rect(body)) = symbol.graphics.first() else {
+        return true;
+    };
+    let (lo, hi) = (body.rect.0.min(), body.rect.0.max());
+    let socket_em = em(SOCKET_STYLE);
+    let half = (share(socket_em, LINE) + 2 * PAD) / 2;
+    // Each socket's way out (min x, min y, max x, max y) and its label.
+    let ways: Vec<([i64; 4], Option<String>)> = symbol
+        .cps
+        .iter()
+        .filter(|c| c.interface.is_some())
+        .map(|c| {
+            let several = symbol
+                .cps
+                .iter()
+                .filter(|o| o.interface == c.interface && o.port_label == c.port_label)
+                .count()
+                > 1;
+            let label = several.then(|| format!("P{}", u32::from(c.fn_cp) + 1));
+            let depth = label.as_deref().map_or(0, |l| advance(socket_em, chars(l))) + PAD;
+            let (x, y) = (c.pos.x.0, c.pos.y.0);
+            let way = match c.dir {
+                Dir4::Up => [x - half, lo.y.0, x + half, lo.y.0 + depth],
+                Dir4::Down => [x - half, hi.y.0 - depth, x + half, hi.y.0],
+                Dir4::Left => [lo.x.0, y - half, lo.x.0 + depth, y + half],
+                _ => [hi.x.0 - depth, y - half, hi.x.0, y + half],
+            };
+            (way, label)
+        })
+        .collect();
+    let inside = |b: [i64; 4]| b[0] >= lo.x.0 && b[1] >= lo.y.0 && b[2] <= hi.x.0 && b[3] <= hi.y.0;
+    let overlaps = |a: [i64; 4], b: [i64; 4]| a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+    let clear = |b: [i64; 4]| inside(b) && !ways.iter().any(|(w, _)| overlaps(b, *w));
+    let texts = symbol.graphics.iter().filter_map(|p| match p {
+        Primitive::Text(t) => Some(t),
+        _ => None,
+    });
+    for t in texts {
+        let words = t.text.neutral_or_first().unwrap_or_default();
+        let at = (t.pos.x.0, t.pos.y.0);
+        let label = ways.iter().any(|(w, l)| {
+            l.as_deref() == Some(words) && at.0 >= w[0] && at.0 <= w[2] && at.1 >= w[1] && at.1 <= w[3]
+        });
+        let em = em(t.style.as_ref().map_or(DATA_STYLE, |s| s.as_str()));
+        let b = text_box(at, &t.align, t.angle, advance(em, chars(words)), share(em, LINE));
+        if !label && !clear(b) {
+            return false;
+        }
+    }
+    symbol.text_slots.iter().filter(|s| s.visible).all(|s| {
+        let style = match s.kind {
+            SlotKind::Tag => TAG_STYLE,
+            _ => DATA_STYLE,
+        };
+        let lines = if s.kind == SlotKind::BusAddress { 2 } else { 1 };
+        let em = em(s.style.as_ref().map_or(style, |x| x.as_str()));
+        let width = s.max_width.map_or(0, |w| w.0);
+        clear(text_box(
+            (s.pos.x.0, s.pos.y.0),
+            &s.align,
+            s.rot,
+            width,
+            lines * share(em, LINE),
+        ))
+    })
+}
+
+/// The box (min x, min y, max x, max y) a text of `width` and `height` takes at `at` with `align`, turned by `angle`
+/// (a quarter turn reads from the bottom), y growing down the page.
+fn text_box(at: (i64, i64), align: &Align, angle: Angle2, width: i64, height: i64) -> [i64; 4] {
+    use Align as A;
+    let (u0, u1) = match align {
+        A::TopLeft | A::MiddleLeft | A::BottomLeft | A::BaselineLeft => (0, width),
+        A::TopRight | A::MiddleRight | A::BottomRight | A::BaselineRight => (-width, 0),
+        _ => (-width / 2, width - width / 2),
+    };
+    let (v0, v1) = match align {
+        A::TopLeft | A::TopCentre | A::TopRight => (0, height),
+        A::MiddleLeft | A::Centre | A::MiddleRight => (-height / 2, height - height / 2),
+        _ => (-height, 0),
+    };
+    // Along the text and down its lines, after the turn: a quarter turn sends along to up the page, down to the right.
+    let ((ax, ay), (dx, dy)): ((i64, i64), (i64, i64)) =
+        match (angle.0.rem_euclid(360_000) + 45_000) / 90_000 % 4 {
+            1 => ((0, -1), (1, 0)),
+            2 => ((-1, 0), (0, -1)),
+            3 => ((0, 1), (-1, 0)),
+            _ => ((1, 0), (0, 1)),
+        };
+    let corners = [(u0, v0), (u0, v1), (u1, v0), (u1, v1)]
+        .map(|(u, v)| (at.0 + u * ax + v * dx, at.1 + u * ay + v * dy));
+    corners
+        .iter()
+        .fold([i64::MAX, i64::MAX, i64::MIN, i64::MIN], |b, (x, y)| {
+            [b[0].min(*x), b[1].min(*y), b[2].max(*x), b[3].max(*y)]
+        })
 }
 
 /// The address a bus symbol's compartment prints for `port` (a `bus_address` slot that names its interface): "TBD"
@@ -617,6 +778,97 @@ mod tests {
             let room = slot.max_width.expect("a room");
             assert!(slot.pos.x + room < hi.x, "{slot:?} runs past the body");
         }
+        assert!(
+            texts_clear(&s),
+            "the rule a drawing of one's own is held to holds for the derived symbol"
+        );
+    }
+
+    /// A symbol of one's own with a socket at the middle of each of its four edges: a text in the middle of the body is
+    /// clear; moved into any socket's way out, or out of the body, it is not (the rule the drawing refuses it by).
+    #[test]
+    fn a_text_in_a_socket_s_way_out_on_any_edge_or_outside_the_body_is_not_clear() {
+        let mut s = bus_symbol(
+            &part(serde_json::json!([{"interface": "X1", "bus": "profinet", "role": "device", "ports": 4}])),
+            Grid::MM4,
+        );
+        let mm = |v: i64| v * 1_000_000;
+        let (w, h) = (mm(60), mm(40));
+        let body = Bounds::new(Pt2::new(Nm(0), Nm(0)), Pt2::new(Nm(w), Nm(h))).expect("a body");
+        let Some(Primitive::Rect(rect)) = s.graphics.first().cloned() else {
+            panic!("the body first")
+        };
+        let text = |x: i64, y: i64| {
+            Primitive::Text(TextPrim {
+                pos: Pt2::new(Nm(x), Nm(y)),
+                text: MlText::neutral("X1"),
+                style: DATA_STYLE.parse().ok(),
+                align: Align::Centre,
+                angle: Angle2::ZERO,
+                extra: Extra::new(),
+            })
+        };
+        let with = |s: &SymbolDef, x: i64, y: i64| {
+            let mut m = s.clone();
+            m.graphics = vec![
+                Primitive::Rect(RectPrim {
+                    rect: body,
+                    ..rect.clone()
+                }),
+                text(x, y),
+            ];
+            m
+        };
+        s.text_slots.clear();
+        let step = mm(4);
+        let places = [
+            (w / 2, -step, Dir4::Up),
+            (w / 2, h + step, Dir4::Down),
+            (-step, h / 2, Dir4::Left),
+            (w + step, h / 2, Dir4::Right),
+        ];
+        let mut cps: Vec<SymbolCp> = s.cps.iter().cloned().collect();
+        assert_eq!(cps.len(), 4);
+        for (c, (x, y, dir)) in cps.iter_mut().zip(places) {
+            c.pos = Pt2::new(Nm(x), Nm(y));
+            c.dir = dir;
+        }
+        s.cps = KeyedList::from_vec(cps).expect("unique");
+        assert!(texts_clear(&with(&s, w / 2, h / 2)), "in the middle");
+        // A label "P1" reaches this deep into the body from its edge; the text's middle there lies in the way out.
+        let depth = advance(em(SOCKET_STYLE), 2) + PAD;
+        for (x, y, edge) in [
+            (w / 2, depth, "top"),
+            (w / 2, h - depth, "bottom"),
+            (depth, h / 2, "left"),
+            (w - depth, h / 2, "right"),
+            (w + mm(10), h / 2, "outside"),
+        ] {
+            assert!(!texts_clear(&with(&s, x, y)), "{edge}");
+        }
+    }
+
+    /// A symbol of one's own made when X1 had two ports lacks X1 P3 once it has three, and has one too many when it
+    /// has one; it draws every socket of the ports it was made from.
+    #[test]
+    fn a_symbol_of_one_s_own_names_the_sockets_it_lacks_and_has_too_many() {
+        let own = bus_symbol(&head_station(), Grid::MM4);
+        let with = |n: u16| {
+            part(serde_json::json!([
+                {"interface": "X1", "bus": "profinet", "role": "device", "ports": n},
+                {"interface": "X2", "bus": "profinet", "role": "device"},
+            ]))
+        };
+        let none: (Vec<String>, Vec<String>) = (Vec::new(), Vec::new());
+        assert_eq!(socket_mismatch(&own, &head_station()), none);
+        assert_eq!(
+            socket_mismatch(&own, &with(3)),
+            (vec!["X1 P3".to_owned()], Vec::new())
+        );
+        assert_eq!(
+            socket_mismatch(&own, &with(1)),
+            (Vec::new(), vec!["X1 P2".to_owned()])
+        );
     }
 
     /// A part whose interface is of a newer bus has no compartment for it; one without network ports is a header alone.

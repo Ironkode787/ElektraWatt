@@ -118,6 +118,7 @@ impl Session {
             start: None,
             pieces: Vec::new(),
             levels: Vec::new(),
+            bus_symbol: String::new(),
             copy: item,
             fields,
             tech: Vec::new(),

@@ -583,11 +583,30 @@ impl ShellModel {
         if let Some(editor) = &mut self.symbol_editor {
             editor.offer_new_page = false;
         }
-        let result = if action == "new_page" {
+        // A bus symbol of his own keeps every text inside its body, clear of the sockets' ways out (doc 10 §2.7): an
+        // edit that would put one elsewhere is taken back and refused in words.
+        let bus_before = self
+            .symbol_editor
+            .as_ref()
+            .filter(|e| matches!(e.purpose, Drawing::BusSymbol(_)))
+            .map(|e| e.draft.symbol.clone())
+            .filter(ew_api::texts_clear);
+        let mut result = if action == "new_page" {
             self.place_published_on_new_page()
         } else {
             self.symbol_operation(action, p)
         };
+        if let (Ok(()), Some(_), Some(editor)) = (&result, &bus_before, self.symbol_editor.as_mut())
+            && !ew_api::texts_clear(&editor.draft.symbol)
+        {
+            if let Some(d) = editor.undo.pop() {
+                editor.draft = d;
+                editor.redo.clear();
+                editor.revision = editor.revision.wrapping_add(1);
+                editor.prune_selection();
+            }
+            result = Err(words(key!("symbol-bus-text-outside")));
+        }
         match result {
             Ok(()) => {
                 // A device box's test arms the Device tool instead (its own message says so).

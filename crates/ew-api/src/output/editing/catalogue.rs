@@ -1307,6 +1307,73 @@ impl Session {
         }
         (x > 0).then(|| (list, (ew_units::Nm(x), ew_units::Nm(height.max(1)))))
     }
+
+    /// The bus symbol of `part` as its sheet pictures it "On a bus page" (doc 10 §2.7, doc 07 §5.4): his own where the
+    /// part names one (the project's copy, else the library's), else the program's on the grid of the project's first
+    /// bus page (4 mm without one); `None` for a part without network ports.
+    pub fn part_bus_symbol(&self, part: &Part) -> Option<PartBusSymbol> {
+        if !ew_derive::has_bus_ports(part) {
+            return None;
+        }
+        let q = self.query();
+        let own = part.bus_symbol.as_ref().and_then(|r| {
+            ew_derive::own_bus_symbol(&q, part)
+                .cloned()
+                .or_else(|| match self.libraries().resolve(r) {
+                    Ok(LibDocument::Symbol(c)) => Some(c.item),
+                    _ => None,
+                })
+        });
+        let (missing, extra) = own
+            .as_ref()
+            .map(|s| ew_derive::socket_mismatch(s, part))
+            .unwrap_or_default();
+        let grid = q
+            .pages()
+            .iter()
+            .find(|(_, p)| p.kind == PageType::BusTopology)
+            .map_or(ew_units::Grid::MM4, |(_, p)| p.grid);
+        let is_own = own.is_some();
+        let symbol = own.unwrap_or_else(|| ew_derive::bus_symbol(part, grid));
+        let geometry = ew_scene::symbol::lower(&symbol, ew_units::Orient2::R0);
+        let b = geometry.bounds;
+        let shift = ew_units::Pt2::new(ew_units::Nm(-b.min().x.0), ew_units::Nm(-b.min().y.0));
+        let mut list = ew_dl::DisplayList::new();
+        list.push(ew_dl::Item::group(
+            Some(ew_dl::Transform::from_translation(shift)),
+            None,
+            geometry.graphics.items,
+        ));
+        let size = (
+            ew_units::Nm((b.max().x.0 - b.min().x.0).max(1)),
+            ew_units::Nm((b.max().y.0 - b.min().y.0).max(1)),
+        );
+        Some(PartBusSymbol {
+            list,
+            size,
+            symbol,
+            own: is_own,
+            missing,
+            extra,
+        })
+    }
+}
+
+/// A part's bus symbol as its sheet pictures it "On a bus page" ([`Session::part_bus_symbol`]).
+#[derive(Clone, Debug)]
+pub struct PartBusSymbol {
+    /// The picture, as a page draws the symbol's lines and texts.
+    pub list: ew_dl::DisplayList,
+    /// Its width and height.
+    pub size: (ew_units::Nm, ew_units::Nm),
+    /// The symbol: what Make my own from it… opens as a drawing of his own.
+    pub symbol: SymbolDef,
+    /// Whether it is his own (`Part.bus_symbol`).
+    pub own: bool,
+    /// The sockets of the part's network ports his own does not draw, in words ("X1 P3").
+    pub missing: Vec<String>,
+    /// The sockets his own draws that the ports no longer have, in words.
+    pub extra: Vec<String>,
 }
 
 /// The starter functions a piece of a part drawn with symbols can be (doc 07 §5.4, Drawn as): each starter FnDef with

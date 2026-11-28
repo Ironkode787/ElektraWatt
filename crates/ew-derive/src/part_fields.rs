@@ -1853,6 +1853,15 @@ pub static PART_FIELDS: &[PartField] = &[
     ),
     // Network ports
     f(
+        "bus_symbol",
+        key!("part-field-bus-symbol"),
+        G::Ports,
+        BUS_KINDS,
+        F(Form::Ports),
+        // Absent: the program's symbol from the network ports, never a lack.
+        &[r(Ft::Bus, Printed, key!("part-says-bus-symbol"))],
+    ),
+    f(
         "sections.bus.ports[].interface",
         key!("part-field-bus-interface"),
         G::Ports,

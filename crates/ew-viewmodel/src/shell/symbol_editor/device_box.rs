@@ -122,23 +122,6 @@ impl DeviceBox {
         self.draft.pins_from().map(from_words)
     }
 
-    /// Where a bus device's network ports are drawn, in a sentence: on a bus page, not on this box ("Network ports X1
-    /// P1 and X1 P2 are drawn on a bus page"); `None` for a part without ports.
-    pub fn ports_line(&self) -> Option<String> {
-        let mut names: Vec<String> = Vec::new();
-        for row in &self.draft.bus {
-            let count = row.ports.trim().parse::<u32>().unwrap_or(1).max(1);
-            names.extend((1..=count).map(|k| format!("{} P{k}", row.interface.trim())));
-        }
-        let (last, rest) = names.split_last()?;
-        let list = if rest.is_empty() {
-            last.clone()
-        } else {
-            strings::format(key!("box-ports-and"), &[&rest.join(", "), last])
-        };
-        Some(strings::format(key!("box-ports-drawn"), &[&list]))
-    }
-
     /// The box's size in millimetres and in steps of the 4 mm grid a page draws it on: `(width, height)` each.
     pub fn size(&self) -> ((f64, f64), (i64, i64)) {
         let b = self.steps();

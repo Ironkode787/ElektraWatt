@@ -309,6 +309,19 @@ fn graphic_words(kind: &str) -> String {
 impl SymbolEditor {
     /// The designation of the function pin connection point `cp` draws, else the point's own number.
     fn cp_name(&self, cp: &symbols::schema::SymbolCp) -> String {
+        // A bus symbol's socket by its interface, and its port where the interface has several ("X1 P2", "DP").
+        if let Some(interface) = &cp.interface {
+            let mut words = interface.to_string();
+            if let Some(label) = &cp.port_label {
+                words = format!("{words} {label}");
+            }
+            let same =
+                |o: &&symbols::schema::SymbolCp| o.interface == cp.interface && o.port_label == cp.port_label;
+            if self.draft.symbol.cps.iter().filter(same).count() > 1 {
+                words = format!("{words} P{}", u32::from(cp.fn_cp) + 1);
+            }
+            return words;
+        }
         self.draft
             .function
             .cps
@@ -453,10 +466,18 @@ impl SymbolEditor {
         if matches!(s.anchor, symbols::schema::AnchorPolicy::Named(_)) {
             marks.push(Item::Anchor);
         }
+        let bus = match &self.purpose {
+            super::Drawing::BusSymbol(b) => Some(b),
+            _ => None,
+        };
         let mut groups = vec![
             OutlineGroup {
                 key: "cps",
-                label: label("symbol-pins"),
+                label: label(if bus.is_some() {
+                    "symbol-sockets"
+                } else {
+                    "symbol-pins"
+                }),
                 rows: rows((0..s.cps.len()).map(Item::Cp).collect()),
                 empty: strings::text(key!("symbol-outline-empty-cps")).to_owned(),
             },
@@ -510,6 +531,24 @@ impl SymbolEditor {
                 text: label("symbol-import-review"),
                 item: None,
             });
+        }
+        // His own bus symbol draws a socket for every network port of its part, and only those (doc 10 §2.7).
+        if let Some(b) = bus {
+            let (missing, extra) = ew_api::socket_mismatch(s, &b.ports);
+            todo.extend(missing.iter().map(|m| Todo {
+                text: strings::format(key!("symbol-todo-socket"), &[m]),
+                item: None,
+            }));
+            todo.extend(extra.iter().map(|m| Todo {
+                text: strings::format(key!("symbol-todo-socket-extra"), &[m]),
+                item: None,
+            }));
+            if !ew_api::texts_clear(s) {
+                todo.push(Todo {
+                    text: label("symbol-bus-text-outside"),
+                    item: None,
+                });
+            }
         }
         let mut import_notes: Vec<String> = self.draft.import_notes.iter().map(|n| label(n)).collect();
         import_notes.extend(self.draft.import_details.iter().map(|d| d.message.clone()));

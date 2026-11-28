@@ -1226,6 +1226,7 @@ choice-change = Change
 choice-hand = Hand
 choice-selected = Selected
 choice-symbol = Symbol
+choice-bus-symbol = Bus symbol
 choice-tag = Tag
 choice-tia-xlsx = TIA tag table
 field-word-type-ident = Type identification

@@ -885,6 +885,14 @@ rule-ew-bus-010 = the ports joined with { $port } belong to the logical nets { $
     .title = Net mismatch
     .hint = Put every port that bus connections join in one logical net.
 
+rule-ew-bus-011 = { $form ->
+        [lacks] { $part }'s own bus symbol does not draw { $missing } of its network ports; draw it, or use the program's symbol again
+        [extra] { $part }'s own bus symbol draws { $extra }, which its network ports no longer have; take it out, or use the program's symbol again
+       *[both] { $part }'s own bus symbol does not draw { $missing } and draws { $extra }, which its network ports no longer have; draw them as they are, or use the program's symbol again
+    }
+    .title = Own bus symbol out of step
+    .hint = Draw a part's own bus symbol with a socket for each of its network ports, or use the program's symbol again.
+
 rule-ew-iol-001 = { $form ->
         [mode] { $channel } is in mode { $mode }, but the IO-Link device { $device } is connected; set the port to IO-Link
        *[class] { $channel } is a class-{ $port_class } port, but { $device } needs class { $device_class }; connect it to a class-B port
@@ -1397,6 +1405,7 @@ fix-plc-take-out = Take it out of the rack
 fix-plc-bind-pins = Bind the channels to their pins
 fix-blank-position = Blanking plate on position { $p0 }
 fix-edit-part = Edit part…
+fix-open-bus-symbol = Open the bus symbol
 fix-choose-part = Choose part…
 fix-place-gland-bottom = Place on the bottom
 fix-choose-gland = Choose gland…

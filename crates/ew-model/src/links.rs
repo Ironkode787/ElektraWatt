@@ -1055,6 +1055,12 @@ pub static LINKS: &[LinkDecl] = &[
             }
         }
     }),
+    // His own bus symbol (doc 10 §2.7): the part that names it keeps it in the project.
+    lib_ref_link!(Part."bus_symbol.item" -> Symbol, |v, out| {
+        if let Some(s) = &v.item.bus_symbol {
+            lib_ref(s, out);
+        }
+    }),
     // An accessory a part declares (doc 07 §2.5): the part that names it keeps it in the project.
     lib_ref_link!(Part."accessories[].part.item" -> Part, |v, out| {
         for a in &v.item.accessories {
@@ -1226,6 +1232,11 @@ const OWN_NOT_LINKS: &[(&str, &str, &str)] = &[
         "part",
         "function_template[].symbol.library",
         "the library half of the LibRef link part.function_template[].symbol.item (the copy ID is v5(NS_LIBCOPY, library ‖ item))",
+    ),
+    (
+        "part",
+        "bus_symbol.library",
+        "the library half of the LibRef link part.bus_symbol.item (the copy ID is v5(NS_LIBCOPY, library ‖ item))",
     ),
     (
         "symbol",

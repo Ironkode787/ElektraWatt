@@ -163,6 +163,7 @@ fn placeholder_part(project: ew_ids::Uuid, kind: PartKind, description: MlText) 
         variants: Default::default(),
         macros: Vec::new(),
         box_: None,
+        bus_symbol: None,
         extra: Default::default(),
     }
 }

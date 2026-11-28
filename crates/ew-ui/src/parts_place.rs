@@ -1124,6 +1124,10 @@ fn pictures_column(ui: &mut Ui, shell: &ShellModel, place: &PartsPlace, events: 
                     }
                 });
                 ui.add_space(t.space_3);
+                if let Some(bus) = shell.part_bus_symbol(&open.sheet) {
+                    on_a_bus_page(ui, open, &bus, events);
+                    ui.add_space(t.space_3);
+                }
                 picture_card(ui, key!("part-group-cabinet"), |ui| {
                     match open.sheet.front_preview() {
                         Some((list, size)) => {
@@ -1146,6 +1150,65 @@ fn pictures_column(ui: &mut Ui, shell: &ShellModel, place: &PartsPlace, events: 
             }
             ready_for(ui, strings::text(key!("parts-ready-for")), &open.ready);
         });
+}
+
+/// The card "On a bus page" (doc 10 §2.7, doc 07 §5.4): the bus symbol a bus page draws the part's devices with, what
+/// his own lacks of the network ports, and the ways to his own (Make my own from it…) and back (Use the program's
+/// symbol again), on a part that is his to change.
+fn on_a_bus_page(
+    ui: &mut Ui,
+    open: &OpenSheet,
+    bus: &ew_viewmodel::ew_api::output::PartBusSymbol,
+    events: &mut Vec<Event>,
+) {
+    let t = theme::current(ui.ctx());
+    picture_card(ui, key!("parts-on-a-bus-page"), |ui| {
+        rendered(
+            ui,
+            "parts-bus-symbol",
+            key!("parts-bus-symbol-picture"),
+            &bus.list,
+            bus.size,
+            0.0,
+        );
+        let lines = [
+            (key!("parts-bus-symbol-lacks"), &bus.missing),
+            (key!("parts-bus-symbol-extra"), &bus.extra),
+        ];
+        for (key, sockets) in lines.into_iter().filter(|(_, s)| !s.is_empty()) {
+            ui.horizontal_wrapped(|ui| {
+                mark(ui, IconId::alert_triangle, t.warning.color32());
+                ui.label(
+                    RichText::new(strings::format(key, &[&sockets.join(", ")]))
+                        .font(theme::font(&t.type_small))
+                        .color(t.warning.color32()),
+                );
+            });
+        }
+        if !open.editable() || !(open.sheet.new || open.sheet.own) {
+            return;
+        }
+        ui.add_space(t.space_2);
+        ui.horizontal_wrapped(|ui| {
+            let make = strings::text(key!("parts-make-own-bus-symbol"));
+            if components::button(ui, components::Kind::Subtle, make, None, 0.0).clicked() {
+                events.push(Event::Action(
+                    "parts.draw",
+                    serde_json::json!({"what": "bus_symbol"}),
+                ));
+            }
+            if bus.own
+                && ui
+                    .link(strings::text(key!("parts-use-program-bus-symbol")))
+                    .clicked()
+            {
+                events.push(Event::Action(
+                    "parts.field",
+                    serde_json::json!({"field": "bus_symbol", "value": ""}),
+                ));
+            }
+        });
+    });
 }
 
 /// A card of the pictures column, under its heading.

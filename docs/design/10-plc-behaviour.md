@@ -484,7 +484,7 @@ request. Pack membership and the MVP subset match [15](15-checks-revisions-colla
 | EW-BUS-008 | EtherCAT E-bus current budget | station | online | error | 1.x | FR-BUS-020 |
 | EW-BUS-009 | Bus port on a non-bus cable or the wrong connector type | pnet | online | warning | 1.0 | FR-BUS-018 |
 | EW-BUS-010 | Ports joined by `Bus` connections but in different logical nets | pnet | online | warning | 1.0 | FR-BUS-024 |
-| EW-BUS-011 | A part's own bus symbol lacks a socket of its network ports, or has one they no longer have (doc 10 §2.7) | part | online | warning | 0.4 | FR-BUS-006 |
+| EW-BUS-011 | A part's own bus symbol lacks a socket of its network ports, or has one they no longer have (doc 10 §2.7) | part (as built: project) | online | warning | 0.4 | FR-BUS-006 |
 | EW-IOL-001 | Port class mismatch; IODD device on a port not in IO-Link mode | module | online | error | 1.0 | FR-BUS-019 |
 | EW-IOL-002 | Process data > port window; cable longer than the maximum | module | online | warning | 1.0 | FR-BUS-019 |
 

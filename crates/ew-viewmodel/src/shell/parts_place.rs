@@ -1681,7 +1681,12 @@ impl ShellModel {
                     removed: plan.bom_removed,
                     added: plan.bom_added,
                     changed: plan.bom_changed,
-                    boxes: [self.box_words(&plan.boxes), self.symbol_words(&plan.symbols)].concat(),
+                    boxes: [
+                        self.box_words(&plan.boxes),
+                        self.symbol_words(&plan.symbols),
+                        self.own_symbol_words(&plan.own_symbols),
+                    ]
+                    .concat(),
                     lost: plan.lost,
                     fork: false,
                 };
@@ -1722,7 +1727,12 @@ impl ShellModel {
             added: plan.bom_added.clone(),
             changed: plan.bom_changed.clone(),
             lost: plan.lost.clone(),
-            boxes: [self.box_words(&plan.boxes), self.symbol_words(&plan.symbols)].concat(),
+            boxes: [
+                self.box_words(&plan.boxes),
+                self.symbol_words(&plan.symbols),
+                self.own_symbol_words(&plan.own_symbols),
+            ]
+            .concat(),
             fork: plan.fork.is_some(),
         };
         if let Some(open) = self.open_mut() {
@@ -1900,5 +1910,12 @@ impl ShellModel {
         sheet
             .box_picture()
             .or_else(|| session.part_schematic(&session.sheet_part(sheet)))
+    }
+
+    /// The open sheet's part "On a bus page" as its texts give it now (doc 10 §2.7): the bus symbol a bus page draws its
+    /// devices with, his own or the program's; `None` for a part without network ports.
+    pub fn part_bus_symbol(&self, sheet: &PartSheet) -> Option<ew_api::output::PartBusSymbol> {
+        let session = self.parts_session()?;
+        session.part_bus_symbol(&session.sheet_part(sheet))
     }
 }

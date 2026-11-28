@@ -882,6 +882,14 @@ rule-ew-bus-010 = de poorten die met { $port } verbonden zijn, horen bij de logi
     .title = Netten verschillen
     .hint = Zet elke poort die busverbindingen samenvoegen in één logisch net.
 
+rule-ew-bus-011 = { $form ->
+        [lacks] het eigen bussymbool van { $part } tekent { $missing } van zijn netwerkpoorten niet; teken het, of gebruik weer het symbool van het programma
+        [extra] het eigen bussymbool van { $part } tekent { $extra }, dat zijn netwerkpoorten niet meer hebben; haal het weg, of gebruik weer het symbool van het programma
+       *[both] het eigen bussymbool van { $part } tekent { $missing } niet en tekent { $extra }, dat zijn netwerkpoorten niet meer hebben; teken ze zoals ze zijn, of gebruik weer het symbool van het programma
+    }
+    .title = Eigen bussymbool loopt niet gelijk
+    .hint = Teken het eigen bussymbool met een aansluiting voor elke netwerkpoort van zijn artikel, of gebruik weer het symbool van het programma.
+
 rule-ew-iol-001 = { $form ->
         [mode] { $channel } staat in modus { $mode ->
             [deactivated] uitgeschakeld
@@ -1377,6 +1385,7 @@ fix-plc-take-out = Uit het rek halen
 fix-plc-bind-pins = De kanalen aan hun pinnen koppelen
 fix-blank-position = Blindplaat op ventielplaats { $p0 }
 fix-edit-part = Artikel bewerken…
+fix-open-bus-symbol = Het bussymbool openen
 fix-choose-part = Artikel kiezen…
 fix-place-gland-bottom = Op de onderkant plaatsen
 fix-choose-gland = Wartel kiezen…

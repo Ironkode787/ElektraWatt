@@ -192,6 +192,8 @@ pub struct UpdatePlan {
     pub boxes: Vec<crate::RedrawnBox>,
     /// The bus symbols whose sockets the update changes.
     pub symbols: Vec<crate::RedrawnSymbol>,
+    /// The parts' own bus symbols the update leaves out of step with their network ports.
+    pub own_symbols: Vec<crate::OwnSymbolGap>,
     /// The printed tags and cross-reference texts that change.
     pub derived: DerivedDiff,
 }
@@ -1005,6 +1007,7 @@ impl Session {
         let lost = crate::part_editor::lost_sockets(q, &after);
         let boxes = crate::part_editor::redrawn_boxes(q, &after);
         let symbols = crate::part_editor::redrawn_symbols(q, &after);
+        let own_symbols = crate::part_editor::own_symbol_gaps(q, &after);
         Ok(UpdatePlan {
             command,
             copies: plan_copies,
@@ -1016,6 +1019,7 @@ impl Session {
             lost,
             boxes,
             symbols,
+            own_symbols,
             derived,
         })
     }

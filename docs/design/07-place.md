@@ -129,7 +129,8 @@ contact data are in the record:
   first row is the piece the device's tag stands at. From a row the place writes the part's pins, the template
   entry and, for a contact, its contact data: no one types a function, a key or a template.
 - *Drawn as a box.* The pins (Name, Carries, and for a box the Edge and the distance from the corner) and, where it
-  has them, the network ports and the PLC channels. The picture shows the box; Arrange… opens it as a drawing (§5.6).
+  has them, the network ports (their bus symbol pictured "On a bus page", with Make my own from it…) and the PLC
+  channels. The picture shows the box; Arrange… opens it as a drawing (§5.6).
 - *A terminal* is its levels and their clamps: What it is (feed-through, protective earth), Levels (1, 2 or 3), and
   a grid with a row per level and the clamps on its left and right side by name, a second clamp on a side added by
   a link. Each level passes through on its own.
@@ -207,8 +208,9 @@ what. Done returns to the sheet; nothing is saved until the part is.
   row, a row typed moves the pin. A place typed between two steps of 4 mm, or on a corner, goes to the nearest step
   clear of the corners, and a note says where it stands. What a pin takes from a PLC channel (its name, what it
   carries, its address) is changed in that group and is shown here; its place on the box is the box's. A network
-  port's sockets are no pins of the schematic box: the port is drawn as a box of its own on a bus page
-  (`bus.place_ports`), and the box's one line says so, with the way to Network ports. Done on a box arranged writes
+  port's sockets are no pins of the schematic box: a bus page draws the device with its bus symbol
+  ([10](10-plc-and-bus.md) §2.7), pictured on the sheet as "On a bus page"; Make my own from it… opens that symbol as
+  a drawing of his own. Done on a box arranged writes
   its layout into the sheet, so a device of it is drawn with one click; a box nobody arranged keeps none (as 0.3.5
   left every one), is pictured laid out as Arrange… would and drawn on a page by its two corners, and its part's Save
   draws no placed box anew. The Save of a part whose box was arranged draws the part's placed boxes anew in the same

@@ -57,10 +57,10 @@ A part has channels of one kind: a card with 16 inputs and 16 outputs is two par
 2. Under **Network ports**, choose **Add interface**: type the interface `DP`, choose **Bus ▸ PROFIBUS DP** and
    **Role ▸ Slave**. Its PROFINET sister has the interface `X1`, **Bus ▸ PROFINET**, **Role ▸ Device** and **Ports**
    `2`. **Save**.
-3. Place it from the device browser on a bus-topology page: it stands there as a box with its DP socket, and its
-   supply pins wait for a schematic page (drag its unplaced function from the **Devices** list there, and draw the
-   box with its pins). Placed first on a schematic page, it gets its port box on a bus-topology page from **Place
-   port DP** on its row in the PLC navigator. Add its cards in its rack (**Rack…** on that row). A station that only
+3. Place it from the device browser on a bus-topology page: it stands there as its bus symbol with its DP socket,
+   and its supply pins wait for a schematic page (drag its unplaced function from the **Devices** list there, and draw
+   the box with its pins). Placed first on a schematic page, it gets its bus symbol on a bus-topology page from
+   **Place port DP** on its row in the PLC navigator. Add its cards in its rack (**Rack…** on that row). A station that only
    answers on the bus is a head station.
 
 **New part…** at the foot of a station's catalogue starts the part the rack asks for: a CPU, a remote station, a
@@ -81,6 +81,10 @@ valve terminal, a compact device or a module.
    navigator.
    Type each node's name in the navigator's table (its **Address** column): its compartment prints it, the name above
    the IP address, and "TBD" while it is open.
+3. To draw it your own way, choose **Make my own from it…** under its picture **On a bus page**: the symbol opens as
+   a drawing of yours. Drag a socket to another edge, or a text inside the body (a text on a socket's way out is
+   refused), then **Done** and **Save**: every device of the part is drawn with it. **Use the program's symbol
+   again** goes back. When the part's ports change, the picture names a socket your symbol does not draw.
 
 The starter parts hold such parts to begin with: EW-GEN-ESW-5 (unmanaged switch, 5 ports), EW-GEN-ESW-8 (managed
 switch, 8 ports) and EW-GEN-PND-1 (a PROFINET device, 2 ports).

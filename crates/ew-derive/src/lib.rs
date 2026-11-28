@@ -175,7 +175,7 @@ pub use bus::{
 };
 pub use bus_symbol::{
     BusInterface, bus_interfaces, bus_pins, bus_symbol, carried_symbol, compartment_address, drawn,
-    has_bus_ports, interface_words, is_bus_copy, is_bus_symbol,
+    has_bus_ports, interface_words, is_bus_copy, is_bus_symbol, own_bus_symbol, socket_mismatch, texts_clear,
 };
 pub use flow::{Flow, FlowBfs, Load, PotentialFlow, Upstream};
 pub use flow_distance::{CpFlowDistanceOf, CpFlowDistances};

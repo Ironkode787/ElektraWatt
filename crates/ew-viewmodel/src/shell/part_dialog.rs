@@ -394,6 +394,27 @@ impl ShellModel {
         out
     }
 
+    /// The parts' own bus symbols a change leaves out of step, each in words ("HS-2's own bus symbol does not draw X1
+    /// P3: draw it there, or use the program's symbol again"): the program never redraws them.
+    pub(crate) fn own_symbol_words(&self, gaps: &[ew_api::OwnSymbolGap]) -> Vec<String> {
+        let mut out = Vec::new();
+        for g in gaps {
+            if !g.missing.is_empty() {
+                out.push(strings::format(
+                    key!("part-card-own-symbol-lacks"),
+                    &[&g.part, &g.missing.join(", ")],
+                ));
+            }
+            if !g.extra.is_empty() {
+                out.push(strings::format(
+                    key!("part-card-own-symbol-extra"),
+                    &[&g.part, &g.extra.join(", ")],
+                ));
+            }
+        }
+        out
+    }
+
     /// `part.choose {target?, use?, add?, strip?}`: opens the part dialog for its target; `strip` (its ID), for
     /// the strip's terminals without a part.
     pub(crate) fn act_part_choose(&mut self, p: &Map<String, Value>) -> Outcome {

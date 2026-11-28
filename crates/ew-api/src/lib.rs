@@ -175,8 +175,8 @@ pub use macros::{InsertAt, MacroConflict, MacroError, MacroScope, MacroSpec, Mac
 pub use page_copy::{CopyFolios, PageCopyPlan, PageCopySpec};
 pub use part_cable::{CABLE_MARKINGS, CABLE_MEMBERS, CableRows};
 pub use part_editor::{
-    BusRow, MAX_PORTS, PartDraftError, PartSheet, RedrawnBox, RedrawnSymbol, bus_members, bus_words,
-    identity_fields, mount_words, part_kinds, role_words,
+    BusRow, MAX_PORTS, OwnSymbolGap, PartDraftError, PartSheet, RedrawnBox, RedrawnSymbol, bus_members,
+    bus_words, identity_fields, mount_words, part_kinds, role_words,
 };
 pub use part_new::{NewPart, RemovedPart};
 pub use part_offers::{Fit, OfferMisfit, OfferView, PartOffer, PartOfferQuery, PartPick, PartTarget};
@@ -220,6 +220,7 @@ pub use ew_checks as checks;
 pub use ew_derive::part_fields;
 pub use ew_derive::{BomMode, DeriveNote, MemoStore};
 pub use ew_derive::{LabelColumn, LabelSet, ReworkAction};
+pub use ew_derive::{socket_mismatch, texts_clear};
 /// The layout of a schematic page: the page as it sees it (`Session::page_draft`), its measure and its text placer
 /// (docs/design/06a-drafting.md); the shell and the tests name it through `ew-api` (no workspace edge of their own).
 pub use ew_drafting as drafting;

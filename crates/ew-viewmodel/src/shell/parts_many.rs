@@ -330,7 +330,12 @@ impl ShellModel {
             removed: plan.bom_removed,
             added: plan.bom_added,
             changed: plan.bom_changed,
-            boxes: [self.box_words(&plan.boxes), self.symbol_words(&plan.symbols)].concat(),
+            boxes: [
+                self.box_words(&plan.boxes),
+                self.symbol_words(&plan.symbols),
+                self.own_symbol_words(&plan.own_symbols),
+            ]
+            .concat(),
             lost: plan.lost,
             fork: false,
         };

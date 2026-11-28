@@ -140,6 +140,9 @@ pub struct PartSheet {
     pub pieces: Vec<crate::part_pieces::PieceRow>,
     /// A terminal's levels, each with its left and right clamp.
     pub levels: Vec<crate::part_pieces::LevelRow>,
+    /// His own bus symbol (doc 10 §2.7) by its library address (`library:<library>:<item>`); empty: the program's,
+    /// from the network ports. Make my own from it… sets it, Use the program's symbol again empties it.
+    pub bus_symbol: String,
     pub(crate) original: Part,
     pub(crate) manufacturer: (LibRef, Vec<Value>),
 }
@@ -537,6 +540,8 @@ pub struct PartEditPlan {
     pub boxes: Vec<RedrawnBox>,
     /// The bus symbols whose sockets the correction changes ([`redrawn_symbols`]).
     pub symbols: Vec<RedrawnSymbol>,
+    /// The parts' own bus symbols the correction leaves out of step ([`own_symbol_gaps`]).
+    pub own_symbols: Vec<OwnSymbolGap>,
 }
 
 /// A drawn box of a device that a part's change draws anew (doc 10 §2.6, FT-2208): its pins follow the part's.
@@ -652,6 +657,41 @@ pub(crate) fn redrawn_symbols(before: &Q, after: &Q) -> Vec<RedrawnSymbol> {
         .collect()
 }
 
+/// A part's bus symbol of one's own that a change leaves out of step with the part's network ports (doc 10 §2.7): the
+/// program never redraws it, so the card says what it lacks and what it has too many.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct OwnSymbolGap {
+    /// The part's number.
+    pub part: String,
+    /// The sockets of its ports the symbol does not draw, in words ("X1 P3").
+    pub missing: Vec<String>,
+    /// The sockets it draws that the ports no longer have, in words.
+    pub extra: Vec<String>,
+}
+
+/// The parts whose bus symbol of one's own a change from `before` to `after` leaves out of step with their network
+/// ports, where it was not so before ([`ew_derive::socket_mismatch`]), in copy ID order.
+pub(crate) fn own_symbol_gaps(before: &Q, after: &Q) -> Vec<OwnSymbolGap> {
+    let gap = |q: &Q, p: &Part| {
+        ew_derive::own_bus_symbol(q, p)
+            .map(|s| ew_derive::socket_mismatch(s, p))
+            .filter(|(m, e)| !m.is_empty() || !e.is_empty())
+    };
+    after
+        .parts()
+        .iter()
+        .filter_map(|(id, c)| {
+            let (missing, extra) = gap(after, &c.item)?;
+            let was = before.parts().get(id).and_then(|b| gap(before, &b.item));
+            (was.as_ref() != Some(&(missing.clone(), extra.clone()))).then(|| OwnSymbolGap {
+                part: c.item.part_number.to_string(),
+                missing,
+                extra,
+            })
+        })
+        .collect()
+}
+
 pub(crate) fn message(field: &str, key: &'static str, args: &[&str]) -> DraftMessage {
     DraftMessage {
         field: field.to_owned(),
@@ -665,6 +705,11 @@ fn unit_word(u: &OrderUnit) -> String {
         .ok()
         .and_then(|v| v.as_str().map(str::to_owned))
         .unwrap_or_default()
+}
+
+/// The library address a reference names (`library:<library>:<item>`), as the sheet holds a symbol.
+fn symbol_address(r: &LibRef) -> String {
+    format!("library:{}:{}", r.library.as_uuid(), r.item.as_uuid())
 }
 
 fn opt_text(i: Option<&Ident>) -> String {
@@ -837,6 +882,7 @@ impl Session {
             start: None,
             pieces: crate::part_pieces::pieces_of(p),
             levels: crate::part_pieces::levels_of(p),
+            bus_symbol: p.bus_symbol.as_ref().map(symbol_address).unwrap_or_default(),
             copy,
             fields,
             tech,
@@ -987,6 +1033,21 @@ impl Session {
                 Some(m) => Err(PartDraftError::Field(m.clone())),
                 None => Ok(()),
             };
+        }
+        // His own bus symbol, by its library address; empty: the program's (doc 10 §2.7).
+        if field == "bus_symbol" {
+            if !(draft.new || draft.own) {
+                return Err(PartDraftError::Refused(key!("error-part-field")));
+            }
+            let kept = draft.original.bus_symbol.as_ref().map(symbol_address);
+            if !t.is_empty() && kept.as_deref() != Some(t) && self.library_symbol_ref(t).is_none() {
+                let m = message(field, key!("error-part-value"), &[t]);
+                draft.set_message(field, Some(m.clone()));
+                return Err(PartDraftError::Field(m));
+            }
+            t.clone_into(&mut draft.bus_symbol);
+            draft.set_message(field, None);
+            return Ok(());
         }
         if let Some(result) = self.set_piece_field(draft, field, text) {
             return result;
@@ -1185,6 +1246,30 @@ impl Session {
         p.unit = serde_json::from_value(Value::String(text("unit"))).expect("checked");
         let mut docs = check.manufacturer.1;
         docs.extend(self.apply_rows(draft, &mut p)?);
+        // His own bus symbol as the sheet names it now: the one it had, another of a library (which comes into the
+        // project with the part's Save where the project holds the part), or none.
+        let named = draft.bus_symbol.trim();
+        if draft.original.bus_symbol.as_ref().map(symbol_address).as_deref() != Some(named) {
+            p.bus_symbol = if named.is_empty() {
+                None
+            } else {
+                let r = self.library_symbol_ref(named).ok_or_else(|| {
+                    PartDraftError::Field(message("bus_symbol", key!("error-part-value"), &[named]))
+                })?;
+                let held = self.query().parts().contains(Id::from_uuid(draft.copy));
+                if held {
+                    let copies = self.closure_docs(std::slice::from_ref(&r)).map_err(|e| {
+                        PartDraftError::Field(message(
+                            "bus_symbol",
+                            key!("error-part-value"),
+                            &[&e.to_string()],
+                        ))
+                    })?;
+                    docs.extend(copies.iter().filter_map(|d| serde_json::to_value(d).ok()));
+                }
+                Some(r)
+            };
+        }
         let mut tech: Vec<TechValue> = Vec::new();
         for (k, v) in &draft.tech {
             let value = self.tech_value(k, v).map_err(PartDraftError::Field)?;
@@ -1287,6 +1372,7 @@ impl Session {
         let lost = lost_sockets(&q, &after);
         let boxes = redrawn_boxes(&q, &after);
         let symbols = redrawn_symbols(&q, &after);
+        let own_symbols = own_symbol_gaps(&q, &after);
         Ok(PartEditPlan {
             fork: command
                 .params
@@ -1302,6 +1388,7 @@ impl Session {
             lost,
             boxes,
             symbols,
+            own_symbols,
         })
     }
 }

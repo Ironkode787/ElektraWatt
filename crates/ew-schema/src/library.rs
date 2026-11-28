@@ -1416,6 +1416,12 @@ pub struct Part {
     /// out its own way.
     #[serde(rename = "box", default, skip_serializing_if = "Option::is_none")]
     pub box_: Option<PartBox>,
+    /// His own bus symbol (doc 10 §2.7): a symbol of his that draws every device of the part on a bus page in place of
+    /// the one the program derives from the network ports; it comes with the part (its embed closure). Absent: the
+    /// derived one. An optional member without cascade semantics (ADR-0011 amendment 8): an older build keeps it and
+    /// draws the derived symbol, or the part's boxes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bus_symbol: Option<LibRef>,
     /// Unknown members and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

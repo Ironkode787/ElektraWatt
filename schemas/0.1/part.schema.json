@@ -3946,6 +3946,17 @@
       ],
       "description": "The device box (doc 07 §2.5, \"The device box\"): how a device of the part is drawn as a box, its size and\nwhere each pin stands on it; absent: the box is drawn by two clicks, its pins half on top and half below. An\noptional member without cascade semantics (ADR-0011 amendment 6): an older build keeps it and lays the pins\nout its own way."
     },
+    "bus_symbol": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LibRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "His own bus symbol (doc 10 §2.7): a symbol of his that draws every device of the part on a bus page in place of\nthe one the program derives from the network ports; it comes with the part (its embed closure). Absent: the\nderived one. An optional member without cascade semantics (ADR-0011 amendment 8): an older build keeps it and\ndraws the derived symbol, or the part's boxes."
+    },
     "category": {
       "description": "Function category for compatibility filters.",
       "maxItems": 3,

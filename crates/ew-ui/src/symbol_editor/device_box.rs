@@ -218,9 +218,7 @@ impl EditorView {
                     label(key!("box-pins-empty")),
                 ));
             }
-            if let Some(from) = from.as_deref()
-                && b.ports_line().is_none()
-            {
+            if let Some(from) = from.as_deref() {
                 ui.add(egui::Label::new(crate::components::small_secondary(&t, from)).wrap());
             }
             ui.add_space(t.space_1);
@@ -228,15 +226,6 @@ impl EditorView {
                 .clicked()
             {
                 action(events, "part.pin", json!({ "add": true }));
-            }
-            // A bus device's network ports are drawn on a bus page, from its interfaces: one line says so, with the
-            // way to that group of the sheet.
-            if let Some(line) = b.ports_line() {
-                ui.add_space(t.space_2);
-                ui.add(egui::Label::new(crate::components::small_secondary(&t, line)).wrap());
-                if ui.link(label(key!("box-ports-way"))).clicked() {
-                    action(events, "parts.draw", json!({ "done": true }));
-                }
             }
             ui.add_space(t.space_3);
             ui.label(egui::RichText::new(label(key!("box-the-box"))).strong());

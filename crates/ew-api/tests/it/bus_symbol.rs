@@ -112,7 +112,13 @@ fn parts(address: &str) -> (Project, Vec<Record>, Vec<LibDocument>) {
     records.push(rep(TURNED, copy, &[0x61, 0x62], (60, 10), "r90"));
     records.push(rep(SWITCHED, copy, &[0x71], (10, 40), "r0"));
     let dp = json!({"interface": "DP", "bus": "profibus_dp", "role": "slave", "address": {"value": {"profibus": 5}}});
-    records.extend(device(0x80, "A", 3, COUPLER, &[(0x81, profinet("X1", "cpl1", "192.168.0.20")), (0x82, dp)]));
+    records.extend(device(
+        0x80,
+        "A",
+        3,
+        COUPLER,
+        &[(0x81, profinet("X1", "cpl1", "192.168.0.20")), (0x82, dp)],
+    ));
     records.push(rep(COUPLED, copy, &[0x81, 0x82], (60, 45), "r0"));
     let mut lib = vec![
         symbol,
@@ -406,4 +412,84 @@ fn a_station_placed_on_a_bus_page_gets_a_port_function_per_interface() {
             ("X1".to_owned(), "ew.fn.pn-port".to_owned())
         ]
     );
+}
+
+/// The coupler's part CPL-PN-DP names a bus symbol of one's own, made from the program's with its DP socket moved to the
+/// bottom edge: the page draws the part's device with it, as it is. While it draws every socket of the part's network
+/// ports EW-BUS-011 says nothing; once X1 counts three ports it names X1 P3 and offers the way to the drawing.
+#[test]
+fn a_part_s_own_bus_symbol_draws_its_devices_and_ew_bus_011_names_what_it_lacks() {
+    let own_item = 0x9500;
+    let copy = ew_ids::v5::lib_copy_id::<()>(
+        uid(0x9000).parse().expect("a uuid"),
+        uid(own_item).parse().expect("a uuid"),
+    )
+    .as_uuid();
+    let with_own = |x1_ports: u16| {
+        let (project, records, mut lib) = parts("rio1");
+        let coupler = |ports: u16| {
+            let mut p = part(
+                COUPLER,
+                "CPL-PN-DP",
+                json!([{"interface": "X1", "bus": "profinet", "role": "device", "ports": ports},
+                       {"interface": "DP", "bus": "profibus_dp", "role": "slave"}]),
+            );
+            p["bus_symbol"] = json!({"library": uid(0x9000), "item": uid(own_item), "version_req": "^1"});
+            p
+        };
+        let made: ew_schema::Part = serde_json::from_value(coupler(2)).expect("a part");
+        let mut own = ew_derive::bus_symbol(&made, ew_units::Grid::QET_10PX);
+        let bottom = own.cps.iter().map(|c| c.pos.y.0).max().expect("a socket");
+        let mut cps: Vec<ew_schema::SymbolCp> = own.cps.iter().cloned().collect();
+        for c in cps
+            .iter_mut()
+            .filter(|c| c.interface.as_ref().map(|i| i.as_str()) == Some("DP"))
+        {
+            c.pos = Pt2::new(c.pos.x, ew_units::Nm(bottom));
+            c.dir = ew_schema::Dir4::Down;
+        }
+        own.cps = ew_schema::KeyedList::from_vec(cps).expect("unique");
+        let mut doc = serde_json::to_value(&own).expect("json");
+        for (k, v) in [
+            ("$k", json!("symbol")),
+            ("id", json!(copy.to_string())),
+            ("library_id", json!(uid(0x9000))),
+            ("item_id", json!(uid(own_item))),
+            ("version", json!("1.0.0")),
+            ("sha256", json!(format!("sha256:{}", "2".repeat(64)))),
+        ] {
+            doc[k] = v;
+        }
+        let swap =
+            |d: &LibDocument| matches!(d, LibDocument::Part(p) if p.item.part_number.as_str() == "CPL-PN-DP");
+        lib.retain(|d| !swap(d));
+        lib.push(serde_json::from_value(coupler(x1_ports)).expect("the coupler"));
+        lib.push(serde_json::from_value(doc).expect("the own symbol"));
+        (
+            Model::from_records(project, records, lib).unwrap_or_else(|e| panic!("model: {e:?}")),
+            own,
+        )
+    };
+    let rule = ew_checks::rule("EW-BUS-011").expect("EW-BUS-011");
+    let (model, own) = with_own(2);
+    let q = Q::new(&model);
+    let stored: Representation = (**q.reps().get(id(COUPLED)).expect("the coupler")).clone();
+    let (drawn, rep) = ew_derive::drawn(&q, &stored).expect("drawn");
+    assert_eq!(
+        drawn.cps, own.cps,
+        "drawn with the part's own symbol, its DP socket on the bottom edge"
+    );
+    assert_eq!(rep.pin_map.len(), 3, "each socket draws its port function");
+    assert!(
+        rule.run(&q, &ew_checks::Scope::Project).is_empty(),
+        "every socket drawn"
+    );
+    let (model, _) = with_own(3);
+    let q = Q::new(&model);
+    let found = rule.run(&q, &ew_checks::Scope::Project);
+    assert_eq!(found.len(), 1, "{found:?}");
+    let text = ew_checks::render(&found[0], "en-GB");
+    assert!(text.contains("X1 P3") && text.contains("CPL-PN-DP"), "{text}");
+    let fix = found[0].fix.as_ref().expect("Open the bus symbol");
+    assert_eq!(fix.command, "parts.open");
 }

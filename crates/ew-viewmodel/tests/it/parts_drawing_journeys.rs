@@ -501,10 +501,10 @@ fn a_symbol_lists_the_parts_drawn_with_it() {
     assert!(parts.iter().any(|n| n == "MY-CON-7"), "{parts:?}");
 }
 
-/// A box arranged says on the status line whose box it is and how many pins it has, and a bus device's line says
-/// where its network ports are drawn.
+/// A box arranged says on the status line whose box it is and how many pins it has; a bus device's network ports are
+/// no pins of it (they are pictured "On a bus page" on the sheet).
 #[test]
-fn a_box_speaks_of_its_part_and_its_ports() {
+fn a_box_speaks_of_its_part() {
     let tmp = Tmp::new("journey-h-status");
     let mut s = project(&tmp);
     done(&mut s, "parts.new", json!({"start": "box"}));
@@ -528,14 +528,6 @@ fn a_box_speaks_of_its_part_and_its_ports() {
             .iter()
             .any(|f| f == "PN-SW2 · changed, not saved · the box: 2 pins"),
         "{status:?}"
-    );
-    let line = s
-        .symbol_editor()
-        .and_then(|e| e.device_box())
-        .and_then(|b| b.ports_line());
-    assert_eq!(
-        line.as_deref(),
-        Some("Network ports X1 P1 and X1 P2 are drawn on a bus page.")
     );
 }
 
@@ -1085,4 +1077,82 @@ fn back_without_it_returns_to_the_page_and_keeps_the_part_aside() {
         .expect("the part is kept");
     assert!(open.changed, "with its typing");
     assert_eq!(open.title(), "HALF-TYPED");
+}
+
+/// The open sheet's part "On a bus page": its bus symbol, his own or the program's.
+fn on_a_bus_page(s: &ShellModel) -> ew_viewmodel::ew_api::output::PartBusSymbol {
+    let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the part");
+    s.part_bus_symbol(&open.sheet).expect("network ports")
+}
+
+/// A coupler of his own on two buses (X1 on PROFINET with two ports, DP on PROFIBUS): its sheet pictures the program's
+/// bus symbol "On a bus page"; Make my own from it… opens that symbol as a drawing of his own with a socket for each
+/// port; a text moved into a socket's way out is refused in words and taken back; Done gives the part the symbol, the
+/// part's Save keeps it, and the picture is his. With X1 at three ports the picture says X1 P3 is not drawn; Use the
+/// program's symbol again drops his own.
+#[test]
+fn make_my_own_bus_symbol_and_use_the_program_s_again() {
+    let tmp = Tmp::new("own-bus-symbol");
+    let mut s = project(&tmp);
+    done(&mut s, "parts.new", json!({"start": "box"}));
+    for (field, value) in [("manufacturer", "Example"), ("part_number", "CPL-PN-DP")] {
+        done(&mut s, "parts.field", json!({"field": field, "value": value}));
+    }
+    for name in ["L+", "M"] {
+        done(&mut s, "part.pin", json!({"add": true, "name": name}));
+    }
+    done(&mut s, "parts.row", json!({"table": "bus"}));
+    done(&mut s, "parts.row", json!({"table": "bus"}));
+    for (field, value) in [
+        ("bus.0.interface", "X1"),
+        ("bus.0.bus", "profinet"),
+        ("bus.0.ports", "2"),
+        ("bus.1.interface", "DP"),
+        ("bus.1.bus", "profibus_dp"),
+    ] {
+        done(&mut s, "parts.field", json!({"field": field, "value": value}));
+    }
+    done(&mut s, "parts.save", json!({}));
+    assert!(!on_a_bus_page(&s).own, "the program's symbol");
+    done(&mut s, "parts.draw", json!({"what": "bus_symbol"}));
+    let editor = s.symbol_editor().expect("the drawing");
+    assert!(
+        editor.strip().is_some_and(|t| t.contains("CPL-PN-DP")),
+        "{:?}",
+        editor.strip()
+    );
+    let outline = editor.outline();
+    let sockets: Vec<&str> = outline.groups[0].rows.iter().map(|r| r.label.as_str()).collect();
+    assert_eq!(outline.groups[0].label, "Sockets");
+    assert_eq!(sockets, ["X1 P1", "X1 P2", "DP"]);
+    assert!(outline.todo.is_empty(), "{:?}", outline.todo);
+    // The tag moved onto X1 P1's way out, above the header.
+    let symbol = &editor.draft.symbol;
+    let (tag, p1) = (
+        symbol.text_slots[0].pos,
+        symbol.cps.iter().next().expect("X1 P1").pos,
+    );
+    let mm = |nm: i64| nm as f64 / 1e6;
+    done(&mut s, "symbol.select", json!({"items": ["slot:0"]}));
+    let refused = crate::common::failed(
+        &mut s,
+        "symbol.move",
+        json!({"dx": mm(p1.x.0 - tag.x.0) - 1.0, "dy": mm(p1.y.0 - tag.y.0) + 2.0}),
+    );
+    assert!(refused.contains("inside its body"), "{refused}");
+    let editor = s.symbol_editor().expect("the drawing");
+    assert_eq!(editor.draft.symbol.text_slots[0].pos, tag, "taken back");
+    done(&mut s, "parts.save", json!({}));
+    let open = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the part");
+    assert!(open.sheet.bus_symbol.starts_with("library:"), "the part names it");
+    done(&mut s, "parts.save", json!({}));
+    assert!(on_a_bus_page(&s).own, "his own, after the part's Save");
+    done(
+        &mut s,
+        "parts.field",
+        json!({"field": "bus.0.ports", "value": "3"}),
+    );
+    assert_eq!(on_a_bus_page(&s).missing, ["X1 P3"]);
+    done(&mut s, "parts.field", json!({"field": "bus_symbol", "value": ""}));
+    assert!(!on_a_bus_page(&s).own, "the program's again");
 }

@@ -642,6 +642,7 @@ impl SymbolDraft {
             }
         }
         let mut mapped = BTreeSet::new();
+        let mut sockets = BTreeSet::new();
         if self.import_notes.iter().any(|n| n.starts_with("eplan-")) && !self.import_reviewed {
             issue(
                 "symbol-import-review",
@@ -680,9 +681,16 @@ impl SymbolDraft {
             {
                 issue("symbol-cp-off-grid", format!("{path}/pos"), label.clone());
             }
-            if function.is_none_or(|p| !p.physical || p.discipline != cp.discipline)
-                || !mapped.insert(cp.fn_cp)
-            {
+            // A bus symbol's socket draws pin `fn_cp` of the function that carries its interface (doc 10 §2.7), not a
+            // pin of the symbol's own function: one socket per interface and pin.
+            let unmapped = match &cp.interface {
+                Some(interface) => !sockets.insert((interface.clone(), cp.port_label.clone(), cp.fn_cp)),
+                None => {
+                    function.is_none_or(|p| !p.physical || p.discipline != cp.discipline)
+                        || !mapped.insert(cp.fn_cp)
+                }
+            };
+            if unmapped {
                 issue("symbol-cp-mapping", format!("{path}/fn_cp"), label.clone());
             }
             if matches!(cp.dir, Dir4::Unknown(_)) {

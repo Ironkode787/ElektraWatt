@@ -404,8 +404,8 @@ fn refs_in(v: &Value, out: &mut Vec<(Uuid, Uuid, String)>) {
     }
 }
 
-/// The references a document pulls into its closure (doc 05 §13.2): a part its template FnDefs, its macros and its
-/// manufacturer; a symbol its FnDef; a macro the symbols, FnDefs, parts and forms its fragment names.
+/// The references a document pulls into its closure (doc 05 §13.2): a part its template FnDefs, its pieces' and its
+/// bus symbol, its macros, its accessories and its manufacturer; a symbol its FnDef; a macro the symbols, FnDefs, parts and forms its fragment names.
 fn closure_refs(doc: &LibDocument) -> Vec<(Uuid, Uuid, String)> {
     let r = |x: &LibRef| (x.library.as_uuid(), x.item.as_uuid(), x.version_req.clone());
     match doc {
@@ -419,6 +419,8 @@ fn closure_refs(doc: &LibDocument) -> Vec<(Uuid, Uuid, String)> {
                     .filter_map(|t| t.symbol.as_ref())
                     .map(r),
             );
+            // His own bus symbol (doc 10 §2.7) comes with the part.
+            out.extend(c.item.bus_symbol.as_ref().map(r));
             out.extend(c.item.macros.iter().map(|m| r(&m.macro_ref)));
             out.extend(c.item.accessories.iter().map(|a| r(&a.part)));
             out.push(r(&c.item.manufacturer));

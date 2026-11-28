@@ -1195,7 +1195,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // The drawing of a piece's symbol (Draw a new symbol…, Change it for this part…), the drawing in hand again (the
     // Drawing tab), or back to the Part tab (`done`).
     with_params(
-        "what?:enum(symbol|box), part?:text, piece?:uint, from?:enum(new|change), done?:bool, discard?:bool",
+        "what?:enum(symbol|box|bus_symbol), part?:text, piece?:uint, from?:enum(new|change), done?:bool, discard?:bool",
         hidden(act(
             "parts.draw",
             View,

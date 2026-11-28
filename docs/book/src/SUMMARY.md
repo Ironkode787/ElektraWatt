@@ -198,6 +198,7 @@
       - [EW-BUS-007](reference/rules/ew-bus-007.md)
       - [EW-BUS-009](reference/rules/ew-bus-009.md)
       - [EW-BUS-010](reference/rules/ew-bus-010.md)
+      - [EW-BUS-011](reference/rules/ew-bus-011.md)
       - [EW-IOL-001](reference/rules/ew-iol-001.md)
       - [EW-IOL-002](reference/rules/ew-iol-002.md)
     - [EW-CORE](reference/rules/ew-core.md)

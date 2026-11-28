@@ -223,8 +223,10 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    2. *A device on a bus page is drawn with its bus symbol* (0.4.0, FT-1904; [bus](../design/10-bus.md) §2.7). A
       representation names the built-in symbol `ew.gen.bus`, whose body a page derives from the device's part; a
       symbol's connection point may name the interface and port it draws (`SymbolCp.interface`, `.port_label`) and a
-      `bus_address` slot the interface whose address it prints (`TextSlot.interface`, `.port_label`), all optional. A
-      project of 0.3.5 holds none of them and reads unchanged. 0.3.5's reader keeps the members in `extra` and draws such a
+      `bus_address` slot the interface whose address it prints (`TextSlot.interface`, `.port_label`), and a part may
+      name a bus symbol of one's own that draws its devices in place of the derived one (`Part.bus_symbol`, a
+      library reference that its embed closure brings), all optional. A project of 0.3.5 holds none of them and reads
+      unchanged. 0.3.5's reader keeps the members in `extra` and draws such a
       representation as its embedded copy holds it: no body and no connection point, so the device is not seen on the
       page and its bus lines end where the copy draws nothing.
 9. **The `min_reader` stamp is the format** (2026-11-23, [ADR-0035](0035-homes-order-texts-shell.md) decision 17;

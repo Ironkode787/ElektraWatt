@@ -1216,6 +1216,7 @@ choice-change = Wijzigen
 choice-hand = In de hand
 choice-selected = Geselecteerd
 choice-symbol = Symbool
+choice-bus-symbol = Bussymbool
 choice-tag = Kenmerk
 choice-tia-xlsx = TIA-kenmerkentabel
 field-word-type-ident = Typeaanduiding

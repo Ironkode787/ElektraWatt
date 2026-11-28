@@ -378,6 +378,8 @@ part-field-plc-pin-of-in = pin of a channel
 
 ## Network ports
 
+part-field-bus-symbol = Bus symbol
+part-field-bus-symbol-in = bus symbol
 part-field-bus-interface = Interface
 part-field-bus-interface-in = interface
 part-field-bus-port-label = Port label
@@ -598,6 +600,7 @@ part-not-here-solenoids = It has no solenoids: there is no coil to check.
 part-not-here-plc = It is no PLC module or station: this does not apply.
 part-says-main = Which piece carries the device's tag on the page.
 part-says-piece-symbol = The symbol a page draws the piece with; without one, the first symbol of what the piece is.
+part-says-bus-symbol = The symbol of one's own that a bus page draws every device of the part with; without one, the program's, from the network ports.
 part-feature-duct-fill = Duct fill
 part-feature-wire-way = Way of the wires
 part-says-clearance-front = Without { $p0 } the closed-door check keeps no room in front of the part.

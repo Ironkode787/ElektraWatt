@@ -485,6 +485,7 @@ pub fn part(part_id: Id<Part>, part_number: &str) -> LibCopy<Part> {
         variants: Default::default(),
         macros: vec![],
         box_: None,
+        bus_symbol: None,
         extra: Extra::new(),
     };
     lib_copy(part_id, item)

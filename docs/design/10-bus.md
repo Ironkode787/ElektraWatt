@@ -111,12 +111,15 @@ present only on a connector or device with a termination switch (FR-BUS-004).
     address texts the interface they print (`TextSlot.interface` on a `bus_address` slot); he moves sockets to any
     edge and texts anywhere inside the body. Every device of the part is then drawn with it. The program never
     redraws it: when the part's network ports change, a socket it lacks, or one the part no longer has, is named on
-    the part's Save, in What it lacks and by EW-BUS-011, each with the way to the drawing; Use the program's symbol
-    again takes it away.
+    the part's Save card, under the sheet's picture "On a bus page", in the drawing's To do and by EW-BUS-011 (with
+    Open the bus symbol); Use the program's symbol again takes it away. A part that names it brings it in its embed
+    closure; while a project does not hold it, the derived symbol draws.
   - **No text of a device lies on a cable.** A bus symbol prints every text of its device inside its body, in the
-    room its sockets' labels leave free (the bands along the edges that carry sockets); a cable ends at a socket's
-    stub outside the body, so no cable that comes to the device can cross its texts. The symbol editor refuses in
-    words a text of a bus symbol of one's own dragged outside the body or into a socket's band.
+    room its sockets' labels leave free (each socket's way out: the strip inside the body at its edge, a label's line
+    wide and as deep as its label reaches); a cable ends at a socket's stub outside the body, so no cable that comes to
+    the device can cross its texts. The one rule is `ew_derive::texts_clear`: the derivation keeps it, and the symbol
+    editor refuses in words, and takes back, an edit of a bus symbol of one's own that puts a text outside the body or
+    into a socket's way out, on any of the four edges.
   - **Placing.** `bus.place_ports` draws the symbol in one step, for a new device of a part (from the device browser,
     the template functions made as `device.place` makes them, none drawn there) or an existing one (Place here, or
     Place port `<interface>` on a station's row while a bus-topology page is shown, and the Bus panel's Ports not

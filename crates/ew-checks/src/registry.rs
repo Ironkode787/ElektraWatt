@@ -21,6 +21,7 @@ static IMPLEMENTED: &[&dyn Rule] = &[
     &shipped::bus_net::NoMaster,
     &shipped::bus_net::WrongCable,
     &shipped::bus_net::NetMismatch,
+    &shipped::bus::OwnBusSymbol,
     &shipped::device::DanglingReference,
     &shipped::core::ConflictRecords,
     &shipped::core::MergeCollisions,
