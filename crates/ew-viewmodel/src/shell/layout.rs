@@ -1408,10 +1408,12 @@ impl ShellModel {
             if let Some((copy, number)) = self.enclosure_part(&location.to_string()) {
                 let named = (project.session.layout_part_offers("enclosure").into_iter())
                     .find(|o| o.part.to_string() == part || o.number == part);
-                if named.is_none_or(|o| o.part != copy) {
+                if named.as_ref().is_none_or(|o| o.part != copy) {
+                    // The part named by its number, whether the script named it by its number or by its copy.
+                    let other = named.map_or_else(|| part.clone(), |o| o.number);
                     return self.form_failed(
                         ACTION,
-                        strings::format(key!("error-enclosure-other-part"), &[&tag, &code, &number, &part]),
+                        strings::format(key!("error-enclosure-other-part"), &[&tag, &code, &number, &other]),
                     );
                 }
             }

@@ -467,6 +467,17 @@ fn create_enclosure_on_a_location_with_one_offers_no_part_it_ignores() {
         matches!(out, Outcome::Refused { .. } | Outcome::Failed { .. }),
         "{out:?}"
     );
+    // Named by its copy, as a script may name it, the refusal names it by its number.
+    let copy = copies_of(&s, "EX-CAB-8").pop().expect("the project holds his cabinet");
+    let words = match s.dispatch(
+        "layout.enclosure_new",
+        &json!({"location": code, "part": copy}),
+    ) {
+        Outcome::Failed { message } => message,
+        other => panic!("{other:?}"),
+    };
+    assert!(words.contains("does not give it EX-CAB-8"), "{words}");
+    no_identifier(&words);
     s.shutdown();
 }
 
