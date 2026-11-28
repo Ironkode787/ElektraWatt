@@ -328,8 +328,20 @@ impl ShellModel {
                 .command
                 .as_ref()
                 .map_or(Outcome::Done, |c| self.run_commit(c));
-            self.own_saved(&save, Some(said));
-            return Ok(out);
+            if out == Outcome::Done {
+                self.own_saved(&save, Some(said));
+                return Ok(out);
+            }
+            // My parts was written and the project's step was refused: said as it stands, with the way on.
+            let why = match &out {
+                Outcome::Refused { reason } => strings::render(reason),
+                Outcome::Failed { message } => message.clone(),
+                Outcome::Done => String::new(),
+            };
+            let names: Vec<&str> = std::iter::once(title).chain(save.with.iter().map(String::as_str)).collect();
+            let message = strings::format(key!("parts-saved-project-refused"), &[&names.join(", "), &why]);
+            self.parts_refresh();
+            return Ok(Outcome::Failed { message });
         };
         let session = self.parts_session();
         let fields = plan

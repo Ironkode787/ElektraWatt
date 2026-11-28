@@ -369,6 +369,7 @@ parts-use-program-bus-symbol = Weer het symbool van het programma gebruiken
 parts-no-front = Geef het een breedte en een hoogte om zijn voorkant te zien.
 parts-saved-mine = { $p0 } is opgeslagen in Mijn artikelen.
 parts-saved-kept = Mee bewaard in Mijn artikelen: { $p0 }.
+parts-saved-project-refused = Mijn artikelen heeft { $p0 } nu, maar dit project blijft op zijn eigen kopieën: { $p1 }. In mijn artikelen bewaren brengt het project op de kopieën van Mijn artikelen.
 reason-no-parts-place = Artikelen is niet open.
 reason-no-part-open = Er is geen artikel open in Artikelen.
 reason-part-not-yours = Het artikel is niet van u: maak uw eigen ervan.

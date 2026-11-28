@@ -375,6 +375,7 @@ parts-use-program-bus-symbol = Use the program's symbol again
 parts-no-front = Give it a width and a height to see its front.
 parts-saved-mine = { $p0 } is saved in My parts.
 parts-saved-kept = Kept in My parts with it: { $p0 }.
+parts-saved-project-refused = My parts holds { $p0 } now, but this project stays on its own copies: { $p1 }. Keep in my parts brings the project onto My parts' copies.
 reason-no-parts-place = Parts is not open.
 reason-no-part-open = No part is open in Parts.
 reason-part-not-yours = The part is not yours: make your own from it.

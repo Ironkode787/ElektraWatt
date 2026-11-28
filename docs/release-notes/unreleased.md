@@ -21,16 +21,18 @@ change here.
   the kept copies in the same undo step. Nothing is written to My parts before the Save, or before the card's Apply
   where the project holds the part; the card's Cancel writes nothing
 - behaviour-change: a part kept in My parts is one entry in Parts' list and in every list that offers parts (the part
-  dialog, the device browser, Create enclosure, the rail and duct tools, New cable…); after a Keep taken back by Undo
-  the row reads "Only in this project · also in My parts", and Keep in my parts brings the project onto My parts' copy
+  dialog, the device browser, Create enclosure, the rail and duct tools, New cable…, the strip editor, a wire's Part
+  row); after a Keep taken back by Undo the row reads "Only in this project · also in My parts", and Keep in my parts
+  brings the project onto My parts' copy
 - behaviour-change: several parts selected, some only in this project: Save reads **Keep in my parts and save** and
   keeps them in My parts with the values typed, instead of refusing
 - api-add: `part.keep` gains `also`, the other copies kept in the same step, each moving its uses to its kept copy;
   `library.update` gains `keep`, the copies whose uses move to their kept copies with the update; both absent unless set
 - api-add: `layout.enclosure.set_part {enclosure, part, copies?}` gives an enclosure another cabinet in one previewed
   step: the enclosure's device and its plate's device take the new parts, and every stored surface takes the new size,
-  what stands on it keeping its place; its card names the sizes that change and what no longer lies inside. Create
-  enclosure's **Change its cabinet…** and Properties ▸ Part ▸ Choose… on an enclosure's device open it
+  what stands on it keeping its place measured from its datum corner; its card names that corner, the sizes that change
+  and what no longer lies inside. Create enclosure's **Change its cabinet…** and Properties ▸ Part ▸ Choose… on an
+  enclosure's device open it
 - behaviour-change: Create enclosure on a location that has its enclosure names that enclosure's part, as text, and
   offers no other; a script that names another part is refused in words that point to Change its cabinet…; a form's
   list of one value that is the field's own reads as text
