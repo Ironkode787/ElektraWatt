@@ -292,7 +292,9 @@ is drawn as a person sees it from the side it is worked from, standing in front 
 
 - **Created from part data.** Enclosure… (`layout.enclosure.create_from_part`) makes the enclosure device (-UC1) with
   its part and the plate surface from the enclosure part's `plate`: its frame centres the plate in the enclosure, its
-  usable polygon is the plate rectangle. Sizes are never typed on the page.
+  usable polygon is the plate rectangle. Sizes are never typed on the page. For a location that has its enclosure the
+  dialog draws that enclosure as it is: it names the part the enclosure has and offers no other part, and a script
+  that names another is refused in words.
 - **Tags.** The enclosure device and its plate take the numbering scheme's tags, not frozen ones: the enclosure letter
   `UC` with the lowest counter no `UC` tag holds, its tag printing no page since no page draws it ([03](03-domain-model.md)
   §8.2), so `-UC1`; the plate its child `U1` (`-UC1-U1`). An older project keeps its frozen tags.

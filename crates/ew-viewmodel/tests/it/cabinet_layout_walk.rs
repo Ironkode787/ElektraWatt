@@ -97,7 +97,7 @@ fn an_enclosure_made_elsewhere_is_drawn_on_the_layout_page_and_the_cabinet_is_fi
     assert_eq!(buttons(&s)[0], "Draw -UC1 of +CAB1 on this page");
     assert_eq!(
         spec(s.dialog().unwrap(), &s).body,
-        ["+CAB1 has the enclosure -UC1 already: the button draws it."]
+        ["+CAB1 has the enclosure -UC1 already, part EW-GEN-ENC-1: the button draws it as it is."]
     );
     assert_eq!(s.submit_form(), Outcome::Done);
     assert!(s.dialog().is_none(), "the dialog closes");

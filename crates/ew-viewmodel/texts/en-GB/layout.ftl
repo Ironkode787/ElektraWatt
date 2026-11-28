@@ -83,7 +83,7 @@ enclosure-draw-new-page = Draw { $p0 } of { $p1 } on a new panel layout page
 enclosure-create-new-page = Create and draw on a new panel layout page
 enclosure-create-only = Create only
 enclosure-not-layout = This page is not a panel layout page. The enclosure is drawn on a new panel layout page after it; Create only makes the enclosure without drawing it.
-enclosure-has-one = { $p1 } has the enclosure { $p0 } already: the button draws it.
+enclosure-has-one = { $p1 } has the enclosure { $p0 } already, part { $p2 }: the button draws it as it is.
 enclosure-layout-title = Cabinet layout { $p0 }
 auto-fill-devices = { $p0 ->
         [one] 1 device

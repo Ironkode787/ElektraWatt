@@ -82,7 +82,7 @@ enclosure-draw-new-page = { $p0 } van { $p1 } op een nieuwe paneellayoutpagina t
 enclosure-create-new-page = Maken en op een nieuwe paneellayoutpagina tekenen
 enclosure-create-only = Alleen maken
 enclosure-not-layout = Deze pagina is geen paneellayoutpagina. De kast wordt getekend op een nieuwe paneellayoutpagina erna; Alleen maken maakt de kast zonder haar te tekenen.
-enclosure-has-one = { $p1 } heeft de kast { $p0 } al: de knop tekent haar.
+enclosure-has-one = { $p1 } heeft de kast { $p0 } al, artikel { $p2 }: de knop tekent haar zoals ze is.
 enclosure-layout-title = Paneellayout { $p0 }
 auto-fill-devices = { $p0 ->
         [one] 1 apparaat

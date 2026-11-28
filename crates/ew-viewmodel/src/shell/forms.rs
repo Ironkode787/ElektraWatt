@@ -337,8 +337,11 @@ impl ShellModel {
         let cable_rows = (["type", "part"].contains(&name)
             && matches!(&self.dialog, Some(Dialog::Form(f)) if f.action == "cable.from_wires"))
         .then(|| self.cable_row_wires());
-        // Create enclosure's code of a new location comes and goes with its "New location" choice.
+        // Create enclosure's code of a new location comes and goes with its "New location" choice, and its part
+        // choices follow the location: the part of its enclosure alone, where it has one.
         let code = (name == "location").then(|| self.proposed_location_code());
+        let enclosure_parts = (name == "location" && self.in_form_of("layout.enclosure_new"))
+            .then(|| self.enclosure_part_choices(value));
         // The grid question counts again for another grid.
         if name == "grid" && self.in_form_of(PAGE_GRID_FIT.action) {
             self.refresh_grid_fit(value);
@@ -379,6 +382,16 @@ impl ShellModel {
                 && let Some(code) = code
             {
                 super::layout::new_location_field(form, &code);
+            }
+            if let Some((options, held)) = enclosure_parts
+                && let Some(f) = form.fields.iter_mut().find(|f| f.name == "part")
+            {
+                let kept = options.iter().any(|(v, _)| *v == f.value);
+                f.value = held
+                    .or_else(|| kept.then(|| f.value.clone()))
+                    .or_else(|| options.first().map(|(v, _)| v.clone()))
+                    .unwrap_or_default();
+                f.options = options;
             }
             if name == "system" {
                 super::supply_place::own_names_field(form);

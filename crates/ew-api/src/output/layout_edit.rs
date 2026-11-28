@@ -2772,10 +2772,10 @@ impl Session {
         out
     }
 
-    /// The enclosures of the project's locations as `(location node, enclosure tag, its mounting plate)`, in
-    /// [`Self::layout_locations`]' order: what the Create enclosure dialog offers to draw on a layout page. An
-    /// enclosure without a mounting plate is left out: there is nothing to draw.
-    pub fn location_enclosures(&self) -> Vec<(Uuid, String, Uuid)> {
+    /// The enclosures of the project's locations as `(location node, enclosure tag, its mounting plate, the part copy
+    /// of its device)`, in [`Self::layout_locations`]' order: what the Create enclosure dialog offers to draw on a
+    /// layout page, with the part it has. An enclosure without a mounting plate is left out: there is nothing to draw.
+    pub fn location_enclosures(&self) -> Vec<(Uuid, String, Uuid, Option<Uuid>)> {
         let q = self.query();
         self.layout_locations()
             .into_iter()
@@ -2795,7 +2795,10 @@ impl Session {
                     .ok()
                     .and_then(|t| t.as_ref().as_ref().map(|t| t.short()))
                     .unwrap_or_default();
-                Some((location, tag, surface.as_uuid()))
+                let part = (q.devices().get(e.device))
+                    .and_then(|d| d.parts.first())
+                    .map(|u| u.part.copy.as_uuid());
+                Some((location, tag, surface.as_uuid(), part))
             })
             .collect()
     }

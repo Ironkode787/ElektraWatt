@@ -25,7 +25,8 @@ the parts list and the enclosure legend read it from there.
    Enclosure's arrow or the command search, which opens that row whatever Properties showed.
 
    A location that has its enclosure already (made from another page) is not made twice: with that location
-   chosen, the dialog's button reads **Draw -UC1 of +CAB1 on this page** and puts its mounting plate on the page.
+   chosen, the dialog says which part the enclosure has and offers no other, and its button reads **Draw -UC1 of
+   +CAB1 on this page** and puts its mounting plate on the page as it is.
    On a page that is not a panel layout page, the button reads **Create and draw on a new panel layout page** (or
    **Draw … on a new panel layout page**): it makes the panel layout page after the page shown and draws the
    enclosure there. **Create only** beside it makes the enclosure without drawing it.

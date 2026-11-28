@@ -1382,9 +1382,24 @@ impl ShellModel {
                 .location_enclosures()
                 .into_iter()
                 .find(|(l, ..)| l == id)
-                .map(|(_, tag, surface)| (tag, code.clone(), surface))
+                .map(|(l, tag, surface, _)| (tag, code.clone(), surface, l))
         });
-        if let Some((tag, code, surface)) = existing {
+        if let Some((tag, code, surface, location)) = existing {
+            // The dialog takes no part it would not use (doc 12 §3.1): the enclosure is drawn as it is, so another
+            // part named for it is refused in words.
+            if let Some((copy, number)) = self.enclosure_part(&location.to_string()) {
+                let named = (project.session.layout_part_offers("enclosure").into_iter())
+                    .find(|o| o.part.to_string() == part || o.number == part);
+                if named.is_none_or(|o| o.part != copy) {
+                    return self.form_failed(
+                        ACTION,
+                        strings::format(
+                            key!("error-enclosure-other-part"),
+                            &[&tag, &code, &number, &part],
+                        ),
+                    );
+                }
+            }
             let shown = self.panel_tables().map(|t| t.surface);
             if new_page || (self.on_panel_page() && shown != Some(surface)) {
                 return self.draw_enclosure(ACTION, new_page, &tag, &code, surface);
@@ -1623,26 +1638,59 @@ impl ShellModel {
             .unwrap_or_default()
     }
 
+    /// The part of the enclosure that location `location` (its node's ID) has, by its copy and its number; `None` for a
+    /// location without one.
+    fn enclosure_part(&self, location: &str) -> Option<(Uuid, String)> {
+        let project = self.project.as_ref()?;
+        let (.., part) = (project.session.location_enclosures().into_iter())
+            .find(|(l, ..)| l.to_string() == location)?;
+        let copy = part?;
+        let offer = (project.session.layout_part_offers("enclosure").into_iter()).find(|o| o.part == copy)?;
+        Some((copy, offer.number))
+    }
+
+    /// The Create enclosure dialog's part choices for location `location`: the part its enclosure has, alone and
+    /// chosen, where it has one (the dialog draws it as it is); else every enclosure part, the project's copies first,
+    /// with no choice made.
+    pub(super) fn enclosure_part_choices(&self, location: &str) -> (Vec<(String, String)>, Option<String>) {
+        let parts = (self.project.as_ref()).map_or_else(Vec::new, |p| p.session.layout_part_offers("enclosure"));
+        let held = self.enclosure_part(location).map(|(copy, _)| copy);
+        let options = (parts.iter())
+            .filter(|o| held.is_none_or(|c| o.part == c))
+            .map(|o| {
+                let words = if o.description.is_empty() {
+                    o.number.clone()
+                } else {
+                    format!("{} \u{b7} {}", o.number, o.description)
+                };
+                (o.part.to_string(), words)
+            })
+            .collect();
+        (options, held.map(|c| c.to_string()))
+    }
+
     /// The Create enclosure dialog: the location (the given one, else the focused page's, else the first, else a new
     /// one: the list's first choice "New location", with its code proposed in the field under it) and the enclosure
-    /// part (the given one, else the first: the project's copies, then the libraries' parts).
+    /// part (the part of the location's enclosure, where it has one; else the given one, else the first: the project's
+    /// copies, then the libraries' parts).
     fn enclosure_form(&self, location: Option<String>, part: Option<String>) -> super::FormDialog {
         let page = self.focused_page_id();
-        let (locations, parts, page_location) = match &self.project {
+        let (locations, page_location) = match &self.project {
             Some(project) => (
                 project.session.layout_locations(),
-                project.session.layout_part_offers("enclosure"),
                 page.and_then(|pg| project.session.page_structure(pg).0),
             ),
-            None => (Vec::new(), Vec::new(), None),
+            None => (Vec::new(), None),
         };
         let location = location
             .or_else(|| page_location.map(|l| l.to_string()))
             .filter(|l| locations.iter().any(|(id, _)| id.to_string() == *l))
             .or_else(|| locations.first().map(|(id, _)| id.to_string()))
             .unwrap_or_else(|| NEW_LOCATION.to_owned());
-        let part = part
-            .or_else(|| parts.first().map(|o| o.part.to_string()))
+        let (parts, held) = self.enclosure_part_choices(&location);
+        let part = held
+            .or(part)
+            .or_else(|| parts.first().map(|(v, _)| v.clone()))
             .unwrap_or_default();
         let options = std::iter::once((
             NEW_LOCATION.to_owned(),
@@ -1668,17 +1716,7 @@ impl ShellModel {
                     name: "part".into(),
                     label_key: key!("form-enclosure-part"),
                     choices: &super::choices::NONE,
-                    options: parts
-                        .iter()
-                        .map(|o| {
-                            let words = if o.description.is_empty() {
-                                o.number.clone()
-                            } else {
-                                format!("{} \u{b7} {}", o.number, o.description)
-                            };
-                            (o.part.to_string(), words)
-                        })
-                        .collect(),
+                    options: parts,
                     value: part,
                 },
             ],
@@ -1811,7 +1849,7 @@ impl ShellModel {
             .into_iter()
             .find(|(l, ..)| l.to_string() == location);
         match (existing, code) {
-            (Some((_, tag, surface)), Some(code)) => {
+            (Some((_, tag, surface, _)), Some(code)) => {
                 if on_panel && self.panel_tables().is_some_and(|t| t.surface == surface) {
                     return None;
                 }
@@ -1820,7 +1858,8 @@ impl ShellModel {
                 } else {
                     key!("enclosure-draw-new-page")
                 };
-                let line = strings::format(key!("enclosure-has-one"), &[&tag, &code]);
+                let number = self.enclosure_part(&location).map(|(_, n)| n).unwrap_or_default();
+                let line = strings::format(key!("enclosure-has-one"), &[&tag, &code, &number]);
                 Some((strings::format(key, &[&tag, &code]), !on_panel, false, Some(line)))
             }
             _ if on_panel => None,
