@@ -771,9 +771,10 @@ pub(super) fn bus_symbol_row(q: &Q, device: Id<Device>) -> Option<Built> {
     })?;
     let number = part.part_number.to_string();
     let own = ew_derive::own_bus_symbol(q, &part).map(|s| ew_derive::text_in(&s.item.name, None).to_owned());
-    let (text, note, link) = match (&own, &part.bus_symbol) {
+    // The value is worded by the program ("the program's", "your own"), so it follows the window's language.
+    let (word, note, link) = match (&own, &part.bus_symbol) {
         (Some(name), Some(r)) => (
-            format!("own: {name}"),
+            text!("bus-symbol-own"),
             text!("bus-symbol-own-note", name.clone()),
             super::RowLink {
                 label: text!("bus-symbol-open"),
@@ -784,7 +785,7 @@ pub(super) fn bus_symbol_row(q: &Q, device: Id<Device>) -> Option<Built> {
             },
         ),
         _ => (
-            "the program's".to_owned(),
+            text!("bus-symbol-program"),
             text!("bus-symbol-derived-note", number.clone()),
             super::RowLink {
                 label: text!("bus-symbol-make-own"),
@@ -803,7 +804,7 @@ pub(super) fn bus_symbol_row(q: &Q, device: Id<Device>) -> Option<Built> {
         ty: FieldType::Text,
         value: RowValue::One {
             json: serde_json::json!({"part": number, "own": own}),
-            text,
+            text: word.to_string(),
         },
         provenance: Provenance::Derived {
             via: text!("via-part"),
@@ -812,5 +813,6 @@ pub(super) fn bus_symbol_row(q: &Q, device: Id<Device>) -> Option<Built> {
     });
     row.row.note = Some(note);
     row.row.link = Some(link);
+    row.row.words = vec![word];
     Some(row)
 }
