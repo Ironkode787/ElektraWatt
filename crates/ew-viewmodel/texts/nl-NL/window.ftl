@@ -154,6 +154,7 @@ status-bar-unsaved = Niet-opgeslagen wijzigingen
 status-revision-released = { $p0 } vrijgegeven { $p1 }
 status-revision-released-undated = { $p0 } vrijgegeven
 status-revision-open = { $p0 } open
+status-revision-unchanged = { $p0 } open · geen pagina gewijzigd sinds { $p1 }
 status-revision-changed = { $p0 ->
         [one] { $p1 } open · 1 pagina gewijzigd sinds { $p2 }
        *[other] { $p1 } open · { $p0 } pagina's gewijzigd sinds { $p2 }

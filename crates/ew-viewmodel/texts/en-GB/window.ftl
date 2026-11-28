@@ -176,6 +176,7 @@ status-bar-unsaved = Unsaved changes
 status-revision-released = { $p0 } released { $p1 }
 status-revision-released-undated = { $p0 } released
 status-revision-open = { $p0 } open
+status-revision-unchanged = { $p0 } open · no page changed since { $p1 }
 status-revision-changed = { $p0 ->
         [one] { $p1 } open · 1 page changed since { $p2 }
        *[other] { $p1 } open · { $p0 } pages changed since { $p2 }
