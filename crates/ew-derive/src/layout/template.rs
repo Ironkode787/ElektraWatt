@@ -244,15 +244,14 @@ pub fn template_sheets(q: &Q, surface: Id<MountingSurface>, paper: Paper) -> Opt
         let room_h = ph.0 - 2 * TEMPLATE_MARGIN.0 - TEMPLATE_BAND.0;
         (
             (pw, ph),
-            (room_w, room_h),
             stretches(cover.width().0, room_w, &across),
             stretches(cover.height().0, room_h, &up),
         )
     };
     let portrait = lay(short, long);
     let landscape = lay(long, short);
-    let size = |l: &(_, _, Vec<_>, Vec<_>)| l.2.len() * l.3.len();
-    let ((pw, ph), (room_w, room_h), columns, lines) = if size(&landscape) < size(&portrait) {
+    let size = |l: &(_, Vec<_>, Vec<_>)| l.1.len() * l.2.len();
+    let ((pw, ph), columns, lines) = if size(&landscape) < size(&portrait) {
         landscape
     } else {
         portrait

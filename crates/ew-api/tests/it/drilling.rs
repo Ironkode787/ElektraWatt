@@ -197,7 +197,9 @@ fn with_cut_out(
 
 /// The sample's door with rectangular cut-outs of one's own, each `w` × `h` mm about its point `at` of the door's sheet,
 /// and its template on A4.
-fn with_cut_outs(cuts: &[(i64, i64, (i64, i64))]) -> (Session, Id<MountingSurface>, ew_derive::layout::TemplateSheets) {
+fn with_cut_outs(
+    cuts: &[(i64, i64, (i64, i64))],
+) -> (Session, Id<MountingSurface>, ew_derive::layout::TemplateSheets) {
     let mut s = common::sample();
     let door = door(&s);
     for (w, h, at) in cuts {
@@ -297,7 +299,8 @@ fn a_join_moves_clear_of_a_hole_and_a_hole_larger_than_a_sheet_is_drawn_across()
     let pages = crate::pdf_read::PdfFile::parse(&files[0].bytes)
         .and_then(|f| f.pages())
         .expect("the template reads back");
-    let says = |p: &crate::pdf_read::PageRead| p.runs.iter().any(|r| r.text.contains("Drawn across the sheets"));
+    let says =
+        |p: &crate::pdf_read::PageRead| p.runs.iter().any(|r| r.text.contains("Drawn across the sheets"));
     assert!(says(&pages[0]), "the first sheet says so");
     assert!(!pages[1..].iter().any(says), "only the first sheet says so");
 }
