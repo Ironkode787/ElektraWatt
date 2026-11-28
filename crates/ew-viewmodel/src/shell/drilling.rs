@@ -171,15 +171,21 @@ impl ShellModel {
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default();
-        // Which files are which surface's: their kinds, then the surfaces in the dialog's order.
-        let what = strings::text(match (ask.template, ask.dxf) {
-            (true, true) => key!("drilling-written-both"),
-            (true, false) => key!("drilling-written-template"),
-            _ => key!("drilling-written-dxf"),
-        });
+        // What was written, by the files' names: their kinds, then their surfaces in the dialog's order.
+        let wrote = |name: &String| files.iter().any(|f| f.name == *name);
+        let what = strings::text(
+            match (
+                offered.iter().any(|o| wrote(&o.files.0)),
+                offered.iter().any(|o| wrote(&o.files.1)),
+            ) {
+                (true, true) => key!("drilling-written-both"),
+                (true, false) => key!("drilling-written-template"),
+                _ => key!("drilling-written-dxf"),
+            },
+        );
         let surfaces: Vec<String> = offered
             .iter()
-            .filter(|o| ask.surfaces.contains(&o.surface))
+            .filter(|o| wrote(&o.files.0) || wrote(&o.files.1))
             .map(|o| strings::render(&o.words))
             .collect();
         let text = strings::format_counted(

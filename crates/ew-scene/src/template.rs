@@ -10,6 +10,7 @@
 //!
 //! The numbers come from `ew_derive::layout::template_sheets`; the words from the caller, in the project's language.
 
+use ew_derive::layout::{TEMPLATE_CROSS, TEMPLATE_OVERLAP};
 use ew_dl::{Brush, Color, DashPattern, DisplayList, EntityRef, Item, Path, PathBuilder, Pen, Stroke};
 use ew_schema::Align;
 use ew_text::{FontSet, TextStyle};
@@ -22,8 +23,6 @@ use crate::panel::LAYOUT_LABEL_STYLE;
 const MARGIN: Nm = Nm(10_000_000);
 /// The band at a sheet's foot.
 const BAND: Nm = Nm(12_000_000);
-/// How far a hole's centre cross reaches past its edge.
-const CROSS_PAST: Nm = Nm(4_000_000);
 /// The text of a hole's words and of the band.
 const TEXT: Nm = Nm(2_000_000);
 /// The tint of a strip a neighbour prints again.
@@ -40,6 +39,8 @@ pub struct TemplateHole {
     pub round: bool,
     /// Its words: number, how it is made and its owner ("H3 · Ø 22.3 · -102S1").
     pub words: String,
+    /// Larger than a sheet: its outline's corners are marked as well, where they fall on the sheet.
+    pub larger: bool,
 }
 
 /// The map of a template's sheets in its band, rows and columns as the paper shows them (from its top-left).
@@ -73,15 +74,13 @@ pub struct TemplateView {
     pub hinge: Option<(Pt2, Pt2)>,
     /// The datum's corner.
     pub datum: Option<Pt2>,
-    /// A neighbour on the right and one above: their strips tinted on this sheet.
+    /// A neighbour on the right and one above: their strips ([`TEMPLATE_OVERLAP`] wide) tinted on this sheet.
     pub tint: (bool, bool),
-    /// How far neighbouring sheets overlap: the width of a tinted strip.
-    pub overlap: Nm,
     /// A neighbour on the left and one below: this sheet's cut edges, dashed.
     pub cut: (bool, bool),
     /// The points where four sheets meet, in the surface frame.
     pub joins: Vec<Pt2>,
-    /// The band's lines, top down.
+    /// The band's lines, top down: at most four.
     pub band: Vec<String>,
     /// The map of the sheets.
     pub map: TemplateMap,
@@ -116,11 +115,11 @@ pub fn template_sheet(v: &TemplateView, fonts: &FontSet, styles: &ew_text::TextS
     // The strips the neighbours print again, tinted, under everything.
     let (cmin, cmax) = (content.min(), content.max());
     if v.tint.0 {
-        let r = Rect::from_points(Pt2::new(Nm(cmax.x.0 - v.overlap.0), cmin.y), cmax);
+        let r = Rect::from_points(Pt2::new(Nm(cmax.x.0 - TEMPLATE_OVERLAP.0), cmin.y), cmax);
         push(&mut b, Path::rect(r), None, Some(Brush::Solid(TINT)));
     }
     if v.tint.1 {
-        let r = Rect::from_points(cmin, Pt2::new(cmax.x, Nm(cmin.y.0 + v.overlap.0)));
+        let r = Rect::from_points(cmin, Pt2::new(cmax.x, Nm(cmin.y.0 + TEMPLATE_OVERLAP.0)));
         push(&mut b, Path::rect(r), None, Some(Brush::Solid(TINT)));
     }
     let dashed = || Some(thin.clone().dashed(DashPattern::Dash42));
@@ -279,15 +278,39 @@ pub fn template_sheet(v: &TemplateView, fonts: &FontSet, styles: &ew_text::TextS
                 at(Pt2::new(r.max().x, r.min().y)),
             ))
         };
-        push(&mut b, outline, Some(Stroke::pen(Pen::P026)), None);
-        let (rx, ry) = (hw + CROSS_PAST.0, hh + CROSS_PAST.0);
-        let cross = PathBuilder::default()
+        let (rx, ry) = (hw + TEMPLATE_CROSS.0, hh + TEMPLATE_CROSS.0);
+        let mut cross = PathBuilder::default()
             .move_to(Pt2::new(Nm(c.x.0 - rx), c.y))
             .line_to(Pt2::new(Nm(c.x.0 + rx), c.y))
             .move_to(Pt2::new(c.x, Nm(c.y.0 - ry)))
-            .line_to(Pt2::new(c.x, Nm(c.y.0 + ry)))
-            .build();
-        push(&mut b, cross, Some(thin.clone()), None);
+            .line_to(Pt2::new(c.x, Nm(c.y.0 + ry)));
+        // A hole larger than the sheet: a cross on each corner of its outline (a round one's: where its box touches
+        // it), so that the sheets beside it line it up.
+        if h.larger {
+            let arm = TEMPLATE_CROSS.0;
+            let corners = if h.round {
+                [(-hw, 0), (hw, 0), (0, -hh), (0, hh)]
+            } else {
+                [(-hw, -hh), (hw, -hh), (hw, hh), (-hw, hh)]
+            };
+            for (dx, dy) in corners {
+                let k = Pt2::new(Nm(c.x.0 + dx), Nm(c.y.0 + dy));
+                cross = cross
+                    .move_to(Pt2::new(Nm(k.x.0 - arm), k.y))
+                    .line_to(Pt2::new(Nm(k.x.0 + arm), k.y))
+                    .move_to(Pt2::new(k.x, Nm(k.y.0 - arm)))
+                    .line_to(Pt2::new(k.x, Nm(k.y.0 + arm)));
+            }
+        }
+        // The outline and its marks end at the sheet's edge: the part beyond is the next sheet's.
+        b.push(Item::group(
+            None,
+            Some(content),
+            vec![
+                Item::path(outline, Some(Stroke::pen(Pen::P026)), None),
+                Item::path(cross.build(), Some(thin.clone()), None),
+            ],
+        ));
         let advance = fonts.shape(&h.words, &style, None).advance();
         let others: Vec<Rect> = hole_boxes
             .iter()
@@ -315,8 +338,10 @@ pub fn template_sheet(v: &TemplateView, fonts: &FontSet, styles: &ew_text::TextS
     }
     // The band: its words on the left, the map on the right, the 100 mm bar on its last line.
     let top = ph.0 - MARGIN.0 - BAND.0;
+    // Three lines 2.5 mm apart; a fourth (a hole larger than a sheet) draws them closer, clear of the bar.
+    let pitch = if v.band.len() > 3 { 2_200_000 } else { 2_500_000 };
     for (i, line) in v.band.iter().enumerate() {
-        let y = top + 2_500_000 * (i64::try_from(i).unwrap_or(0) + 1);
+        let y = top + pitch * (i64::try_from(i).unwrap_or(0) + 1);
         text(
             &mut b,
             line,

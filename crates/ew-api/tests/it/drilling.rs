@@ -129,6 +129,117 @@ fn the_door_s_template_lies_in_its_datum_corner_and_its_dxf_holds_its_holes() {
     );
 }
 
+/// What every template keeps: neighbouring sheets overlap by 10 mm, the sheets reach over what it covers, every hole a
+/// sheet can hold stands whole on a printed one, and every other hole is named as larger than a sheet.
+fn keeps_its_rules(s: &Session, door: Id<MountingSurface>, t: &ew_derive::layout::TemplateSheets) {
+    let overlap = ew_derive::layout::TEMPLATE_OVERLAP;
+    let tile = |row: u32, col: u32| t.tiles.iter().find(|a| (a.row, a.col) == (row, col)).expect("a tile");
+    for a in &t.tiles {
+        if a.col + 1 < t.cols {
+            let next = tile(a.row, a.col + 1).area;
+            let shared = if t.left() {
+                a.area.max().x.0 - next.min().x.0
+            } else {
+                next.max().x.0 - a.area.min().x.0
+            };
+            assert_eq!(shared, overlap.0, "{a:?} and the sheet beside it");
+        }
+        if a.row + 1 < t.rows {
+            let next = tile(a.row + 1, a.col).area;
+            let shared = if t.top() {
+                next.max().y.0 - a.area.min().y.0
+            } else {
+                a.area.max().y.0 - next.min().y.0
+            };
+            assert_eq!(shared, overlap.0, "{a:?} and the sheet above or below it");
+        }
+    }
+    let reach = t.tiles.iter().fold(t.tiles[0].area, |r, a| r.union(a.area));
+    assert!(reach.contains(t.cover.min()) && reach.contains(t.cover.max()), "{reach:?} {:?}", t.cover);
+    let q = s.query();
+    for (f, hole) in q
+        .get::<ew_derive::layout::SurfaceFeatures>(door)
+        .iter()
+        .zip(ew_derive::layout::hole_boxes(&q, door))
+    {
+        let whole = t.tiles.iter().filter(|a| a.number.is_some()).any(|a| {
+            a.area.min().x <= hole.min().x
+                && a.area.min().y <= hole.min().y
+                && hole.max().x <= a.area.max().x
+                && hole.max().y <= a.area.max().y
+        });
+        assert!(whole || t.larger.contains(&f.no), "H{} {hole:?} is whole on no sheet", f.no);
+    }
+}
+
+/// The sample's door with a rectangular cut-out of one's own, `w` × `h` mm about the point `at` of its sheet, and its
+/// template on A4.
+fn with_cut_out(w: i64, h: i64, at: (i64, i64)) -> (Session, Id<MountingSurface>, ew_derive::layout::TemplateSheets) {
+    let mut s = common::sample();
+    let door = door(&s);
+    run(
+        &mut s,
+        &AnyCommand {
+            name: "layout.feature.add".into(),
+            params: json!({"surface": door.as_uuid().to_string(), "at": [at.0, at.1], "kind": "rect",
+                "size": format!("{w} \u{d7} {h}")}),
+        },
+    );
+    let t = ew_derive::layout::template_sheets(&s.query(), door, Paper::A4).expect("a template");
+    (s, door, t)
+}
+
+/// Where the join of the door's first two columns of sheets lies, across, and the middle of its first row, up.
+fn first_join(t: &ew_derive::layout::TemplateSheets) -> (i64, i64) {
+    let (a, b) = (t.tiles[0].area, t.tiles[1].area);
+    let x = if t.left() {
+        (b.min().x.0 + a.max().x.0) / 2
+    } else {
+        (a.min().x.0 + b.max().x.0) / 2
+    };
+    (x, (a.min().y.0 + a.max().y.0) / 2)
+}
+
+/// A hole on a join, a large cut-out and one larger than a sheet: the sheets still overlap by the 10 mm that lines them
+/// up, the join moves so that a hole one sheet can hold stands whole on one, a cut-out takes at most one sheet more
+/// across and up than the door without it, and a cut-out larger than a sheet is drawn across them, which the first
+/// sheet says; the door always gets its template.
+#[test]
+fn a_join_moves_clear_of_a_hole_and_a_hole_larger_than_a_sheet_is_drawn_across() {
+    let s = common::sample();
+    let plain = ew_derive::layout::template_sheets(&s.query(), door(&s), Paper::A4).expect("a template");
+    assert!(plain.cols > 1, "the door takes two columns of sheets");
+    let join = first_join(&plain);
+    // A 22 mm hole on the join: the join moves clear of it.
+    let (s, door, t) = with_cut_out(22, 22, join);
+    keeps_its_rules(&s, door, &t);
+    // A 150 mm cut-out on it: a sheet more at most, across and up.
+    let (s, door, t) = with_cut_out(150, 150, join);
+    keeps_its_rules(&s, door, &t);
+    assert!(t.cols <= plain.cols + 1 && t.rows <= plain.rows + 1, "{} × {}", t.rows, t.cols);
+    // The 197 × 141 mm cut-out of a touch panel on A4.
+    let (s, door, t) = with_cut_out(197, 141, join);
+    keeps_its_rules(&s, door, &t);
+    // A cut-out larger than any sheet of A4 is drawn across them, and the first sheet names it.
+    let (s, door, t) = with_cut_out(300, 290, join);
+    keeps_its_rules(&s, door, &t);
+    assert_eq!(t.larger.len(), 1, "the one larger than a sheet");
+    let ask = DrillingAsk {
+        surfaces: vec![door.as_uuid()],
+        paper: Paper::A4,
+        template: true,
+        dxf: false,
+        date: None,
+    };
+    let files = s.drilling_files(&ask).expect("the drawings");
+    let pages = crate::pdf_read::PdfFile::parse(&files[0].bytes)
+        .and_then(|f| f.pages())
+        .expect("the template reads back");
+    let says = |p: &crate::pdf_read::PageRead| p.runs.iter().any(|r| r.text.contains("Larger than a sheet"));
+    assert!(says(&pages[0]), "the first sheet says so");
+    assert!(!pages[1..].iter().any(says), "only the first sheet says so");
+}
+
 /// A door whose sheet a file stretches from the least to the greatest coordinate the format holds gets no drawings,
 /// where the template's and the DXF's sums of its corners would leave `i64`: Drilling… leaves it out and asking for it
 /// makes no file.

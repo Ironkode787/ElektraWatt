@@ -116,8 +116,8 @@ pub use surfaces::{
     from_datum, sheet_size, surface_datum, surface_frame, surface_page, surfaces, to_enclosure,
 };
 pub use template::{
-    Paper, TEMPLATE_BAND, TEMPLATE_MARGIN, TEMPLATE_OVERLAP, TEMPLATE_PAST, TemplateSheets, TemplateTile,
-    drawable, hole_boxes, template_sheets,
+    Paper, TEMPLATE_BAND, TEMPLATE_CROSS, TEMPLATE_MARGIN, TEMPLATE_OVERLAP, TEMPLATE_PAST, TemplateSheets,
+    TemplateTile, drawable, hole_boxes, template_sheets,
 };
 pub use ways::{
     CabinetWire, DOOR_LOOP, DuctGraph, DuctGraphV, DuctLine, EndPlace, Entry, FILL_LIMIT, Joint, LaidSpaces,

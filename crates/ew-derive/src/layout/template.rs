@@ -8,8 +8,10 @@
 //! The template lies in **the corner the hole table measures from** (the surface's datum corner, `surface_datum`), so
 //! that it is laid against the two edges every number is measured from, and covers the surface from there to 20 mm past
 //! the farthest hole's edge, within the sheet. A paper sheet holds its paper less 10 mm all round and a 12 mm band at its
-//! foot; neighbouring sheets overlap by 10 mm, or by the largest hole's size where that is more, so that a hole on a join
-//! stands whole on one of the two sheets. The orientation that needs the fewer sheets is taken (portrait on a tie). A
+//! foot; neighbouring sheets overlap by 10 mm, what lines two sheets up. Where a join would cut through a hole a sheet
+//! can hold, the sheet ends earlier, so that the hole stands whole on the next one with its centre cross; a hole larger
+//! than a sheet is drawn across the sheets, each marking its centre and its outline's corners, and the first sheet says
+//! so. Every surface with holes gets its template. The orientation that needs the fewer sheets is taken (portrait on a tie). A
 //! sheet that holds no part of a hole and neither of the two edges at the corner is not printed; the printed sheets are
 //! numbered row by row from the corner.
 
@@ -24,8 +26,10 @@ use crate::Q;
 pub const TEMPLATE_MARGIN: Nm = Nm(10_000_000);
 /// The band at a sheet's foot.
 pub const TEMPLATE_BAND: Nm = Nm(12_000_000);
-/// How far neighbouring sheets overlap at least ([`TemplateSheets::overlap`]).
+/// How far neighbouring sheets overlap: what a person needs to line two sheets up.
 pub const TEMPLATE_OVERLAP: Nm = Nm(10_000_000);
+/// How far a hole's centre cross reaches past its edge on a sheet.
+pub const TEMPLATE_CROSS: Nm = Nm(4_000_000);
 /// How far the template reaches past the farthest hole's edge.
 pub const TEMPLATE_PAST: Nm = Nm(20_000_000);
 
@@ -93,14 +97,15 @@ pub struct TemplateSheets {
     pub cover: Rect,
     /// The paper's width and height as the sheets lie (landscape: the long side across).
     pub paper: (Nm, Nm),
-    /// How far neighbouring sheets overlap: [`TEMPLATE_OVERLAP`], or the largest hole's size where that is more.
-    pub overlap: Nm,
     /// The rows and the columns of sheets.
     pub rows: u32,
     /// The columns.
     pub cols: u32,
     /// Every sheet, row by row from the corner.
     pub tiles: Vec<TemplateTile>,
+    /// The numbers of the holes larger than a sheet, across or up: drawn across the sheets, each sheet marks their
+    /// centre and their outline's corners.
+    pub larger: Vec<u32>,
 }
 
 impl TemplateSheets {
@@ -125,6 +130,11 @@ impl TemplateSheets {
 
 /// The holes of `surface` as rectangles in its frame (their made size about their centre).
 pub fn hole_boxes(q: &Q, surface: Id<MountingSurface>) -> Vec<Rect> {
+    numbered_boxes(q, surface).into_iter().map(|(_, r)| r).collect()
+}
+
+/// [`hole_boxes`] with each hole's number.
+fn numbered_boxes(q: &Q, surface: Id<MountingSurface>) -> Vec<(u32, Rect)> {
     q.get::<SurfaceFeatures>(surface)
         .iter()
         .filter_map(|f| {
@@ -134,7 +144,7 @@ pub fn hole_boxes(q: &Q, surface: Id<MountingSurface>) -> Vec<Rect> {
                 Nm(f.at.y.0.checked_sub(h.0 / 2)?),
             );
             let b = Pt2::new(Nm(a.x.0.checked_add(w.0)?), Nm(a.y.0.checked_add(h.0)?));
-            Some(Rect::from_points(a, b))
+            Some((f.no, Rect::from_points(a, b)))
         })
         .collect()
 }
@@ -169,7 +179,8 @@ pub fn template_sheets(q: &Q, surface: Id<MountingSurface>, paper: Paper) -> Opt
         Pt2::new(Nm(xs.clone().min()?), Nm(ys.clone().min()?)),
         Pt2::new(Nm(xs.max()?), Nm(ys.max()?)),
     );
-    let holes = hole_boxes(q, surface);
+    let numbered = numbered_boxes(q, surface);
+    let holes: Vec<Rect> = numbered.iter().map(|(_, r)| *r).collect();
     let first = holes.first()?;
     let span = holes.iter().fold(*first, |a, b| a.union(*b));
     let (lo, hi) = (sheet.min(), sheet.max());
@@ -178,15 +189,6 @@ pub fn template_sheets(q: &Q, surface: Id<MountingSurface>, paper: Paper) -> Opt
         Corner::Unknown(_) => Corner::BottomLeft,
         c => c,
     };
-    // A hole on a join stands whole on one of the two sheets: they overlap by its size at least, to the millimetre.
-    let largest = holes
-        .iter()
-        .map(|h| h.width().0.max(h.height().0))
-        .max()
-        .unwrap_or(0);
-    let overlap = TEMPLATE_OVERLAP
-        .0
-        .max((largest + 999_999) / 1_000_000 * 1_000_000);
     let (left, top) = (
         matches!(corner, Corner::BottomLeft | Corner::TopLeft),
         matches!(corner, Corner::TopLeft | Corner::TopRight),
@@ -213,49 +215,70 @@ pub fn template_sheets(q: &Q, surface: Id<MountingSurface>, paper: Paper) -> Opt
         (span.max().y.0 + past).min(hi.y.0)
     };
     let cover = Rect::from_points(Pt2::new(Nm(x0), Nm(y0)), Pt2::new(Nm(x1), Nm(y1)));
+    // Each hole's stretch across and up, measured from the corner's two edges.
+    let across: Vec<(i64, i64)> = holes
+        .iter()
+        .map(|h| {
+            if left {
+                (h.min().x.0 - x0, h.max().x.0 - x0)
+            } else {
+                (x1 - h.max().x.0, x1 - h.min().x.0)
+            }
+        })
+        .collect();
+    let up: Vec<(i64, i64)> = holes
+        .iter()
+        .map(|h| {
+            if top {
+                (y1 - h.max().y.0, y1 - h.min().y.0)
+            } else {
+                (h.min().y.0 - y0, h.max().y.0 - y0)
+            }
+        })
+        .collect();
     // The sheets each orientation needs; the fewer, portrait on a tie.
     let (short, long) = paper.sides();
-    let count = |len: i64, room: i64| -> Option<u32> {
-        let step = room - overlap;
-        if room <= 0 || step <= 0 {
-            return None;
-        }
-        let more = (len - room).max(0);
-        u32::try_from(1 + (more + step - 1) / step).ok()
-    };
-    let lay = |pw: Nm, ph: Nm| -> Option<((Nm, Nm), u32, u32)> {
+    let lay = |pw: Nm, ph: Nm| {
         let room_w = pw.0 - 2 * TEMPLATE_MARGIN.0;
         let room_h = ph.0 - 2 * TEMPLATE_MARGIN.0 - TEMPLATE_BAND.0;
-        Some((
+        (
             (pw, ph),
-            count(cover.height().0, room_h)?,
-            count(cover.width().0, room_w)?,
-        ))
+            (room_w, room_h),
+            stretches(cover.width().0, room_w, &across),
+            stretches(cover.height().0, room_h, &up),
+        )
     };
-    let portrait = lay(short, long)?;
-    let landscape = lay(long, short)?;
-    let ((pw, ph), rows, cols) = if landscape.1 * landscape.2 < portrait.1 * portrait.2 {
+    let portrait = lay(short, long);
+    let landscape = lay(long, short);
+    let size = |l: &(_, _, Vec<_>, Vec<_>)| l.2.len() * l.3.len();
+    let ((pw, ph), (room_w, room_h), columns, lines) = if size(&landscape) < size(&portrait) {
         landscape
     } else {
         portrait
     };
-    let room_w = pw.0 - 2 * TEMPLATE_MARGIN.0;
-    let room_h = ph.0 - 2 * TEMPLATE_MARGIN.0 - TEMPLATE_BAND.0;
-    let (step_w, step_h) = (room_w - overlap, room_h - overlap);
+    let (rows, cols) = (
+        u32::try_from(lines.len()).unwrap_or(u32::MAX),
+        u32::try_from(columns.len()).unwrap_or(u32::MAX),
+    );
+    // The holes no sheet holds whole, across or up: they are drawn across the sheets.
+    let larger = numbered
+        .iter()
+        .filter(|(_, h)| h.width().0 > room_w || h.height().0 > room_h)
+        .map(|(no, _)| *no)
+        .collect();
     let mut tiles = Vec::new();
     let mut number = 0;
-    for row in 0..rows {
-        for col in 0..cols {
-            let (c, r) = (i64::from(col), i64::from(row));
+    for (row, &(r0, r1)) in (0..).zip(&lines) {
+        for (col, &(c0, c1)) in (0..).zip(&columns) {
             let (ax, bx) = if left {
-                (x0 + c * step_w, x0 + c * step_w + room_w)
+                (x0 + c0, x0 + c1)
             } else {
-                (x1 - c * step_w - room_w, x1 - c * step_w)
+                (x1 - c1, x1 - c0)
             };
             let (ay, by) = if top {
-                (y1 - r * step_h - room_h, y1 - r * step_h)
+                (y1 - r1, y1 - r0)
             } else {
-                (y0 + r * step_h, y0 + r * step_h + room_h)
+                (y0 + r0, y0 + r1)
             };
             let area = Rect::from_points(Pt2::new(Nm(ax), Nm(ay)), Pt2::new(Nm(bx), Nm(by)));
             let holds = holes.iter().any(|h| h.intersects(area));
@@ -276,9 +299,44 @@ pub fn template_sheets(q: &Q, surface: Id<MountingSurface>, paper: Paper) -> Opt
         sheet,
         cover,
         paper: (pw, ph),
-        overlap: Nm(overlap),
         rows,
         cols,
         tiles,
+        larger,
     })
+}
+
+/// The stretches the sheets of one axis show, measured from the corner's edge: from 0 on until one reaches `len`, each
+/// `room` long at most and overlapping the next by [`TEMPLATE_OVERLAP`]. Where a join would cut through a hole
+/// (`holes`, as stretches of the axis) that one sheet can hold with its centre cross, or at least without it, the sheet
+/// ends earlier, so that the next one holds the hole whole; a hole longer than `room` is cut.
+fn stretches(len: i64, room: i64, holes: &[(i64, i64)]) -> Vec<(i64, i64)> {
+    let overlap = TEMPLATE_OVERLAP.0;
+    let room = room.max(2 * overlap);
+    let whole: Vec<(i64, i64)> = holes
+        .iter()
+        .filter_map(|&(a, b)| {
+            let spare = room - (b - a);
+            let c = TEMPLATE_CROSS.0.min(spare / 2);
+            (spare >= 0).then_some((a - c, b + c))
+        })
+        .collect();
+    let mut out = Vec::new();
+    let mut start = 0;
+    loop {
+        let mut end = start + room;
+        if end >= len {
+            out.push((start, end));
+            return out;
+        }
+        // Each step ends the sheet before a hole beyond its start, so the steps end.
+        while let Some(&(a, _)) = whole
+            .iter()
+            .find(|&&(a, b)| a > start && a < end - overlap && b > end)
+        {
+            end = a + overlap;
+        }
+        out.push((start, end));
+        start = end - overlap;
+    }
 }

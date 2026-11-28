@@ -1182,6 +1182,13 @@ pub fn template_band_datum(corner: &Corner) -> Text {
     text!("template-band-datum", corner_in_sentence(corner))
 }
 
+/// A template's first sheet's line for the holes larger than a sheet: "Larger than a sheet, drawn across the sheets with
+/// its centre and corners crossed on each: H5, H7".
+pub fn template_band_larger(holes: &[u32]) -> Text {
+    let list: Vec<String> = holes.iter().map(|n| format!("H{n}")).collect();
+    text!("template-band-larger", list.join(", "))
+}
+
 /// The words of a template's 100 mm bar.
 pub fn template_bar() -> Text {
     text!("template-bar")

@@ -11,8 +11,8 @@ use std::io;
 use std::path::Path;
 
 use ew_derive::layout::{
-    Made, Paper, SurfaceFeatures, carrier_labels, drawable, face_of, surface_datum, surface_page,
-    template_sheets,
+    Made, Paper, SurfaceFeatures, TEMPLATE_OVERLAP, carrier_labels, drawable, face_of, surface_datum,
+    surface_page, template_sheets,
 };
 use ew_derive::{Q, print_language};
 use ew_export::{DrillEntity, DrillSheet, PdfPage};
@@ -423,6 +423,7 @@ impl Session {
                             measured(&ew_derive::text::made(&f.made)),
                             owners(f)
                         ),
+                        larger: t.larger.contains(&f.no),
                     })
                     .collect();
                 // Where four sheets meet: the middle of each shared corner square.
@@ -431,15 +432,16 @@ impl Session {
                     .iter()
                     .filter(|a| a.row + 1 < t.rows && a.col + 1 < t.cols)
                     .map(|a| {
+                        let half = TEMPLATE_OVERLAP.0 / 2;
                         let x = if left {
-                            a.area.max().x.0 - t.overlap.0 / 2
+                            a.area.max().x.0 - half
                         } else {
-                            a.area.min().x.0 + t.overlap.0 / 2
+                            a.area.min().x.0 + half
                         };
                         let y = if top {
-                            a.area.min().y.0 + t.overlap.0 / 2
+                            a.area.min().y.0 + half
                         } else {
-                            a.area.max().y.0 - t.overlap.0 / 2
+                            a.area.max().y.0 - half
                         };
                         Pt2::new(Nm(x), Nm(y))
                     })
@@ -500,14 +502,19 @@ impl Session {
                         hinge,
                         datum: Some(origin),
                         tint: (right_n, up_n),
-                        overlap: t.overlap,
                         cut: (left_n, down_n),
                         joins: joins.clone(),
-                        band: vec![
+                        band: [
                             what.clone(),
                             measured(&place),
                             words(&ew_derive::text::template_band_datum(&corner)),
-                        ],
+                        ]
+                        .into_iter()
+                        .chain(
+                            (n == 1 && !t.larger.is_empty())
+                                .then(|| words(&ew_derive::text::template_band_larger(&t.larger))),
+                        )
+                        .collect(),
                         map: ew_scene::template::TemplateMap {
                             rows: t.rows,
                             cols: t.cols,
