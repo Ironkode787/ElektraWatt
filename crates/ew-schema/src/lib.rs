@@ -150,7 +150,7 @@ pub use library::{
     Arrangement, CategoryKey, CirclePrim, ClampKey, ClampType, Clearance, Colour, Confidence, Configured,
     ConfiguredComponent, ContactData, ContactKind, Counting, CpData, CpDef, Dash, DataArea, Deprecation,
     Dir4, Discipline, EXTRA_SHOW_GRID, EllipsePrim, ExtraVariant, ExtraVariantKind, FluidPortRole, FnDef,
-    FnFlags, FormCell, FormDef, FormKind, FrameColumns, FrameGrid, FrameRows, FreeProp, FrontShape,
+    FnFlags, ForkOf, FormCell, FormDef, FormKind, FrameColumns, FrameGrid, FrameRows, FreeProp, FrontShape,
     HOUSE_ROW_HEIGHT, HOUSE_ROWS_PER_PAGE, ImagePrim, InternalKind, InternalLinkDef, ItemMeta, ItemStatus,
     LibCopy, LibItem, Library, LinePrim, MacroDef, MacroInstance, MacroKind, MacroLink, MacroVariant,
     Manufacturer, MechData, MountKind, NamedPoint, OrderUnit, Overflow, PLACEHOLDER_PART_NUMBER, Part,

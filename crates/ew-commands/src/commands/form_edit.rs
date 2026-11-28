@@ -17,7 +17,7 @@ use ew_schema::{
 use ew_units::{Grid, Nm, Pt2, Rect};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::Value;
 
 use crate::command::{Command, Outcome};
 use crate::commands::frames::FRAMES_MEMBER;
@@ -269,14 +269,11 @@ pub(crate) fn change_forms(
             .iter()
             .find(|(id, _)| id == old)
             .map_or_else(|| original.item.clone(), |(_, item)| item.clone());
-        item.meta.extra.insert(
-            "source".into(),
-            json!({"fork_of": {
-                "library": original.library_id.as_uuid().to_string(),
-                "item": original.item_id.as_uuid().to_string(),
-                "version": original.version,
-            }}),
-        );
+        item.meta.set_fork_of(&ew_schema::ForkOf {
+            library: original.library_id.as_uuid(),
+            item: original.item_id.as_uuid(),
+            version: original.version.clone(),
+        });
         if let Some(block) = item.title_block.and_then(|b| renamed.get(&b)) {
             item.title_block = Some(*block);
         }
@@ -843,14 +840,11 @@ fn own_copy(
         return Err(bad(command, "/forks", text!("refusal-form-edit-fork-held")));
     }
     let mut form = original.item.clone();
-    form.meta.extra.insert(
-        "source".into(),
-        json!({"fork_of": {
-            "library": original.library_id.as_uuid().to_string(),
-            "item": original.item_id.as_uuid().to_string(),
-            "version": original.version,
-        }}),
-    );
+    form.meta.set_fork_of(&ew_schema::ForkOf {
+        library: original.library_id.as_uuid(),
+        item: original.item_id.as_uuid(),
+        version: original.version.clone(),
+    });
     let mut copy = LibCopy {
         id,
         v: original.v,

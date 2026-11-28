@@ -59,16 +59,14 @@ pub fn accessory_copy(a: &PartAccessory) -> Id<Part> {
 /// the parts list, the consumables, a strip's length and end brackets and the checks count through it, while a choice
 /// stays keyed by the declared copy.
 pub fn accessory_part(q: &Q, a: &PartAccessory) -> Id<Part> {
-    let (library, item) = (
-        a.part.library.as_uuid().to_string(),
-        a.part.item.as_uuid().to_string(),
-    );
+    let (library, item) = (a.part.library.as_uuid(), a.part.item.as_uuid());
     q.parts()
         .iter()
         .find(|(_, c)| {
-            let fork = c.item.meta.extra.get("source").and_then(|s| s.get("fork_of"));
-            let named = |k: &str| fork.and_then(|f| f.get(k)).and_then(serde_json::Value::as_str);
-            named("library") == Some(library.as_str()) && named("item") == Some(item.as_str())
+            c.item
+                .meta
+                .fork_of()
+                .is_some_and(|f| f.library == library && f.item == item)
         })
         .map_or_else(|| accessory_copy(a), |(id, _)| id)
 }

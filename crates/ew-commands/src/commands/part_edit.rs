@@ -15,7 +15,7 @@ use ew_schema::{
 use schemars::JsonSchema;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::Value;
 
 use crate::command::{Command, Outcome};
 use crate::commands::assign::embed_closure;
@@ -382,14 +382,11 @@ impl Command for EditPartCopy {
             }
             Some(id) => {
                 let fork = self.fork.expect("checked above");
-                part.meta.extra.insert(
-                    "source".into(),
-                    json!({"fork_of": {
-                        "library": held.library_id.as_uuid().to_string(),
-                        "item": held.item_id.as_uuid().to_string(),
-                        "version": held.version,
-                    }}),
-                );
+                part.meta.set_fork_of(&ew_schema::ForkOf {
+                    library: held.library_id.as_uuid(),
+                    item: held.item_id.as_uuid(),
+                    version: held.version.clone(),
+                });
                 let mut copy = LibCopy {
                     id,
                     v: held.v,
@@ -425,6 +422,7 @@ pub(super) fn hash(copy: &LibCopy<Part>) -> Result<ew_schema::Sha256, CmdError> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn repoint_walks_lists_and_members() {

@@ -325,3 +325,29 @@ fn a_hole_parses_by_its_kind() {
         Err(HoleParseError::NotPositive)
     );
 }
+
+/// A project's own copy as an earlier build saved it, with `meta.source.fork_of` written by hand: `fork_of` reads its
+/// library, item and version, and `set_fork_of` writes the same bytes again.
+#[test]
+fn a_fork_saved_before_reads_and_writes_its_fork_of_as_it_was() {
+    let line = fill(concat!(
+        r#"{"$k":"part","id":"@PART_MECH","library_id":"@LIB","item_id":"@ITEM_PSU","version":"0.1.1","sha256":"@HASH","#,
+        r#""meta":{"source":{"fork_of":{"item":"79825947-aa61-5360-8e00-c535c2db0168","#,
+        r#""library":"75d07cef-7a38-5814-a2ca-4610c08d9a8b","version":"0.1.1"}}},"#,
+        r#""manufacturer":{"library":"@LIB","item":"@ITEM_MFR","version_req":"^0.1"},"part_number":"EW-GEN-FER-1.5"}"#
+    ));
+    let doc: LibDocument = serde_json::from_str(&line).unwrap();
+    assert_eq!(serde_json::to_string(&doc).unwrap(), line, "not canonical");
+    let LibDocument::Part(mut copy) = doc else {
+        panic!("a part")
+    };
+    let fork = copy.item.meta.fork_of().expect("a fork");
+    assert_eq!(
+        (fork.library.to_string().as_str(), fork.item.to_string().as_str(), fork.version.as_str()),
+        ("75d07cef-7a38-5814-a2ca-4610c08d9a8b", "79825947-aa61-5360-8e00-c535c2db0168", "0.1.1")
+    );
+    copy.item.meta.extra.clear();
+    assert!(copy.item.meta.fork_of().is_none());
+    copy.item.meta.set_fork_of(&fork);
+    assert_eq!(serde_json::to_string(&LibDocument::Part(copy)).unwrap(), line);
+}

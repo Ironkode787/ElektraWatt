@@ -467,11 +467,7 @@ fn where_used(q: &Q, doc: &LibDocument) -> (Vec<Id<Device>>, Vec<Id<Representati
 /// item it was forked from (`{"fork_of": …}`).
 fn is_fork(doc: &LibDocument) -> bool {
     fn meta<T>(c: &LibCopy<T>, m: impl Fn(&T) -> &ew_schema::ItemMeta) -> bool {
-        m(&c.item)
-            .extra
-            .get("source")
-            .and_then(|s| s.get("fork_of"))
-            .is_some()
+        m(&c.item).fork_of().is_some()
     }
     match doc {
         LibDocument::Part(c) => meta(c, |i| &i.meta),
