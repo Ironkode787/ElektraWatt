@@ -21,8 +21,8 @@ change here.
   amendment 8, entry 2)
 - api-add: `bus.place_symbols` draws several devices with their bus symbols, all or nothing, in one step (Draw as one
   symbol on several boxes)
-- behaviour-change: `bus.place_ports` refuses a position off the page's grid, a symbol outside the drawing area and
-  one over another device, as the window does; assigning another part to a bus device and changing a text style move
+- behaviour-change: `bus.place_ports` refuses a position off the page's grid, a symbol outside the drawing area, one
+  larger than it (with both sizes) and one over another device, as the window does; assigning another part to a bus device and changing a text style move
   its bus lines with its sockets
 - behaviour-change: a part with network ports shows its bus symbol on its sheet, "On a bus page"; **Make my own from
   it…** opens it as a drawing of one's own (sockets moved to any edge, texts anywhere inside the body, never on a

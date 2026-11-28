@@ -598,3 +598,36 @@ fn device_place_refuses_the_bus_symbol_and_names_bus_place_ports() {
     assert!(why.contains("bus.place_ports"), "{why}");
     assert!(symbols(&e).is_empty(), "nothing placed");
 }
+
+/// A bus symbol larger than the frame's drawing area (an interface of four hundred ports) is refused with
+/// its size and the area's, as the window says it of a box; nothing is placed.
+#[test]
+fn a_bus_symbol_larger_than_the_drawing_area_is_refused_with_both_sizes() {
+    let (p, records, mut lib) = records_of(false);
+    for d in lib.iter_mut() {
+        if let LibDocument::Part(c) = d
+            && c.id == HEAD
+        {
+            c.item = head_station(400);
+        }
+        // The page's frame: a drawing area of four columns and three rows of 40 mm.
+        if let LibDocument::Form(f) = d {
+            f.item.grid = Some(
+                serde_json::from_value(json!({
+                    "columns": {"count": 4, "width": {"num": 40_000_000, "den": 1}},
+                    "rows": {"count": 3, "height": {"num": 40_000_000, "den": 1}},
+                }))
+                .expect("a frame grid"),
+            );
+        }
+    }
+    let mut e = engine(Model::from_records(p, records, lib).expect("valid"));
+    let mut wide = place(Vec::new());
+    wide.pos = at(0, 2);
+    let why = reason(e.execute(&wide));
+    assert!(
+        why.contains("does not fit in the drawing area") && why.contains("(160 × 120 mm)"),
+        "{why}"
+    );
+    assert!(symbols(&e).is_empty(), "nothing placed");
+}

@@ -50,7 +50,8 @@ use crate::tx::TxBuilder;
 /// - Refused, in words: a symbol copy that is not the bus symbol; a position off the page's grid; a device without a
 ///   bus part; no bus-port FnDef for a new function; a function of the device drawn on the page already, outside
 ///   `replace`; a representation in `replace` that is not the device's on the page; a socket off the drawable range;
-///   a socket or the body outside the frame's drawing area; a body over another device drawn on the page. The
+///   a symbol larger than the frame's drawing area (both sizes said); a socket or the body outside that area; a body
+///   over another device drawn on the page. The
 ///   window's tool refuses none of these itself: it moves the symbol inside the area where it fits and asks the
 ///   command.
 ///
@@ -361,6 +362,42 @@ fn place(
         let body = device_body(tx, &record);
         if let Some(grid) = crate::numbering::frame_grid(tx, &page) {
             let corners = body.map(|b| [Pt2::new(Nm(b[0]), Nm(b[1])), Pt2::new(Nm(b[2]), Nm(b[3]))]);
+            // Larger than the area: said with both sizes, as the window says it of a box.
+            let points: Vec<Pt2> = sockets
+                .iter()
+                .map(|c| c.pos)
+                .chain(corners.into_iter().flatten())
+                .collect();
+            let span = |v: &dyn Fn(&Pt2) -> i64| {
+                let (lo, hi) = points
+                    .iter()
+                    .map(v)
+                    .fold((i64::MAX, i64::MIN), |(l, h), x| (l.min(x), h.max(x)));
+                hi.saturating_sub(lo).max(0)
+            };
+            let (w, h) = (span(&|p| p.x.0), span(&|p| p.y.0));
+            let (aw, ah) = (
+                grid.columns
+                    .width
+                    .at(i64::from(grid.columns.count))
+                    .map_or(i64::MAX, |n| n.0),
+                grid.rows
+                    .height
+                    .at(i64::from(grid.rows.count))
+                    .map_or(i64::MAX, |n| n.0),
+            );
+            if w > aw || h > ah {
+                let mm = |nm: i64| (nm.saturating_add(500_000) / 1_000_000).to_string();
+                return tx.reject(text!(
+                    "refusal-ports-too-large",
+                    crate::words::device(tx, device),
+                    mm(w),
+                    mm(h),
+                    crate::words::page(tx, page_id),
+                    mm(aw),
+                    mm(ah)
+                ));
+            }
             if sockets
                 .iter()
                 .map(|c| c.pos)

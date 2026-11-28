@@ -468,6 +468,7 @@ refusal-ports-not-bus-symbol = { $p0 } is niet het bussymbool; teken een busappa
 refusal-ports-no-bus-part = { $p0 } heeft geen artikel met bus-interfaces; geef het eerst zo'n artikel
 refusal-ports-fndef-needed = geen functie van het apparaat kan interface { $p0 } dragen, en het project bevat geen functiedefinitie van een buspoort om er een te maken; neem er eerst een op uit de bibliotheek (`library.embed`)
 refusal-ports-drawn = { $p0 } { $p1 } staat al op deze pagina
+refusal-ports-too-large = het bussymbool van { $p0 } is { $p1 } × { $p2 } mm: het past niet in het tekenvlak van { $p3 } ({ $p4 } × { $p5 } mm)
 refusal-ports-outside = het bussymbool van { $p0 } zou buiten het tekenvlak van { $p1 } komen: plaats het erbinnen
 refusal-ports-occupied = er staat al een apparaat waar het bussymbool van { $p0 } zou komen: plaats het op een vrije plek
 refusal-ports-none = geen apparaat om te tekenen: noem er een

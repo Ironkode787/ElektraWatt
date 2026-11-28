@@ -467,6 +467,7 @@ refusal-ports-not-bus-symbol = { $p0 } is not the bus symbol; draw a bus device 
 refusal-ports-no-bus-part = { $p0 } has no part with bus interfaces; give it such a part first
 refusal-ports-fndef-needed = no function of the device can carry interface { $p0 }, and the project holds no bus port's function definition to make one; embed one first (`library.embed`)
 refusal-ports-drawn = { $p0 } { $p1 } is drawn on this page already
+refusal-ports-too-large = the bus symbol of { $p0 } is { $p1 } × { $p2 } mm: it does not fit in the drawing area of { $p3 } ({ $p4 } × { $p5 } mm)
 refusal-ports-outside = the bus symbol of { $p0 } would leave the drawing area of { $p1 }: place it inside
 refusal-ports-occupied = another device stands where the bus symbol of { $p0 } would: place it on a free place
 refusal-ports-none = no device to draw: name one
