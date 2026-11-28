@@ -440,7 +440,7 @@ fn the_wire_lists_first_page_says_how_to_read_it_from_the_settings() {
         "50 mm at each end",
         "80 mm at each end and 250 mm across a door's hinge",
         "A wire's marker carries the wire's number.",
-        "On -X1011, -X1021, -X1031 it is the other way round: side 1 is the field.",
+        "on -X1011, -X1021, -X1031 it is the other way round.",
     ] {
         assert_eq!(
             first.iter().any(|l| l.contains(words)),
@@ -459,4 +459,111 @@ fn the_wire_lists_first_page_says_how_to_read_it_from_the_settings() {
             .any(|r| r.cells[0] == "How to read these papers"),
         "the head is the first page's"
     );
+}
+
+/// How to read the papers, as `reading_notes` says it for the project of `s` in its source language; `markers`: on a
+/// paper that prints markers.
+fn reading(s: &Session, markers: bool) -> Vec<String> {
+    let q = s.query();
+    ew_reports::kinds::reading_notes(&q, markers)
+        .iter()
+        .map(|t| text_in(&ew_reports::words::in_languages(t), None).to_owned())
+        .collect()
+}
+
+/// Whether a line of `notes` holds `words`.
+fn says(notes: &[String], words: &str) -> bool {
+    notes.iter().any(|l| l.contains(words))
+}
+
+/// Each line of how to read the papers stands only where it is true of the project (doc 13 §3.1), and the sample's is
+/// short: its routed lengths with the door loop (a way crosses the door's hinge), its typed one as typed, its site
+/// wire, its markers written with / on the wire list but not in Contents, which prints none; no line on where labels
+/// go, which the label files say.
+#[test]
+fn how_to_read_the_papers_says_what_holds_for_the_sample() {
+    let s = common::sample();
+    let notes = reading(&s, true);
+    assert!(notes.len() <= 7, "{notes:#?}");
+    for words in [
+        "a routed length holds the way along the ducts, 50 mm at each end and 300 mm across a door's hinge",
+        "a typed length is the one typed in the project",
+        "written here with / between them",
+        "is cut, laid and landed on site, at its cabinet end too",
+        "Work in this order",
+    ] {
+        assert!(says(&notes, words), "{words}: {notes:#?}");
+    }
+    assert!(!says(&notes, "Labels:"), "{notes:#?}");
+    let contents = reading(&s, false);
+    assert!(!says(&contents, " / "), "{contents:#?}");
+}
+
+/// A project without a layout has no routed length: no reserve, no door loop and no ≈; its wires without a length
+/// print —, which it says.
+#[test]
+fn how_to_read_the_papers_of_a_project_without_a_layout() {
+    let (project, mut records, lib) = common::sample_records();
+    records.retain(|r| {
+        r.kind()
+            .is_none_or(|k| ew_schema::Kind::file_rule(k) != ew_schema::FileRule::LayoutFile)
+            && !matches!(r, ew_schema::Record::PageItem(i) if format!("{:?}", i.kind).starts_with("SurfaceView"))
+            && !matches!(r, ew_schema::Record::ReportBlock(b) if b.layout_page.is_some())
+    });
+    let notes = reading(&common::session_of(project, records, lib), true);
+    for gone in ["routed", "door's hinge", "≈"] {
+        assert!(!says(&notes, gone), "{gone}: {notes:#?}");
+    }
+    assert!(says(&notes, "A length of — is none"), "{notes:#?}");
+}
+
+/// Where no way crosses a door's hinge (the wires into the door typed), the routed length holds no door loop; where no
+/// wire is made on site (those of the sample deleted), no line says what is made there; a project whose markers name
+/// the end they sit on says so.
+#[test]
+fn how_to_read_the_papers_follows_the_door_the_site_and_the_marking() {
+    let (mut project, records, lib) = common::sample_records();
+    project.settings.workshop.marking = ew_schema::Marking::BothEnds;
+    let mut sample = common::session_of(project.clone(), records.clone(), lib.clone());
+    let notes = reading(&sample, true);
+    assert!(says(&notes, "names the end it sits on, then its far end"), "{notes:#?}");
+    let wires = sample.query().get::<ew_derive::WireRecordSet>(());
+    let door: Vec<ew_ids::Id<ew_schema::Connection>> = wires
+        .iter()
+        .filter(|r| {
+            matches!(
+                r.length,
+                ew_derive::WireLength::Routed { door: true, .. } | ew_derive::WireLength::Stale { door: true, .. }
+            )
+        })
+        .map(|r| r.wire.id)
+        .collect();
+    let site: Vec<ew_ids::Id<ew_schema::Connection>> = wires
+        .iter()
+        .filter(|r| r.flags.field)
+        .flat_map(|r| r.wire.constituents.clone())
+        .collect();
+    assert!(!door.is_empty() && !site.is_empty(), "the sample has both");
+    let mut typed = records;
+    for r in &mut typed {
+        if let ew_schema::Record::Connection(c) = r
+            && door.contains(&c.id)
+        {
+            c.overrides.length = Some(ew_units::Nm::from_mm(900));
+        }
+    }
+    let no_door = reading(&common::session_of(project, typed, lib), true);
+    assert!(!says(&no_door, "door's hinge"), "{no_door:#?}");
+    assert!(says(&no_door, "50 mm at each end"), "{no_door:#?}");
+    let targets: Vec<serde_json::Value> = site
+        .iter()
+        .map(|c| json!({"kind": "connection", "id": c.to_string()}))
+        .collect();
+    common::run_cmd(&mut sample, "edit.delete", json!({"targets": targets}));
+    let no_site = reading(&sample, true);
+    assert!(
+        !sample.query().get::<ew_derive::WireRecordSet>(()).iter().any(|r| r.flags.field),
+        "no wire is made on site"
+    );
+    assert!(!says(&no_site, "on site"), "{no_site:#?}");
 }

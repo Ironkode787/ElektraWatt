@@ -1052,9 +1052,10 @@ change here.
 - behaviour-change: the wire list's page is the fitter's one paper: its default columns gain each end's part and strip
   length, and as they do not fit one line of a sheet each wire prints on two lines, its From end above its To end
   (an existing wire list page without columns of its own takes about twice the pages); its first page opens with how
-  to read the papers (what the length holds, what a marker says, which terminal side is the field, where each label
-  goes, what is made on site, the order of the work), from the project's settings, which the package's Contents
-  holds too
+  to read the papers, each line only where it holds for the project (what a routed or a typed length holds, the door
+  loop where a way crosses a hinge, ≈ and — where they print, what a marker says, which terminal side is the field,
+  what is made on site where a wire is, the order of the work), from the project's settings, which the package's
+  Contents holds too
 - behaviour-change: Export list… and the package's lists write the columns the list's page prints, one row per row,
   without the `id` column and the hidden sheets of the round trip (`ew export report` and Export table… keep them)
 - behaviour-change: the consumables name a marker part once with its total, and where it marks several label sets

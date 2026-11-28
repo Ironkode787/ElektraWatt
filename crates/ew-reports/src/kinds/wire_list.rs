@@ -122,7 +122,7 @@ impl ReportKindDef for WireList {
 
     /// How to read it, where the fitter starts (doc 13 §3.1): [`reading_notes`] above the first wire.
     fn head(&self, q: &Q) -> Vec<Text> {
-        reading_notes(q)
+        reading_notes(q, true)
     }
 
     fn rows(&self, q: &Q, _block: &ReportBlock) -> RowSet {
@@ -367,67 +367,113 @@ fn bridge_potential(q: &Q, b: &Bridge) -> Cell {
 }
 
 /// How to read the fitter's papers (doc 13 §3.1): one short block in the project's language, printed once where the
-/// fitter starts, before the wire list's first wire and in the package's Contents. What a length holds, what a marker
-/// says, which side of a terminal is which, where each kind of label goes, what is made on site and the order of the
-/// papers; each sentence follows the project's settings where a setting decides it (the reserve and the door loop, the
-/// marking, cores and jumpers, a strip whose field is on side 1, labels beside a device), none names a thing of one
-/// project.
-pub fn reading_notes(q: &Q) -> Vec<Text> {
-    use ew_schema::{DeviceLabels, Marking, Side};
+/// fitter starts, before the wire list's first wire and in the package's Contents. Each line stands only where it is
+/// true of the project: what its lengths hold (a routed one's reserve, and the door loop where a way crosses a hinge; a
+/// typed one; ≈ and —, where a length prints them), what a marker says (`markers`: on a paper that prints markers, how
+/// one of two lines is written there) and which wires carry none, which side of a terminal is which where it has
+/// strips, what is made on site where a wire is, and the order of the work. None names a thing of one project but the
+/// strips whose field is on side 1.
+pub fn reading_notes(q: &Q, markers: bool) -> Vec<Text> {
+    use ew_schema::{Marking, Side};
     let ws = &q.project().settings.workshop;
+    let records = q.get::<ew_derive::WireRecordSet>(());
     let mm = |n: ew_units::Nm| ew_derive::mm_exact(i128::from(n.0));
-    let mut out = vec![
-        text!("read-head"),
-        text!(
-            "read-length",
+    let any = |f: &dyn Fn(&WireRecord) -> bool| records.iter().any(f);
+    let sentences = |parts: Vec<Text>, between: &str| {
+        let between = || Text::bare(TextArg::Plain(between.to_owned()));
+        Text::bare(List::new(
+            parts.into_iter().map(TextArg::from).collect(),
+            between(),
+            between(),
+        ))
+    };
+    let mut out = vec![text!("read-head")];
+    // What a length holds, by the lengths the list prints.
+    let routed = |r: &WireRecord| matches!(r.length, WireLength::Routed { .. } | WireLength::Stale { .. });
+    let door = |r: &WireRecord| {
+        matches!(
+            r.length,
+            WireLength::Routed { door: true, .. } | WireLength::Stale { door: true, .. }
+        )
+    };
+    let mut lengths = Vec::new();
+    if any(&door) {
+        lengths.push(text!(
+            "read-length-routed-door",
             mm(ew_derive::layout::reserve(q)),
             mm(ew_derive::layout::door_loop(q))
-        ),
-        text!("read-length-marks"),
-        match ws.marking {
-            Marking::WireNumber => text!("read-marker-number"),
-            Marking::BothEnds => text!("read-marker-both"),
-            Marking::Potential => text!("read-marker-potential"),
-            Marking::Destination | Marking::Unknown(_) => text!("read-marker-destination"),
-        },
-    ];
-    out.extend(match (ws.mark_cores, ws.mark_jumpers) {
-        (false, false) => Some(text!("read-unmarked-cores-jumpers")),
-        (false, true) => Some(text!("read-unmarked-cores")),
-        (true, false) => Some(text!("read-unmarked-jumpers")),
-        (true, true) => None,
+        ));
+    } else if any(&routed) {
+        lengths.push(text!("read-length-routed", mm(ew_derive::layout::reserve(q))));
+    }
+    if any(&|r| matches!(r.length, WireLength::Typed(_))) {
+        lengths.push(text!("read-length-typed"));
+    }
+    if !lengths.is_empty() {
+        out.push(text!("read-length", sentences(lengths, "; ")));
+    }
+    let mut marks = Vec::new();
+    if any(&|r| !r.length.exact()) {
+        marks.push(text!("read-length-stale"));
+    }
+    if any(&|r| r.length == WireLength::Missing) {
+        marks.push(text!("read-length-missing"));
+    }
+    if !marks.is_empty() {
+        out.push(sentences(marks, " "));
+    }
+    // What a marker says, and which wires carry none.
+    let mut marking = vec![match (&ws.marking, markers) {
+        (Marking::WireNumber, _) => text!("read-marker-number"),
+        (Marking::BothEnds, true) => text!("read-marker-both"),
+        (Marking::BothEnds, false) => text!("read-marker-both-plain"),
+        (Marking::Potential, _) => text!("read-marker-potential"),
+        (Marking::Destination | Marking::Unknown(_), true) => text!("read-marker-destination"),
+        (Marking::Destination | Marking::Unknown(_), false) => text!("read-marker-destination-plain"),
+    }];
+    let cores = !ws.mark_cores && any(&|r| r.wire.core.is_some());
+    let jumpers = !ws.mark_jumpers
+        && any(&|r| {
+            let [a, b] = r
+                .wire
+                .ends
+                .map(|e| q.functions().get(e.cp.function).and_then(|f| f.device));
+            a.is_some() && a == b
+        });
+    marking.extend(match (cores, jumpers) {
+        (true, true) => Some(text!("read-unmarked-cores-jumpers")),
+        (true, false) => Some(text!("read-unmarked-cores")),
+        (false, true) => Some(text!("read-unmarked-jumpers")),
+        (false, false) => None,
     });
-    out.push(text!(
-        "read-sides",
-        text!("column-side-1-clamp-a"),
-        text!("column-side-2-clamp-b")
-    ));
-    let mut turned: Vec<(ew_mltext::NaturalKey, String)> = q
+    out.push(sentences(marking, " "));
+    // The sides of a terminal, where the project has strips; those whose field is on side 1 named.
+    let strips: Vec<(Id<Device>, Side)> = q
         .devices()
         .iter()
-        .filter(|(_, d)| {
-            d.aspects
-                .strip
-                .as_ref()
-                .is_some_and(|s| s.field_side == Side::Side1)
-        })
-        .map(|(id, _)| {
-            let tag = short_tag(q, id);
-            (ew_mltext::natural_key(&tag), tag)
-        })
+        .filter_map(|(id, d)| d.aspects.strip.as_ref().map(|s| (id, s.field_side.clone())))
         .collect();
-    turned.sort();
-    if !turned.is_empty() {
-        let tags: Vec<String> = turned.into_iter().map(|(_, t)| t).collect();
-        out.push(text!("read-sides-turned", tags.join(", ")));
+    if !strips.is_empty() {
+        let mut turned: Vec<(ew_mltext::NaturalKey, String)> = strips
+            .iter()
+            .filter(|(_, side)| *side == Side::Side1)
+            .map(|(id, _)| {
+                let tag = short_tag(q, *id);
+                (ew_mltext::natural_key(&tag), tag)
+            })
+            .collect();
+        turned.sort();
+        let (a, b) = (text!("column-side-1-clamp-a"), text!("column-side-2-clamp-b"));
+        out.push(if turned.is_empty() {
+            text!("read-sides", a, b)
+        } else {
+            let tags: Vec<String> = turned.into_iter().map(|(_, t)| t).collect();
+            text!("read-sides-turned", a, b, tags.join(", "))
+        });
     }
-    out.push(text!("read-labels-ends"));
-    out.push(match ws.device_labels {
-        DeviceLabels::OnDeviceAndBeside => text!("read-labels-beside"),
-        DeviceLabels::OnDevice | DeviceLabels::Unknown(_) => text!("read-labels-devices"),
-    });
-    out.push(text!("read-site"));
-    out.push(text!("read-site-counted"));
+    if any(&|r| r.flags.field) {
+        out.push(text!("read-site"));
+    }
     out.push(text!("read-order"));
     out
 }

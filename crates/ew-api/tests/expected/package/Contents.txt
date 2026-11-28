@@ -14,15 +14,11 @@ The check does not judge the workshop stock. What the files lack of the stock an
   Cable markers: no marker part in the stock marks cables; the label program asks which to print on.
 
 How to read these papers
-  Length mm is the length to cut: the way along the ducts, 50 mm at each end and 300 mm across a door's hinge are in it.
-  A length after ≈ was laid along a way that has changed since: check it. A length of — is none: the fitter measures the wire.
-  A wire's marker names its far end, the end it does not sit on; a marker on two lines is written here with / between them.
-  A cable's cores carry no marker, nor does a wire with both its ends on one device.
+  Length mm is the length to cut: a routed length holds the way along the ducts, 50 mm at each end and 300 mm across a door's hinge; a typed length is the one typed in the project.
+  A length of — is none: the fitter measures the wire.
+  A wire's marker names its far end, the end it does not sit on. A cable's cores carry no marker, nor does a wire with both its ends on one device.
   On a terminal, Side 1 (clamp a) is the cabinet's wiring and Side 2 (clamp b) the field, as the terminal diagrams name them.
-  Labels: a wire marker on each end of its wire, a cable marker on each end of its cable, a tube marker on each end of its tube.
-  A terminal marker on its terminal, a strip marker on its strip, a device label on its device.
-  A wire with an end in another location is cut and finished on site; the shop makes only its cabinet end.
-  The cut list leaves such a wire out, and the consumables count of it only the ferrule and the marker of that end.
+  A wire with an end in another location is cut, laid and landed on site, at its cabinet end too: the cut list leaves it out, and the consumables hold that end's ferrule and marker.
   Work in this order: drill (drawings for drilling, hole table), mount (assembly lists), cut (cut list), wire (wire list), mark (label files).
 
 What is in it
@@ -44,7 +40,7 @@ What is in it
   Drilling/                                      Per surface with holes: a template to print at 100 % and lay on it, and a DXF for a machine.
     +CAB Bottom template.pdf                     2 holes on 1 sheet of A4, to print at 100 %.
     +CAB Bottom.dxf                              2 holes, for a machine; 0,0 at the surface's corner its holes are measured from.
-    +CAB Door template.pdf                       8 holes on 9 sheets of A4, to print at 100 %.
+    +CAB Door template.pdf                       8 holes on 7 sheets of A4, to print at 100 %.
     +CAB Door.dxf                                8 holes, for a machine; 0,0 at the surface's corner its holes are measured from.
     +CAB Mounting plate template.pdf             10 holes on 8 sheets of A4, to print at 100 %.
     +CAB Mounting plate.dxf                      10 holes, for a machine; 0,0 at the surface's corner its holes are measured from.

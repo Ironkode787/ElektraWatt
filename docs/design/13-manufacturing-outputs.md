@@ -112,7 +112,7 @@ program's exports already write; the check before it is the release check of `ew
 | Bridge | A plug-in, saddle, wire or inter-level bridge between terminals of a strip: mounted with the strip, never a wire |
 | End | Where a wire lands: a pin of a device, a clamp of a terminal, or an external point outside the project |
 | From end, To end | A wire's two ends in the orientation of [08](08-connections-terminals-cables.md) §3.8; every list, label and rework row reads a wire the same way round |
-| Site end, field wire | An end that is external, or on a device of another location than the cabinet's (the location of a layout space), is made on site, not in the shop; a wire with a site end is a field wire. The cabinet is the one the wire's other end is in, as Route reads it ([12-3d](12-3d-routing-thermal.md) §8.2): an end in a location that has a layout space of its own is still a site end, so a wire between two cabinets is made on site for both, at both ends. An open end (an interruption point without a partner) and an end on a device without a location are no site ends: the wire is unfinished: Route gives it no way and says why, and it is a wire without a length until it is finished or its length typed |
+| Site end, field wire | An end that is external, or on a device of another location than the cabinet's (the location of a layout space), is made on site, not in the shop; a wire with a site end is a field wire, cut, laid and landed on site, at its cabinet end too (the cut list leaves it out; the consumables hold that end's ferrule and marker). The cabinet is the one the wire's other end is in, as Route reads it ([12-3d](12-3d-routing-thermal.md) §8.2): an end in a location that has a layout space of its own is still a site end, so a wire between two cabinets is made on site for both, at both ends. An open end (an interruption point without a partner) and an end on a device without a location are no site ends: the wire is unfinished: Route gives it no way and says why, and it is a wire without a length until it is finished or its length typed |
 | Clamp | The connection point of a part a conductor goes into; its kind and how many conductors it takes are part data |
 | End treatment | What the fitter puts on an end: a ferrule, a twin ferrule, a ring lug, a connector's contact, or nothing (bare) |
 | Marker | The printed sleeve or clip on a wire end that names the wire or its far end |
@@ -316,14 +316,17 @@ wire above and its two ends' work under it, a column meant two things by its lin
 with columns of its own prints a wire on one line.
 
 **How to read it, where the fitter starts.** The first page of a block without columns of its own prints above its
-first wire, a line each, how to read the papers (`ReportKindDef::head`, the wire list's `reading_notes`): what Length
-holds (the way, the reserve at each end and the door loop, from the project's settings, [12-3d](12-3d-routing-thermal.md)
-§9), what `≈` and `—` mean, what a marker says by the project's marking and which ends carry none (§5.1), which side of
-a terminal is the cabinet's and which the field's in the terminal diagram's words (a strip whose field side is side 1
-by its tag), where each kind of label goes (a device's label beside it too where the shop sets so), what is made on
-site and what the cut list and the consumables count of it, and the order of the papers (drill, mount, cut, wire,
-mark). The package's Contents holds the same lines ([13-package](13-package.md) §8.2). Every sentence holds for every
-project; none names a thing of one.
+first wire, a line each, how to read the papers (`ReportKindDef::head`, the wire list's `reading_notes`). A line
+stands only where it is true of the project: what Length holds, by the lengths it prints (a routed one the way and
+the reserve at each end, the door loop too where a way crosses a hinge, from the project's settings,
+[12-3d](12-3d-routing-thermal.md) §9; a typed one as typed), what `≈` and `—` mean where a length prints them, what a
+marker says by the project's marking and which wires carry none where the project has them (§5.1), which side of a
+terminal is the cabinet's and which the field's in the terminal diagram's words where it has strips (a strip whose
+field side is side 1 by its tag), what is made on site where a wire is (the whole wire, its cabinet end too: the cut
+list leaves it out and the consumables hold that end's ferrule and marker; a shop wire's end beside it says that it
+joins on site, §4.3), and the order of the work (drill, mount, cut, wire, mark). The label files say where each label
+goes. The package's Contents holds the same lines, without how a marker of two lines is written on a paper
+([13-package](13-package.md) §8.2). None names a thing of one project but a strip whose field side is side 1.
 
 **The files.** Export list… and the package write the columns the page prints, one row per wire, for people: the Excel
 file in the project's language without the round trip's `id` column and hidden sheets

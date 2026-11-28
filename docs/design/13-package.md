@@ -84,7 +84,7 @@ In the project's language, in a folder per kind; the sample's names (drawing num
 
 | Member (kind) | Path | What it is | The same as |
 |---|---|---|---|
-| Contents (`contents`) | `Contents.txt` | what the package is for, the revision, whether it is a draft and why, what the check found (§8.6), how many wires have no length and why, apart from the check what the files lack of the workshop stock and of its parts' data (§8.5), how to read the papers (the wire list's first page's lines, [13](13-manufacturing-outputs.md) §3.1), and each file with what it is for | — |
+| Contents (`contents`) | `Contents.txt` | what the package is for, the revision, whether it is a draft and why, what the check found (§8.6), how many wires have no length and why, apart from the check what the files lack of the workshop stock and of its parts' data (§8.5), how to read the papers (the wire list's first page's lines, without how a marker of two lines is written there, [13](13-manufacturing-outputs.md) §3.1), and each file with what it is for | — |
 | Drawings (`pages`) | `SAMPLE-E V1.0 drawings.pdf` | every page in page order as one PDF, the list pages among them; a draft's pages carry the draft mark (§8.4) | Export PDF |
 | Wire list (`wire_list`) | `Lists/SAMPLE-E Wire list.xlsx` | every wire with the columns its page prints ([13](13-manufacturing-outputs.md) §3.1): each end's treatment, part, strip length and marker among them; a wire without a length prints "—" as on the page | the list's Excel export |
 | Assembly lists (`assembly_list`) | `Lists/SAMPLE-E Assembly lists.xlsx` | per strip, what to mount in order | the list's Excel export |

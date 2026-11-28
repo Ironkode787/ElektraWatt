@@ -1045,8 +1045,8 @@ fn contents_txt(
         lines.extend(lacks.into_iter().map(|l| format!("  {}", words(l))));
         lines.push(String::new());
     }
-    // How to read the papers, as the wire list's first page says it (doc 13 §3.1).
-    let notes = ew_reports::kinds::reading_notes(q);
+    // How to read the papers, as the wire list's first page says it (doc 13 §3.1); Contents prints no marker.
+    let notes = ew_reports::kinds::reading_notes(q, false);
     if let Some((head, rest)) = notes.split_first() {
         lines.push(words(head));
         lines.extend(rest.iter().map(|n| format!("  {}", words(n))));
