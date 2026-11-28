@@ -350,14 +350,45 @@ pub struct NotificationLog {
     pub(crate) popup: bool,
 }
 
+/// The ways to the places `text` names: each navigator of the left rail whose title of more than one word ("Unplaced
+/// devices", "Terminal strips") the text holds, as the offer that shows it, after `offers` and up to two in all. A
+/// sentence that names a pane is a way to it; a title of one word ("Cables", "PLC") also reads as an ordinary word,
+/// so it is no way.
+fn place_offers(text: &str, offers: &[Offer]) -> Vec<Offer> {
+    let room = 2usize.saturating_sub(offers.len());
+    crate::rail::LEFT
+        .iter()
+        .filter_map(|(word, _, pane)| match pane {
+            crate::layout::PaneKind::Navigator(kind) => Some((*word, *kind, crate::rail::left_label(word, *pane))),
+            _ => None,
+        })
+        .filter(|(word, _, title)| {
+            let title = strings::text(*title);
+            title.contains(' ') && text.contains(title) && !offers.iter().any(|o| o.word == *word)
+        })
+        .take(room)
+        .map(|(word, kind, title)| {
+            Offer::steps(
+                word,
+                title,
+                Validity::Always,
+                vec![("navigator.show", serde_json::json!({ "kind": kind.word() }))],
+            )
+        })
+        .collect()
+}
+
 impl NotificationLog {
     /// Adds `note` as the newest toast and log entry; returns its serial. A toast that says what the visible toast of
     /// its key says counts the times in a row on its brief ("… (2×)"), so that a second run that changes nothing is
-    /// seen to have run (Arrange and route with nothing to arrange); the log keeps the text.
+    /// seen to have run (Arrange and route with nothing to arrange); the log keeps the text. A toast that names a pane
+    /// of the left rail offers it ([`place_offers`]).
     pub(crate) fn push(&mut self, mut note: Note) -> u64 {
         self.serials += 1;
         let serial = self.serials;
         let text = note.sentences.join(" ");
+        let ways = place_offers(&text, &note.offers);
+        note.offers.extend(ways);
         let repeats = self
             .visible()
             .iter()
