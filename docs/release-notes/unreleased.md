@@ -15,7 +15,7 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
-- behaviour-change: the part editor lists a part's groups as the sheet of Parts names them (Identity, On the schematic,
+- behaviour-change: the sheet of Parts lists a part's groups (Identity, On the schematic,
   In the cabinet, Connections, the kind's own group, Technical data, Goes with it), each with the fields one declaration
   of a part's fields gives (doc 07 §2.5); an enclosure, a mounting plate and a rail of one's own now have their
   rows (size, plate, doors, edge margin, profile), a valve its coil and a tube its data; the GTIN stands in Identity
@@ -175,9 +175,6 @@ change here.
 - behaviour-change: the place browser's row says what choosing a part does ("Places the Coil A1-A2", "Drawn as a
   device box", "2 functions"), a valve on an electrical page places its coil, the detail lists a part's variants and
   what it comes with, and a greyed row says what no symbol draws on the page
-- behaviour-change: the part editor shows a part as its sections, listed on the left and one at a time (Identity,
-  Technical data, Pins and clamps, Size and mounting, Accessories, Variants, and a wire's, ferrule's or marker's own),
-  and Delete part… deletes a part of the project's own that no device uses
 - behaviour-change: the strip editor lists the end brackets and end plates the terminals' parts bring at their places,
   read-only; Delete on such a row leaves it off that strip, and a strip's Properties take or leave each one
 - api-add: commands `workshop.stock {stock, copies?, cut_increment?}` (a `null` cut increment clears it) and
@@ -193,8 +190,8 @@ change here.
 - behaviour-change: EW-BUS-001 offers the quick fix "Give it the next free address" on an open PROFIBUS station
   address: the first address after the highest the net holds, within the part's range, two open ports never given
   the same (FT-2208)
-- behaviour-change: the device box's pin list has Add bus interface…, which opens the part editor on Bus interfaces
-  with a new interface row, so a gateway or a drive of your own gets its bus port from the box (FT-2208)
+- behaviour-change: the sheet of Parts has Add interface under a part's bus interfaces, so a gateway or a drive of
+  your own gets its bus port (FT-2208)
 - behaviour-change: a cross-reference into a page whose frame draws no column and row strips prints the page alone
   ("103" where a frame with strips prints "103-C1"), also in a project brought in from QElectroTech whose border hides
   both header bands, which printed a cell the page does not show. Nothing else changes for such a page: its wire
@@ -468,15 +465,13 @@ change here.
   -101Q1 takes the handle, and its door page 904 holds the handle, the lamps and the pushbuttons (doc 12 §3.4)
 - api-add: `layout.place` takes `part` (the device's part use to place, its first by default), and the Unplaced
   navigator's rows of a further part use are keyed `device:<device>:<part>` (doc 12 §3.4)
-- behaviour-change: the part editor's Front view and holes: the front's Shape (Rectangle or Round), its outline
+- behaviour-change: the sheet of Parts shows a part's front and holes: the front's Shape (Rectangle or Round), its outline
   imported from a DXF drawing (Import outline…, Remove) and the table Holes, each hole by its X, Y, Kind (Hole,
   Fixing, Cut-out, Gland, Rectangle) and Size, with a preview of the front and its holes; a size that does not read
   for its kind, a hole off the front and a round front of unequal sides are refused in words. It is edited on a new
   part and a part of one's own, and read-only on a library part (doc 07 §5, FT-1771)
-- behaviour-change: a project's own part changes its size and mounting in the part editor (`part.edit_copy` takes
-  `mech` of a project-local copy); Save was refused
-- api-add: the hidden actions `part.outline_import {path?}` and `part.outline_remove`; the part editor's declared
-  table names a hole's two cells `hole.kind` and `hole.size` (`mech.holes[0].hole.size`)
+- behaviour-change: a project's own part changes its size and mounting in Parts (`part.edit_copy` takes `mech` of a
+  project-local copy); Save was refused
 - format-variant: report_block ReportKind hole_table (every hole of every surface, numbered in drilling order; doc 13
   §9.2)
 - behaviour-change: every hole and cut-out of a surface is derived from what is placed on it and what is added by hand
@@ -506,7 +501,7 @@ change here.
   known or no longer fits (doc 12 §3.9)
 - behaviour-change: the starter library's cable glands EW-GEN-GLD-M16 to -M40 (kind gland, with their thread,
   clamping range and nut) are in a new project's workshop stock after its ferrules and markers, and the stock takes a
-  gland; the cables EW-GEN-CBL-2, -17 and -25 give their outer diameter. The part editor has a Gland section for a
+  gland; the cables EW-GEN-CBL-2, -17 and -25 give their outer diameter. Parts has a Gland group for a
   gland's thread, clamping range and nut, on a new part and a part of one's own; a cable type's Diameter is kept in
   its cable section (an older part's technical value `outer_diameter` is still read, and Save moves it there). A gland
   is offered by the part chooser only where a gland is asked for
@@ -547,8 +542,7 @@ change here.
   edited or a library update replaces the copy; one whose hole is gone applies to none, and EW-LAY-017 says so with
   Drop the choices that find no hole (`layout.hole_choice` takes `lost`)
 - format-variant: placement `hole_choices[].hole` (the part's hole a choice names; doc 12 §2.2)
-- api-add: `fields.set` takes a device's `gland`; `layout.glands_place` takes the sheet point `x_mm`, `y_mm`; `part.edit`
-  takes `section`
+- api-add: `fields.set` takes a device's `gland`; `layout.glands_place` takes the sheet point `x_mm`, `y_mm`
 - format-variant: record committed_route.schema.json (the kind `committed_route`, rank 56, is typed: the stored way
   of a wire in its cabinet;
   `CommittedRoute`, `RouteEnd`, `WayStep`, `DuctStretch`; doc 05 §2); `CpData` gains `face` (`PinFace`),
@@ -583,9 +577,9 @@ change here.
   says so in its toast with Route, and a placement selected on the panel page shows the ways of its wires (dashed
   where they no longer hold). On any other page without a drawing Route is greyed with its reason.
 - behaviour-change: Project properties ▸ Workshop holds Reserve per end, Duct fill limit and Door loop with their
-  defaults (50 mm, 60 %, 300 mm); the part editor's Pins table has the column Wired at (From the drawing, Top,
-  Bottom; an empty cell shows the drawing's edge, "top · drawing"), its Size section the row Clearance in front, a
-  wire part's section the row Outer diameter, and a duct part a section Duct with its inner width and height
+  defaults (50 mm, 60 %, 300 mm); the sheet of Parts has the column Wired at in its Connections (From the
+  drawing, Top, Bottom; an empty cell shows the drawing's edge, "top · drawing"), the row Clearance in front, a
+  wire part the row Outer diameter, and a duct part a group Duct with its inner width and height
 - behaviour-change: four new checks of a cabinet's ways (doc 15 §4.5.4, §4.5.5): EW-LAY-007 (warning) a footprint or a
   duct inside the room a device's part keeps free, with the side and the amount; EW-LAY-008 (warning) a duct over the
   fill limit where it is fullest; EW-LAY-011 (warning, an error at release) the ways that no longer hold, one finding
