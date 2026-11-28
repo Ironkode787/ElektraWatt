@@ -20,6 +20,21 @@ use crate::palette::{
 use crate::strings;
 use crate::strings::Key;
 
+/// A row of Project properties as the command search finds it: its key, its label, the words it is found by (the
+/// labels of the rows it stands under, its own and its member's name: "Workshop Rail fixing Holes at most … apart
+/// pitch") and where it is ("Project properties · Workshop · Rail fixing").
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub(crate) struct SettingRow {
+    key: String,
+    label: String,
+    words: String,
+    place: String,
+}
+
+/// How far below a command of the same match a row of Project properties ranks, in the tenths of [`rank`]: ten
+/// points of a match's score.
+const SETTING_STEP: i64 = 100;
+
 /// An entry with its rank, before the order is applied.
 struct Ranked {
     entry: PaletteEntry,
@@ -88,8 +103,10 @@ impl ShellModel {
     /// The palette entries for the current query.
     ///
     /// By the query's prefix: none or `>` the registry actions the window can list, ranked by label, glossary
-    /// alias and ID with the recency boost, and with an empty query the eight most recent distinct actions first,
-    /// then, without `>`, the objects whose tag holds the query; `@` the objects of `Session::find` (at most 50, an exact match first); `#` the pages by folio or title;
+    /// alias and ID with the recency boost, and with an empty query the eight most recent distinct actions first;
+    /// with a query and no `>` the panels of the left rail by their names, the pages by folio, title and kind ("panel",
+    /// "door") and the rows of Project properties by their words ("rail fixing") rank among them, each saying what it
+    /// is; then, without `>`, the objects whose tag holds the query; `@` the objects of `Session::find` (at most 50, an exact match first); `#` the pages by folio or title;
     /// `:` the cell `Session::resolve_goto` finds; `?` the rules of the shipped catalogue, then the Help menu's
     /// actions. An action that needs parameters is listed: with a form when its signature allows one, disabled with
     /// its reason otherwise. Disabled entries follow the enabled ones; each carries its breadcrumb.
@@ -234,6 +251,10 @@ impl ShellModel {
                 });
             }
         }
+        if panels && !query.is_empty() {
+            ranked.extend(self.page_hits(query));
+            ranked.extend(self.setting_hits(query));
+        }
         sort(&mut ranked);
         let mut entries: Vec<PaletteEntry> = ranked.into_iter().map(|r| r.entry).collect();
         if recents && query.is_empty() {
@@ -251,6 +272,119 @@ impl ShellModel {
             entries = front;
         }
         entries
+    }
+
+    /// The pages the search finds by their folio, title or kind in words ("panel" finds 902 Panel layout, "door" the
+    /// door's page), ranked as an action is, each saying that it is a page and of what kind ("Page · Panel layout").
+    fn page_hits(&self, query: &str) -> Vec<Ranked> {
+        self.page_rows()
+            .iter()
+            .filter_map(|row| {
+                let kind = serde_json::to_value(&row.kind)
+                    .ok()
+                    .and_then(|v| v.as_str().map(strings::choice_text))
+                    .unwrap_or_default();
+                let label = if row.title.is_empty() {
+                    row.folio.clone()
+                } else {
+                    format!("{} {}", row.folio, row.title)
+                };
+                let rank = rank(query, &label, [kind.as_str()], &row.folio, 0, true)?;
+                Some(Ranked {
+                    entry: PaletteEntry {
+                        run: PaletteRun::Page(row.folio.clone()),
+                        label,
+                        id: row.folio.clone(),
+                        shortcut: String::new(),
+                        enabled: true,
+                        reason: None,
+                        breadcrumb: strings::format(key!("palette-page-of-kind"), &[&kind]),
+                    },
+                    rank,
+                })
+            })
+            .collect()
+    }
+
+    /// The rows of Project properties the search finds by their words ([`SettingRow`]), ranked as an action is.
+    fn setting_hits(&self, query: &str) -> Vec<Ranked> {
+        self.setting_rows()
+            .iter()
+            .filter_map(|row| {
+                // A row's label weighs as an alias does, a step below a command's: a command found as well ranks
+                // first ("form" finds the Company standard wizard before the Formatting rows).
+                let rank = rank(
+                    query,
+                    "",
+                    [row.label.as_str(), row.words.as_str()],
+                    &row.key,
+                    0,
+                    true,
+                )? - SETTING_STEP;
+                Some(Ranked {
+                    entry: PaletteEntry {
+                        run: PaletteRun::Setting {
+                            key: row.key.clone(),
+                            label: row.label.clone(),
+                        },
+                        label: row.label.clone(),
+                        id: row.key.clone(),
+                        shortcut: String::new(),
+                        enabled: true,
+                        reason: None,
+                        breadcrumb: row.place.clone(),
+                    },
+                    rank,
+                })
+            })
+            .collect()
+    }
+
+    /// The settings rows of the project's sheet (its rows under `settings`), read once per project session and
+    /// revision; empty without a project.
+    fn setting_rows(&self) -> std::sync::Arc<Vec<SettingRow>> {
+        let (Some(epoch), Some(rev), Some(p)) = (self.project_epoch(), self.revision(), &self.project) else {
+            return std::sync::Arc::default();
+        };
+        if let Some((k, rows)) = &*self.settings_cache.borrow()
+            && *k == (epoch, rev)
+        {
+            return std::sync::Arc::clone(rows);
+        }
+        let project = ew_dl::EntityRef(p.session.query().project().id.as_uuid());
+        let sheet = self.fetch_sheet(&[project]);
+        let home = strings::text(key!("action-props-project"));
+        let mut rows = Vec::new();
+        for section in &sheet.sections {
+            for row in section.rows.iter().filter(|r| r.path.starts_with("settings.")) {
+                // The rows it stands under: those whose path leads to its own.
+                let parents: Vec<String> = section
+                    .rows
+                    .iter()
+                    .filter(|o| {
+                        row.path.len() > o.path.len()
+                            && row.path.starts_with(&o.path)
+                            && row.path.as_bytes()[o.path.len()] == b'.'
+                            && o.path.contains('.')
+                    })
+                    .map(|o| crate::properties::row_label(section, o))
+                    .collect();
+                let label = crate::properties::row_label(section, row);
+                let member = row.path.rsplit('.').next().unwrap_or_default().replace('_', " ");
+                rows.push(SettingRow {
+                    key: row.key.clone(),
+                    words: format!("{} {label} {member}", parents.join(" ")),
+                    place: std::iter::once(home.to_owned())
+                        .chain(parents)
+                        .collect::<Vec<_>>()
+                        .join(" · "),
+                    label,
+                });
+            }
+        }
+        let rows = std::sync::Arc::new(rows);
+        *self.settings_cache.borrow_mut() = Some(((epoch, rev), std::sync::Arc::clone(&rows)));
+        rows
     }
 
     /// `@`: the records `Session::find` matches, one entry per record, an exact (case-insensitive) match first, then by
@@ -513,6 +647,18 @@ impl ShellModel {
                     return Outcome::Done;
                 }
                 self.dispatch("rail.show", &json!({ "pane": word }))
+            }
+            PaletteRun::Setting { key, label } => {
+                self.palette = None;
+                let out = self.dispatch("props.project", &json!({}));
+                if out != Outcome::Done {
+                    return out;
+                }
+                let out = self.dispatch("props.filter", &json!({ "text": label }));
+                if out != Outcome::Done {
+                    return out;
+                }
+                self.dispatch("props.row", &json!({ "to": key }))
             }
         }
     }

@@ -56,7 +56,10 @@ confirmation and opens the project for editing.
 ## Command palette
 
 `Ctrl+K` (or `Ctrl+Shift+P`) opens the palette: type a part of a name and press `Enter` to run the selected entry.
-Disabled entries are listed last with the reason. `Escape` closes it.
+Beside the commands it finds a page by its folio, its title or its kind ("panel" finds the panel layouts, "door" the
+door's page), a panel of the left rail by its name ("Unplaced devices"), a row of Project properties by its words
+("rail fixing"), and a device by its tag; each hit says what it is, such as "Page · Panel layout" or "Project
+properties · Workshop". Disabled entries are listed last with the reason. `Escape` closes it.
 
 ## Keyboard shortcuts
 

@@ -36,9 +36,9 @@ The sample project has its mounting plate on page 902, its door on page 904 and 
 6. To move one of these holes, type another place into its row: the chip then says "moved", and **Reset** puts the
    hole back. Tick **Leave out** below a hole you do not make; it is then drawn and listed nowhere.
 7. Your shop's way of making holes is set once, in **Project properties ▸ Workshop**: **Fixing holes** (Tapped,
-   Self-tapping screws, or Through, with a nut), **Rail fixing** and **Duct fixing** (the screw, at most how far
-   apart and how far from each end), **Web between holes** and **Measured from**, the corner every surface's holes
-   are measured from. When a new Rail fixing or Duct fixing puts a rail's or a duct's holes elsewhere, a hole you moved
+   Self-tapping screws, or Through, with a nut), **Rail fixing** and **Duct fixing** (**Screw**, **Holes at most …
+   apart** and **From each end**), **Web between holes** and **Measured from**, the corner every surface's holes are
+   measured from. The command search finds each of these rows by its words, such as "rail fixing", and opens it. When a new Rail fixing or Duct fixing puts a rail's or a duct's holes elsewhere, a hole you moved
    or left out there is reset, and the card of the change says how many and on which rails and ducts before you apply
    it.
 8. To add a hole of your own, right-click the surface where it goes and choose **Add hole here…**. The form "Add a

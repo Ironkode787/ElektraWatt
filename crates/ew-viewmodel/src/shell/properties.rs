@@ -454,7 +454,7 @@ impl ShellModel {
     }
 
     /// One `Session::property_sheet` call, counted, with the shell's read-only reason.
-    fn fetch_sheet(&self, ids: &[EntityRef]) -> PropertySheet {
+    pub(super) fn fetch_sheet(&self, ids: &[EntityRef]) -> PropertySheet {
         let Some(p) = &self.project else {
             return PropertySheet {
                 rev: 0,

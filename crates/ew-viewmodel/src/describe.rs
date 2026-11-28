@@ -2346,6 +2346,7 @@ pub fn describe(model: &ShellModel) -> String {
                 PaletteRun::Object { .. } => ("item", None),
                 PaletteRun::Rule(_) => ("rule", None),
                 PaletteRun::Panel(_) => ("panel", None),
+                PaletteRun::Setting { .. } => ("setting", None),
             };
             let mut line = match id {
                 Some(id) => format!("{mark} {kind} {id} \"{}\"", entry.label),

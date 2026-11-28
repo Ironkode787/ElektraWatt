@@ -404,6 +404,7 @@ palette-no-match = Geen passende opdracht
 palette-form-hint = Enter past toe · Esc gaat terug
 palette-form-hint-preview = Enter toont het voorbeeld: niets verandert vóór Toepassen · Esc gaat terug
 palette-switch-on = Aan, Enter zet het uit
+palette-page-of-kind = Pagina · { $p0 }
 palette-switch-off = Uit, Enter zet het aan
 shortcuts-title = Sneltoetsen
 describe-menu = menu { $p0 }

@@ -1260,7 +1260,8 @@ pub fn group_shut(collapsed: &BTreeSet<String>, kind: &str, group: RowGroup, fil
 
 /// The rows of one group that the Properties filter `filter` keeps: those it matches ([`row_matches`]) and, among
 /// the group's rows, their parents, so that two rows on show never share a label without their parents (doc
-/// 16a §6.8: "Party 2" above its "Personal data").
+/// 16a §6.8: "Party 2" above its "Personal data"), and their children, so that a group's head the filter names never
+/// stands without its rows ("Rail fixing" with its Screw, its spacing and its distance from the ends).
 pub fn filtered<'r>(section: &SheetSection, rows: Vec<&'r PropRow>, filter: &str) -> Vec<&'r PropRow> {
     let matched: Vec<&str> = rows
         .iter()
@@ -1273,7 +1274,12 @@ pub fn filtered<'r>(section: &SheetSection, rows: Vec<&'r PropRow>, filter: &str
             && matches!(child.as_bytes()[parent.len()], b'.' | b'[')
     };
     rows.into_iter()
-        .filter(|r| row_matches(section, r, filter) || matched.iter().any(|m| parent_of(&r.path, m)))
+        .filter(|r| {
+            row_matches(section, r, filter)
+                || matched
+                    .iter()
+                    .any(|m| parent_of(&r.path, m) || parent_of(m, &r.path))
+        })
         .collect()
 }
 
@@ -1945,6 +1951,10 @@ pub fn command_choice_text(path: &str, option: &str) -> String {
             .map_or_else(|| option.to_owned(), |t| strings::render(&t)),
         "measured_from" => ew_api::output::corner_choice_words(option)
             .map_or_else(|| option.to_owned(), |t| strings::render(&t)),
+        // A hole's kind by its word ("Fixing", "Bevestiging"), as Add hole here… offers it.
+        "kind" if ew_api::HoleKind::of_word(option).is_some() => {
+            strings::field_choice_text("surface_feature", path, option)
+        }
         _ => option.to_owned(),
     }
 }

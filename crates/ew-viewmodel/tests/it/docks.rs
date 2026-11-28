@@ -281,8 +281,21 @@ fn props_filter_keeps_the_matching_rows_while_its_field_is_on_show() {
         "{} of {n} rows kept",
         kept.len()
     );
+    // A kept row matches, case-folded, or stands over or under a row that does (a group's head keeps its rows).
+    let matching: Vec<&str> = kept
+        .iter()
+        .filter(|r| row_matches(r.section, r.row, "tag"))
+        .map(|r| r.row.path.as_str())
+        .collect();
+    assert!(!matching.is_empty(), "case-folded match");
     for r in &kept {
-        assert!(row_matches(r.section, r.row, "tag"), "case-folded match");
+        let p = r.row.path.as_str();
+        assert!(
+            matching
+                .iter()
+                .any(|m| *m == p || p.starts_with(&format!("{m}.")) || m.starts_with(&format!("{p}."))),
+            "{p}: a match, or a row over or under one"
+        );
     }
     // The cursor moves among the kept rows only.
     done(&mut shell, "props.row", json!({"to": "last"}));

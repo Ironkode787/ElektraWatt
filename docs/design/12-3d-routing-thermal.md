@@ -486,7 +486,7 @@ diameters a gland seals are not this table's: they are each gland part's data ([
   rounded to the whole millimetre (half up). A piece shorter than `2e` gets one hole at its middle. The sample's
   470 mm rails and duct have three holes each, at 25, 235 and 445 mm from their start.
 - **Where he sets them:** Project properties ▸ Workshop has the rows Fixing holes, Rail fixing and Duct fixing (each
-  with Screw, At most apart and From each end, shown at their defaults while unset), Web between holes (5 mm unless
+  with Screw, Holes at most … apart and From each end, shown at their defaults while unset), Web between holes (5 mm unless
   set) and Measured from (§10.1 step 7), each one `project.settings.set` (`workshop.fixing`,
   `workshop.rail_fixing.pitch`, …, `workshop.min_web`, `workshop.datum`) and one undo step. A fixing set back to its
   defaults is stored as none, so a project reads as it did until he changes one. A value that cannot be is refused in

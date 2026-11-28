@@ -105,7 +105,9 @@ focus ring.
 name in `type.title` ("-K1", "103 Power supply 3"), one line in `type.small` and `color.text.secondary` (kind and
 rating, then the page: "Contactor, 3 NO + 1 NO aux · page 3"), and at the right the findings badge if any. For a
 multi-selection: "3 devices" and the mixed-selection rule of doc 16 §17. A filter field ("Filter properties")
-appears under it only when the open categories hold more than twelve rows.
+appears under it only when the open categories hold more than twelve rows. The filter keeps the rows whose label or
+value holds its text, the rows they stand under and the rows under them: a group's head never stands without its
+rows ("Rail fixing" keeps its Screw, Holes at most … apart and From each end).
 
 **Categories**: 28-px collapsible headers in `type.small` SemiBold, `color.text.secondary`, with a chevron; **Main**
 (the fields of the kind marked primary in the field catalogue: tag, function text, part, location, page title,

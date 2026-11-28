@@ -927,6 +927,10 @@ pub struct ShellModel {
     /// per group of tabs.
     #[allow(clippy::type_complexity)]
     station_cache: std::cell::RefCell<Vec<(station::StationKey, std::sync::Arc<station::StationShown>)>>,
+    /// The project's settings rows the command search finds by their words, kept for the project session and the
+    /// revision they were read for ([`palette::SettingRow`]): read once per change, not once per frame.
+    #[allow(clippy::type_complexity)]
+    settings_cache: std::cell::RefCell<Option<((u64, u64), std::sync::Arc<Vec<palette::SettingRow>>)>>,
     /// What the selection shows on a panel page (the ways of its wires, a duct's fullest piece), kept for the revision,
     /// the page and the selection it was worked out for: once per change, not once per frame.
     marks_cache: std::cell::RefCell<Option<(cabinet::MarksKey, std::sync::Arc<cabinet::SelectionMarks>)>>,
@@ -1365,6 +1369,7 @@ impl ShellModel {
             supply_panel: None,
             offer_cache: std::cell::RefCell::new(None),
             rack_cache: std::cell::RefCell::default(),
+            settings_cache: std::cell::RefCell::new(None),
             station_cache: std::cell::RefCell::new(Vec::new()),
             marks_cache: std::cell::RefCell::new(None),
             last_station: None,

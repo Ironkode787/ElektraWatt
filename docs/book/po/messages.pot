@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-28T04:15:52Z\n"
+"POT-Creation-Date: 2026-11-28T04:52:04Z\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2425,32 +2425,37 @@ msgstr ""
 #: src/how-to/application-window.md:58
 msgid ""
 "`Ctrl+K` (or `Ctrl+Shift+P`) opens the palette: type a part of a name and "
-"press `Enter` to run the selected entry. Disabled entries are listed last "
-"with the reason. `Escape` closes it."
+"press `Enter` to run the selected entry. Beside the commands it finds a page "
+"by its folio, its title or its kind (\"panel\" finds the panel layouts, "
+"\"door\" the door's page), a panel of the left rail by its name (\"Unplaced "
+"devices\"), a row of Project properties by its words (\"rail fixing\"), and "
+"a device by its tag; each hit says what it is, such as \"Page · Panel "
+"layout\" or \"Project properties · Workshop\". Disabled entries are listed "
+"last with the reason. `Escape` closes it."
 msgstr ""
 
-#: src/how-to/application-window.md:61
+#: src/how-to/application-window.md:64
 msgid "Keyboard shortcuts"
 msgstr ""
 
-#: src/how-to/application-window.md:63
+#: src/how-to/application-window.md:66
 msgid ""
 "**Help, Keyboard shortcuts** lists the bindings of the EW preset. `F1` opens "
 "the guide at what is under the pointer "
 "([below](#help-for-what-is-under-the-pointer))."
 msgstr ""
 
-#: src/how-to/application-window.md:66
+#: src/how-to/application-window.md:69
 msgid "Help for what is under the pointer"
 msgstr ""
 
-#: src/how-to/application-window.md:68
+#: src/how-to/application-window.md:71
 msgid ""
 "Point at something and press `F1`: the guide opens at the page about it. It "
 "answers for the most specific thing under the hand:"
 msgstr ""
 
-#: src/how-to/application-window.md:71
+#: src/how-to/application-window.md:74
 msgid ""
 "what the pointer rests on: a button of the command bar or a menu entry (the "
 "page of its command), a row of Properties (what that row means, in "
@@ -2461,27 +2466,27 @@ msgid ""
 "[Things on a page](../reference/window/things.md);"
 msgstr ""
 
-#: src/how-to/application-window.md:76
+#: src/how-to/application-window.md:79
 msgid ""
 "else what has the keys: the row of a list or of Properties the cursor is on;"
 msgstr ""
 
-#: src/how-to/application-window.md:77
+#: src/how-to/application-window.md:80
 msgid "else what is selected on the page;"
 msgstr ""
 
-#: src/how-to/application-window.md:78
+#: src/how-to/application-window.md:81
 msgid "else the active tool;"
 msgstr ""
 
-#: src/how-to/application-window.md:79
+#: src/how-to/application-window.md:82
 msgid ""
 "else the screen: an open dialog or wizard (those come first), Parts and its "
 "drawing, a station's view, the guide of the page's kind (a fluid, "
 "bus-topology or panel layout page), the project view or the start page."
 msgstr ""
 
-#: src/how-to/application-window.md:82
+#: src/how-to/application-window.md:85
 msgid ""
 "While the pointer rests on something, the status bar says what `F1` opens "
 "there, such as \"F1: Wires\", and a button's or a menu entry's tooltip ends "
@@ -2493,11 +2498,11 @@ msgid ""
 "the guide has one."
 msgstr ""
 
-#: src/how-to/application-window.md:88
+#: src/how-to/application-window.md:91
 msgid "Appearance"
 msgstr ""
 
-#: src/how-to/application-window.md:90
+#: src/how-to/application-window.md:93
 msgid ""
 "The **View** menu sets how the window looks and behaves: **Theme**, "
 "**Density**, **UI scale**, **Minimum text size**, **Reduce motion**, **Show "
@@ -2508,11 +2513,11 @@ msgid ""
 "draws. The settings are kept for the next start."
 msgstr ""
 
-#: src/how-to/application-window.md:96
+#: src/how-to/application-window.md:99
 msgid "Notifications"
 msgstr ""
 
-#: src/how-to/application-window.md:98
+#: src/how-to/application-window.md:101
 msgid ""
 "What a command did, such as \"Cable -1W1 made from 2 wires\", shows as a "
 "toast at the window's corner for a few seconds; a pointer resting on it "
@@ -2521,11 +2526,11 @@ msgid ""
 "session."
 msgstr ""
 
-#: src/how-to/application-window.md:102
+#: src/how-to/application-window.md:105
 msgid "Workspaces"
 msgstr ""
 
-#: src/how-to/application-window.md:104
+#: src/how-to/application-window.md:107
 msgid ""
 "The project view is a dock: drag the border between two panes to resize "
 "them, and drag a pane's title onto another pane to rearrange or tab it. The "
@@ -2540,11 +2545,11 @@ msgid ""
 "directory; the layout is saved a second after its last change."
 msgstr ""
 
-#: src/how-to/application-window.md:113
+#: src/how-to/application-window.md:116
 msgid "First-run setup"
 msgstr ""
 
-#: src/how-to/application-window.md:115
+#: src/how-to/application-window.md:118
 msgid ""
 "On the first start the application asks for the language and what you come "
 "from (EPLAN, QElectroTech, KiCad or other), says what it does with your data "
@@ -2554,11 +2559,11 @@ msgid ""
 "First-run setup** runs it again. Nothing in it makes a network connection."
 msgstr ""
 
-#: src/how-to/application-window.md:120
+#: src/how-to/application-window.md:123
 msgid "About"
 msgstr ""
 
-#: src/how-to/application-window.md:122
+#: src/how-to/application-window.md:125
 msgid ""
 "**Help, About ElektraWatt** shows the version, the page-view renderer, the "
 "privacy state, the licence, the engineering-verification disclaimer, the "
@@ -4094,12 +4099,13 @@ msgstr ""
 msgid ""
 "Your shop's way of making holes is set once, in **Project properties ▸ "
 "Workshop**: **Fixing holes** (Tapped, Self-tapping screws, or Through, with "
-"a nut), **Rail fixing** and **Duct fixing** (the screw, at most how far "
-"apart and how far from each end), **Web between holes** and **Measured "
-"from**, the corner every surface's holes are measured from. When a new Rail "
-"fixing or Duct fixing puts a rail's or a duct's holes elsewhere, a hole you "
-"moved or left out there is reset, and the card of the change says how many "
-"and on which rails and ducts before you apply it."
+"a nut), **Rail fixing** and **Duct fixing** (**Screw**, **Holes at most … "
+"apart** and **From each end**), **Web between holes** and **Measured from**, "
+"the corner every surface's holes are measured from. The command search finds "
+"each of these rows by its words, such as \"rail fixing\", and opens it. When "
+"a new Rail fixing or Duct fixing puts a rail's or a duct's holes elsewhere, "
+"a hole you moved or left out there is reset, and the card of the change says "
+"how many and on which rails and ducts before you apply it."
 msgstr ""
 
 #: src/how-to/cabinet-surfaces.md:44

@@ -787,6 +787,14 @@ pub enum PaletteRun {
     /// A panel of the left rail by its word (`plc`): Enter shows it (`rail.show`), and leaves it open when it is
     /// shown already.
     Panel(&'static str),
+    /// A row of Project properties by its key (`project/settings.workshop.rail_fixing.pitch`) and its label: Enter
+    /// shows the project's sheet with the row in front (`props.project`, `props.filter`, `props.row`).
+    Setting {
+        /// The row's key.
+        key: String,
+        /// Its label, which the sheet's filter takes.
+        label: String,
+    },
 }
 
 #[cfg(test)]
