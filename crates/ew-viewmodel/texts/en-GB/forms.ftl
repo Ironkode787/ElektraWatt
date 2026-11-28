@@ -82,6 +82,12 @@ form-terminal-tag = Tag of a new strip
 form-renumber-section = Section (number, or front)
 # The line under Renumber pages' Start.
 form-renumber-start-note = Section dividers keep their numbers.
+# Add hole here…'s Size by the kind chosen: its unit and an example.
+form-hint-feature-size-round = A diameter in millimetres, such as 8.5
+form-hint-feature-size-fixing = A screw from M3 to M8, such as M6
+form-hint-feature-size-cutout = 16, 22 or 30 mm across, such as 22
+form-hint-feature-size-gland = A thread from M12 to M63, such as M20
+form-hint-feature-size-rect = Width × height in millimetres, a corner radius after R, such as 92 × 92 R 2
 form-start = Start
 form-page-copy-offset = Folio offset (added to each folio number)
 form-page-copy-after = Or after folio

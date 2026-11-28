@@ -128,7 +128,7 @@ Gives the devices new numbers by their place in the drawings (`Ctrl+Shift+N`).
 Opens Parts on a new drawing at once, for the page in front: on its connection grid, as what you drew last, with the
 device tag's text where the standard puts it (`Ctrl+I`). **Save and place on** the page saves it with your parts and
 arms Place with it; **Back without it** keeps it in hand. Its menu: **Like the last one**, a copy of the symbol you
-saved last; **Like the selected one** (also **Draw one like it…** on a symbol's right-click), which Save puts in place
+saved last; **Like the selected one** (also **Draw a symbol like this one…** on a symbol's right-click), which Save puts in place
 of the selected symbol; **Go on with the drawing in hand**. See [Drawing a symbol](../symbol-editor.md).
 
 ### Auto-fill rail…

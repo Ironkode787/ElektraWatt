@@ -137,6 +137,12 @@ impl FormDialog {
                     })
                     .unwrap_or_else(|| strings::text(key!("form-page-type-note"))),
             ),
+            // Add hole here…'s Size says its unit and an example for the kind chosen (`form-hint-feature-size-<kind>`).
+            ("layout.feature_add", "size") => self
+                .fields
+                .iter()
+                .find(|f| f.name == "kind")
+                .and_then(|f| strings::lookup(&format!("form-hint-feature-size-{}", f.value))),
             // Every other field says what it changes, with an example, where its form has the text
             // `form-hint-<action>-<field>`.
             _ => strings::lookup(&format!("form-hint-{}-{field}", self.action).replace(['.', '_'], "-")),

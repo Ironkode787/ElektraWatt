@@ -191,7 +191,8 @@ lists **Entities, Tags, Cross-references, Pages** as collapsible sections with h
 List rows are `size.row` in `type.small`: an entity row shows the change word ("Changed", in sentence case as the
 row's first word) in `color.text.tertiary` in a 64-px
 column, the kind in `color.text.secondary`, the label in `color.text.primary` and the changed fields in
-`color.text.tertiary`; a tag or cross-reference row shows "old → new" with the arrow in `color.text.tertiary` and, for a
+`color.text.tertiary`; a wire's way is said by its wire alone, in the label's place ("101.4: a way through Duct 1,
+595 mm", "103.2: its way is removed, the wire is unfinished"); a tag or cross-reference row shows "old → new" with the arrow in `color.text.tertiary` and, for a
 cross-reference, the folio as the meta column (tabular digits). Each list shows `size.preview_list` rows, then
 scrolls. Without a card a tab the user opened by hand shows the empty state of §6.17 ("No preview is open"); a tab a card opened closes with its last card. AccessKit: a
 `Group` named "Preview", the header a polite live region, buttons named by their text.

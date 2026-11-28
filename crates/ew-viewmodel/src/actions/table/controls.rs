@@ -1175,7 +1175,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     // New symbol (doc 07 §5.6): a new drawing at once, one click from a page; on the Draw tab beside Symbol, in the
     // column over Parts, so the bar gains no column; its menu's starts are `like`'s. The picker's foot, the Part tab of
-    // Parts and a placed symbol's Draw one like it… call it too.
+    // Parts and a placed symbol's Draw a symbol like this one… call it too.
     with_params(
         "like?:enum(last|selected|hand), discard?:bool",
         placed(

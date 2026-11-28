@@ -419,6 +419,10 @@ pub fn show_changes(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event>) 
         .map(|e| {
             // In the UI language, as the Preview tab's line.
             let [change, kind, label, fields] = ew_viewmodel::preview::change_line(e);
+            // A record said by its words alone (a wire's way) is its words.
+            if change.is_empty() {
+                return label;
+            }
             strings::format(key!("preview-change-line"), &[&change, &kind, &label, &fields])
         })
         .collect();

@@ -809,7 +809,7 @@ fn the_canvas_context_menu_offers_what_fits_then_the_bar_selection_commands_and_
         .map(|(l, _)| l)
         .collect();
     let first = |w: &str| words.iter().position(|l| l == w).unwrap_or(usize::MAX);
-    for (fits, general) in [("Choose part…", "Rotate clockwise"), ("Draw one like it…", "Cut")] {
+    for (fits, general) in [("Choose part…", "Rotate clockwise"), ("Draw a symbol like this one…", "Cut")] {
         assert!(first(fits) < first(general), "{fits} before {general}: {words:?}");
     }
     assert!(words.ends_with(&[

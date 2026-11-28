@@ -662,6 +662,12 @@ hole-made-for-cable = Voor de wartel van { $p0 }
 hole-made-for-gone-cable = Voor de wartel van een kabel; de kabel is er niet meer
 hole-cable-select = Selecteer de kabel
 
+## De loop van een draad zoals een voorbeeld hem noemt (de kaart van Routeren, de geschiedenis)
+preview-route-way = { $p0 }: een loop door { $p1 }, { $p2 }
+preview-route-way-plain = { $p0 }: een loop van { $p1 }
+preview-route-unfinished = { $p0 }: zijn loop vervalt, de draad is niet af
+preview-route-replaced = { $p0 }: zijn oude loop maakt plaats voor de nieuwe
+
 ## How a value beside its derived row is had (doc 16 §2.2): the provenance chip's words
 via-joined = { $p0 } · { $p1 }
 via-connectivity = verbindingen

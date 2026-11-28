@@ -61,8 +61,12 @@ pub fn field_words(kind: &str, fields: &[String]) -> Vec<String> {
 
 /// A changed record's line as the Preview tab and the history's popup show it, in the UI language: its change word,
 /// its kind in a sentence, its label, and its changed fields in words in brackets (` (part number, quantity)`), empty
-/// for none.
+/// for none. A record said by what it does (a wire's way, `PreviewEntity::words`) is its words alone, in the label's
+/// place.
 pub fn change_line(e: &PreviewEntity) -> [String; 4] {
+    if let Some(words) = &e.words {
+        return [String::new(), String::new(), crate::strings::render(words), String::new()];
+    }
     let (change, kind) = entity_words(e);
     let fields = field_words(&e.kind, &e.fields);
     let fields = if fields.is_empty() {

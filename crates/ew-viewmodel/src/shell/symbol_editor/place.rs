@@ -4,7 +4,7 @@
 //! The drawing of a symbol in Parts (doc 07 §5.6): it opens in the middle of the place, on its Drawing tab, for what
 //! it is drawn for ([`Drawing`]): a symbol of his own (the Symbols shelf, New symbol in the place), a piece of the open
 //! part (Draw a new symbol…, Change it for this part…), or a page (New symbol on the Draw tab and `Ctrl+I`, the symbol
-//! picker's foot, Draw one like it…). `parts.new_symbol`, `parts.draw` and `parts.open {symbol}` open it, ready to draw
+//! picker's foot, Draw a symbol like this one…). `parts.new_symbol`, `parts.draw` and `parts.open {symbol}` open it, ready to draw
 //! on: the page's connection grid, What it is as he chose it last, the texts its kind needs where the standard puts
 //! them, his drawing grid and Snap. `parts.save` saves the symbol with his parts (My parts, or the library he can write
 //! that it came from) and finishes the errand: placed on the page with the Place tool armed, exchanged for the selected
@@ -63,7 +63,7 @@ pub struct PageDrawing {
     pub words: String,
     /// Its connection grid, nanometres per step as `(num, den)`.
     pub grid: (u64, u64),
-    /// The placed symbol a drawing like it is for (Draw one like it…), which Save exchanges: its representation and
+    /// The placed symbol a drawing like it is for (Draw a symbol like this one…), which Save exchanges: its representation and
     /// its device's tag.
     pub exchange: Option<(Uuid, String)>,
 }
@@ -289,7 +289,7 @@ impl ShellModel {
     /// `parts.new_symbol {like?}` (New symbol: the Draw tab and `Ctrl+I`, the symbol picker's foot, the Part tab of
     /// Parts): a new drawing at once, with no question first. From a page it is drawn for that page, on its connection
     /// grid, and its next step places it there; in Parts it is a symbol of his own. `like`: `last`, a copy of the symbol
-    /// he saved last, its name ready to type over; `selected` (Draw one like it…), a copy of the symbol selected on the
+    /// he saved last, its name ready to type over; `selected` (Draw a symbol like this one…), a copy of the symbol selected on the
     /// page, which Save then exchanges; `hand`, the drawing in hand again.
     pub(crate) fn act_parts_new_symbol(&mut self, p: &Map<String, Value>) -> Outcome {
         let like = match string_param(p, "like") {
@@ -362,7 +362,7 @@ impl ShellModel {
     }
 
     /// New symbol's menu (doc 07 §5.6): Like the last one (the symbol he saved last, by name), Like the selected one
-    /// (Draw one like it…), and Go on with the drawing in hand; each as its `like`, its words and why it cannot be
+    /// (Draw a symbol like this one…), and Go on with the drawing in hand; each as its `like`, its words and why it cannot be
     /// chosen now.
     pub fn new_symbol_starts(&self) -> Vec<(&'static str, String, Option<String>)> {
         let last = self.settings.symbols_recent.first().and_then(|address| {

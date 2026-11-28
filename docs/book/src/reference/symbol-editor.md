@@ -3,7 +3,7 @@
 A symbol is drawn in **Parts**, on its **Drawing** tab, and kept with your parts in My parts. The ways in:
 
 - **Draw ▸ Place ▸ New symbol** (`Ctrl+I`), the symbol picker's foot (**Nobody has it? New symbol…**) and a placed
-  symbol's **Draw one like it…**: a new drawing for the page in front, at once, with no question first.
+  symbol's **Draw a symbol like this one…**: a new drawing for the page in front, at once, with no question first.
 - **New symbol** on the Part tab of Parts: a symbol of your own, for no page.
 - The **Symbols** shelf of Parts, and **Open in Parts** under a symbol in the symbol picker: a symbol you have.
 - A piece's **Symbol** cell on a part's sheet: **Draw a new symbol…** and **Change it for this part…**

@@ -677,6 +677,12 @@ hole-made-for-cable = For the gland of { $p0 }
 hole-made-for-gone-cable = For a cable's gland; the cable is gone
 hole-cable-select = Select the cable
 
+## A wire's way as a preview names it (Route's card, the history)
+preview-route-way = { $p0 }: a way through { $p1 }, { $p2 }
+preview-route-way-plain = { $p0 }: a way of { $p1 }
+preview-route-unfinished = { $p0 }: its way is removed, the wire is unfinished
+preview-route-replaced = { $p0 }: its old way gives way to its new one
+
 ## How a value beside its derived row is had (doc 16 §2.2): the provenance chip's words
 via-joined = { $p0 } · { $p1 }
 via-connectivity = connectivity

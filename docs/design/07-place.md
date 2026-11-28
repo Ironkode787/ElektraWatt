@@ -64,7 +64,7 @@ where a field is meant, the field:
 | From | Entry |
 |---|---|
 | anywhere | Project ▸ Parts and Draw ▸ Place ▸ Parts on the command bar; the app menu; the start page, also with no project open; F9; the command search under Parts, My parts, New part, and under the names of what Parts replaced (Symbol editor, Edit stock, New cable type) |
-| a page, when a symbol is needed that nobody has | **New symbol** on Draw ▸ Place, beside Symbol (Ctrl+I), which opens Parts on a new drawing at once; New symbol… at the foot of the Insert symbol picker, where a search that found nothing ends; Draw one like it… in a placed symbol's context menu; the command search under New symbol, Draw a symbol and Symbol editor (§5.6) |
+| a page, when a symbol is needed that nobody has | **New symbol** on Draw ▸ Place, beside Symbol (Ctrl+I), which opens Parts on a new drawing at once; New symbol… at the foot of the Insert symbol picker, where a search that found nothing ends; Draw a symbol like this one… in a placed symbol's context menu; the command search under New symbol, Draw a symbol and Symbol editor (§5.6) |
 | a device on a page | Open part in its context menu; the Parts row of Properties (the row's link, and Open part in its menu beside Choose part…) |
 | the part dialog and the device browser | Open in Parts on the active row's detail; **New part…** at the list's foot |
 | a finding, a refusal, a toast | **Edit part…**, offered by every outcome that comes from a part's missing datum (§5.7) |
@@ -242,7 +242,7 @@ what. Done returns to the sheet; nothing is saved until the part is.
   - with **his drawing grid, Snap and the tool** as he left them the last time.
 
   New symbol's menu offers two more starts: **Like the last one**, a copy of the symbol he saved last, and **Like
-  the selected one** when a symbol is selected on the page (the same as Draw one like it… in its context menu). The
+  the selected one** when a symbol is selected on the page (the same as Draw a symbol like this one… in its context menu). The
   Symbols shelf leads with Lately drawn and keeps the scope he used last.
 
   The next step is **Save and place on 102** (Ctrl+Enter): the symbol is saved with his parts, the window is back on

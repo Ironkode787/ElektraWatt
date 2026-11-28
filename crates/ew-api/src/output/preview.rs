@@ -32,6 +32,10 @@ pub struct PreviewEntity {
     pub label: String,
     /// The changed top-level members, sorted (empty for an added or removed record).
     pub fields: Vec<String>,
+    /// The whole line in words where the record is said by what it does rather than by its kind: a wire's way
+    /// ("101.4: a way through duct 1, 595 mm", "103.2: its way is removed, the wire is unfinished"); `None` for the
+    /// line of change, kind and label.
+    pub words: Option<crate::Text>,
 }
 
 /// The word of a change kind.
@@ -81,13 +85,68 @@ fn entity(change: &EntityChange, current: &Q, candidate: Option<&Q>) -> PreviewE
     let mut fields: Vec<String> = change.fields.iter().map(|f| top_member(f).to_owned()).collect();
     fields.sort();
     fields.dedup();
+    let words = (kind == ew_schema::Kind::CommittedRoute)
+        .then(|| route_words(change.change, id, current, candidate))
+        .flatten();
     PreviewEntity {
         change: change_word(change.change),
         kind: kind.name().to_owned(),
         id,
         label,
         fields,
+        words,
     }
+}
+
+/// A wire's way (`committed_route` `id`) in words, by its wire: an added or changed one "101.4: a way through duct 1,
+/// 595 mm" (from `candidate` for an added one); a removed one "103.2: its way is removed, the wire is unfinished" where
+/// the result has no way for the wire, else "…: its old way gives way to its new one".
+fn route_words(change: ChangeKind, id: Uuid, current: &Q, candidate: Option<&Q>) -> Option<crate::Text> {
+    use ew_schema::{CommittedRoute, WayStep};
+    let route_id = ew_ids::Id::<CommittedRoute>::from_uuid(id);
+    let q = match (change, candidate) {
+        (ChangeKind::Added, Some(c)) => c,
+        _ => current,
+    };
+    let route = q.table::<CommittedRoute>().get(route_id)?.clone();
+    let wire = record_title(q, route.wire.as_uuid(), None)?;
+    if change == ChangeKind::Removed {
+        let kept = candidate.is_some_and(|c| {
+            c.table::<CommittedRoute>()
+                .iter()
+                .any(|(_, r)| r.wire == route.wire)
+        });
+        return Some(if kept {
+            text!("preview-route-replaced", wire)
+        } else {
+            text!("preview-route-unfinished", wire)
+        });
+    }
+    let comma = super::layout_edit::comma(q);
+    let run = ew_derive::text::mm_with_unit(i128::from(route.run.0), comma);
+    let mut ducts = Vec::new();
+    for step in &route.way {
+        if let WayStep::Duct(s) = step
+            && !ducts.contains(&s.carrier)
+        {
+            ducts.push(s.carrier);
+        }
+    }
+    let names: Vec<ew_l10n::TextArg> = ducts
+        .iter()
+        .filter_map(|c| ew_derive::layout::carrier_label(q, *c))
+        .map(|l| ew_l10n::TextArg::Text(ew_derive::text::carrier_label(l)))
+        .collect();
+    Some(if names.is_empty() {
+        text!("preview-route-way-plain", wire, run)
+    } else {
+        let through = ew_l10n::TextArg::List(ew_l10n::List::new(
+            names,
+            ew_derive::text!("part-fields-between"),
+            ew_derive::text!("part-fields-and"),
+        ));
+        text!("preview-route-way", wire, through, run)
+    })
 }
 
 /// The name of a library copy in the project: a part's number, a manufacturer's name; `None` for any other kind.
@@ -195,6 +254,7 @@ mod tests {
             id: Uuid::nil(),
             label: label.into(),
             fields: Vec::new(),
+            words: None,
         };
         let mut v = [
             line("removed", "-1"),

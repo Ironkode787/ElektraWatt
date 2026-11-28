@@ -80,6 +80,12 @@ form-terminal-from = Vanaf nummer
 form-terminal-tag = Kenmerk van een nieuwe klemmenstrook
 form-renumber-section = Sectie (nummer, of front)
 form-renumber-start-note = Sectiescheidingen houden hun nummer.
+# De Grootte van Gat hier toevoegen… naar de gekozen soort: de eenheid en een voorbeeld.
+form-hint-feature-size-round = Een diameter in millimeters, zoals 8.5
+form-hint-feature-size-fixing = Een schroef van M3 tot M8, zoals M6
+form-hint-feature-size-cutout = 16, 22 of 30 mm doorsnede, zoals 22
+form-hint-feature-size-gland = Een schroefdraad van M12 tot M63, zoals M20
+form-hint-feature-size-rect = Breedte × hoogte in millimeters, een hoekstraal na R, zoals 92 × 92 R 2
 form-start = Begin
 form-page-copy-offset = Foliosprong (bij elk folionummer opgeteld)
 form-page-copy-after = Of na folio

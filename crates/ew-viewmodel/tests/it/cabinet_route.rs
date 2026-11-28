@@ -362,3 +362,35 @@ fn route_names_the_ways_it_removes_also_when_it_lays_other_wires() {
     assert!(words.contains("101.8"), "{words}");
     shell.shutdown();
 }
+
+/// Route's preview names the wire on every row of a way it removes ("101.8: its way is removed, the wire is
+/// unfinished"), never the record's kind ("Removed committed route").
+#[test]
+fn routes_preview_names_the_wire_on_every_row() {
+    let tmp = Tmp::new("vm-cabinet-route-rows");
+    let mut shell = tmp.sample_in(Mode::Headless, true, "902");
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "device", "targets": [{"ref": "tag:-103F1"}],
+            "path": "structure.location", "value": "none"}}),
+    );
+    done(&mut shell, "layout.route", json!({}));
+    let rows: Vec<[String; 4]> = shell
+        .preview_pane()
+        .entities()
+        .iter()
+        .filter(|e| e.kind == "committed_route")
+        .map(ew_viewmodel::preview::change_line)
+        .collect();
+    assert!(!rows.is_empty(), "Route removes the ways of -103F1's wires");
+    for r in &rows {
+        assert!(r[0].is_empty() && r[1].is_empty(), "no change word, no kind: {r:?}");
+    }
+    assert!(
+        rows.iter()
+            .any(|r| r[2].starts_with("101.8: ") && r[2].ends_with(": its way is removed, the wire is unfinished")),
+        "{rows:?}"
+    );
+    shell.shutdown();
+}

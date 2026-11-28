@@ -102,11 +102,15 @@ fn rows(t: &Tokens, shell: &ShellModel) -> [Vec<Row>; 5] {
             // The change word in a 64-px column (padded to its width in the row's font).
             // The change word, the kind and the fields in the UI language, a content hash left out.
             let [change, kind, label, fields] = ew_viewmodel::preview::change_line(e);
-            let mut r = vec![
+            // A record said by its words alone (a wire's way) has no change word and no kind.
+            let mut r: Vec<_> = [
                 (format!("{change} "), t.text_tertiary),
                 (format!("{kind} "), t.text_secondary),
-                (label, t.text_primary),
-            ];
+            ]
+            .into_iter()
+            .filter(|(s, _)| !s.trim().is_empty())
+            .chain([(label, t.text_primary)])
+            .collect();
             if !fields.is_empty() {
                 r.push((fields, t.text_tertiary));
             }

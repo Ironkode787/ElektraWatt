@@ -134,7 +134,7 @@ fn journey_4_a_symbol_nobody_has_is_drawn_from_the_page_and_placed_there() {
 }
 
 /// Journey 5: Ctrl+I on the page opens the drawing with What it is, the drawing grid and Snap as he left them; Like
-/// the last one opens a copy of the symbol he saved last; Draw one like it… on a placed symbol reads Save and use for
+/// the last one opens a copy of the symbol he saved last; Draw a symbol like this one… on a placed symbol reads Save and use for
 /// its tag, and Save exchanges the symbol on the page for the new one.
 #[test]
 fn journey_5_the_tenth_symbol_is_drawn_as_the_last_one_was_left() {
@@ -178,7 +178,7 @@ fn journey_5_the_tenth_symbol_is_drawn_as_the_last_one_was_left() {
     assert!(editor.draft.identity.is_none(), "a new symbol");
     assert_eq!(editor.draft.symbol.cps.len(), 2);
     done(&mut s, "parts.back", json!({}));
-    // Draw one like it… on the placed coil.
+    // Draw a symbol like this one… on the placed coil.
     let rep = tables(&s).reps[0].clone();
     done(&mut s, "select.set", json!({"ids": [rep.id.to_string()]}));
     done(
@@ -561,7 +561,7 @@ fn own_box_placed(s: &mut ShellModel, number: &str) -> String {
 }
 
 /// Every way into Parts' drawing that a page offers works from the page, Parts not open: a placed box's Arrange its
-/// box… and the device browser's Arrange…, which open Parts on that part's box; a placed symbol's Draw one like it…;
+/// box… and the device browser's Arrange…, which open Parts on that part's box; a placed symbol's Draw a symbol like this one…;
 /// Open in Parts of a symbol; and the Symbol cell's Draw a new symbol… of a part opened from the page.
 #[test]
 fn the_ways_into_parts_drawing_work_from_a_page() {
@@ -592,7 +592,7 @@ fn the_ways_into_parts_drawing_work_from_a_page() {
     );
     done(&mut s, "parts.draw", json!({"done": true}));
     done(&mut s, "parts.back", json!({"discard": true}));
-    // Draw one like it… of a placed symbol.
+    // Draw a symbol like this one… of a placed symbol.
     done(&mut s, "tool.place", json!({}));
     let coil = ew_viewmodel::ew_api::output::starter_piece_symbol("ew.fn.coil").expect("the starter coil");
     done(&mut s, "place.pick", json!({"symbol": coil}));
@@ -607,8 +607,8 @@ fn the_ways_into_parts_drawing_work_from_a_page() {
     let menu = canvas_menu(&s, MenuSpot::Object, None);
     let like = menu
         .iter()
-        .find(|i| i.label == "Draw one like it…")
-        .expect("Draw one like it…");
+        .find(|i| i.label == "Draw a symbol like this one…")
+        .expect("Draw a symbol like this one…");
     assert!(like.enabled, "{:?}", like.reason);
     done(&mut s, like.id, like.params.clone());
     assert!(s.symbol_editor().is_some(), "the drawing");
