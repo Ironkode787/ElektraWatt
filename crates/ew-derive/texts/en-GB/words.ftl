@@ -384,8 +384,8 @@ rail-start-left = left end
 rail-start-right = right end
 rail-start-bottom = lower end
 rail-start-top = upper end
-place-on-rail = on { $p0 } of the { $p1 }, { $p2 } to { $p3 } mm from its { $p4 }
-place-on-surface = on the { $p0 } at X { $p1 }, Y { $p2 } mm from its { $p3 } corner{ $p4 }
+place-on-rail = { $p0 } · { $p1 }, page { $p2 } · { $p3 }–{ $p4 } mm from its { $p5 }
+place-on-surface = { $p0 }, page { $p1 } · X { $p2 }, Y { $p3 } mm from its { $p4 } corner{ $p5 }
 place-hole = , in hole { $p0 }
 place-holes = , in holes { $p0 }
 

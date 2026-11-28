@@ -146,7 +146,7 @@ rework-export = Exporteren…
 rework-work = Het werk: { $p0 }.
 rework-nothing = Niets te veranderen: het project is zoals het vrijgegeven is.
 rework-not-listed = Niet vermeld: draden die alleen op een pagina verschoven of een andere route kregen, en een nieuw draadnummer.
-rework-because-line = Omdat: { $p0 }
+rework-because-line = Reden: { $p0 }
 rework-count-remove-device = { $p0 ->
         [one] 1 apparaat verwijderen
        *[other] { $p0 } apparaten verwijderen

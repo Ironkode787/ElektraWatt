@@ -417,8 +417,8 @@ Action, the wire list's printed columns but Pages (§3.1: No., From, CP, To, CP,
 From marker, To marker), Change and Because; a pulled wire prints as the release had it, every other row as it is now.
 
 **Where a device goes or stood** is said in the words of the assembly list ([the workshop
-lists](13-workshop-lists.md) §6.1), from `device_places` in the state the row prints: "on rail 2 of the -UC1 mounting
-plate, 100 to 125 mm from its left end", "on the -UC1 door at X 360, Y 560 mm from its bottom-left corner, in hole
+lists](13-workshop-lists.md) §6.1), from `device_places` in the state the row prints: "Rail 2 · Mounting plate, page
+902 · 100–125 mm from its left end", "Door, page 904 · X 360, Y 560 mm from its bottom-left corner, in hole
 H5", one place per placement.
 
 **Because** says why a row is there where nobody changed its wire by name, a thing of its own beside the change:

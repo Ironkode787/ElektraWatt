@@ -1,5 +1,5 @@
 row,Action,No.,From,CP,To,CP,Colour,mm²,Length mm,From end,From part,From strip length mm,From marker,To end,To part,To strip length mm,To marker,Change,Because
-data,Remove device,-104E2,,,,,,,,,,,,,,,,"on the -UC1 door at X 360, Y 560 mm from its bottom-left corner, in hole H5",
+data,Remove device,-104E2,,,,,,,,,,,,,,,,"Door, page 904 · X 360, Y 560 mm from its bottom-left corner, in hole H5",
 data,Pull,104.6,-104A1-A2,3,-104E2 (door),X1,BK,0.75,1255,ferrule 0.75 GY,EW-GEN-FER-0.75,8,-104E2:X1,ferrule 0.75 GY,EW-GEN-FER-0.75,8,-104A1-A2:3,,
 data,Pull,104.9,-104A1,M,-104E2 (door),X2,BU,0.75,1135,twin 0.75 GY · 101.19,EW-GEN-FER-2X0.75,8,-104E2:X2,twin 0.75 GY · 104.7,EW-GEN-FER-2X0.75,8,-104A1:M,,
 data,Replace,101.7,-X1011:N,a,-101F1,3,BU,2.5,520,ferrule 2.5 BU,EW-GEN-FER-2.5,10,-101F1:3,ferrule 2.5 BU,EW-GEN-FER-2.5,10,-X1011:N,size 1.5 → 2.5 mm²; at -X1011:N/a: ferrule 1.5 BK → ferrule 2.5 BU; at -101F1:3: ferrule 1.5 BK → ferrule 2.5 BU,

@@ -240,6 +240,30 @@ fn the_rework_list_since_v1_0_lists_the_fitters_work() {
     }
     let want = std::fs::read_to_string(expected()).expect("rework.csv (EW_BLESS=1 writes it)");
     assert_eq!(csv, want.replace("\r\n", "\n"));
+    // A surface has one name on every paper: the removed lamp's place starts as the assembly list's block of its
+    // surface starts in the release ("Door, page 904").
+    let (released, _) = Session::open_read_only(&dir, "test").expect("the released copy opens");
+    let assembly = ew_api::output::row_export(
+        &released.query(),
+        &ew_api::output::RowExport::Kind("assembly_list".to_owned()),
+        None,
+    )
+    .expect("the assembly lists")
+    .csv;
+    let removed = csv
+        .lines()
+        .find(|l| l.starts_with("data,Remove device,-104E2,"))
+        .expect("-104E2 is removed");
+    let surface = assembly
+        .lines()
+        .filter_map(|l| l.strip_prefix("heading,\""))
+        .find(|h| h.contains("devices without a rail"))
+        .and_then(|h| h.split(", seen").next())
+        .expect("the door's block");
+    assert!(
+        removed.contains(&format!("\"{surface} · X ")),
+        "{surface}: {removed}"
+    );
 }
 
 #[test]

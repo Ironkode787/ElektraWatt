@@ -1342,9 +1342,26 @@ pub fn place_holes(holes: &[u32]) -> Text {
     }
 }
 
-/// A place of a device in the layout (doc 13 §6.1), as the rework list's Mount device and Remove device rows name it:
-/// "on rail 2 of the -UC1 mounting plate, 25 to 70 mm from its left end", "on the -UC1 door at X 360, Y 560 mm from
-/// its bottom-left corner, in hole H5".
+/// A surface as the papers name it, by its word and its first layout page: "Door, page 904" (the assembly list's and
+/// the hole table's headings, the rework list's places); "—" for the page of a surface no layout page shows.
+pub fn surface_on_page(q: &crate::Q, surface: ew_ids::Id<ew_schema::MountingSurface>) -> (Text, String) {
+    let word = crate::layout::face_of(q, surface).map_or_else(
+        || text!("surface-other"),
+        |f| surface_word(&f.kind, f.door, f.doors),
+    );
+    let folio = crate::layout::surface_page(q, surface)
+        .and_then(|p| {
+            q.get::<crate::DrawnPageOrder>(())
+                .entry(crate::PageRef::Drawn(p))
+                .map(|e| e.folio.clone())
+        })
+        .unwrap_or_else(|| "\u{2014}".to_owned());
+    (word, folio)
+}
+
+/// A place of a device in the layout (doc 13 §6.1), as the rework list's Mount device and Remove device rows name it,
+/// in the assembly list's words: "Rail 2 · Mounting plate, page 902 · 25–70 mm from its left end", "Door, page 904 ·
+/// X 360, Y 560 mm from its bottom-left corner, in hole H5".
 pub fn device_place(q: &crate::Q, place: &crate::layout::DevicePlace) -> Text {
     use crate::layout::DevicePlace;
     match place {
@@ -1354,26 +1371,32 @@ pub fn device_place(q: &crate::Q, place: &crate::layout::DevicePlace) -> Text {
             start,
             from,
             to,
-        } => text!(
-            "place-on-rail",
-            carrier_in_sentence(crate::layout::CarrierLabel {
-                kind: crate::layout::CarrierLabelKind::Rail,
-                n: *number,
-            }),
-            surface_words(q, *surface),
-            mm_tenth_short(*from),
-            mm_tenth_short(*to),
-            rail_start(*start)
-        ),
+        } => {
+            let (word, folio) = surface_on_page(q, *surface);
+            text!(
+                "place-on-rail",
+                carrier_label(crate::layout::CarrierLabel {
+                    kind: crate::layout::CarrierLabelKind::Rail,
+                    n: *number,
+                }),
+                word,
+                folio,
+                mm_tenth_short(*from),
+                mm_tenth_short(*to),
+                rail_start(*start)
+            )
+        }
         DevicePlace::Surface { surface, at, holes } => {
             let corner = q
                 .table::<ew_schema::MountingSurface>()
                 .get(*surface)
                 .map(|s| crate::layout::surface_datum(q, s))
                 .unwrap_or_default();
+            let (word, folio) = surface_on_page(q, *surface);
             text!(
                 "place-on-surface",
-                surface_words(q, *surface),
+                word,
+                folio,
                 mm_tenth_short(at.0),
                 mm_tenth_short(at.1),
                 corner_in_sentence(&corner),

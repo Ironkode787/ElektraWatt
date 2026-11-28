@@ -1110,3 +1110,7 @@ change here.
 - text-change: the package's dialog and Contents say of the assembly lists where each device goes with their rails
   and strips ("Where each device goes: 2 rails, 3 strips"), where they said "3 strips"; a project without a rail says
   its strips as before
+- text-change: the rework list's Mount device and Remove device rows name a surface as the assembly lists and the hole
+  table do, by its word and its page ("Door, page 904 · X 360, Y 560 mm from its bottom-left corner, in hole H5";
+  "Rail 2 · Mounting plate, page 902 · 100–125 mm from its left end"), where they named it by the cabinet's tag ("on
+  the -UC1 door …"); in Dutch the column Because reads "Reden"

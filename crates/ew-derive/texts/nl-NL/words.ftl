@@ -380,8 +380,8 @@ rail-start-left = linkeruiteinde
 rail-start-right = rechteruiteinde
 rail-start-bottom = onderste uiteinde
 rail-start-top = bovenste uiteinde
-place-on-rail = op { $p0 } van de { $p1 }, { $p2 } tot { $p3 } mm vanaf het { $p4 }
-place-on-surface = op de { $p0 } op X { $p1 }, Y { $p2 } mm vanaf de hoek { $p3 }{ $p4 }
+place-on-rail = { $p0 } · { $p1 }, pagina { $p2 } · { $p3 }–{ $p4 } mm vanaf het { $p5 }
+place-on-surface = { $p0 }, pagina { $p1 } · X { $p2 }, Y { $p3 } mm vanaf de hoek { $p4 }{ $p5 }
 place-hole = , in gat { $p0 }
 place-holes = , in gaten { $p0 }
 
