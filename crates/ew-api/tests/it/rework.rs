@@ -264,6 +264,110 @@ fn the_release_is_found_by_its_revision() {
     }
 }
 
+/// The released copy `dir` with its release record naming the archive `name` where it named `was`: `revisions.jsonl`
+/// and the manifest's hash of it rewritten, as a project file edited by hand or sent by someone else.
+fn naming_archive(dir: &Path, was: &str, name: &str) {
+    let path = dir.join("revisions.jsonl");
+    let before = std::fs::read(&path).expect("revisions.jsonl");
+    let text = String::from_utf8(before.clone()).expect("UTF-8");
+    let stored = |n: &str| format!("\"name\":{}", serde_json::to_string(n).expect("a JSON string"));
+    assert_eq!(text.matches(&stored(was)).count(), 1, "{text}");
+    std::fs::write(&path, text.replace(&stored(was), &stored(name))).expect("revisions.jsonl written");
+    let after = std::fs::read(&path).expect("revisions.jsonl");
+    let manifest = dir.join("manifest.json");
+    let m = std::fs::read_to_string(&manifest).expect("the manifest");
+    let (old, new) = (
+        ew_format::hash_text(&ew_format::sha256(&before)),
+        ew_format::hash_text(&ew_format::sha256(&after)),
+    );
+    assert_eq!(m.matches(&old).count(), 1, "the manifest lists revisions.jsonl once");
+    std::fs::write(&manifest, m.replace(&old, &new)).expect("the manifest written");
+}
+
+/// The released revision of the copy `dir`, opened read-only, and why its archive is not taken.
+fn archive_refusal(dir: &Path) -> (ReworkError, ReworkError, usize) {
+    let (s, _) = Session::open_read_only(dir, "test").expect("the copy opens");
+    let v1 = s
+        .query()
+        .table::<ew_schema::Revision>()
+        .ids()
+        .next()
+        .expect("V1.0");
+    let refused = s.release_archive(v1).expect_err("not taken");
+    (refused, s.why_no_release(), s.rework_releases().len())
+}
+
+/// A release record names its archive by a path that leaves the archive folder (`..`, absolute with either
+/// separator, a UNC name, a drive): the name is refused in words that name the release and what its archive is called,
+/// and nothing is read, although the path leads to the release's own archive, which would be taken if it were read.
+#[test]
+fn an_archive_name_that_leaves_its_folder_is_refused_and_nothing_is_read() {
+    let base = ew_testdir::Tmp::new("ew-rework-name");
+    let dir = released_copy(&base);
+    let outside = base.join("outside.ewarchive");
+    std::fs::copy(archive_of(&dir), &outside).expect("the archive copied outside its folder");
+    let absolute = outside.to_string_lossy().into_owned();
+    let mut was = "V1.0.ewarchive".to_owned();
+    for name in [
+        "../outside.ewarchive".to_owned(),
+        "..\\outside.ewarchive".to_owned(),
+        absolute.replace('\\', "/"),
+        absolute.replace('/', "\\"),
+        "\\\\host\\share\\outside.ewarchive".to_owned(),
+        "C:outside.ewarchive".to_owned(),
+        "NUL.ewarchive".to_owned(),
+    ] {
+        naming_archive(&dir, &was, &name);
+        let (refused, why, found) = archive_refusal(&dir);
+        match &refused {
+            ReworkError::NotAFileName { label } => assert_eq!(label, "V1.0", "{name}"),
+            other => panic!("{name}: {other:?}"),
+        }
+        assert!(
+            refused.to_string().contains("a release's archive is V1.0.ewarchive"),
+            "{refused}"
+        );
+        assert!(matches!(why, ReworkError::NotAFileName { .. }), "{name}: {why:?}");
+        assert_eq!(found, 0, "{name}: no release to compare with");
+        was = name;
+    }
+}
+
+/// A file under the archive's name larger than an archive may be (2 GiB) is refused without being read. A sparse
+/// file, so the test writes nothing of that size (Unix only: Windows gives a file of that length its clusters).
+#[cfg(unix)]
+#[test]
+fn an_archive_larger_than_an_archive_may_be_is_not_read() {
+    let base = ew_testdir::Tmp::new("ew-rework-large");
+    let dir = released_copy(&base);
+    let file = std::fs::File::create(archive_of(&dir)).expect("the archive replaced");
+    file.set_len(2 * 1024 * 1024 * 1024 + 1).expect("a sparse length");
+    drop(file);
+    let (refused, _, found) = archive_refusal(&dir);
+    assert!(
+        matches!(refused, ReworkError::Open(ew_api::ArchiveOpenError::TooLarge { .. })),
+        "{refused:?}"
+    );
+    assert_eq!(found, 0);
+}
+
+/// A release whose archive is not in the folder beside the project is said as what it is, not as no release: which
+/// release, the archive's name and where it is missing.
+#[test]
+fn a_release_whose_archive_is_missing_is_said_so() {
+    let base = ew_testdir::Tmp::new("ew-rework-missing");
+    let dir = released_copy(&base);
+    std::fs::remove_file(archive_of(&dir)).expect("the archive removed");
+    let (_, why, found) = archive_refusal(&dir);
+    assert_eq!(found, 0);
+    match &why {
+        ReworkError::NoArchive { label, name, .. } => {
+            assert_eq!((label.as_str(), name.as_str()), ("V1.0", "V1.0.ewarchive"));
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
 /// An end kept on its CP but made another way is re-made: 101.1's To end at -101Q1:1, a ferrule in the release, set
 /// bare by hand now.
 #[test]

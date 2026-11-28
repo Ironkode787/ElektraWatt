@@ -113,7 +113,7 @@ pub use migrate::{
 pub use order::LineKey;
 pub use path::{
     FilePath, LIB_JSON_DIRS, LOCK, MANIFEST, MAX_INTERNAL_PATH, MAX_PATH, OpaqueKind, PathClass, PathError,
-    ROOT_FILES, RecordFile, STALE_LOCK_PREFIX, TEMP_INFIX, classify,
+    ROOT_FILES, RecordFile, STALE_LOCK_PREFIX, TEMP_INFIX, classify, is_device_name, is_plain_file_name,
 };
 pub use read::{
     EntryKind, Kept, KeptDocument, KeptLine, Loaded, ReadPlan, crlf_to_lf, library_copy_hash, load,

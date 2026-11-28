@@ -297,7 +297,10 @@ J-E-2416.ew-archive/V2.0.ewarchive      deterministic ZIP as in §12
 - **File name.** The sanitised label: characters outside [A-Za-z0-9._-] become `_`, and Windows reserved names get
   a `_` prefix (a label "CON" is invalid even with an extension).
 - **No path in the project.** `ReleaseRecord.archive` stores only name and hash. EW searches the default root
-  `<parent>/<name>.ew-archive/` and the archive roots configured per user or company.
+  `<parent>/<name>.ew-archive/` and the archive roots configured per user or company. The name is read only as a
+  plain file name (`ew_format::is_plain_file_name`: no separator of either kind, no drive, not `..`, no device name),
+  and the file only up to an archive's size (2 GiB); any other name is refused in words and nothing is read. The
+  release command stores no name that test refuses.
 - **Inside a worktree.** If the default root lies inside a git worktree, EW warns and proposes a location outside
   it. It never adds archives to git.
 

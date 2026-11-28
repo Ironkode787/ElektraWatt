@@ -228,7 +228,7 @@ pub use ew_drafting as drafting;
 pub use ew_format::{
     FileMerge, Limits, MIGRATIONS, Manifest, MergeSide, holds_newer_records, merge_file, newer_than_reader,
 };
-pub use ew_format::{FormatStep, MigrationError, Migrations};
+pub use ew_format::{FormatStep, MigrationError, Migrations, is_device_name};
 /// The job runner: the shell names it through `ew-api` (no workspace edge of its own).
 pub use ew_jobs;
 /// The libraries: tiers, the `.ewlib` reader and writer, the index and search. The shell and the

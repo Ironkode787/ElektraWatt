@@ -241,12 +241,7 @@ fn unportable(name: &str) -> Option<&'static str> {
         if segment.ends_with('.') || segment.ends_with(' ') {
             return Some("a name that ends with a dot or a space");
         }
-        let base = segment.split('.').next().unwrap_or(segment).to_ascii_uppercase();
-        let device = matches!(base.as_str(), "CON" | "PRN" | "AUX" | "NUL")
-            || base.len() == 4
-                && (base.starts_with("COM") || base.starts_with("LPT"))
-                && matches!(base.as_bytes()[3], b'1'..=b'9');
-        if device {
+        if ew_format::is_device_name(segment) {
             return Some("a Windows device name");
         }
     }

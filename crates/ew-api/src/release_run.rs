@@ -526,6 +526,30 @@ fn archive_json(
     text.into_bytes()
 }
 
+/// The limits an archive is opened with: bounded by the expanded sizes (2 GiB, 512 MiB per entry); the archive's own
+/// text compresses better than 200 : 1, as the release's verification allows.
+fn archive_limits() -> ZipLimits {
+    ZipLimits {
+        max_ratio: u64::MAX,
+        ..ZipLimits::default()
+    }
+}
+
+/// The bytes of the archive file `path`, read whole only when it is no larger than an archive may be
+/// ([`archive_limits`]' total, 2 GiB).
+///
+/// # Errors
+///
+/// [`ArchiveOpenError::TooLarge`] for a larger file, which is not read; [`ArchiveOpenError::Io`].
+pub(crate) fn read_archive_file(path: &Path) -> Result<Vec<u8>, ArchiveOpenError> {
+    let disk = ew_store::OsVfs;
+    let len = disk.stat(path).map_err(ArchiveOpenError::Io)?.len;
+    if len > archive_limits().max_total_bytes {
+        return Err(ArchiveOpenError::TooLarge { len });
+    }
+    disk.read(path).map_err(ArchiveOpenError::Io)
+}
+
 /// The facts `ARCHIVE.json` holds: the project, the revision, the release context's date, the generation and the
 /// record.
 fn archive_facts(bytes: &[u8]) -> Option<(String, Id<Revision>, Date, u64, ReleaseRecord)> {
@@ -1690,18 +1714,8 @@ impl Session {
     /// [`ArchiveOpenError`]: the file, its size, the archive, `ARCHIVE.json`, the project.
     pub fn open_archive(path: &Path, app_version: &str) -> Result<OpenedArchive, ArchiveOpenError> {
         use ew_store::mem::{DirSync, MemVfs};
-        let limits = ZipLimits {
-            // Bounded by the expanded sizes (2 GiB, 512 MiB per entry); the archive's own text compresses better than
-            // 200 : 1, as the release's verification allows.
-            max_ratio: u64::MAX,
-            ..ZipLimits::default()
-        };
-        let disk = ew_store::OsVfs;
-        let len = disk.stat(path).map_err(ArchiveOpenError::Io)?.len;
-        if len > limits.max_total_bytes {
-            return Err(ArchiveOpenError::TooLarge { len });
-        }
-        let bytes = disk.read(path).map_err(ArchiveOpenError::Io)?;
+        let limits = archive_limits();
+        let bytes = read_archive_file(path)?;
         let entries = archive::read(&bytes, &limits).map_err(ArchiveOpenError::Archive)?;
         let (_, revision, date, generation, _) = entries
             .get(archive::DESCRIPTION_ENTRY)

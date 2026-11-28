@@ -228,7 +228,13 @@ change here.
   in the folder beside the project, another release, or an archive file) and lists what the fitter changes in the
   built cabinet: the wires to pull, to replace, the ends to move, the lengths to check and the wires to add, each with
   its change in words ("size 1.5 → 2.5 mm²"); Export… writes it as XLSX or CSV. `ew export rework [--since
-  <revision> | --archive <file>] [--format csv|xlsx] --out <file>` writes the same list.
+  <revision> | --archive <file>] [--format csv|xlsx] --out <file>` writes the same list. A release whose archive is
+  not in that folder is said as such ("V1.0 is released, but its archive, V1.0.ewarchive, is not in the folder beside
+  the project: choose it with Archive file…"); a project whose release names its archive by a path, not by a plain
+  file name, has that refused in words, and no file is read
+- behaviour-change: the drawings for drilling and the label files are written only into the folder chosen for them: a
+  file name made from the project's codes that holds a `/`, a `\` or a drive is refused in words and nothing is
+  written
 - behaviour-change: A wire list page whose block chooses no columns prints other columns now, the fitter's: No.,
   From, CP, To, CP, Colour, mm², Length, From end, To end, From marker, To marker and Pages. It gains Length, From end,
   To end, From marker and To marker, and no longer prints Potential, Source, Via and Wire part unless they are ticked

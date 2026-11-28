@@ -514,15 +514,17 @@ impl Session {
         Ok(out)
     }
 
-    /// Writes `files` into the folder `dir`, made where it is missing, each file whole or not at all.
+    /// Writes `files` into the folder `dir`, made where it is missing, each file whole or not at all and never outside
+    /// `dir` ([`ew_store::file::write_in`]).
     ///
     /// # Errors
     ///
-    /// The I/O error of the folder or of the first file that could not be written; the files before it are written.
+    /// The I/O error of the folder or of the first file that could not be written (a name that is no plain file name:
+    /// `InvalidFilename`); the files before it are written.
     pub fn write_drilling_files(dir: &Path, files: &[DrillingFile]) -> io::Result<()> {
         std::fs::create_dir_all(dir)?;
         for f in files {
-            ew_store::file::write_replacing(&dir.join(&f.name), &f.bytes)?;
+            ew_store::file::write_in(dir, &f.name, &f.bytes)?;
         }
         Ok(())
     }

@@ -90,8 +90,15 @@ pub(super) fn reason(e: &ReworkError) -> String {
         ReworkError::NoRelease | ReworkError::NotReleased(_) => {
             strings::text(key!("rework-no-release")).to_owned()
         }
+        ReworkError::NotAFileName { label } => strings::format(
+            key!("rework-archive-name"),
+            &[label, &ew_api::archive::file_name(label)],
+        ),
         ReworkError::NoArchive { label, name, .. } => {
             strings::format(key!("rework-no-archive"), &[label, name])
+        }
+        ReworkError::Open(ew_api::ArchiveOpenError::TooLarge { .. }) => {
+            strings::text(key!("rework-archive-too-large")).to_owned()
         }
         ReworkError::OtherArchive { label, path } => strings::format(
             key!("rework-other-archive"),
@@ -147,7 +154,12 @@ impl ShellModel {
             return Outcome::refused(key!("reason-rework-closed"));
         };
         let Some(base) = d.base() else {
-            return Outcome::refused(key!("rework-no-release"));
+            return match &self.project {
+                Some(project) => Outcome::Failed {
+                    message: reason(&project.session.why_no_release()),
+                },
+                None => Outcome::refused(key!("rework-no-release")),
+            };
         };
         let path = match string_param(p, "path") {
             Err(e) => return e,
@@ -207,19 +219,24 @@ impl ShellModel {
             against,
             list: Err(strings::text(key!("rework-no-release")).to_owned()),
         };
-        if let (Some(base), Some(project)) = (d.base(), &self.project) {
-            d.list = match project.session.rework(&base) {
-                Ok(rework) => {
-                    let (header, rows) = project.session.rework_texts(&rework, Some(strings::locale()));
-                    let work = if rework.counts.is_empty() {
-                        strings::text(key!("rework-nothing")).to_owned()
-                    } else {
-                        let parts: Vec<String> = rework.counts.iter().map(|(a, n)| counted(*a, *n)).collect();
-                        strings::format(key!("rework-work"), &[&parts.join(", ")])
-                    };
-                    Ok(ReworkList { work, header, rows })
-                }
-                Err(e) => Err(reason(&e)),
+        if let Some(project) = &self.project {
+            d.list = match d.base() {
+                // Without a release whose archive is found: what is (a release whose archive is missing).
+                None => Err(reason(&project.session.why_no_release())),
+                Some(base) => match project.session.rework(&base) {
+                    Ok(rework) => {
+                        let (header, rows) = project.session.rework_texts(&rework, Some(strings::locale()));
+                        let work = if rework.counts.is_empty() {
+                            strings::text(key!("rework-nothing")).to_owned()
+                        } else {
+                            let parts: Vec<String> =
+                                rework.counts.iter().map(|(a, n)| counted(*a, *n)).collect();
+                            strings::format(key!("rework-work"), &[&parts.join(", ")])
+                        };
+                        Ok(ReworkList { work, header, rows })
+                    }
+                    Err(e) => Err(reason(&e)),
+                },
             };
         }
         // A choice in the open dialog keeps it open; the focus stays where it is.

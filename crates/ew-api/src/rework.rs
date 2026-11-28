@@ -13,7 +13,7 @@ use ew_derive::{ReworkAction, ReworkItem};
 use ew_ids::Id;
 use ew_reports::RowSet;
 use ew_schema::{Date, Revision, RevisionState};
-use ew_store::{Vfs as _, archive};
+use ew_store::archive;
 use sha2::Digest as _;
 
 use crate::output::PdfDate;
@@ -55,6 +55,12 @@ pub enum ReworkError {
     NoRelease,
     /// The revision is no release of this project with an archive (a historic release has none).
     NotReleased(Id<Revision>),
+    /// The release record names its archive by something that is no plain file name (a path, a drive, `..`, a device
+    /// name: [`ew_format::is_plain_file_name`]), so nothing is read: the release's label.
+    NotAFileName {
+        /// The release's label.
+        label: String,
+    },
     /// The release's archive is not in the archive root: its label, the archive's file name and the root.
     NoArchive {
         /// The release's label.
@@ -85,6 +91,12 @@ impl fmt::Display for ReworkError {
             ReworkError::NotReleased(_) => {
                 f.write_str("that revision is no release of this project with an as-built archive")
             }
+            ReworkError::NotAFileName { label } => write!(
+                f,
+                "the release record of {label} names its archive by a path, not by a file name, so it is not read: a \
+                 release's archive is {} in the folder beside the project; choose the archive file",
+                archive::file_name(label)
+            ),
             ReworkError::NoArchive { label, name, root } => write!(
                 f,
                 "the archive of {label}, {name}, is not in {}; choose the archive file",
@@ -105,12 +117,32 @@ impl std::error::Error for ReworkError {}
 impl Session {
     /// The released revisions whose as-built archive is found ([`Session::release_archive`]), newest first.
     pub fn rework_releases(&self) -> Vec<ReworkRelease> {
+        self.released()
+            .into_iter()
+            .filter(|r| self.release_archive(r.revision).is_ok())
+            .collect()
+    }
+
+    /// Why [`Session::rework_releases`] is empty: the newest released revision that records an archive and why its
+    /// archive is not found ([`ReworkError::NoArchive`], [`ReworkError::NotAFileName`], ...); [`ReworkError::NoRelease`]
+    /// when no revision records one.
+    pub fn why_no_release(&self) -> ReworkError {
+        self.released()
+            .into_iter()
+            .find_map(|r| match self.release_archive(r.revision) {
+                Err(ReworkError::NotReleased(_)) | Ok(_) => None,
+                Err(e) => Some(e),
+            })
+            .unwrap_or(ReworkError::NoRelease)
+    }
+
+    /// The released revisions, newest first.
+    fn released(&self) -> Vec<ReworkRelease> {
         let q = self.query();
         let mut out: Vec<(Option<Date>, String, ReworkRelease)> = q
             .table::<Revision>()
             .iter()
             .filter(|(_, r)| r.state == RevisionState::Released)
-            .filter(|(id, _)| self.release_archive(*id).is_ok())
             .map(|(id, r)| {
                 let released_on = r.release.as_ref().and_then(|rel| rel.released_on).or(r.date);
                 let release = ReworkRelease {
@@ -126,12 +158,16 @@ impl Session {
     }
 
     /// The as-built archive of the released revision `revision` (doc 05 §14.2): the file its release record names in
-    /// the project's default archive root beside the project directory, whose SHA-256 is the recorded one.
+    /// the project's default archive root beside the project directory, whose SHA-256 is the recorded one. The name is
+    /// the project's, so it is read only as a plain file name ([`ew_format::is_plain_file_name`]), and the file only
+    /// up to an archive's size ([`Session::open_archive`]'s bound).
     ///
     /// # Errors
     ///
-    /// [`ReworkError::NotReleased`] for a revision without an archive record, [`ReworkError::NoArchive`] when the file
-    /// is not there, [`ReworkError::OtherArchive`] when it is another file.
+    /// [`ReworkError::NotReleased`] for a revision without an archive record, [`ReworkError::NotAFileName`] for a name
+    /// that is no plain file name (nothing is read), [`ReworkError::NoArchive`] when the file is not there,
+    /// [`ReworkError::Open`] with [`ArchiveOpenError::TooLarge`] for a file larger than an archive may be (it is not
+    /// read), [`ReworkError::OtherArchive`] when it is another file.
     pub fn release_archive(&self, revision: Id<Revision>) -> Result<PathBuf, ReworkError> {
         let q = self.query();
         let rev = q.table::<Revision>().get(revision).cloned();
@@ -143,13 +179,18 @@ impl Session {
             return Err(ReworkError::NotReleased(revision));
         };
         let label = rev.label.as_str().to_owned();
+        if !ew_format::is_plain_file_name(&name) {
+            return Err(ReworkError::NotAFileName { label });
+        }
         let root = self
             .store()
             .and_then(|s| archive::default_root(s.root()))
             .ok_or(ReworkError::NotReleased(revision))?;
         let path = root.join(&name);
-        let Ok(bytes) = ew_store::OsVfs.read(&path) else {
-            return Err(ReworkError::NoArchive { label, name, root });
+        let bytes = match crate::release_run::read_archive_file(&path) {
+            Ok(bytes) => bytes,
+            Err(e @ ArchiveOpenError::TooLarge { .. }) => return Err(ReworkError::Open(e)),
+            Err(_) => return Err(ReworkError::NoArchive { label, name, root }),
         };
         let sha = sha2::Sha256::digest(&bytes);
         match archive.and_then(|a| a.sha256) {

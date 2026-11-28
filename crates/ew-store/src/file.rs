@@ -23,6 +23,24 @@ pub fn write_replacing(path: &Path, bytes: &[u8]) -> io::Result<()> {
     Staged::write(temp_beside(path), path, bytes, &OpenOptions::new())?.commit()
 }
 
+/// Writes `bytes` as the file `name` in the folder `dir`, all or nothing ([`write_replacing`]). A name made from a
+/// project's words (a location's code, a tag) must be a plain file name ([`ew_format::is_plain_file_name`]), so the
+/// file is never written outside `dir`.
+///
+/// # Errors
+///
+/// [`io::ErrorKind::InvalidFilename`] for a name that is not a plain file name, and nothing is written; else the I/O
+/// error of [`write_replacing`].
+pub fn write_in(dir: &Path, name: &str, bytes: &[u8]) -> io::Result<()> {
+    if !ew_format::is_plain_file_name(name) {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidFilename,
+            "a file's name made from the project is not a plain file name",
+        ));
+    }
+    write_replacing(&dir.join(name), bytes)
+}
+
 /// The temporary name of `path` for this process: `<file name>.tmp-<process id>` in its folder, so that two
 /// programs writing one file never write into each other's temporary file.
 pub fn temp_beside(path: &Path) -> PathBuf {
@@ -241,6 +259,32 @@ mod tests {
             .collect();
         assert_eq!(names, ["out.txt"]);
         assert!(write_replacing(&dir.join("missing/out.txt"), b"x").is_err());
+    }
+
+    /// A file named from a project's words is written only in its folder: a name that leaves it, absolute, with a
+    /// drive or a UNC name, is refused and nothing is written, inside the folder or beside it.
+    #[test]
+    fn a_name_that_leaves_its_folder_is_refused_and_nothing_is_written() {
+        let root = ew_testdir::Tmp::new("ew-file-write-in");
+        let dir = root.join("out");
+        std::fs::create_dir_all(&dir).unwrap();
+        let outside = root.join("x.dxf");
+        for name in [
+            "../x.dxf",
+            "+a/../../x.dxf",
+            "..\\x.dxf",
+            &outside.to_string_lossy(),
+            "\\\\host\\share\\x.dxf",
+            "C:x.dxf",
+            "NUL.dxf",
+        ] {
+            let e = write_in(&dir, name, b"x").expect_err(name);
+            assert_eq!(e.kind(), io::ErrorKind::InvalidFilename, "{name}");
+        }
+        assert_eq!(names(&root), ["out"]);
+        assert!(names(&dir).is_empty());
+        write_in(&dir, "+CAB Mounting plate.dxf", b"x").unwrap();
+        assert_eq!(names(&dir), ["+CAB Mounting plate.dxf"]);
     }
 
     fn names(d: &Path) -> Vec<String> {

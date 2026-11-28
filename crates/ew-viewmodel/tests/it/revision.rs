@@ -948,7 +948,8 @@ fn the_revision_dialogs_list_the_findings_in_dutch() {
 
 /// Output ▸ Workshop ▸ Rework list… (doc 13 §3.5): on a project without a release the dialog says how to get one and
 /// Export… is greyed; after V1.0 is released it compares with V1.0 and finds nothing to change; a length typed since
-/// then is one length to check, which Export… writes as CSV with a toast that names the file.
+/// then is one length to check, which Export… writes as CSV with a toast that names the file. With V1.0's archive gone
+/// from beside the project, the dialog says so (not "no released revision"), in English and in Dutch.
 #[test]
 fn the_rework_list_compares_with_the_release() {
     let tmp = Tmp::new("revision-rework");
@@ -1012,6 +1013,30 @@ fn the_rework_list_compares_with_the_release() {
             .iter()
             .any(|n| n.text == "Wrote the rework list to rework.csv."),
         "the toast"
+    );
+    done(&mut s, "ui.dismiss", json!({}));
+    // V1.0's archive gone from the folder beside the project: said as what it is, in the window's language.
+    let root = ew_api::archive::default_root(&dir).expect("an archive folder");
+    std::fs::remove_file(root.join("V1.0.ewarchive")).expect("the archive removed");
+    done(&mut s, "rework.show", json!({}));
+    let text = dialog_text(&mut s);
+    assert!(
+        text.contains(
+            "  note \"V1.0 is released, but its archive, V1.0.ewarchive, is not in the folder beside the project: \
+             choose it with Archive file…\""
+        ),
+        "{text}"
+    );
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "view.language", json!({ "value": "nl" }));
+    done(&mut s, "rework.show", json!({}));
+    let text = dialog_text(&mut s);
+    assert!(
+        text.contains(
+            "  note \"V1.0 is vrijgegeven, maar het archief ervan, V1.0.ewarchive, staat niet in de map naast het \
+             project: kies het met Archiefbestand…\""
+        ),
+        "{text}"
     );
     s.shutdown();
 }

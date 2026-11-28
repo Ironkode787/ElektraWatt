@@ -772,22 +772,11 @@ fn dedup(list: &mut Vec<String>) {
     });
 }
 
-/// Whether `name` is a name that Windows reserves for a device (`CON`, `NUL`, `COM1` ...), in any letter case:
-/// a file of that name cannot be made there, so it is no workspace name on any system.
-fn is_windows_device_name(name: &str) -> bool {
-    let upper = name.to_ascii_uppercase();
-    matches!(upper.as_str(), "CON" | "PRN" | "AUX" | "NUL")
-        || ["COM", "LPT"].iter().any(|prefix| {
-            upper
-                .strip_prefix(prefix)
-                .is_some_and(|n| n.len() == 1 && matches!(n.as_bytes()[0], b'1'..=b'9'))
-        })
-}
-
 /// Whether `name` can be a workspace name: 1 to 40 characters, letters, digits, space, `-` and `_`, no leading
-/// or trailing space. The name is the file name of `workspaces/<name>.json`.
+/// or trailing space, and no name Windows keeps for a device (`CON`, `NUL`, `COM1` ..., on any system). The name is
+/// the file name of `workspaces/<name>.json`.
 pub fn valid_workspace_name(name: &str) -> bool {
-    !is_windows_device_name(name)
+    !ew_api::is_device_name(name)
         && !name.is_empty()
         && name.chars().count() <= 40
         && name == name.trim()

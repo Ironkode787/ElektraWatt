@@ -702,11 +702,7 @@ fn release_base(
             None
         }
         (None, None) => {
-            io.error(format_args!(
-                "{}: {}",
-                dir.display(),
-                ew_api::ReworkError::NoRelease
-            ));
+            io.error(format_args!("{}: {}", dir.display(), session.why_no_release()));
             None
         }
     }

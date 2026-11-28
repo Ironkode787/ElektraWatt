@@ -254,6 +254,41 @@ impl AsRef<str> for FilePath {
     }
 }
 
+/// Whether `segment` is a name Windows keeps for a device (`CON`, `PRN`, `AUX`, `NUL`, `COM1` … `COM9`, `LPT1` …
+/// `LPT9`), in any letter case, before its first `.`: no file of that name can be made there, `CON.txt` neither.
+///
+/// ```
+/// use ew_format::is_device_name;
+///
+/// assert!(is_device_name("con") && is_device_name("LPT1.x") && is_device_name("Aux"));
+/// assert!(!is_device_name("COM0") && !is_device_name("CONSOLE") && !is_device_name("V1.0"));
+/// ```
+pub fn is_device_name(segment: &str) -> bool {
+    let base = segment.split('.').next().unwrap_or(segment).to_ascii_uppercase();
+    matches!(base.as_str(), "CON" | "PRN" | "AUX" | "NUL")
+        || base.len() == 4
+            && (base.starts_with("COM") || base.starts_with("LPT"))
+            && matches!(base.as_bytes()[3], b'1'..=b'9')
+}
+
+/// Whether `name` is a plain file name: joined to a folder, it names a file in that folder, on every platform. It is
+/// a [`FilePath`] of one segment (not empty, no separator of either kind, no drive or other `:`, not `.` or `..`, no
+/// control character, at most [`MAX_PATH`] bytes) and no device name ([`is_device_name`]), so an absolute name, a
+/// UNC name (`\\host\share`) and one with a drive are refused. The program's one test for a name a file holds and a
+/// folder is joined with.
+///
+/// ```
+/// use ew_format::is_plain_file_name;
+///
+/// assert!(is_plain_file_name("V1.0.ewarchive") && is_plain_file_name("+CAB Mounting plate.dxf"));
+/// for name in ["", "..", "../x", "a/b", "/etc/x", "a\\b", "\\\\host\\share", "C:x", "NUL.ewarchive"] {
+///     assert!(!is_plain_file_name(name), "{name}");
+/// }
+/// ```
+pub fn is_plain_file_name(name: &str) -> bool {
+    !name.contains('/') && !is_device_name(name) && FilePath::new(name).is_ok()
+}
+
 /// A JSON Lines record file of the layout (doc 05 §2.1, §2.2).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum RecordFile {

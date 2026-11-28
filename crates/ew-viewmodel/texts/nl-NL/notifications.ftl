@@ -247,6 +247,7 @@ job-cause-no-folder = de map bestaat niet
 job-cause-no-file = het bestand bestaat niet
 job-cause-denied = toegang tot de map of het bestand is geweigerd
 job-cause-full = de schijf is vol
+job-cause-file-name = de naam van een bestand, gemaakt uit de codes van het project, bevat een / of een \ of een ander teken dat een bestandsnaam niet kan bevatten
 job-cause-internal = een interne fout
 job-phase-building = pagina's opbouwen
 job-phase-drawing = pagina's tekenen

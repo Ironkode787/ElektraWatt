@@ -285,6 +285,7 @@ job-cause-no-folder = the folder does not exist
 job-cause-no-file = the file does not exist
 job-cause-denied = access to the folder or the file was denied
 job-cause-full = the disk is full
+job-cause-file-name = a file's name, made from the project's codes, holds a / or a \ or another character a file name cannot hold
 job-cause-internal = an internal error
 job-phase-building = building pages
 job-phase-drawing = drawing pages

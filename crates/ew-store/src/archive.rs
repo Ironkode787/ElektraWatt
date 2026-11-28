@@ -94,13 +94,11 @@ pub fn sanitise(text: &str) -> String {
             }
         })
         .collect();
-    let stem = out.split('.').next().unwrap_or_default().to_ascii_uppercase();
-    let reserved = matches!(stem.as_str(), "CON" | "PRN" | "AUX" | "NUL")
-        || (stem.len() == 4
-            && (stem.starts_with("COM") || stem.starts_with("LPT"))
-            && stem.as_bytes()[3].is_ascii_digit()
-            && stem.as_bytes()[3] != b'0');
-    if reserved { format!("_{out}") } else { out }
+    if ew_format::is_device_name(&out) {
+        format!("_{out}")
+    } else {
+        out
+    }
 }
 
 /// The archive's file name for a release labelled `label`: `<sanitised label>.ewarchive`.

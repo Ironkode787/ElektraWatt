@@ -654,9 +654,11 @@ impl Command for ReleaseRevision {
             ));
         };
         let name = &self.archive.name;
+        // The reader's own test of the name (the rework list's), so that no release stores a name it refuses.
         let plain = name
             .strip_suffix(".ewarchive")
             .is_some_and(|stem| !stem.is_empty())
+            && ew_format::is_plain_file_name(name)
             && name
                 .bytes()
                 .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-'));
