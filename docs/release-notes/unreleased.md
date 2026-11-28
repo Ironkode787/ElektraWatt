@@ -887,3 +887,5 @@ change here.
   Slangenafkortlijst, and the cut increment Afkorten op; it was the Zaaglijst and Afzagen op
 - behaviour-change: a page drawn to scale prints "Schaal 1:5" after its title in a Dutch project, also where the title
   was typed as one text; it printed "Scale 1:5" there
+- text-change: Dutch: the package's dialog and its contents call a marker part a merkerartikel and the markers merkers, as
+  the checks, the lists and Labels… do; they said markeringsartikel and markeringen
