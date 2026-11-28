@@ -9,9 +9,10 @@
 //! that it is laid against the two edges every number is measured from, and covers the surface from there to 20 mm past
 //! the farthest hole's edge, within the sheet. A paper sheet holds its paper less 10 mm all round and a 12 mm band at its
 //! foot; neighbouring sheets overlap by 10 mm, what lines two sheets up. Where a join would cut through a hole a sheet
-//! can hold, the sheet ends earlier, so that the hole stands whole on the next one with its centre cross; a hole larger
-//! than a sheet is drawn across the sheets, each marking its centre and its outline's corners, and the first sheet says
-//! so. Every surface with holes gets its template. The orientation that needs the fewer sheets is taken (portrait on a tie). A
+//! can hold, the sheet ends earlier, so that the hole stands whole on the next one with its centre cross. Every hole
+//! stands whole on one sheet or is drawn across the sheets, each marking its centre and its outline's corners, and the
+//! first sheet names it: a hole larger than a sheet, and one a join cuts because no join clears it and its neighbour
+//! (two holes whose spans overlap across a join). Every surface with holes gets its template. The orientation that needs the fewer sheets is taken (portrait on a tie). A
 //! sheet that holds no part of a hole and neither of the two edges at the corner is not printed; the printed sheets are
 //! numbered row by row from the corner.
 
@@ -103,8 +104,8 @@ pub struct TemplateSheets {
     pub cols: u32,
     /// Every sheet, row by row from the corner.
     pub tiles: Vec<TemplateTile>,
-    /// The numbers of the holes larger than a sheet, across or up: drawn across the sheets, each sheet marks their
-    /// centre and their outline's corners.
+    /// The numbers of the holes no sheet holds whole (larger than a sheet, or cut by a join that could not move clear
+    /// of them): drawn across the sheets, each sheet marks their centre and their outline's corners.
     pub larger: Vec<u32>,
 }
 
@@ -261,11 +262,6 @@ pub fn template_sheets(q: &Q, surface: Id<MountingSurface>, paper: Paper) -> Opt
         u32::try_from(columns.len()).unwrap_or(u32::MAX),
     );
     // The holes no sheet holds whole, across or up: they are drawn across the sheets.
-    let larger = numbered
-        .iter()
-        .filter(|(_, h)| h.width().0 > room_w || h.height().0 > room_h)
-        .map(|(no, _)| *no)
-        .collect();
     let mut tiles = Vec::new();
     let mut number = 0;
     for (row, &(r0, r1)) in (0..).zip(&lines) {
@@ -294,6 +290,16 @@ pub fn template_sheets(q: &Q, surface: Id<MountingSurface>, paper: Paper) -> Opt
             });
         }
     }
+    // Every hole stands whole on one sheet, or it is drawn across the sheets: one larger than a sheet, and one the moved
+    // joins could not keep whole (two holes whose spans overlap across a join).
+    let inside = |a: Rect, h: &Rect| {
+        a.min().x <= h.min().x && a.min().y <= h.min().y && h.max().x <= a.max().x && h.max().y <= a.max().y
+    };
+    let larger = numbered
+        .iter()
+        .filter(|(_, h)| !tiles.iter().any(|t: &TemplateTile| inside(t.area, h)))
+        .map(|(no, _)| *no)
+        .collect();
     Some(TemplateSheets {
         corner,
         sheet,

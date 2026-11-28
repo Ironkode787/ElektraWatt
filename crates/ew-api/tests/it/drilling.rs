@@ -130,7 +130,7 @@ fn the_door_s_template_lies_in_its_datum_corner_and_its_dxf_holds_its_holes() {
 }
 
 /// What every template keeps: neighbouring sheets overlap by 10 mm, the sheets reach over what it covers, every hole a
-/// sheet can hold stands whole on a printed one, and every other hole is named as larger than a sheet.
+/// sheet can hold stands whole on a printed one, and every other hole is named as drawn across the sheets.
 fn keeps_its_rules(s: &Session, door: Id<MountingSurface>, t: &ew_derive::layout::TemplateSheets) {
     let overlap = ew_derive::layout::TEMPLATE_OVERLAP;
     let tile = |row: u32, col: u32| {
@@ -192,18 +192,58 @@ fn with_cut_out(
     h: i64,
     at: (i64, i64),
 ) -> (Session, Id<MountingSurface>, ew_derive::layout::TemplateSheets) {
+    with_cut_outs(&[(w, h, at)])
+}
+
+/// The sample's door with rectangular cut-outs of one's own, each `w` × `h` mm about its point `at` of the door's sheet,
+/// and its template on A4.
+fn with_cut_outs(cuts: &[(i64, i64, (i64, i64))]) -> (Session, Id<MountingSurface>, ew_derive::layout::TemplateSheets) {
     let mut s = common::sample();
     let door = door(&s);
-    run(
-        &mut s,
-        &AnyCommand {
-            name: "layout.feature.add".into(),
-            params: json!({"surface": door.as_uuid().to_string(), "at": [at.0, at.1], "kind": "rect",
-                "size": format!("{w} \u{d7} {h}")}),
-        },
-    );
+    for (w, h, at) in cuts {
+        run(
+            &mut s,
+            &AnyCommand {
+                name: "layout.feature.add".into(),
+                params: json!({"surface": door.as_uuid().to_string(), "at": [at.0, at.1], "kind": "rect",
+                    "size": format!("{w} \u{d7} {h}")}),
+            },
+        );
+    }
     let t = ew_derive::layout::template_sheets(&s.query(), door, Paper::A4).expect("a template");
     (s, door, t)
+}
+
+/// Holes whose spans overlap across a join, which no join clears together: each is whole on one sheet or drawn across
+/// the sheets and named on the first, never cut without a word. Two holes at 0–150 and 100–230 mm from the corner's
+/// edge, three chained the same way, and the pair along the other edge.
+#[test]
+fn holes_overlapping_across_a_join_are_whole_or_drawn_across() {
+    let s = common::sample();
+    let sheet = ew_derive::layout::template_sheets(&s.query(), door(&s), Paper::A4)
+        .expect("a template")
+        .sheet;
+    drop(s);
+    let mm = |n: i64| n * 1_000_000;
+    // A cut-out `w` mm long from `a` mm along one edge of the corner (`across`: from the left edge, else from the
+    // bottom), 20 mm wide, 400 mm in along the other.
+    let cut = |a: i64, w: i64, across: bool| {
+        let (along, other) = (mm(a) + mm(w) / 2, mm(400));
+        let at = if across {
+            (sheet.min().x.0 + along, sheet.min().y.0 + other)
+        } else {
+            (sheet.min().x.0 + other, sheet.min().y.0 + along)
+        };
+        if across { (w, 20, at) } else { (20, w, at) }
+    };
+    for cuts in [
+        vec![cut(0, 150, true), cut(100, 130, true)],
+        vec![cut(0, 150, true), cut(100, 130, true), cut(200, 130, true)],
+        vec![cut(0, 150, false), cut(100, 130, false)],
+    ] {
+        let (s, door, t) = with_cut_outs(&cuts);
+        keeps_its_rules(&s, door, &t);
+    }
 }
 
 /// Where the join of the door's first two columns of sheets lies, across, and the middle of its first row, up.
@@ -257,7 +297,7 @@ fn a_join_moves_clear_of_a_hole_and_a_hole_larger_than_a_sheet_is_drawn_across()
     let pages = crate::pdf_read::PdfFile::parse(&files[0].bytes)
         .and_then(|f| f.pages())
         .expect("the template reads back");
-    let says = |p: &crate::pdf_read::PageRead| p.runs.iter().any(|r| r.text.contains("Larger than a sheet"));
+    let says = |p: &crate::pdf_read::PageRead| p.runs.iter().any(|r| r.text.contains("Drawn across the sheets"));
     assert!(says(&pages[0]), "the first sheet says so");
     assert!(!pages[1..].iter().any(says), "only the first sheet says so");
 }

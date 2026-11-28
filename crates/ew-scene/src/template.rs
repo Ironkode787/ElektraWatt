@@ -39,7 +39,7 @@ pub struct TemplateHole {
     pub round: bool,
     /// Its words: number, how it is made and its owner ("H3 · Ø 22.3 · -102S1").
     pub words: String,
-    /// Larger than a sheet: its outline's corners are marked as well, where they fall on the sheet.
+    /// No sheet holds it whole: its outline's corners are marked as well, where they fall on the sheet.
     pub larger: bool,
 }
 
@@ -338,7 +338,7 @@ pub fn template_sheet(v: &TemplateView, fonts: &FontSet, styles: &ew_text::TextS
     }
     // The band: its words on the left, the map on the right, the 100 mm bar on its last line.
     let top = ph.0 - MARGIN.0 - BAND.0;
-    // Three lines 2.5 mm apart; a fourth (a hole larger than a sheet) draws them closer, clear of the bar.
+    // Three lines 2.5 mm apart; a fourth (the holes drawn across the sheets) draws them closer, clear of the bar.
     let pitch = if v.band.len() > 3 { 2_200_000 } else { 2_500_000 };
     for (i, line) in v.band.iter().enumerate() {
         let y = top + pitch * (i64::try_from(i).unwrap_or(0) + 1);

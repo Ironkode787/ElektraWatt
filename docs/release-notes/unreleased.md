@@ -1091,9 +1091,9 @@ change here.
   rows; the ends' treatments, parts, strip lengths and markers stay in its export
 - behaviour-change: a template for drilling lies in the surface's datum corner, the corner the hole table measures
   from, its two thick edges named as the fitter stands at the door on the top and the bottom ("Back edge of the bottom,
-  away from the door"); a join between its sheets moves clear of a hole a sheet can hold, so that no such hole is
-  split between two sheets, and a hole larger than a sheet is drawn across them with its centre and corners crossed on
-  each, which the first sheet says; its sizes print with the project's decimal sign (the DXF keeps the point). An existing
+  away from the door"); a join between its sheets moves clear of a hole a sheet can hold, and a hole no sheet holds
+  whole (one larger than a sheet, or one overlapping a neighbour across a join) is drawn across them with its centre
+  and corners crossed on each, which the first sheet names; its sizes print with the project's decimal sign (the DXF keeps the point). An existing
   project's templates take other sheets
 - behaviour-change: the hole table's heading of a surface names its size ("Door 600 × 800 mm, page 904, …")
 - behaviour-change: Drilling…'s rows name the two files of each surface, and its toast which files are which surface's

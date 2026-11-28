@@ -27,7 +27,7 @@ nothing else:
 
 - each wire record of the project's cabinet wires (`wire_record_set`, §2.5): its `csa`, `colour`, `wire_part`,
   `length` (the value and whether there is one) and whether it is a field wire;
-- of each end the shop makes, its `treatment`: the ferrule's or lug's part, a twin ferrule's part once for its two
+- of each end that is no site end, its `treatment`: the ferrule's or lug's part, a twin ferrule's part once for its two
   wires, or none (bare, a connector, undetermined);
 - of each label row of the project's label sets (`label_rows`, §5.3), its marker part.
 
@@ -39,8 +39,8 @@ Three groups, in this order:
 | Ferrules and lugs | ferrule or lug part | the ends it is crimped on, a twin ferrule counted once (by the wire with the lower ID); ends left without a part count under their size and form as "no ferrule found", "no ring lug found" |
 | Markers | marker part | the labels it prints; For names its label set, or each set with its labels where one part marks several ("Wire markers 82, Tube markers 14"); a set without a part is a row of its own |
 
-A field wire (an end outside the cabinet) counts the ferrule and the markers of the end the shop makes, but not its
-metres: it is cut on site. A cable's core is cut with its cable: its ends count, its metres are the cable's. The row prints the part's number and description, or the wire's size and colour as the
+A field wire (an end outside the cabinet) is cut, laid and landed on site, its cabinet end too: it counts the ferrule
+and the markers of its cabinet end, which go with the cabinet, but not its metres. A cable's core is cut with its cable: its ends count, its metres are the cable's. The row prints the part's number and description, or the wire's size and colour as the
 lists print them; the For cell says what it serves ("12 wires", "2.5 mm²", "Wire markers"). Nothing is rounded here:
 a wire's length is the wire list's, and an order quantity belongs to the order list. A length along a way that no
 longer holds ([12-3d](12-3d-routing-thermal.md) §8.5) is summed as the wire list prints it, and the row's metres print

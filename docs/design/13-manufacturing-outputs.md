@@ -245,7 +245,7 @@ pub struct LabelRecord {              // label_rows(): every label in the order 
 
 The types are `ew-derive`'s; the cells and words that print them are `ew-reports`' and `ew_derive::text`'s. The
 consumables summary and the cut list read `csa`, `colour`, `wire_part`, `length` and `flags.field` of a wire, the
-`treatment` and `part` of each end the shop makes (a twin ferrule's part once for its two wires) and the `marker_part`
+`treatment` and `part` of each end that is no site end (a twin ferrule's part once for its two wires) and the `marker_part`
 of each label ([the workshop lists](13-workshop-lists.md) §3.6, §9.3). A record is never stored; a release freezes the
 lists it prints into its archive (FR-REV-011).
 
@@ -351,8 +351,8 @@ To marker are editable there (§12).
   `-104E1`; where its ends lie in two locations each end prints its own, `+FLD-104B1` and `+CAB-104A1-A2`, so the list
   says that the wire leaves the cabinet and where it goes. Such an end, outside the cabinet's location, is a site end
   (§2.1): the wire is cut on site, so the cut list leaves it out and the consumables count no metres of it
-  ([the workshop lists](13-workshop-lists.md) §3.6, §9.3); the shop makes the cabinet's end (its ferrule and marker)
-  and leaves this end for the site.
+  ([the workshop lists](13-workshop-lists.md) §3.6, §9.3); the site lays and lands the whole wire, its cabinet end
+  too, and the consumables hold that end's ferrule and marker for it.
 - **A door end** (a device placed in the door, [12](12-panel-layout.md)) prints `(door)` after its tag, so that the
   fitter takes the wire through the hinge loop.
 - **A core** is a row of the wire list: the fitter treats, lands and (where the shop does) marks its ends. It is cut
