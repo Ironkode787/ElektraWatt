@@ -895,3 +895,6 @@ change here.
 - behaviour-change: Save of a parts table in Parts whose map of the columns cannot be kept says that the parts are
   saved to My parts and the map is not, and shows them in My parts; it said the save failed and kept the set shown as
   unsaved, though the parts were written
+- behaviour-change: Edit frame's Properties write the paper's size, a cell's size and the title block's height as every
+  length of Properties is written, the shortest millimetres with the project's decimal separator ("420 × 297 mm",
+  "18"), where they printed one decimal with a point ("420.0 × 297.0 mm")

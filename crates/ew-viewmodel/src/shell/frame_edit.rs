@@ -603,7 +603,7 @@ impl ShellModel {
                     .iter()
                     .find(|(a, _)| *a == align)
                     .map_or_else(|| align.clone(), |(_, k)| text(*k));
-                let mm = |nm: i64| crate::canvas::mm1(nm);
+                let mm = |nm: i64| self.frame_mm(nm);
                 vec![
                     row(
                         "cell.text",
@@ -675,7 +675,7 @@ impl ShellModel {
                     facts.frame_pages.len(),
                 ));
                 let sheet = &facts.frame_item["sheet"];
-                let mm = |v: &Value| crate::canvas::mm1(v.as_i64().unwrap_or(0));
+                let mm = |v: &Value| self.frame_mm(v.as_i64().unwrap_or(0));
                 let own = facts.block.is_some() && facts.block != facts.shared_block;
                 let block = if own {
                     text(key!("frame-block-own"))
@@ -1033,6 +1033,13 @@ impl ShellModel {
 
     /// The rulers' rows: Columns and Rows, each How many, Counted with, First (the rows' Skip I and O), Drawn and the
     /// title block's height, each with the value of the open card where it changes one.
+    /// A length of the frame as every Properties row writes one: the shortest millimetres, with the project's
+    /// decimal separator ([`ew_api::output::mm_words`]); the unit stands in the row's words.
+    fn frame_mm(&self, nm: i64) -> String {
+        let comma = self.project.as_ref().is_some_and(|p| p.session.decimal_comma());
+        ew_api::output::mm_words(i128::from(nm), comma)
+    }
+
     fn ruler_rows(
         &self,
         facts: &FrameFacts,
@@ -1117,7 +1124,7 @@ impl ShellModel {
             let h = pending["title_block_height"]
                 .as_i64()
                 .unwrap_or_else(|| block["sheet"]["height"].as_i64().unwrap_or(0));
-            let mm = crate::canvas::mm1(h);
+            let mm = self.frame_mm(h);
             rows.push(row(
                 "both.block_height",
                 text(key!("frame-block-height")),

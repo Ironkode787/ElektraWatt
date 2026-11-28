@@ -244,3 +244,45 @@ fn a_double_click_types_a_cells_text_in_the_free_text_editor() {
     );
     assert_eq!(s.tool().state(), "cell");
 }
+
+/// The text of the frame's row `key` in the open sheet.
+fn frame_row(s: &ShellModel, key: &str) -> String {
+    let sheet = s.properties().sheet().expect("the frame's sheet");
+    let row = sheet
+        .sections
+        .iter()
+        .flat_map(|sec| sec.rows.iter())
+        .find(|r| r.key == format!("frame/{key}"))
+        .unwrap_or_else(|| panic!("no row {key}"));
+    ew_viewmodel::properties::value_text(row)
+}
+
+/// The frame's lengths read as every Properties row writes one: the shortest millimetres with the project's
+/// decimal separator, never "297.0" with a point in a project that writes a comma.
+#[test]
+fn the_frames_lengths_read_as_every_length_of_properties() {
+    let tmp = Tmp::new("frame-edit-lengths");
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
+    done(&mut s, "props.show", json!({"on": true}));
+    done(&mut s, "frame.edit", json!({}));
+    let paper = frame_row(&s, "frame.paper");
+    assert!(paper.ends_with(" mm") && !paper.contains(".0 "), "{paper}");
+    done(&mut s, "frame.choose", json!({"rulers": true}));
+    let height = frame_row(&s, "both.block_height");
+    assert!(!height.ends_with(".0") && height.parse::<f64>().is_ok(), "{height}");
+    s.shutdown();
+    let file = tmp.sample_copy().join("project.jsonl");
+    let jsonl = std::fs::read_to_string(&file).unwrap();
+    std::fs::write(
+        &file,
+        jsonl.replace("\"decimal_separator\":\"point\"", "\"decimal_separator\":\"comma\""),
+    )
+    .unwrap();
+    let mut s = tmp.sample_in(Mode::Headless, true, "101");
+    done(&mut s, "props.show", json!({"on": true}));
+    done(&mut s, "frame.edit", json!({}));
+    done(&mut s, "frame.choose", json!({"rulers": true}));
+    let height = frame_row(&s, "both.block_height");
+    assert!(!height.contains('.'), "{height}");
+    s.shutdown();
+}
