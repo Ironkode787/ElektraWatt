@@ -149,6 +149,16 @@ pub(crate) fn from_rail_start(q: &Q, rail: Id<Carrier>, (s0, s1): (i128, i128)) 
         .map_or((s0, s1), |m| m.span(s0, s1))
 }
 
+/// Whether `rail` is measured from the far end of its path ([`from_rail_start`]): its start, the end nearest its
+/// surface's datum corner, is its last point.
+pub(crate) fn rail_measured_back(q: &Q, rail: Id<Carrier>) -> bool {
+    let surfaces = q.table::<MountingSurface>();
+    q.table::<Carrier>()
+        .get(rail)
+        .and_then(|c| Measure::of(q, c, surfaces.get(c.surface)?))
+        .is_some_and(|m| m.flipped)
+}
+
 /// `rail_assembly(rail)`: where `rail` lies and what stands on it (see the module documentation); `None` for a missing
 /// carrier, a duct and a rail without a straight axis.
 pub fn rail_assembly(q: &Q, rail: Id<Carrier>) -> Option<RailAssembly> {

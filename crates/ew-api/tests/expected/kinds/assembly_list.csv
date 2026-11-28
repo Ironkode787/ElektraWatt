@@ -12,7 +12,7 @@ data,8,Device,-103F1,,EW-GEN-MCB-3,"Miniature circuit breaker, 3 poles",,54,325�
 data,9,Strip,-X1031,,,,,48.2,379–427.2,,see -X1031 below
 data,10,Device,-201X1,,EW-GEN-AIR-1,Air supply: service unit G1/4 with shut-off valve and filter regulator,,width missing,centre at 437.2,,
 data,11,Device,-201X2,,EW-GEN-SIL-1,Silencer G1/8,,width missing,centre at 457.2,,
-data,,Gap,,,,,,2.8,467.2–470,,to the rail's end
+data,,Gap,,,,,,,,,the place after -201X2 is not known: its width is missing
 heading,-X1011 · on rail 1 from 0 to 48.2 mm · rail cut to 470 mm · 5 terminals · 48.2 mm with its end brackets,,,,,,,,,,
 data,1,End bracket,,,EW-GEN-EB-1,End bracket for TS 35,,10,,,with EW-GEN-TRM-1
 data,2,Terminal,,L1,EW-GEN-TRM-1,Feed-through terminal,GY,5.2,,L1,
@@ -57,7 +57,7 @@ data,6,Device,-201K1-Q2,,EW-GEN-VLV-3,"Solenoid valve 5/2 for a valve terminal, 
 data,7,Device,-201K1-Q3,,EW-GEN-VLV-3,"Solenoid valve 5/2 for a valve terminal, spring return",,width missing,centre at 240,,
 data,8,Device,-201K1-Q4,,EW-GEN-VLV-3,"Solenoid valve 5/2 for a valve terminal, spring return",,width missing,centre at 260,,
 data,9,Device,-201X3,,EW-GEN-SIL-1,Silencer G1/8,,width missing,centre at 280,,
-data,,Gap,,,,,,180,290–470,,to the rail's end
+data,,Gap,,,,,,,,,the place after -201X3 is not known: its width is missing
 heading,"Door, page 904, seen from outside · devices without a rail, their centres measured from the bottom-left corner",,,,,,,,,,
 data,1,Device,-101Q1,,EW-GEN-HDL-1,Door coupling handle for a main switch,,65,"X 137.5, Y 622.5",,"in holes H1, H2, H8"
 data,2,Device,-102E1,,EW-GEN-LMP-1,Pilot lamp,,30,"X 240, Y 560",,in hole H7

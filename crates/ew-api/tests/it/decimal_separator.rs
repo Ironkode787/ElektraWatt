@@ -69,3 +69,25 @@ fn the_project_decimal_separator_prints_in_the_tables_of_the_generated_pages() {
         assert_eq!(&want, b);
     }
 }
+
+/// The hole table's heading names its surface's size with the project's decimal sign, as its rows' numbers: a door
+/// half a millimetre wider prints "600,5 × 800 mm" with the comma.
+#[test]
+fn the_hole_table_heading_takes_the_decimal_sign() {
+    let (mut project, mut records, lib) = common::sample_records();
+    project.settings.formatting.decimal_separator = Some(DecimalSeparator::Comma);
+    for r in &mut records {
+        if let ew_schema::Record::MountingSurface(m) = r
+            && m.kind == ew_schema::SurfaceKind::Door
+        {
+            let right = m.usable.iter().map(|p| p.x.0).max().unwrap_or_default();
+            for p in &mut m.usable {
+                if p.x.0 == right {
+                    p.x.0 += 500_000;
+                }
+            }
+        }
+    }
+    let cells = table_cells(&common::session_of(project, records, lib));
+    assert!(cells.iter().any(|c| c.contains("600,5 × 800 mm")), "{cells:#?}");
+}

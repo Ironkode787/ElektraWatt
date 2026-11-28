@@ -390,6 +390,7 @@ cell-strip = Klemmenstrook
 cell-strip-block = zie { $p0 } hieronder
 cell-gap = Tussenruimte
 cell-gap-from-start = vanaf het begin van de rail
+cell-gap-not-known = de plek na { $p0 } is niet bekend: zijn breedte ontbreekt
 cell-gap-to-end = tot het eind van de rail
 cell-surface-heading = { $p0 }, pagina { $p1 }, { $p2 } · apparaten zonder rail, hun midden gemeten vanaf de hoek { $p3 }
 cell-at-xy = X { $p0 }, Y { $p1 }

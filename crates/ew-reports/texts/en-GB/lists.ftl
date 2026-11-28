@@ -393,6 +393,7 @@ cell-strip = Strip
 cell-strip-block = see { $p0 } below
 cell-gap = Gap
 cell-gap-from-start = from the rail's start
+cell-gap-not-known = the place after { $p0 } is not known: its width is missing
 cell-gap-to-end = to the rail's end
 cell-surface-heading = { $p0 }, page { $p1 }, { $p2 } · devices without a rail, their centres measured from the { $p3 } corner
 cell-at-xy = X { $p0 }, Y { $p1 }

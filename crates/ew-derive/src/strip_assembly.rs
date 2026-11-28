@@ -2,13 +2,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `assembly_rows(strip)`: what the assembly list prints of one strip (doc 13 §6.1, FR-MFG-016): where it goes and how
-//! long it is, then every item in the order the fitter mounts it from the rail's left end.
+//! long it is, then every item in the order the fitter mounts it from the rail's start.
 //!
 //! The items are `strip_layout`'s (the terminals by `seq`, the accessories their parts stand after a terminal, the
 //! strip's own) with the end brackets the rail gives the strip (`group_accessories`): one before it when it starts a
 //! run, one after it. A strip that abuts the one before it starts against that strip's bracket and names it. A strip on
-//! no rail counts two brackets, as `part_accessories` does. A strip turned on its rail lists its items from the rail's
-//! left end, its last terminal first. The bridges are the list's own block (`bridge_groups`), not read here.
+//! no rail counts two brackets, as `part_accessories` does. The items read from the rail's start, the end nearest its
+//! surface's datum corner, as the rail's own block counts (`rail_assembly`): a strip turned on its rail, or on a rail
+//! measured from its other end, lists its last terminal first. The bridges are the list's own block (`bridge_groups`), not read here.
 
 use ew_ids::Id;
 use ew_schema::{Carrier, CarrierKind, CarrierRef, Device, LibCopy, Part, PartRef, Placement};
@@ -18,7 +19,7 @@ use crate::accessories::{StripBracket, strip_bracket};
 use crate::cut_list::cut_to;
 use crate::layout::{
     BracketRole, CarrierLabelKind, GroupAccessories, Quarter, RailOccupancy, StripItemKind, StripLayout,
-    carrier_label, carrier_length, carrier_order, from_rail_start, places_strip,
+    carrier_label, carrier_length, carrier_order, from_rail_start, places_strip, rail_measured_back,
 };
 
 /// What one row of a strip's mounting order is.
@@ -77,7 +78,7 @@ pub struct StripAssembly {
     pub width_missing: bool,
     /// Whether the strip has end brackets at all ([`strip_bracket`]).
     pub bracketed: bool,
-    /// The items in mounting order from the rail's left end.
+    /// The items in mounting order from the rail's start.
     pub items: Vec<AssemblyItem>,
 }
 
@@ -199,6 +200,13 @@ pub fn assembly_rows(q: &Q, strip: Id<Device>) -> Option<StripAssembly> {
     items.extend(middle);
     if bracket_after {
         items.push(bracket_item());
+    }
+    // Along the rail's path so far; from its other end where the rail is measured from there.
+    if placed
+        .as_ref()
+        .is_some_and(|(on, _, _)| rail_measured_back(q, on.rail))
+    {
+        items.reverse();
     }
     let terminals = items
         .iter()

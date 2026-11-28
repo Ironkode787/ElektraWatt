@@ -90,7 +90,8 @@ fn surface_rows(q: &Q, surface: ew_ids::Id<MountingSurface>, folio: &str, set: &
         &surface_datum(q, s),
     );
     let mut cells = vec![Cell::Empty; set.columns.len()];
-    cells[0] = words(&heading);
+    // Its size with the decimal sign the list prints, as the rows' numbers.
+    cells[0] = super::conn::measured_cell(q, &heading);
     set.rows.push(Row {
         id: RowId::entity(surface).with(RowKey::Name("heading".to_owned())),
         kind: RowKind::Heading,

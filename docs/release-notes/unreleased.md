@@ -1040,7 +1040,9 @@ change here.
   mounting order from the end nearest that corner, with its width, its place from–to in mm and the gaps between, a
   strip as one row); the devices in the door or on the plate without a rail are listed under their surface with their
   centres and the holes they sit in, and a device the layout does not place yet as "place missing". The list gains the
-  columns Device and Position mm, and a strip's heading measures from the same end of its rail
+  columns Device and Position mm, and a strip's heading and its block's order count from the same end of its rail; a
+  gap beside a device without a width says that the place after it is not known instead of measuring from the
+  page's placeholder
 - behaviour-change: the rework list's Mount device and Remove device rows say where the device goes or stood (its rail
   and place on it, or its surface, centre and hole), and a new column Because says why a row is there where nobody
   changed its wire by name, each a cause the release and now show: a twin ferrule's partner pulled, moved, resized or

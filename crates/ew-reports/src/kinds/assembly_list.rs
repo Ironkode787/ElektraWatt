@@ -296,26 +296,39 @@ fn rail_block(q: &Q, set: &mut RowSet, r: &RailAssembly, folio: &str) {
     part_cells(q, &columns, &mut cells, r.part.as_ref());
     set.rows
         .push(sourced(id(RowKey::Name("rail".to_owned())), cells, r.rail.cast()));
-    let gap = |set: &mut RowSet, n: u32, from: i128, to: i128, note: Option<Text>| {
+    // A gap between two places known; `None`: after an item without a width, whose end is not known.
+    let gap = |set: &mut RowSet, n: u32, span: Option<(i128, i128)>, note: Option<Text>| {
         let mut cells = vec![Cell::Empty; columns.len()];
         put(&columns, &mut cells, "item", words_cell(&text!("cell-gap")));
-        put(&columns, &mut cells, "width", width_cell(to - from));
-        put(&columns, &mut cells, "position", from_to(q, from, to));
+        if let Some((from, to)) = span {
+            put(&columns, &mut cells, "width", width_cell(to - from));
+            put(&columns, &mut cells, "position", from_to(q, from, to));
+        }
         if let Some(note) = note {
             put(&columns, &mut cells, "note", words_cell(&note));
         }
         set.rows
             .push(Row::data(id(RowKey::Name(format!("gap {n}"))), cells));
     };
-    let mut at = 0;
+    // Where the last item ends; `None` after one without a width, whose place is the page's placeholder: the gap
+    // after a run of such items says the place after the last of them is not known.
+    let mut at = Some(0);
+    let mut unknown: Option<(u32, String)> = None;
     for (n, item) in r.items.iter().enumerate() {
         let n32 = u32::try_from(n).unwrap_or(u32::MAX);
-        if item.from > at {
+        if !item.unknown
+            && let Some((k, tag)) = unknown.take()
+        {
+            gap(set, k, None, Some(text!("cell-gap-not-known", tag)));
+        }
+        if let Some(at) = at
+            && !item.unknown
+            && item.from > at
+        {
             gap(
                 set,
                 n32,
-                at,
-                item.from,
+                Some((at, item.from)),
                 (at == 0).then(|| text!("cell-gap-from-start")),
             );
         }
@@ -338,7 +351,7 @@ fn rail_block(q: &Q, set: &mut RowSet, r: &RailAssembly, folio: &str) {
                 &columns,
                 &mut cells,
                 "note",
-                words_cell(&text!("cell-strip-block", tag)),
+                words_cell(&text!("cell-strip-block", tag.clone())),
             );
         } else {
             part_cells(q, &columns, &mut cells, item.part.as_ref());
@@ -359,10 +372,25 @@ fn rail_block(q: &Q, set: &mut RowSet, r: &RailAssembly, folio: &str) {
         put(&columns, &mut cells, "position", position);
         set.rows
             .push(sourced(id(RowKey::Index(n32)), cells, item.device.cast()));
-        at = at.max(item.to);
+        if item.unknown {
+            unknown = Some((n32, tag));
+            at = None;
+        } else {
+            at = Some(at.map_or(item.to, |a| a.max(item.to)));
+        }
     }
-    if r.length > at {
-        gap(set, u32::MAX, at, r.length, Some(text!("cell-gap-to-end")));
+    if let Some((k, tag)) = unknown {
+        gap(set, k, None, Some(text!("cell-gap-not-known", tag)));
+    }
+    if let Some(at) = at
+        && r.length > at
+    {
+        gap(
+            set,
+            u32::MAX,
+            Some((at, r.length)),
+            Some(text!("cell-gap-to-end")),
+        );
     }
 }
 

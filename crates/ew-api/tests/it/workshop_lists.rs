@@ -544,3 +544,68 @@ fn a_wire_part_row_stands_among_the_rows_of_its_size() {
         );
     }
 }
+
+/// With the datum corner at the bottom right, every block of the assembly lists counts from that corner (doc 13 §6.1):
+/// a rail from its right end (-X1011, at 0–48.2 mm from the left end of the 470 mm rail, stands at 421.8–470), a strip's
+/// own block from the same end as its rail's (its PE terminal first, L1 last), and the door's devices from the door's
+/// right edge (-101Q1's handle, at X 137.5 of the 600 mm door from the left, at X 462.5).
+#[test]
+fn the_assembly_lists_count_from_a_datum_corner_on_the_right() {
+    let (mut project, records, lib) = common::sample_records();
+    project.settings.workshop.datum = Some(ew_schema::Corner::BottomRight);
+    let s = common::session_of(project, records, lib);
+    let all = lines(&s, "assembly_list");
+    let row = |starts: &str| {
+        all.iter()
+            .find(|l| l.starts_with(starts))
+            .unwrap_or_else(|| panic!("no {starts}: {all:#?}"))
+            .clone()
+    };
+    assert!(row("heading,\"Rail 1 ").contains("positions from its right end"), "{all:#?}");
+    let strip = all
+        .iter()
+        .find(|l| l.contains(",Strip,-X1011,"))
+        .expect("-X1011 on its rail");
+    assert!(strip.contains(",421.8–470,"), "{strip}");
+    assert!(
+        row("heading,-X1011 ").contains("on rail 1 from 421.8 to 470 mm"),
+        "{all:#?}"
+    );
+    let terminals: Vec<String> = all
+        .iter()
+        .skip_while(|l| !l.starts_with("heading,-X1011 "))
+        .skip(1)
+        .take_while(|l| !l.starts_with("heading,"))
+        .filter(|l| l.contains(",Terminal,"))
+        .map(|l| l.split(',').nth(4).unwrap_or_default().to_owned())
+        .collect();
+    assert_eq!(
+        (terminals.first().map(String::as_str), terminals.last().map(String::as_str)),
+        (Some("PE"), Some("L1")),
+        "{terminals:?}"
+    );
+    let handle = all
+        .iter()
+        .find(|l| l.contains(",Device,-101Q1,") && l.contains("EW-GEN-HDL-1"))
+        .expect("the door's handle");
+    assert!(handle.contains("X 462.5, Y 622.5"), "{handle}");
+}
+
+/// A gap beside a device without a width is not measured from the page's placeholder (doc 13 §6.1): after the
+/// sample's silencers at the end of rail 1 the list says that the place after the last of them is not known.
+#[test]
+fn a_gap_after_a_device_without_a_width_is_not_known() {
+    let s = common::sample();
+    let all = lines(&s, "assembly_list");
+    let at = all
+        .iter()
+        .position(|l| l.contains(",Device,-201X2,"))
+        .expect("-201X2 on rail 1");
+    assert!(all[at].contains("width missing"), "{}", all[at]);
+    let next = &all[at + 1];
+    assert!(
+        next.starts_with("data,,Gap,") && next.ends_with(",the place after -201X2 is not known: its width is missing"),
+        "{next}"
+    );
+    assert!(!next.contains('–'), "no span: {next}");
+}

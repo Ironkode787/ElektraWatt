@@ -74,7 +74,8 @@ from the same end.
    its left end"), a row with the rail's part, then **everything on it in mounting order from its start**: each device
    with its tag, its part, its width and where it stands (from–to in mm, "48.2–102.2"), a strip as one row that names
    its own block, and a Gap row for every space between two items, before the first ("from the rail's start") and
-   after the last ("to the rail's end");
+   after the last ("to the rail's end"); a gap beside a device without a width is not measured from the placeholder:
+   after the last of such devices a Gap row says that the place after it is not known;
 2. **the blocks of the strips on that rail**, in the order they stand on it;
 3. **the devices placed on the surface without a rail** (in the door, on the plate), under a heading with the surface,
    its page, how it is seen and its datum corner: each with its tag, its part, its width, its centre ("X 270, Y 480")
@@ -93,7 +94,8 @@ the right. A strip stands on its rail as a whole: the heading names its placemen
 the legend's order, and a heading per piece comes with placing a strip in pieces
 ([12](12-placement-pages.md) §2.3, `segment`).
 
-**Then the mounting order**, one row per item from the rail's left end: the end bracket before it (a strip that abuts
+**Then the mounting order**, one row per item from the rail's start, the same end the rail's own block counts from
+(with the datum corner on the right, a strip's last terminal comes first): the end bracket before it (a strip that abuts
 the one before it starts against that strip's bracket and says so in its heading), the terminals by `seq`, each
 accessory at its place (an end plate after the last terminal whose part names it, the strip's own after the
 terminal it follows), the end bracket after it.
