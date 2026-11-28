@@ -67,3 +67,46 @@ fn the_search_finds_a_page_by_its_kind_and_a_setting_by_its_words() {
     );
     s.shutdown();
 }
+
+/// A command's name still finds the command first, though pages bear that name as their title (the search keeps every
+/// hit, so how many pages there are does not move a command down); a page's kind is found by its Dutch words in a
+/// Dutch window, and says so.
+#[test]
+fn a_commands_name_finds_the_command_before_pages_of_that_title() {
+    let tmp = Tmp::new("search-many-pages");
+    let mut s = tmp.sample_in(Mode::Gui, true, "101");
+    let names = ["Route", "Supply", "Messages"];
+    for i in 0..9 {
+        done(
+            &mut s,
+            "page.new",
+            json!({"folio": (3000 + i).to_string(), "type": "multi_line", "title": names[i % names.len()]}),
+        );
+    }
+    done(&mut s, "tools.palette", json!({}));
+    for name in names {
+        s.set_palette_query(name);
+        let entries = s.palette_entries();
+        let first = entries.first().expect("a hit");
+        assert!(
+            matches!(first.run, PaletteRun::Action(_)),
+            "{name}: {:?} {}",
+            first.run,
+            first.label
+        );
+        assert!(
+            entries.iter().any(|e| matches!(e.run, PaletteRun::Page(_))),
+            "{name}: its pages are found too"
+        );
+    }
+
+    done(&mut s, "view.language", json!({ "value": "nl" }));
+    s.set_palette_query("paneellayout");
+    let entries = s.palette_entries();
+    let layout = entries
+        .iter()
+        .find(|e| e.run == PaletteRun::Page("902".to_owned()))
+        .expect("the panel layout's page by its Dutch kind");
+    assert_eq!(layout.breadcrumb, "Pagina · Paneellayout");
+    s.shutdown();
+}
