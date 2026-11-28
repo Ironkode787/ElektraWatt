@@ -900,3 +900,5 @@ change here.
   "18"), where they printed one decimal with a point ("420.0 × 297.0 mm")
 - text-change: a bus station's address on a page of a Dutch project reads "Knooppunt 3" ("Knooppunt TBD" while it is
   open); it printed the English "Node 3"
+- text-change: a module attached to a PLC station by itself names the station by the tag its page prints ("Attached to
+  -104A1 as module 2"); it named its letter and counter ("-A1")

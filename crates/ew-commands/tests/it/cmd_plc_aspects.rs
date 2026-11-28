@@ -256,7 +256,8 @@ fn modules_attach_to_the_only_station() {
             Some(ew_schema::PlcModule::default())
         );
         assert!(
-            has_notice(r, &format!("attached to -A1 as module {pos}")),
+            // The station by its printed tag, as the derivation gives it in this model of no page ("-?A1").
+            has_notice(r, &format!("attached to -?A1 as module {pos}")),
             "{:?}",
             notices(r)
         );

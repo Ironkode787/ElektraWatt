@@ -428,7 +428,8 @@ fn a_direct_commit_says_its_commands_notices() {
     );
     let toast = common::toast(&s);
     assert!(
-        toast.starts_with("Attached to -") && toast.contains(" as module "),
+        // The station by the tag its page prints, -104A1, not its letter and counter (-A1).
+        toast.starts_with("Attached to -104A1 as module "),
         "{toast}"
     );
     s.shutdown();

@@ -319,7 +319,7 @@ fn attach_module(tx: &mut TxBuilder<'_>, module: Id<Device>) -> Result<bool, Cmd
     })?;
     tx.notice(text!(
         "notice-attached",
-        ew_derive::text::letter_counter_tag(&station.tag),
+        crate::words::device(tx, station.id),
         position.to_string()
     ));
     Ok(true)
