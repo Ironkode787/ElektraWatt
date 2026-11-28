@@ -391,9 +391,11 @@ fn current_exe() -> Option<PathBuf> {
 }
 
 /// The library tiers of the shell's sessions: the system libraries of the installation's content
-/// (`content/libraries`), the user's data and cache directories. An isolated run (a script) reads libraries only when
-/// `EW_DATA_DIR` names its data directory, never the user's own, and keeps its search index in `EW_CACHE_DIR` when
-/// that is set, else in `<EW_DATA_DIR>/cache`, never in the user's own cache.
+/// (`content/libraries`), the user's data and cache directories. An isolated run (a script) never reads the user's
+/// own: with `EW_DATA_DIR` it reads that data directory and keeps its search index in `EW_CACHE_DIR` when that is set,
+/// else in `<EW_DATA_DIR>/cache`; without it this gives no tiers, and the shell then takes those of the run's own
+/// settings folder (`EW_CONFIG_DIR`, `--config-dir`) where it has one, My parts there (`ShellModel`'s
+/// `configured_libraries`), else the compiled-in libraries alone.
 fn library_tiers(
     isolated: bool,
     content: Option<&Path>,
@@ -754,7 +756,7 @@ mod tests {
     }
 
     /// An isolated run with only `EW_DATA_DIR` keeps its search index under that directory, never in the
-    /// user's default cache; `EW_CACHE_DIR` still wins; without `EW_DATA_DIR` it reads no libraries.
+    /// user's default cache; `EW_CACHE_DIR` still wins; without `EW_DATA_DIR` this gives no tiers.
     #[test]
     fn an_isolated_run_keeps_its_cache_under_its_data_dir() {
         let data = PathBuf::from("isolated-data");
