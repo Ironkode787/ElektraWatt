@@ -889,3 +889,6 @@ change here.
   was typed as one text; it printed "Scale 1:5" there
 - text-change: Dutch: the package's dialog and its contents call a marker part a merkerartikel and the markers merkers, as
   the checks, the lists and Labels… do; they said markeringsartikel and markeringen
+- text-change: the package's Contents.txt of a project that carries no date says so ("revision V1.0; the project
+  carries no date"), where it said "made on 1980-01-01"; its members keep the fixed date, the same bytes on every
+  machine

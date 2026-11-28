@@ -219,6 +219,9 @@ pub struct PackagePlan {
     pub file_name: String,
     /// The members' date.
     pub date: PdfDate,
+    /// Whether that date is the fixed 1980-01-01 of a draft whose project carries no date (no edited or created date
+    /// and none given by the caller): Contents then says so instead of naming the day.
+    pub undated: bool,
 }
 
 impl PackagePlan {
@@ -526,6 +529,10 @@ impl Session {
             personal,
             file_name: file_words(&in_print_language(&file, lang.as_ref())),
             date,
+            undated: released.is_none() && ask.date.is_none() && {
+                let m = &q.project().master;
+                m.edited.or(m.created).is_none()
+            },
         }
     }
 
@@ -964,6 +971,8 @@ fn contents_txt(
     let mut lines: Vec<String> = vec![head.join(" · ")];
     let date = iso(plan.date);
     lines.push(words(&match (&plan.revision, plan.draft()) {
+        (Some(label), true) if plan.undated => text!("package-contents-undated", label.clone()),
+        (None, _) if plan.undated => text!("package-contents-undated-none"),
         (Some(label), false) => text!("package-contents-released-on", label.clone(), date),
         (Some(label), true) => text!("package-contents-made-on", label.clone(), date),
         (None, _) => text!("package-contents-made-on-none", date),

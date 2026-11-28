@@ -548,3 +548,25 @@ fn what_the_lists_lack_of_the_stock_is_said() {
         assert!(contents.contains(&format!("  {said}")), "{said}: {contents}");
     }
 }
+
+/// A draft of a project that carries no date (no edited or created date, none given): Contents says so, where it
+/// said "made on 1980-01-01"; the members keep the fixed date, so two writes are the same bytes.
+#[test]
+fn a_project_without_a_date_says_so_in_contents() {
+    let (mut project, records, lib) = common::sample_records();
+    project.master.edited = None;
+    project.master.created = None;
+    let s = common::session_of(project, records, lib);
+    let undated = PackageAsk::default();
+    assert!(s.package_plan(&undated).undated);
+    let (bytes, entries) = package(&s, &undated);
+    let contents = String::from_utf8(entry(&entries, |n| n == "Contents.txt").data.clone()).expect("UTF-8");
+    assert!(
+        contents.contains("Package for the workshop, revision V1.0; the project carries no date\r\n"),
+        "{contents}"
+    );
+    assert!(!contents.contains("1980"), "{contents}");
+    assert_eq!(package(&s, &undated).0, bytes, "the same bytes");
+    // A date given by the caller is named as before.
+    assert!(!s.package_plan(&ask()).undated);
+}
