@@ -86,6 +86,7 @@ size.search.height 24px
 size.panel_header 32px
 size.dock_tab_bar 32px
 size.rail 40px
+size.rail_labelled 110px
 size.rail_button 32px
 size.status 26px
 size.status_field 22px
@@ -224,6 +225,7 @@ size.search.height 24px
 size.panel_header 32px
 size.dock_tab_bar 32px
 size.rail 40px
+size.rail_labelled 110px
 size.rail_button 32px
 size.status 26px
 size.status_field 22px
@@ -362,6 +364,7 @@ size.search.height 24px
 size.panel_header 32px
 size.dock_tab_bar 32px
 size.rail 40px
+size.rail_labelled 110px
 size.rail_button 32px
 size.status 26px
 size.status_field 22px
@@ -500,6 +503,7 @@ size.search.height 24px
 size.panel_header 32px
 size.dock_tab_bar 32px
 size.rail 40px
+size.rail_labelled 110px
 size.rail_button 32px
 size.status 26px
 size.status_field 22px
@@ -638,6 +642,7 @@ size.search.height 24px
 size.panel_header 32px
 size.dock_tab_bar 32px
 size.rail 40px
+size.rail_labelled 110px
 size.rail_button 32px
 size.status 26px
 size.status_field 22px
@@ -776,6 +781,7 @@ size.search.height 24px
 size.panel_header 32px
 size.dock_tab_bar 32px
 size.rail 40px
+size.rail_labelled 110px
 size.rail_button 32px
 size.status 26px
 size.status_field 22px
@@ -914,6 +920,7 @@ size.search.height 24px
 size.panel_header 32px
 size.dock_tab_bar 32px
 size.rail 40px
+size.rail_labelled 110px
 size.rail_button 32px
 size.status 26px
 size.status_field 22px
@@ -1052,6 +1059,7 @@ size.search.height 24px
 size.panel_header 32px
 size.dock_tab_bar 32px
 size.rail 40px
+size.rail_labelled 110px
 size.rail_button 32px
 size.status 26px
 size.status_field 22px
