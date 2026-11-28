@@ -404,11 +404,13 @@ impl ShellModel {
         let serial = match uint_param(p, "entry") {
             Err(e) => return e,
             Ok(Some(n)) => n,
-            Ok(None) => match self.notes.serials().into_iter().rev().find(|s| {
-                self.notes
-                    .get(*s)
-                    .is_some_and(|n| n.offer(&word).is_some())
-            }) {
+            Ok(None) => match self
+                .notes
+                .serials()
+                .into_iter()
+                .rev()
+                .find(|s| self.notes.get(*s).is_some_and(|n| n.offer(&word).is_some()))
+            {
                 Some(s) => s,
                 None => return failed(key!("error-no-such-action"), &[&word]),
             },
