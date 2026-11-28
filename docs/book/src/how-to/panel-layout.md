@@ -26,7 +26,10 @@ the parts list and the enclosure legend read it from there.
 
    A location that has its enclosure already (made from another page) is not made twice: with that location
    chosen, the dialog says which part the enclosure has and offers no other, and its button reads **Draw -UC1 of
-   +CAB1 on this page** and puts its mounting plate on the page as it is.
+   +CAB1 on this page** and puts its mounting plate on the page as it is. To give it another cabinet, such as one of
+   your own, choose **Change its cabinet…** there (or **Choose…** on the **Part** row of -UC1 in Properties): the card
+   says which surfaces change size and what would no longer fit, and **Apply** changes the cabinet, its mounting plate
+   and its surfaces in one step.
    On a page that is not a panel layout page, the button reads **Create and draw on a new panel layout page** (or
    **Draw … on a new panel layout page**): it makes the panel layout page after the page shown and draws the
    enclosure there. **Create only** beside it makes the enclosure without drawing it.

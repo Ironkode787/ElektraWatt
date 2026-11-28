@@ -99,6 +99,7 @@
     - [`layout.enclosure.create_from_part`](reference/commands/layout.enclosure.create_from_part.md)
     - [`layout.enclosure.delete`](reference/commands/layout.enclosure.delete.md)
     - [`layout.enclosure.edit`](reference/commands/layout.enclosure.edit.md)
+    - [`layout.enclosure.set_part`](reference/commands/layout.enclosure.set_part.md)
     - [`layout.feature.add`](reference/commands/layout.feature.add.md)
     - [`layout.feature.edit`](reference/commands/layout.feature.edit.md)
     - [`layout.glands_place`](reference/commands/layout.glands_place.md)

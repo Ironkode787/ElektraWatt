@@ -1091,6 +1091,23 @@ fn form_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogSpec 
     }
     // Create enclosure draws an enclosure the location has, and off a panel layout page makes the page.
     let choice = model.enclosure_choice();
+    // On a location that has its enclosure, Change its cabinet… opens the choice of another cabinet for it.
+    let location = (form.fields.iter())
+        .find(|f| f.name == "location")
+        .map(|f| f.value.clone())
+        .unwrap_or_default();
+    if form.action == "layout.enclosure_new" && model.location_has_enclosure(&location) {
+        secondary.insert(
+            0,
+            DialogButton::new(
+                key!("enclosure-change-part"),
+                DialogAnswer::Action(
+                    "layout.enclosure_new",
+                    json!({ "change_part": true, "location": location }),
+                ),
+            ),
+        );
+    }
     if let Some((_, _, true, _)) = &choice {
         secondary.insert(
             0,

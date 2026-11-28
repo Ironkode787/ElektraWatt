@@ -144,6 +144,7 @@ command-page-set_grid = Change a page's connection grid
 command-layout-place_assembly = Place assembly
 command-layout-auto_fill = Auto-fill rail
 command-layout-enclosure-create_from_part = Create enclosure from part
+command-layout-enclosure-set_part = Give an enclosure another cabinet part
 command-layout-space-edit = Rename layout space
 command-layout-enclosure-edit = Move enclosure
 command-layout-surface-edit = Edit surface

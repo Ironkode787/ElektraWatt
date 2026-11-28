@@ -445,6 +445,7 @@ reason-rail-no-palettes = De paletten zijn nog niet gebouwd; deze knoppen openen
 reason-macro-insert = Er wordt een macro ingevoegd
 reason-macro-not-installed = Alleen het project bevat deze macro; installeer zijn bibliotheek om hem in te voegen
 reason-library-update = Bibliotheekitems worden bijgewerkt
+reason-enclosure-set-part = Een kast krijgt een ander artikel
 reason-no-updates = Geen gekozen bibliotheekitem heeft een update
 reason-library-read-only = De bibliotheek is alleen-lezen; sla op in een gebruikers- of bedrijfsbibliotheek
 reason-no-writable-library = Er is geen beschrijfbare bibliotheek geïnstalleerd; voeg eerst een gebruikers- of bedrijfsbibliotheek toe

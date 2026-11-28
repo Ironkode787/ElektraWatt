@@ -291,6 +291,7 @@ commands! {
     layout::PlaceAssembly,
     layout::AutoFill,
     layout::CreateEnclosureFromPart,
+    layout::SetEnclosurePart,
     layout::EditLayoutSpace,
     layout::EditEnclosure,
     layout::AddSurface,

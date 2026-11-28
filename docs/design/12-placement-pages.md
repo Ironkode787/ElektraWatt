@@ -294,7 +294,12 @@ is drawn as a person sees it from the side it is worked from, standing in front 
   its part and the plate surface from the enclosure part's `plate`: its frame centres the plate in the enclosure, its
   usable polygon is the plate rectangle. Sizes are never typed on the page. For a location that has its enclosure the
   dialog draws that enclosure as it is: it names the part the enclosure has and offers no other part, and a script
-  that names another is refused in words.
+  that names another is refused in words. **Another cabinet for an enclosure** is one step
+  (`layout.enclosure.set_part`): Change its cabinet… in that dialog, or a cabinet chosen in Properties ▸ Part ▸
+  Choose… of the enclosure's device, opens a card that names each surface whose size changes and what then no longer
+  lies inside its surface (EW-LAY-010), before Apply; Apply gives the enclosure's device the part, the plate device the
+  plate the new cabinet names (a cabinet that names none keeps the plate there is, and the card says so) and every
+  surface the layout holds the new part's size, what stands on a surface keeping its place from the surface's datum.
 - **Tags.** The enclosure device and its plate take the numbering scheme's tags, not frozen ones: the enclosure letter
   `UC` with the lowest counter no `UC` tag holds, its tag printing no page since no page draws it ([03](03-domain-model.md)
   §8.2), so `-UC1`; the plate its child `U1` (`-UC1-U1`). An older project keeps its frozen tags.

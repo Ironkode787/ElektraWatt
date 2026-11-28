@@ -192,6 +192,7 @@ command-page-set_grid = Verbindingsraster van een pagina wijzigen
 command-layout-place_assembly = Samenstelling plaatsen
 command-layout-auto_fill = Rail automatisch vullen
 command-layout-enclosure-create_from_part = Kast uit artikel maken
+command-layout-enclosure-set_part = Kast een ander kastartikel geven
 command-layout-space-edit = Layoutruimte hernoemen
 command-layout-enclosure-edit = Kast verplaatsen
 command-layout-surface-edit = Vlak bewerken

@@ -472,6 +472,7 @@ reason-rail-no-palettes = The palettes are not built yet; these buttons open the
 reason-macro-insert = A macro is inserted
 reason-macro-not-installed = Only the project holds this macro; install its library to insert it
 reason-library-update = Library items are updated
+reason-enclosure-set-part = A cabinet takes another part
 reason-no-updates = No library item chosen has an update
 reason-library-read-only = The library is read-only; save into a user or company library
 reason-no-writable-library = No writable library is installed; add a user or company library first

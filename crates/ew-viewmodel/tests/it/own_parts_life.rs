@@ -921,3 +921,78 @@ fn a_part_naming_a_part_no_one_holds_is_offered_and_says_so() {
     assert!(part.options.iter().any(|(_, w)| w.starts_with("EX-CAB-8")), "{:?}", part.options);
     s.shutdown();
 }
+
+/// Review round (M3): an enclosure that exists takes his cabinet, from Change its cabinet… of Create enclosure: the
+/// part dialog of -UC1 offers it, its card names the sizes that change before Apply, and Apply gives -UC1 his cabinet
+/// and -UC1-U1 his plate, the plate's page drawing the new size; one Undo puts everything back.
+#[test]
+fn an_enclosure_takes_his_cabinet_with_its_plate_in_one_step() {
+    use ew_viewmodel::dialogs::{DialogAnswer, spec};
+    let tmp = Tmp::new("life-m3");
+    let mut s = sample(&tmp);
+    done(&mut s, "parts.new", json!({"start": "enclosure"}));
+    fill(
+        &mut s,
+        &[
+            ("manufacturer", "Example"),
+            ("part_number", "EX-CAB-8"),
+            ("sections.enclosure.width", "800"),
+            ("sections.enclosure.height", "1000"),
+            ("sections.enclosure.depth", "300"),
+        ],
+    );
+    done(&mut s, "parts.new", json!({"start": "plate", "for_field": "sections.enclosure.plate"}));
+    fill(
+        &mut s,
+        &[
+            ("manufacturer", "Example"),
+            ("part_number", "EX-CAB-8-MP"),
+            ("sections.mounting_plate.width", "760"),
+            ("sections.mounting_plate.height", "960"),
+        ],
+    );
+    done(&mut s, "parts.save", json!({}));
+    done(&mut s, "parts.save", json!({}));
+    done(&mut s, "parts.back", json!({}));
+    done(&mut s, "page.new", json!({"folio": "926", "type": "panel_layout", "title": "Layout"}));
+    done(&mut s, "page.goto", json!({"folio": "926"}));
+    done(&mut s, "layout.enclosure_new", json!({}));
+    assert_eq!(s.submit_form(), Outcome::Done, "the enclosure drawn on 926");
+    let width = |s: &ShellModel| {
+        let t = s.panel_tables().expect("the plate on 926");
+        let xs: Vec<i64> = t.usable.iter().map(|p| p.0).collect();
+        xs.iter().max().unwrap() - xs.iter().min().unwrap()
+    };
+    let before = width(&s);
+    done(&mut s, "layout.enclosure_new", json!({}));
+    let d = spec(s.dialog().expect("the dialog"), &s);
+    let change = d
+        .secondary
+        .iter()
+        .find(|b| b.label == "Change its cabinet…")
+        .expect("Change its cabinet…");
+    let DialogAnswer::Action(action, params) = change.answer.clone() else {
+        panic!("an action")
+    };
+    done(&mut s, action, params);
+    done(&mut s, "part.search", json!({"text": "EX-CAB-8"}));
+    done(&mut s, "part.pick", json!({"part": "EX-CAB-8"}));
+    assert!(s.properties().card().is_some(), "the card first");
+    let text = s.describe();
+    assert!(text.contains("field \"Mounting plate\""), "{text}");
+    let n = s.recorded_commands().len();
+    assert_eq!(s.dispatch("preview.apply", &json!({})), Outcome::Done, "{}", said(&s));
+    assert_eq!(s.recorded_commands().len(), n + 1, "one step");
+    let parts_of = |s: &mut ShellModel, tag: &str| {
+        done(s, "select.set", json!({"refs": [format!("tag:{tag}")]}));
+        s.describe()
+    };
+    assert!(parts_of(&mut s, "-UC1").contains("EX-CAB-8"), "-UC1 is his cabinet");
+    assert!(parts_of(&mut s, "-UC1-U1").contains("EX-CAB-8-MP"), "-UC1-U1 is his plate");
+    done(&mut s, "page.goto", json!({"folio": "926"}));
+    assert_eq!(width(&s), 760_000_000, "the plate's page draws the new size");
+    done(&mut s, "edit.undo", json!({}));
+    assert_eq!(width(&s), before, "one Undo puts it back");
+    assert!(!parts_of(&mut s, "-UC1").contains("EX-CAB-8"), "-UC1 as it was");
+    s.shutdown();
+}

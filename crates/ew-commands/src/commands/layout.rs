@@ -2212,6 +2212,167 @@ fn enclosure_device(
     }
 }
 
+/// `layout.enclosure.set_part` (`SetEnclosurePart`, doc 12 §3.1): gives an enclosure another cabinet part in one step.
+///
+/// `copies` (the `lib/` JSON form, as `device.place` takes them: the cabinet part with its closure, its plate among
+/// it) are embedded first. Then the enclosure's device takes the part (its part uses become one piece of it); where the
+/// new part names a plate, the plate device (the child of the enclosure's device that the plate surface names, else a
+/// new child `U1` as `layout.enclosure.create_from_part` makes it) takes that plate; a part that names no plate leaves
+/// the plate there is. Every surface the layout holds of the enclosure takes the new part's size: the plate surface its
+/// frame and usable area as the plate centred in the cabinet ([`plate_frame`]), a door, a side, the top and the bottom
+/// their frames as `layout.surface.add` makes them, a door matched by its place among the doors (one the new part
+/// does not list keeps its frame). What stands on a surface keeps its place measured from the surface's datum.
+///
+/// Rejected: an enclosure that does not exist (`/enclosure`); a part copy the project does not hold after the embed
+/// (`/part`); a part without an enclosure section (with what it lacks); a plate part the project does not hold.
+/// **Bulk**: previewed, the card names the sizes that change and what no longer lies inside its surface. Outcome: the
+/// enclosure.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SetEnclosurePart {
+    /// The enclosure.
+    #[schemars(with = "UuidS")]
+    pub enclosure: Id<Enclosure>,
+    /// The cabinet part copy.
+    #[schemars(with = "UuidS")]
+    pub part: Id<Part>,
+    /// The library documents to embed first (`lib/` JSON form); empty when the project holds them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub copies: Vec<Value>,
+}
+
+impl Command for SetEnclosurePart {
+    const NAME: &'static str = "layout.enclosure.set_part";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME).bulk()
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let name = Self::NAME;
+        embed_closure(name, tx, &self.copies)?;
+        let Some(enclosure) = tx.get::<Enclosure>(self.enclosure) else {
+            return Err(CmdError::invalid_params(
+                name,
+                "/enclosure",
+                text!("refusal-params-enclosure-gone"),
+            ));
+        };
+        require_part(tx, name, "/part", self.part)?;
+        let Some(copy) = part_copy(tx, self.part) else {
+            return Err(CmdError::invalid_params(
+                name,
+                "/part",
+                text!("refusal-layout-part-copy-missing", self.part.to_string()),
+            ));
+        };
+        let Some(section) = copy.item.sections.enclosure.clone() else {
+            let lack = PartLack::of(self.part, &copy.item, PartFeature::Cabinet);
+            return tx.reject_lacking(
+                text!(
+                    "refusal-layout-no-enclosure-section",
+                    copy.item.part_number.as_str()
+                ),
+                lack,
+            );
+        };
+        let plate = plate_copy_id(&section);
+        if plate.is_some_and(|p| !tx.exists::<LibCopy<Part>>(p)) {
+            return tx.reject(text!("refusal-layout-plate-part-missing"));
+        }
+        let before = enclosure_section_of(tx, &enclosure).unwrap_or_default();
+        let device = enclosure.device;
+        let part = self.part;
+        tx.update::<Device>(device, |d| d.parts = vec![one_of(part)])?;
+        let surfaces: Vec<MountingSurface> = (tx.iter::<MountingSurface>().into_iter())
+            .filter(|s| s.enclosure == self.enclosure)
+            .map(|s| (*s).clone())
+            .collect();
+        // The plate's device: the one its surface names, else a new child, as the enclosure made from a part has.
+        let plate_device = match plate {
+            None => None,
+            Some(p) => {
+                let named = surfaces
+                    .iter()
+                    .find(|s| s.kind == SurfaceKind::Plate)
+                    .and_then(|s| s.device);
+                Some(match named {
+                    Some(d) => {
+                        tx.update::<Device>(d, |x| x.parts = vec![one_of(p)])?;
+                        d
+                    }
+                    None => {
+                        let structure = tx
+                            .get::<Device>(device)
+                            .map(|d| d.structure.clone())
+                            .unwrap_or_default();
+                        let child: Id<Device> = tx.mint();
+                        let plate_tag = TagSpec {
+                            letter: ident(name, "U")?,
+                            counter: Some(1),
+                            scheme: TagScheme::Child,
+                            frozen: None,
+                            extra: Extra::new(),
+                        };
+                        tx.insert(enclosure_device(child, plate_tag, Some(device), &structure, p))?;
+                        child
+                    }
+                })
+            }
+        };
+        let plate_size = plate.and_then(|p| part_copy(tx, p)).map(|c| {
+            match &c.item.sections.mounting_plate {
+                Some(s) if s.width.is_some() && s.height.is_some() => (s.width, s.height),
+                _ => c.item.mech.as_ref().map_or((None, None), |m| (m.width, m.height)),
+            }
+        });
+        let doors_before = ew_derive::layout::door_count(&before);
+        let doors_after = ew_derive::layout::door_count(&section);
+        for s in surfaces {
+            let mut next = s.clone();
+            match s.kind {
+                SurfaceKind::Plate => {
+                    // A part that names no plate keeps the plate there is, at its size.
+                    if let Some(size) = plate_size {
+                        let (frame, usable) = plate_frame((section.width, section.height), size);
+                        next.frame = frame;
+                        next.usable = usable;
+                        next.device = plate_device.or(s.device);
+                    }
+                }
+                SurfaceKind::Door => {
+                    let at = (0..doors_before).find(|i| ew_derive::layout::door_left(&before, *i) == s.frame.t[0]);
+                    if let Some(i) = at.filter(|i| *i < doors_after) {
+                        let size = ew_derive::layout::face_size(&section, &s.kind, Some(i));
+                        if let Some((frame, usable)) =
+                            ew_derive::layout::surface_frame(&section, &s.kind, Some(i), size)
+                        {
+                            next.frame = frame;
+                            next.usable = usable;
+                            next.hinge = Some(ew_derive::layout::door_hinge(&section, i));
+                        }
+                    }
+                }
+                SurfaceKind::Left | SurfaceKind::Right | SurfaceKind::Top | SurfaceKind::Bottom => {
+                    let size = ew_derive::layout::face_size(&section, &s.kind, None);
+                    if let Some((frame, usable)) = ew_derive::layout::surface_frame(&section, &s.kind, None, size) {
+                        next.frame = frame;
+                        next.usable = usable;
+                    }
+                }
+                _ => {}
+            }
+            if s.kind != SurfaceKind::Plate {
+                next.edge_margin = section.edge_margin;
+            }
+            if next != s {
+                tx.update::<MountingSurface>(s.id, |x| *x = next)?;
+            }
+        }
+        Ok(Outcome::primary((Kind::Enclosure, self.enclosure.cast())))
+    }
+}
+
 /// `layout.space.edit` (`EditLayoutSpace`): renames a layout space; `name: null` clears its name. Nothing else
 /// changes. Rejected: a space that does not exist (`/space`); `name` absent (`/name`). Interactive. Outcome: the space.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]

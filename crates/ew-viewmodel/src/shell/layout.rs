@@ -19,7 +19,7 @@ use ew_dl::EntityRef;
 use serde_json::{Map, Value, json};
 
 use super::navigation::bump;
-use super::{Outcome, ShellModel, failed, string_param};
+use super::{Outcome, ShellModel, failed, flag, string_param};
 use crate::strings;
 use crate::strings::Key;
 use crate::tools::layout::{Step, Stop, mode_word, nudge_stop, quarter_quat};
@@ -1316,6 +1316,24 @@ impl ShellModel {
                 .filter(|s| !s.is_empty())
         };
         let new_code = given("new_location");
+        // Change its cabinet… of the dialog on a location that has its enclosure: the part dialog of that enclosure's
+        // device, whose choice of a cabinet changes the enclosure with its plate and its surfaces.
+        if flag(p, "change_part") {
+            let tag = given("location").and_then(|l| {
+                (self.project.as_ref()?.session.location_enclosures().into_iter())
+                    .find(|(id, ..)| id.to_string() == l)
+                    .map(|(_, tag, ..)| tag)
+            });
+            let Some(tag) = tag else {
+                return failed(key!("error-bad-param"), &["location"]);
+            };
+            self.dialog = None;
+            let out = self.dispatch("select.set", &json!({ "refs": [format!("tag:{tag}")] }));
+            if out != Outcome::Done {
+                return out;
+            }
+            return self.dispatch("part.choose", &json!({}));
+        }
         let (location, part) = (
             given("location").or_else(|| new_code.as_ref().map(|_| NEW_LOCATION.to_owned())),
             given("part"),
@@ -1633,6 +1651,47 @@ impl ShellModel {
                     .any(|(_, code)| code.trim_start_matches('+') == c)
             })
             .unwrap_or_default()
+    }
+
+    /// The card of giving an enclosure another cabinet (doc 12 §3.1): the sizes of its surfaces that change, what then no
+    /// longer lies inside its surface, a plate kept where the new cabinet names none; Apply makes it one step. The part
+    /// dialog gives way to it.
+    pub(super) fn enclosure_part_card(&mut self, plan: ew_api::output::EnclosurePartPlan) -> Outcome {
+        self.dialog = None;
+        let mut lines: Vec<String> = plan.outside.iter().map(strings::render).collect();
+        if plan.plate_kept {
+            lines.push(strings::format(key!("enclosure-part-plate-kept"), &[&plan.number]));
+        }
+        let card = crate::properties::PartCard {
+            title: strings::format(key!("enclosure-part-card-title"), &[&plan.tag, &plan.number]),
+            fields: (plan.sizes.iter())
+                .map(|(w, old, new)| (strings::render(w), old.clone(), new.clone()))
+                .collect(),
+            devices: vec![plan.tag.clone()],
+            removed: Vec::new(),
+            added: Vec::new(),
+            changed: Vec::new(),
+            lost: Vec::new(),
+            boxes: lines,
+            kept: Vec::new(),
+            fork: false,
+        };
+        self.preview_host_card_as(
+            &plan.command.name,
+            plan.command.params,
+            key!("reason-enclosure-set-part"),
+            crate::properties::CardOrigin::Part(Box::new(card)),
+        )
+    }
+
+    /// Whether location `location` (its node's ID) has its enclosure: Create enclosure then offers Change its cabinet….
+    pub fn location_has_enclosure(&self, location: &str) -> bool {
+        (self.project.as_ref()).is_some_and(|p| {
+            p.session
+                .location_enclosures()
+                .iter()
+                .any(|(id, ..)| id.to_string() == location)
+        })
     }
 
     /// The part of the enclosure that location `location` (its node's ID) has, by its copy and its number; `None` for a

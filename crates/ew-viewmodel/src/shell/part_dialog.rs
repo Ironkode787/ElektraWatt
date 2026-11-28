@@ -614,6 +614,17 @@ impl ShellModel {
         let Some(project) = &self.project else {
             return Outcome::Done;
         };
+        // A cabinet chosen for an enclosure's device changes the enclosure with its plate and its surfaces, one step,
+        // its card first (doc 12 §3.1).
+        if let PartTarget::Devices { devices, .. } = &c.target
+            && let [device] = devices.as_slice()
+            && let Some(plan) = project.session.enclosure_part_plan(*device, &offer.pick)
+        {
+            return match plan {
+                Ok(plan) => self.enclosure_part_card(plan),
+                Err(e) => api_refusal(e),
+            };
+        }
         let cmd = match project.session.part_pick_command(&c.target, &offer.pick) {
             Ok(cmd) => cmd,
             Err(e) => return api_refusal(e),
