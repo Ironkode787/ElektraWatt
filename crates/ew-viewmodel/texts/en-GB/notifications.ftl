@@ -537,7 +537,7 @@ toast-lists-frame = Every list of the project, the table of contents among them,
 toast-drawing-imported = Imported { $p0 } as page { $p1 }.
 toast-underlay-placed = Placed { $p0 } under page { $p1 }.
 toast-parts-set-saved = { $p0 } saved to My parts: { $p1 } new, { $p2 } changed.
-toast-parts-set-saved-map-not = { $p0 } saved to My parts: { $p1 } new, { $p2 } changed. Its map of the columns was not kept, so the next table of this source is mapped anew: { $p3 }
+toast-parts-set-saved-map-not = { $p0 } saved to My parts: { $p1 } new, { $p2 } changed. Its map of the columns was not kept ({ $p3 }), so the next table of this source is mapped anew.
 toast-eplan-report-imported = Imported { $p0 } as a new project with { $p1 } devices.
 # The project changed while a report was read, and Cancel kept it.
 toast-report-read-dropped = The report was not imported: the project changed while it was read and stays open; import the report again to make its project.
