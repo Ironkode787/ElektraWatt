@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-28T06:38:48Z\n"
+"POT-Creation-Date: 2026-11-28T07:08:04Z\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3826,22 +3826,24 @@ msgid ""
 "project's Properties, or in Parts with **Workshop stock** beside the scopes: "
 "the list shows the stock's parts in their order, under a heading per kind "
 "that says the rule (\"Ferrules · the first that fits\"). Drag a row to "
-"another place among its kind to change the order."
+"another place among its kind to change the order; click a row to open its "
+"part."
 msgstr ""
 
-#: src/how-to/choose-parts.md:53
+#: src/how-to/choose-parts.md:54
 msgid ""
 "Open a part of the stock: a line under its heading says where it stands "
 "(\"number 1 of the 13 of its kind\"), with **Up**, **Down** and **Take "
 "out**. A wire, ferrule, marker or gland not in the stock, your own or a "
-"starter part, says so there with **Add to the stock**. Each change is one "
-"step, which **Undo** takes back. **Add from my parts…** shows My parts to "
-"open one of yours; **Add the generic stock** (also Project ▸ Add the generic "
-"stock) adds the starter's ferrules, markers and glands the stock lacks, "
-"after its own parts."
+"starter part, says so there with **Add to the stock**, which puts it first "
+"of its kind: you add a part because you prefer it. Each change is one step, "
+"which **Undo** takes back. **Add from my parts…** shows My parts to open one "
+"of yours; **Add the generic stock** (also Project ▸ Add the generic stock) "
+"adds the starter's ferrules, markers and glands the stock lacks, after its "
+"own parts."
 msgstr ""
 
-#: src/how-to/choose-parts.md:59
+#: src/how-to/choose-parts.md:60
 msgid ""
 "**Use this stock for new projects** keeps the stock, in its order, for every "
 "project you make next; until you use it a new project starts with the "
@@ -3898,37 +3900,42 @@ msgstr ""
 #: src/how-to/panel-layout.md:27
 msgid ""
 "A location that has its enclosure already (made from another page) is not "
-"made twice: with that location chosen, the dialog's button reads **Draw -UC1 "
-"of +CAB1 on this page** and puts its mounting plate on the page. On a page "
-"that is not a panel layout page, the button reads **Create and draw on a new "
-"panel layout page** (or **Draw … on a new panel layout page**): it makes the "
-"panel layout page after the page shown and draws the enclosure there. "
-"**Create only** beside it makes the enclosure without drawing it."
+"made twice: with that location chosen, the dialog says which part the "
+"enclosure has and offers no other, and its button reads **Draw -UC1 of +CAB1 "
+"on this page** and puts its mounting plate on the page as it is. To give it "
+"another cabinet, such as one of your own, choose **Change its cabinet…** "
+"there (or **Choose…** on the **Part** row of -UC1 in Properties): the card "
+"says which surfaces change size and what would no longer fit, and **Apply** "
+"changes the cabinet, its mounting plate and its surfaces in one step. On a "
+"page that is not a panel layout page, the button reads **Create and draw on "
+"a new panel layout page** (or **Draw … on a new panel layout page**): it "
+"makes the panel layout page after the page shown and draws the enclosure "
+"there. **Create only** beside it makes the enclosure without drawing it."
 msgstr ""
 
-#: src/how-to/panel-layout.md:33
+#: src/how-to/panel-layout.md:37
 msgid "Rails and ducts"
 msgstr ""
 
-#: src/how-to/panel-layout.md:35
+#: src/how-to/panel-layout.md:39
 msgid ""
 "Choose **Draw ▸ Layout ▸ Rail** and click the rail's start and end on the "
 "plate (a rail runs across or up and down); the tool's card offers the rail "
 "part and the grid step. Draw as many rails as the cabinet needs."
 msgstr ""
 
-#: src/how-to/panel-layout.md:37
+#: src/how-to/panel-layout.md:41
 msgid ""
 "Choose **Draw ▸ Layout ▸ Duct** and click a duct's first point and each next "
 "point; a double click or `Enter` finishes it (`Esc` cancels it). The card "
 "asks for a duct's size when its part gives none."
 msgstr ""
 
-#: src/how-to/panel-layout.md:40
+#: src/how-to/panel-layout.md:44
 msgid "Place the devices"
 msgstr ""
 
-#: src/how-to/panel-layout.md:42
+#: src/how-to/panel-layout.md:46
 msgid ""
 "Show **View ▸ Panels ▸ Navigators ▸ Unplaced devices**. It lists the devices "
 "of the page's location that have no place yet. A device without a location "
@@ -3937,14 +3944,14 @@ msgid ""
 "\"(none)\"), right-click and choose **Location…**."
 msgstr ""
 
-#: src/how-to/panel-layout.md:46
+#: src/how-to/panel-layout.md:50
 msgid ""
 "Drag a device from the list onto a rail, or select its row, press `Enter` "
 "and click the place. On a rail it snaps to its neighbour, the rail's ends or "
 "the plate grid; a device mounted by screws goes on the plate."
 msgstr ""
 
-#: src/how-to/panel-layout.md:48
+#: src/how-to/panel-layout.md:52
 msgid ""
 "To fill a rail at once, select the rail and choose **Draw ▸ Layout ▸ "
 "Auto-fill rail…**: it lists the cabinet's unplaced devices and the devices "
@@ -3958,11 +3965,11 @@ msgid ""
 "the dialog says why."
 msgstr ""
 
-#: src/how-to/panel-layout.md:56
+#: src/how-to/panel-layout.md:60
 msgid "Labels and the legend"
 msgstr ""
 
-#: src/how-to/panel-layout.md:58
+#: src/how-to/panel-layout.md:62
 msgid ""
 "The page's right-click menu (**Labels: Tags**, **Labels: Item numbers**, "
 "**Labels: Both**, **Labels: Tags or numbers**) and, with nothing selected, "
@@ -3975,7 +3982,7 @@ msgid ""
 "cabinet's own layout the tags leave out the cabinet's location."
 msgstr ""
 
-#: src/how-to/panel-layout.md:64
+#: src/how-to/panel-layout.md:68
 msgid ""
 "A layout without a legend gets one through **Add legend** in the page's "
 "right-click menu (also **Page ▸ Order ▸ Add legend**): in the free space "
@@ -3990,14 +3997,14 @@ msgid ""
 "its page."
 msgstr ""
 
-#: src/how-to/panel-layout.md:71
+#: src/how-to/panel-layout.md:75
 msgid ""
 "**Follow reference** (`F`) over a device, its tag or its balloon, or with "
 "the device selected, goes to its row on the legend page; a click on a row's "
 "tag goes back to the device on the layout, in an exported PDF too."
 msgstr ""
 
-#: src/how-to/panel-layout.md:73
+#: src/how-to/panel-layout.md:77
 msgid ""
 "A label or balloon can be dragged on its own: one beside its device at once, "
 "one on its device once the device is selected (the label then shows a dashed "
@@ -4006,7 +4013,7 @@ msgid ""
 "positions** in the page's right-click menu puts every label of the page back."
 msgstr ""
 
-#: src/how-to/panel-layout.md:78
+#: src/how-to/panel-layout.md:82
 msgid ""
 "The tools are described one by one in the [tool "
 "reference](../reference/window/tools.md): Place device, Rail and Duct. The "
@@ -5566,22 +5573,29 @@ msgstr ""
 #: src/how-to/own-parts.md:24
 msgid ""
 "Type what the data sheet gives: a terminal's clamps and width, a cable's "
-"cores and outer diameter, a cabinet's size, plate and doors. **Ready for** "
-"on the right says, per feature, what the part still lacks and what follows "
-"from it (for the cabinet layout, a part without its size stands on the "
-"layout as a 20 × 20 mm square marked unknown size); a group of the sheet "
-"that lacks something has a dot in the list of groups. Leave what you do not "
-"know: the part saves without it, and Ready for keeps saying it."
-msgstr ""
-
-#: src/how-to/own-parts.md:29
-msgid ""
-"**Save**. From the part dialog the button reads **Save and use for -102Q1**: "
-"the part goes to the devices you were choosing for, and you are back on the "
-"page."
+"cores and outer diameter, a cabinet's size, plate and doors. A part it needs "
+"that you have not made yet, such as a cabinet's mounting plate or the end "
+"plate a terminal comes with, is made in passing: **New plate…** under the "
+"cabinet's fields, **New part…** in a **Comes with** row; **Save** on that "
+"part brings you back with it named. In a long list such as **What it is**, "
+"type to narrow it. **Ready for** on the right says, per feature, what the "
+"part still lacks and what follows from it (for the cabinet layout, a part "
+"without its size stands on the layout as a 20 × 20 mm square marked unknown "
+"size); a group of the sheet that lacks something has a dot in the list of "
+"groups. Leave what you do not know: the part saves without it, and Ready for "
+"keeps saying it."
 msgstr ""
 
 #: src/how-to/own-parts.md:32
+msgid ""
+"**Save**. From the part dialog the button reads **Save and use for -102Q1**: "
+"the part goes to the devices you were choosing for, and you are back on the "
+"page. A part it names that is only in this project, such as an end plate "
+"that came with a colleague's project, goes into My parts with it, and the "
+"message names it."
+msgstr ""
+
+#: src/how-to/own-parts.md:36
 msgid ""
 "A field that does not read is refused under it, in words. Save is refused "
 "only when the part has no maker or no number, or when My parts or the "
@@ -5589,7 +5603,7 @@ msgid ""
 "list instead."
 msgstr ""
 
-#: src/how-to/own-parts.md:35
+#: src/how-to/own-parts.md:39
 msgid ""
 "**A part like it…**, the card under the others, or **Like this** in the bar "
 "with a part open, starts a new part with everything the other part has but "
@@ -5598,17 +5612,17 @@ msgid ""
 "the cross-section."
 msgstr ""
 
-#: src/how-to/own-parts.md:39
+#: src/how-to/own-parts.md:43
 msgid "A card such as a digital input card"
 msgstr ""
 
-#: src/how-to/own-parts.md:41
+#: src/how-to/own-parts.md:45
 msgid ""
 "Choose **PLC card or station**. Under **PLC**, the role is **Module**; "
 "choose **Channel kind ▸ DI** and type **Channels** `8`."
 msgstr ""
 
-#: src/how-to/own-parts.md:43
+#: src/how-to/own-parts.md:47
 msgid ""
 "The **Pin pattern** gives the pin of channel n: `{n+1}` gives the pins 1 to "
 "8, `X2:{n+1}` gives X2:1 to X2:8. The line under it shows the first and the "
@@ -5617,14 +5631,14 @@ msgid ""
 "the card occupies."
 msgstr ""
 
-#: src/how-to/own-parts.md:46
+#: src/how-to/own-parts.md:50
 msgid ""
 "Type the supply pins (**Supply L+ pin**, **Supply M pin**) when the card has "
 "them, and the **Allowed slots** (`1-8, 10`) when the data sheet restricts "
 "them. **Save**."
 msgstr ""
 
-#: src/how-to/own-parts.md:48
+#: src/how-to/own-parts.md:52
 msgid ""
 "Place the card beside the CPU from the device browser: it stands as a box "
 "with its pins, joins the project's CPU, and its channels are addressed and "
@@ -5632,23 +5646,23 @@ msgid ""
 "as a module."
 msgstr ""
 
-#: src/how-to/own-parts.md:52
+#: src/how-to/own-parts.md:56
 msgid ""
 "A part has channels of one kind: a card with 16 inputs and 16 outputs is two "
 "parts, one for each."
 msgstr ""
 
-#: src/how-to/own-parts.md:54
+#: src/how-to/own-parts.md:58
 msgid "A head station such as an IM 152"
 msgstr ""
 
-#: src/how-to/own-parts.md:56
+#: src/how-to/own-parts.md:60
 msgid ""
 "Choose **PLC card or station**, then **PLC role ▸ Station**; type the supply "
 "pins and **Most modules** (`32`)."
 msgstr ""
 
-#: src/how-to/own-parts.md:57
+#: src/how-to/own-parts.md:61
 msgid ""
 "Under **Network ports**, choose **Add interface**: type the interface `DP`, "
 "choose **Bus ▸ PROFIBUS DP** and **Role ▸ Slave**. Its PROFINET sister has "
@@ -5656,7 +5670,7 @@ msgid ""
 "**Save**."
 msgstr ""
 
-#: src/how-to/own-parts.md:60
+#: src/how-to/own-parts.md:64
 msgid ""
 "Place it from the device browser on a bus-topology page: it stands there as "
 "its bus symbol with its DP socket, and its supply pins wait for a schematic "
@@ -5667,38 +5681,38 @@ msgid ""
 "only answers on the bus is a head station."
 msgstr ""
 
-#: src/how-to/own-parts.md:66
+#: src/how-to/own-parts.md:70
 msgid ""
 "**New part…** at the foot of a station's catalogue starts the part the rack "
 "asks for: a CPU, a remote station, a valve terminal, a compact device or a "
 "module."
 msgstr ""
 
-#: src/how-to/own-parts.md:69
+#: src/how-to/own-parts.md:73
 msgid "A switch such as a SCALANCE, or a device on PROFINET"
 msgstr ""
 
-#: src/how-to/own-parts.md:71
+#: src/how-to/own-parts.md:75
 msgid ""
 "Choose **Device drawn as a box**. Under **Network ports**, **Add "
 "interface**: `X1`, **PROFINET**, and the number of **Ports** (sockets) of "
 "the data sheet."
 msgstr ""
 
-#: src/how-to/own-parts.md:73
+#: src/how-to/own-parts.md:77
 msgid ""
 "An **unmanaged** switch has the role **Passive**: no address, it passes the "
 "net through."
 msgstr ""
 
-#: src/how-to/own-parts.md:74
+#: src/how-to/own-parts.md:78
 msgid ""
 "A **managed** switch and a drive, an HMI or a gateway have the role "
 "**Device**: one PROFINET name and IP address for the whole interface, "
 "however many sockets it has."
 msgstr ""
 
-#: src/how-to/own-parts.md:76
+#: src/how-to/own-parts.md:80
 msgid ""
 "**Save**, then place it from the device browser on a bus-topology page with "
 "one click: it stands as its bus symbol, a socket per port, P1, P2 …, "
@@ -5711,7 +5725,7 @@ msgid ""
 "prints it, the name above the IP address, and \"TBD\" while it is open."
 msgstr ""
 
-#: src/how-to/own-parts.md:84
+#: src/how-to/own-parts.md:88
 msgid ""
 "To draw it your own way, choose **Make my own from it…** under its picture "
 "**On a bus page**: the symbol opens as a drawing of yours. Drag a socket to "
@@ -5721,25 +5735,25 @@ msgid ""
 "change, the picture names a socket your symbol does not draw."
 msgstr ""
 
-#: src/how-to/own-parts.md:89
+#: src/how-to/own-parts.md:93
 msgid ""
 "The starter parts hold such parts to begin with: EW-GEN-ESW-5 (unmanaged "
 "switch, 5 ports), EW-GEN-ESW-8 (managed switch, 8 ports) and EW-GEN-PND-1 (a "
 "PROFINET device, 2 ports)."
 msgstr ""
 
-#: src/how-to/own-parts.md:92
+#: src/how-to/own-parts.md:96
 msgid "Change a part"
 msgstr ""
 
-#: src/how-to/own-parts.md:94
+#: src/how-to/own-parts.md:98
 msgid ""
 "Open the part in Parts: from the list (type a part of its number, maker or "
 "description), or select a device and choose **Project ▸ Parts**, which opens "
 "on the device's part."
 msgstr ""
 
-#: src/how-to/own-parts.md:96
+#: src/how-to/own-parts.md:100
 msgid ""
 "A part of your own, in My parts or only in this project, opens ready to "
 "change. A starter part or a part of another library is not yours to change: "
@@ -5747,17 +5761,19 @@ msgid ""
 "with its data, which you save under a part number of your own."
 msgstr ""
 
-#: src/how-to/own-parts.md:99
+#: src/how-to/own-parts.md:103
 msgid ""
 "Change what you need and **Save**. A part of My parts is saved there as its "
 "next version, and the card beside the sheet lists what changes in words "
 "(\"Interface X1: 8 ports → 6 ports\", \"Channels: 8 → 16\", the parts list "
-"row's changed column) and the devices that use it; **Apply** brings the "
-"project's copy to it. A part only in this project changes in place, with the "
-"same card. **Discard** drops what you typed."
+"row's changed column) and the devices that use it, and the parts only in "
+"this project that it names and that go into My parts with it; **Apply** "
+"writes My parts and brings the project's copy to it, **Cancel** writes "
+"nothing. A part only in this project changes in place, with the same card. "
+"**Discard** drops what you typed."
 msgstr ""
 
-#: src/how-to/own-parts.md:103
+#: src/how-to/own-parts.md:108
 msgid ""
 "A device already drawn follows the correction: its box shows the pins and "
 "sockets the part still has, and its bus port keeps its bus, role and "
@@ -5769,25 +5785,31 @@ msgid ""
 "box drawn anew and its page before **Apply**."
 msgstr ""
 
-#: src/how-to/own-parts.md:109
+#: src/how-to/own-parts.md:114
 msgid ""
 "A part only in this project has **Keep in my parts** in the bar: it is "
-"written into My parts, and the project's devices take that copy. **Remove** "
-"takes a part of your own out of My parts (it asks first); a project that "
-"uses it keeps its copy. **Back** returns to where you came from."
+"written into My parts with the parts only in this project that it names (its "
+"mounting plate, an end plate it comes with), and the project's devices take "
+"those copies; the message names the parts kept with it. A part is then one "
+"row of the list, **Mine**. After **Undo** of a keep, My parts keeps the "
+"part: its row reads \"Only in this project · also in My parts\", and **Keep "
+"in my parts** brings the project onto it again. A part that names a part "
+"nobody holds says so over **Ready for**, with the way. **Remove** takes a "
+"part of your own out of My parts (it asks first); a project that uses it "
+"keeps its copy. **Back** returns to where you came from."
 msgstr ""
 
-#: src/how-to/own-parts.md:113
+#: src/how-to/own-parts.md:121
 msgid "Bring parts in from a file"
 msgstr ""
 
-#: src/how-to/own-parts.md:115
+#: src/how-to/own-parts.md:123
 msgid ""
 "**Import** in the bar of Parts reads a file of parts; **File ▸ Import…** "
 "goes on to Parts for one too."
 msgstr ""
 
-#: src/how-to/own-parts.md:117
+#: src/how-to/own-parts.md:125
 msgid ""
 "**A table** (CSV or Excel), such as a maker's list or a family of your own "
 "parts: Parts shows **Which column is what**, each column of the file with "
@@ -5807,7 +5829,7 @@ msgid ""
 "**Saved as**, and the next table of that source is read the same way."
 msgstr ""
 
-#: src/how-to/own-parts.md:128
+#: src/how-to/own-parts.md:136
 msgid ""
 "**An EPLAN parts file** (an EDZ, or a parts XML): before the first EDZ of a "
 "session a notice says that the EPLAN Data Portal's terms restrict its data "
@@ -5816,20 +5838,20 @@ msgid ""
 "the changed fields before anything changes."
 msgstr ""
 
-#: src/how-to/own-parts.md:131
+#: src/how-to/own-parts.md:139
 msgid ""
 "**An outline drawing** (DXF) gives the open part its front outline, as "
 "**Import outline…** does."
 msgstr ""
 
-#: src/how-to/own-parts.md:132
+#: src/how-to/own-parts.md:140
 msgid ""
 "**A symbol file**, on the **Symbols** shelf or on the drawing: a "
 "QElectroTech element, an EPLAN symbol file or a DXF drawing opens as a "
 "drawing of your own."
 msgstr ""
 
-#: src/how-to/own-parts.md:135
+#: src/how-to/own-parts.md:143
 msgid ""
 "What a table or a parts file brings stands in the list as **This import**: "
 "each row **new**, **changed**, **the same** as the part in My parts, or "
@@ -5841,31 +5863,31 @@ msgid ""
 "**Discard** drops the set."
 msgstr ""
 
-#: src/how-to/own-parts.md:141
+#: src/how-to/own-parts.md:149
 msgid "Change many parts at once"
 msgstr ""
 
-#: src/how-to/own-parts.md:143
+#: src/how-to/own-parts.md:151
 msgid ""
 "In the list of Parts, hold **Ctrl** and click each part to take it in or out "
 "of the selection, or hold **Shift** and click to take the rows from the open "
 "part to that one."
 msgstr ""
 
-#: src/how-to/own-parts.md:145
+#: src/how-to/own-parts.md:153
 msgid ""
 "The sheet shows the fields the parts share: a value they all have, or "
 "**mixed** under a field they differ in. Where they have the same pins, the "
 "**Connections** table's cells are there too (\"Pin 1 · Clamp\")."
 msgstr ""
 
-#: src/how-to/own-parts.md:147
+#: src/how-to/own-parts.md:155
 msgid ""
 "Type a value: it goes to all of them. A field you leave **mixed** stays as "
 "each part has it."
 msgstr ""
 
-#: src/how-to/own-parts.md:148
+#: src/how-to/own-parts.md:156
 msgid ""
 "**Save** saves each part as its next version in My parts. Where the open "
 "project uses them, the card beside the sheet names how many parts and which "
@@ -5874,14 +5896,16 @@ msgid ""
 "keeps what you saved)."
 msgstr ""
 
-#: src/how-to/own-parts.md:152
+#: src/how-to/own-parts.md:160
 msgid ""
 "A starter part among them is not yours to change: a line names it, and "
-"**Make my own from** it starts a part of your own from it. A part only in "
-"this project is kept in My parts first (**Keep in my parts**)."
+"**Make my own from** it starts a part of your own from it. Where parts only "
+"in this project are among them, **Save** reads **Keep in my parts and "
+"save**: they are kept in My parts first, and the value you typed goes to "
+"them."
 msgstr ""
 
-#: src/how-to/own-parts.md:155
+#: src/how-to/own-parts.md:164
 msgid ""
 "**Export** in the bar of Parts writes the selected parts, or the open one, "
 "as a table (CSV, or Excel for a name ending in `.xlsx`), one column per "
@@ -5892,18 +5916,18 @@ msgid ""
 "**the same**."
 msgstr ""
 
-#: src/how-to/own-parts.md:160
+#: src/how-to/own-parts.md:169
 msgid "A device that is a box with pins"
 msgstr ""
 
-#: src/how-to/own-parts.md:162
+#: src/how-to/own-parts.md:171
 msgid ""
 "A circuit protector, a power supply, a drive: a device the program has no "
 "symbol for is drawn as a box with its pins on the edges. The part says which "
 "pins it has and where they stand."
 msgstr ""
 
-#: src/how-to/own-parts.md:165
+#: src/how-to/own-parts.md:174
 msgid ""
 "Under **On the schematic**, **Pins** lists the part's pins, each with its "
 "name and the potential it carries. **Add pin** adds one, the cross at a "
@@ -5912,7 +5936,7 @@ msgid ""
 "symbol takes that symbol's connections: the group lists them and says so."
 msgstr ""
 
-#: src/how-to/own-parts.md:169
+#: src/how-to/own-parts.md:178
 msgid ""
 "Choose **Arrange…**. The box opens as the drawing of Parts: drag each pin "
 "along its edge or onto another edge, drag the box's edges to size it, choose "
@@ -5920,7 +5944,7 @@ msgid ""
 "part](../reference/symbol-editor.md#the-box-of-a-part))."
 msgstr ""
 
-#: src/how-to/own-parts.md:172
+#: src/how-to/own-parts.md:181
 msgid ""
 "**Draw ▸ Place ▸ Device from part…** then places the part's box with one "
 "click, laid out as you drew it. On the page the box's edges and pins can "
@@ -5933,18 +5957,18 @@ msgid ""
 "left and right sides are horizontal."
 msgstr ""
 
-#: src/how-to/own-parts.md:178
+#: src/how-to/own-parts.md:187
 msgid ""
 "To change the box of a device already drawn, choose **Arrange its box…** in "
 "its menu. Save's card names each box of the part it draws anew, and its "
 "Apply redraws them."
 msgstr ""
 
-#: src/how-to/own-parts.md:181
+#: src/how-to/own-parts.md:190
 msgid "A part drawn with your own symbol"
 msgstr ""
 
-#: src/how-to/own-parts.md:183
+#: src/how-to/own-parts.md:192
 msgid ""
 "A piece's **Symbol** cell, under **On the schematic ▸ Drawn as**, offers the "
 "symbols of what the piece is; **Draw a new symbol…** draws one for it, its "
@@ -5955,7 +5979,7 @@ msgid ""
 "symbol](../reference/symbol-editor.md))."
 msgstr ""
 
-#: src/how-to/own-parts.md:188
+#: src/how-to/own-parts.md:197
 msgid ""
 "The PLC exchange with PLC software exports the stations of a configuration "
 "project; a switch or a device without a PLC section is not in the exported "
