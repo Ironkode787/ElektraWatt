@@ -15,6 +15,41 @@ When a release branch is cut, `docs/release-notes/<X.Y.Z>.md` is written from th
 from this file on both branches. From then on a fix to a candidate writes its line in `<X.Y.Z>.md`, and every other
 change here.
 
+- behaviour-change: a part made in Parts goes to My parts with the parts only in this project that it names (its
+  mounting plate, what it comes with, a piece's symbol, its bus symbol), in one write, its references made My parts';
+  Save and Keep in my parts name them by maker and number on the card or in the toast, and the project's uses move to
+  the kept copies in the same undo step. Nothing is written to My parts before the Save, or before the card's Apply
+  where the project holds the part; the card's Cancel writes nothing
+- behaviour-change: a part kept in My parts is one entry in Parts' list and in every list that offers parts (the part
+  dialog, the device browser, Create enclosure, the rail and duct tools, New cable…); after a Keep taken back by Undo
+  the row reads "Only in this project · also in My parts", and Keep in my parts brings the project onto My parts' copy
+- behaviour-change: several parts selected, some only in this project: Save reads **Keep in my parts and save** and
+  keeps them in My parts with the values typed, instead of refusing
+- api-add: `part.keep` gains `also`, the other copies kept in the same step, each moving its uses to its kept copy;
+  `library.update` gains `keep`, the copies whose uses move to their kept copies with the update; both absent unless set
+- api-add: `layout.enclosure.set_part {enclosure, part, copies?}` gives an enclosure another cabinet in one previewed
+  step: the enclosure's device and its plate's device take the new parts, and every stored surface takes the new size,
+  what stands on it keeping its place; its card names the sizes that change and what no longer lies inside. Create
+  enclosure's **Change its cabinet…** and Properties ▸ Part ▸ Choose… on an enclosure's device open it
+- behaviour-change: Create enclosure on a location that has its enclosure names that enclosure's part, as text, and
+  offers no other; a script that names another part is refused in words that point to Change its cabinet…; a form's
+  list of one value that is the field's own reads as text
+- behaviour-change: a part's embed closure takes a cabinet's mounting plate, and Update from library brings what the
+  new versions name that the project lacks (an end plate a part now comes with); a part of My parts that names a part
+  no one holds (kept by an earlier build) is still offered, and its row and sheet say what it names, with the way
+- behaviour-change: a window or a script run on a settings folder of its own (`EW_CONFIG_DIR`, `--config-dir`) with
+  no libraries configured keeps My parts in that folder, as its symbols already were; a part made there goes to My parts
+- behaviour-change: Add to the stock puts a part first of its kind; a click on a row of the stock's list opens its part;
+  the chip Workshop stock says in its hint where the stock is changed
+- behaviour-change: a part's sheet: a field's warning keeps one line, its sentence in its tooltip and under Ready for,
+  so the fields below no longer move; Ready for holds while a text does not read or a table row is not filled in; a
+  part never drawn on a schematic page is not asked for what only the schematic reads; a terminal's picture draws each
+  level; each Comes with row has **New part…**; What it is narrows as it is typed (the hidden action
+  `parts.piece_filter {piece, text?}`)
+- text-change: a part's Save card names each changed field by its word on the sheet with its values as the sheet shows
+  them ("Mounts on: TS 35 × 7.5", Comes with by the part's number), never an identifier; a Save's refusal names a part
+  by its maker and number (one the project holds at another version, with the way), and Keep in my parts says the
+  folder and the reason where My parts cannot be made there
 - format-variant: `SymbolCp` gains `interface` and `port_label`, `TextSlot` gains `interface` and `port_label`, each
   absent unless set; the starter library gains the bus symbol `ew.gen.bus` (ADR-0011 amendment 8, entry 2)
 - format-variant: `Part` gains `bus_symbol`, a part's bus symbol of one's own, absent unless set (ADR-0011
