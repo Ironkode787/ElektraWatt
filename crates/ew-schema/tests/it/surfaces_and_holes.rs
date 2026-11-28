@@ -171,7 +171,6 @@ fn a_part_reads_its_front_holes_doors_and_gland() {
     };
     let p = &copy.item;
     assert_eq!(p.kind, PartKind::Gland);
-    assert_eq!(p.kind.own_section(), Some("gland"));
     assert!(!p.kind.is_consumable(), "a gland is no part a wire consumes");
     let mech = p.mech.as_ref().unwrap();
     assert!(mech.front_is_round());

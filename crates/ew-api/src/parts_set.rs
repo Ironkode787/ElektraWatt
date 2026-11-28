@@ -231,11 +231,6 @@ impl PartsSet {
         }
         c
     }
-
-    /// Whether the set is an EPLAN parts file's.
-    pub fn is_eplan(&self) -> bool {
-        matches!(self.source, SetSource::Eplan { .. })
-    }
 }
 
 /// What a set reads of the registry: My parts (its ID, none before it is made), the manufacturer master, the

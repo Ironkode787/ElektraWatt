@@ -307,15 +307,6 @@ impl Session {
         out
     }
 
-    /// The name of the symbol piece `row` is drawn with, in language `lang` (`en`): its own, else the starter's of
-    /// what it is.
-    pub fn piece_symbol_name(&self, row: &PieceRow, lang: &str) -> Option<String> {
-        self.piece_symbols(&row.what, lang)
-            .into_iter()
-            .find(|(a, _)| *a == row.symbol)
-            .map(|(_, n)| n)
-    }
-
     /// A field of the pieces or the levels typed into the sheet: `pieces[i].what` (a starter function's key),
     /// `pieces[i].pins` (names joined by commas), `pieces[i].symbol` (an address of [`Session::piece_symbols`], empty
     /// for the starter's), `levels` (how many), `levels[i].left` and `levels[i].right`. `None` for another field.

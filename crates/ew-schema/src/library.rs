@@ -1660,18 +1660,6 @@ impl PartKind {
     pub fn is_consumable(&self) -> bool {
         matches!(self, PartKind::Wire | PartKind::Ferrule | PartKind::Marker)
     }
-
-    /// The member of [`crate::PartSections`] that is the kind's own (doc 07 §2.5): a wire's `wire`, a ferrule's
-    /// `ferrule`, a marker's `marker`, a gland's `gland`; `None` for every other kind.
-    pub fn own_section(&self) -> Option<&'static str> {
-        match self {
-            PartKind::Wire => Some("wire"),
-            PartKind::Ferrule => Some("ferrule"),
-            PartKind::Marker => Some("marker"),
-            PartKind::Gland => Some("gland"),
-            _ => None,
-        }
-    }
 }
 
 /// Order unit of a part (FR-PRT-026).

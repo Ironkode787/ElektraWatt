@@ -675,16 +675,6 @@ impl Session {
         Ok(draft)
     }
 
-    /// The `library.embed` that makes the project hold library `library`'s part `item` (a part of the person's own
-    /// library that its device box is opened for: Save then makes its next version).
-    ///
-    /// # Errors
-    ///
-    /// As [`Session::embed_command`].
-    pub fn library_part_embed(&self, library: Uuid, item: Uuid) -> Result<AnyCommand, crate::ApiError> {
-        self.embed_command(&[lib_ref(library, item)])
-    }
-
     /// The draft of a library's part `c` that the project does not hold, without the names of its functions; a
     /// manufacturer the project does not hold either is named by its library's record.
     pub(crate) fn unheld_draft(&self, q: &Q, c: LibCopy<Part>) -> PartSheet {
