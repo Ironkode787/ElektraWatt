@@ -538,7 +538,7 @@ fn what_the_lists_lack_of_the_stock_is_said() {
         member(PackageMember::List("wire_list"))
             .lacks
             .iter()
-            .find(|l| l.text.to_string() == said)
+            .find(|l| l.text == said)
             .map(|l| l.part)
     };
     assert_eq!(
