@@ -1101,16 +1101,32 @@ fn the_window_says_where_the_revision_stands_and_offers_its_steps() {
     );
 
     done(&mut s, "revision.approve", json!({ "typed": "V1.0" }));
-    done(&mut s, "revision.approve", json!({ "confirm": true, "date": DATE }));
+    done(
+        &mut s,
+        "revision.approve",
+        json!({ "confirm": true, "date": DATE }),
+    );
     done(&mut s, "revision.release", json!({ "typed": "V1.0" }));
-    done(&mut s, "revision.release", json!({ "confirm": true, "date": DATE }));
-    assert!(revision_field(&s).starts_with("V1.0 released "), "{}", revision_field(&s));
+    done(
+        &mut s,
+        "revision.release",
+        json!({ "confirm": true, "date": DATE }),
+    );
+    assert!(
+        revision_field(&s).starts_with("V1.0 released "),
+        "{}",
+        revision_field(&s)
+    );
 
     let opened = "This change opens revision V2.0: V1.0 stays as released.";
     let said = |s: &ShellModel| s.notifications().entries().filter(|n| n.text == opened).count();
     assert_eq!(said(&s), 0);
     done(&mut s, "navigator.show", json!({"kind": "connections"}));
-    done(&mut s, "navigator.table", json!({"kind": "connections", "on": true}));
+    done(
+        &mut s,
+        "navigator.table",
+        json!({"kind": "connections", "on": true}),
+    );
     for length in ["650", "700"] {
         done(
             &mut s,
@@ -1120,7 +1136,10 @@ fn the_window_says_where_the_revision_stands_and_offers_its_steps() {
     }
     assert_eq!(said(&s), 1, "said once, at the change that opened V2.0");
     let field = revision_field(&s);
-    assert!(field.starts_with("V2.0 open · ") && field.ends_with(" since V1.0"), "{field}");
+    assert!(
+        field.starts_with("V2.0 open · ") && field.ends_with(" since V1.0"),
+        "{field}"
+    );
 
     // Release with unsaved changes names the step and offers it.
     done(&mut s, "revision.release", json!({}));
@@ -1134,6 +1153,9 @@ fn the_window_says_where_the_revision_stands_and_offers_its_steps() {
     done(&mut s, "revision.release", json!({ "save": true }));
     assert!(!s.is_dirty(), "saved");
     assert_eq!(form(&s).0, "revision.release", "the release's dialog again");
-    assert_ne!(spec(&s.dialog().cloned().unwrap(), &s).primary.label, "Save and go on");
+    assert_ne!(
+        spec(&s.dialog().cloned().unwrap(), &s).primary.label,
+        "Save and go on"
+    );
     s.shutdown();
 }

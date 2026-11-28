@@ -14,6 +14,7 @@ use serde_json::json;
 
 use crate::app::Event;
 use crate::components;
+use crate::components::Tip;
 
 /// The share of the window's height the files take before they scroll.
 const ROWS_HEIGHT_SHARE: f32 = 0.4;
@@ -64,7 +65,8 @@ pub(crate) fn body(ui: &mut Ui, d: &LabelsDialog, events: &mut Vec<Event>) {
                     }
                     // Without a release its place says why it cannot be chosen.
                     if let Some(note) = d.since_note() {
-                        ui.add_enabled(false, egui::Button::selectable(false, note));
+                        ui.add_enabled(false, egui::Button::selectable(false, note))
+                            .disabled_tip(note);
                     }
                 },
             );

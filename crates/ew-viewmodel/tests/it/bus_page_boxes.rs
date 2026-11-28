@@ -155,7 +155,13 @@ fn a_device_placed_on_a_bus_page_is_one_symbol_inside_the_page_and_off_another_d
     // A new station placed on a bus page leaves the view on the page; a toast offers its rack.
     assert!(s.station_tab().is_none(), "the page stays in front");
     let toast = s.toast().cloned().expect("the station's toast");
-    assert!(toast.text.ends_with(" is drawn on this bus page; Rack… fills its slots."), "{}", toast.text);
+    assert!(
+        toast
+            .text
+            .ends_with(" is drawn on this bus page; Rack… fills its slots."),
+        "{}",
+        toast.text
+    );
     assert_eq!(s.current_folio(), Some("105"));
     let placed: Vec<TableRep> = symbols(&s)
         .into_iter()
@@ -278,7 +284,10 @@ fn a_bus_line_to_a_station_without_its_address_says_what_is_still_to_be_given() 
     };
     let held = before.iter().find(|r| r.functions.len() == 2).expect("-104A1").id;
     let (Some(from), Some(to)) = (port(placed.id, ":A"), port(held, ":A")) else {
-        panic!("the two PROFIBUS ports: {:?}", t.cps.iter().map(|c| c.label.clone()).collect::<Vec<_>>());
+        panic!(
+            "the two PROFIBUS ports: {:?}",
+            t.cps.iter().map(|c| c.label.clone()).collect::<Vec<_>>()
+        );
     };
     done(&mut s, "tool.wire", json!({}));
     crate::common::click_at(&mut s, from);
@@ -289,8 +298,8 @@ fn a_bus_line_to_a_station_without_its_address_says_what_is_still_to_be_given() 
         .map(|n| (n.text.clone(), n.tone()))
         .collect();
     assert!(
-        said.iter()
-            .any(|(t, tone)| t.starts_with("Still to be given: ") && *tone == ew_viewmodel::notifications::NoteTone::Info),
+        said.iter().any(|(t, tone)| t.starts_with("Still to be given: ")
+            && *tone == ew_viewmodel::notifications::NoteTone::Info),
         "{said:?}"
     );
     assert!(

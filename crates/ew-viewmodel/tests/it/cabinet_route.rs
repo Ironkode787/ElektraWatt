@@ -385,11 +385,15 @@ fn routes_preview_names_the_wire_on_every_row() {
         .collect();
     assert!(!rows.is_empty(), "Route removes the ways of -103F1's wires");
     for r in &rows {
-        assert!(r[0].is_empty() && r[1].is_empty(), "no change word, no kind: {r:?}");
+        assert!(
+            r[0].is_empty() && r[1].is_empty(),
+            "no change word, no kind: {r:?}"
+        );
     }
     assert!(
         rows.iter()
-            .any(|r| r[2].starts_with("101.8: ") && r[2].ends_with(": its way is removed, the wire is unfinished")),
+            .any(|r| r[2].starts_with("101.8: ")
+                && r[2].ends_with(": its way is removed, the wire is unfinished")),
         "{rows:?}"
     );
     shell.shutdown();

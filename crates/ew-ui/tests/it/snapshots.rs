@@ -1535,7 +1535,9 @@ fn the_properties_header_with_many_findings_in_light() {
                 })
                 // Findings pending on the editing page count as one chip of pending findings, as the Messages pane
                 // counts them.
-                .filter(|l| l.contains(" Warnings: ") || l.contains(" Errors: ") || l.contains(" pending finding"))
+                .filter(|l| {
+                    l.contains(" Warnings: ") || l.contains(" Errors: ") || l.contains(" pending finding")
+                })
                 .collect()
         };
         assert!(!chips.is_empty() && chips.len() <= 3, "{chips:?}");

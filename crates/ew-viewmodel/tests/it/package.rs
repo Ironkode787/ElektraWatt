@@ -306,7 +306,11 @@ fn the_dialog_comes_back_after_a_fix_without_the_finding_it_mended() {
             .iter()
             .any(|f| f.key == finding.key && f.fix.is_some()),
         "{:?}",
-        package(&s).findings.iter().map(|f| f.message.clone()).collect::<Vec<_>>()
+        package(&s)
+            .findings
+            .iter()
+            .map(|f| f.message.clone())
+            .collect::<Vec<_>>()
     );
     assert!(package(&s).left_out().contains(&"drilling"));
     s.shutdown();

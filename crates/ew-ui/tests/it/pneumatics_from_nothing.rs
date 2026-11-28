@@ -1148,7 +1148,8 @@ fn chip_findings(d: &mut Driver) -> Vec<String> {
         .into_iter()
         .find(|(l, _)| {
             l.split_once(' ').is_some_and(|(n, rest)| {
-                n.parse::<u32>().is_ok() && (rest.starts_with("Warning") || rest.starts_with("pending finding"))
+                n.parse::<u32>().is_ok()
+                    && (rest.starts_with("Warning") || rest.starts_with("pending finding"))
             })
         })
         .map(|(_, at)| at)

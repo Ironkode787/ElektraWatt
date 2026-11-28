@@ -17,7 +17,10 @@ fn unjudged(s: &ShellModel) -> usize {
     let rest = prompt
         .strip_prefix("The closed door is not judged for ")
         .unwrap_or_else(|| panic!("{prompt}"));
-    rest.split(' ').next().and_then(|n| n.parse().ok()).expect("a count")
+    rest.split(' ')
+        .next()
+        .and_then(|n| n.parse().ok())
+        .expect("a count")
 }
 
 #[test]
@@ -46,7 +49,11 @@ fn the_door_says_whether_it_closes() {
     done(&mut s, "page.goto", json!({"folio": "102"}));
     done(&mut s, "cursor.set", json!({"x_mm": 200.0, "y_mm": 80.0}));
     done(&mut s, "tool.place", json!({}));
-    done(&mut s, "place.pick", json!({"part": "PL-NO-DEPTH", "letter": "H"}));
+    done(
+        &mut s,
+        "place.pick",
+        json!({"part": "PL-NO-DEPTH", "letter": "H"}),
+    );
     done(&mut s, "canvas.activate", json!({"alt": true}));
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "page.goto", json!({"folio": "904"}));
@@ -67,10 +74,18 @@ fn the_door_says_whether_it_closes() {
     done(&mut s, "canvas.release", at(middle, json!({})));
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "select.set", json!({"ids": []}));
-    assert_eq!(unjudged(&s), before + 1, "his lamp is not judged: it has no depth");
+    assert_eq!(
+        unjudged(&s),
+        before + 1,
+        "his lamp is not judged: it has no depth"
+    );
 
     // The field cabinet's door, with nothing behind it: judged whole and clear, the check says it closes.
-    done(&mut s, "page.new", json!({"folio": "980", "type": "panel_layout", "title": "Field"}));
+    done(
+        &mut s,
+        "page.new",
+        json!({"folio": "980", "type": "panel_layout", "title": "Field"}),
+    );
     done(&mut s, "page.goto", json!({"folio": "980"}));
     done(&mut s, "select.set", json!({"ids": []}));
     done(&mut s, "props.set", json!({"row": "page/scale", "value": "1:10"}));
@@ -82,9 +97,6 @@ fn the_door_says_whether_it_closes() {
     done(&mut s, "layout.surface_page", json!({"surface": "door"}));
     done(&mut s, "messages.check", json!({}));
     let toast = s.toast().map(|t| t.text.clone()).unwrap_or_default();
-    assert!(
-        toast.ends_with("closes over what stands behind it."),
-        "{toast}"
-    );
+    assert!(toast.ends_with("closes over what stands behind it."), "{toast}");
     s.shutdown();
 }
