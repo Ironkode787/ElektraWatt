@@ -1007,6 +1007,7 @@ The persisted record type of every entity kind (plain serde structs), the kind r
 | `src/device.rs` |  | Devices with their typed aspects and functions (ADR-0006, doc 03 §7, §10–§12): `device` (rank 31) and `function` (32). |
 | `src/error.rs` |  | The error type of the value encodings and the record envelope. |
 | `src/exchange.rs` |  | The PLC exchange snapshot (doc 10 §4.2): `exchange_record` (rank 70) and `foreign_id` (rank 71), in `exchange/<config-project-uuid>.jsonl`, the reserved kinds typed within format 0.1 (ADR-0011 amendments 4 and 6). |
+| `src/fork.rs` |  | The library item a project's own copy was made from: `meta.source.fork_of` (doc 07 §2.1), read and written in one place. |
 | `src/hole.rs` |  | A hole in a surface of a cabinet (doc 12 §2.5): a part's drilling pattern (`MechData.holes`) and a hole by hand (`SurfaceFeature.hole`) name it the same way, and [`Hole::parse`] is the one reader of its text form for the part editor's cells, the Add hole form and the command line. |
 | `src/json.rs` |  | Shared serde helpers: the `extra` map, the number rule for unknown content, default predicates and the [`Open`] wrapper that gives a foreign enum its `Unknown` catch-all. |
 | `src/kind.rs` |  | The kind registry (doc 05 §2.2): every `$k` name with its fixed rank, its ownership (file) rule and whether v0 implements it; the per-kind schema versions and the personal-data field table. |
