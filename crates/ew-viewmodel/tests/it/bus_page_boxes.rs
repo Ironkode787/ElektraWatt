@@ -222,6 +222,11 @@ fn draw_as_one_symbol_replaces_a_device_s_boxes_and_its_line_follows_the_socket(
         .find(|r| r.functions.len() == 2)
         .expect("-104A1's symbol");
     assert_eq!(symbol.pos, first, "where its first box stood");
+    assert_eq!(
+        s.selection().items,
+        [ew_dl::EntityRef(symbol.id)],
+        "the symbol is selected, not the gone boxes"
+    );
     let dp = cp_at(&s, "-104A1:A");
     let line = tables(&s)
         .connections

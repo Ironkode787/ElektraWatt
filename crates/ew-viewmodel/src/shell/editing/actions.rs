@@ -127,6 +127,16 @@ impl ShellModel {
             }
             done.push(tag);
         }
+        // The new symbols are the selection: the replaced boxes are gone, and Properties shows what was drawn.
+        self.sync_views();
+        let drawn: Vec<EntityRef> = self.canvas().map_or_else(Vec::new, |c| {
+            let reps = &c.page().tables.reps;
+            let ours = |r: &&ew_api::output::TableRep| {
+                r.symbol == copy && devices.iter().any(|(d, _)| r.device == Some(*d))
+            };
+            reps.iter().filter(ours).map(|r| EntityRef(r.id)).collect()
+        });
+        self.tools.selection.apply(&SelectionChange::Replace(drawn));
         let text = match done.as_slice() {
             [one] => strings::format(key!("toast-one-symbol"), &[one]),
             many => strings::format(key!("toast-one-symbol-many"), &[&many.len().to_string()]),

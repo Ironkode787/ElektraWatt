@@ -18,9 +18,11 @@ const PAGE: u128 = 0x10;
 const PORT_DEF: u128 = 0x20;
 const HEAD: u128 = 0x30;
 const SWITCH: u128 = 0x31;
+const COUPLER: u128 = 0x32;
 const UPRIGHT: u128 = 0x40;
 const TURNED: u128 = 0x41;
 const SWITCHED: u128 = 0x42;
+const COUPLED: u128 = 0x43;
 /// 2.6458 mm: one step of the QElectroTech grid, in nm (rounded down).
 const STEP: i64 = 2_645_833;
 
@@ -81,7 +83,8 @@ fn profinet(interface: &str, name: &str, ip: &str) -> Value {
 }
 
 /// A bus page with a head station of part HS-2 (X1 with two ports, X2 with one) drawn upright and once more turned a
-/// quarter, and a managed switch of part MSW-8 (X1 with eight ports); `address` is the head station's X1 device name.
+/// quarter, a managed switch of part MSW-8 (X1 with eight ports) and a coupler of part CPL-PN-DP on two buses (X1 on
+/// PROFINET with two ports, DP on PROFIBUS); `address` is the head station's X1 device name.
 fn parts(address: &str) -> (Project, Vec<Record>, Vec<LibDocument>) {
     let (symbol, copy) = bus_copy();
     let mut records = vec![json!({
@@ -108,6 +111,9 @@ fn parts(address: &str) -> (Project, Vec<Record>, Vec<LibDocument>) {
     records.push(rep(UPRIGHT, copy, &[0x51, 0x52], (10, 10), "r0"));
     records.push(rep(TURNED, copy, &[0x61, 0x62], (60, 10), "r90"));
     records.push(rep(SWITCHED, copy, &[0x71], (10, 40), "r0"));
+    let dp = json!({"interface": "DP", "bus": "profibus_dp", "role": "slave", "address": {"value": {"profibus": 5}}});
+    records.extend(device(0x80, "A", 3, COUPLER, &[(0x81, profinet("X1", "cpl1", "192.168.0.20")), (0x82, dp)]));
+    records.push(rep(COUPLED, copy, &[0x81, 0x82], (60, 45), "r0"));
     let mut lib = vec![
         symbol,
         json!({"$k": "fndef", "id": uid(PORT_DEF), "library_id": uid(0x9000), "item_id": uid(0x9200),
@@ -125,6 +131,12 @@ fn parts(address: &str) -> (Project, Vec<Record>, Vec<LibDocument>) {
         SWITCH,
         "MSW-8",
         json!([{"interface": "X1", "bus": "profinet", "role": "device", "ports": 8}]),
+    ));
+    lib.push(part(
+        COUPLER,
+        "CPL-PN-DP",
+        json!([{"interface": "X1", "bus": "profinet", "role": "device", "ports": 2},
+               {"interface": "DP", "bus": "profibus_dp", "role": "slave"}]),
     ));
     let project: Project =
         serde_json::from_value(json!({"id": uid(1), "derivation_profile": "2027.1"})).expect("project");
@@ -216,7 +228,7 @@ fn overlap(a: Box2, b: Box2) -> bool {
 fn a_device_on_a_bus_page_is_its_parts_symbol_with_every_text_inside_its_body() {
     let model = model("rio1");
     let q = Q::new(&model);
-    for n in [UPRIGHT, TURNED, SWITCHED] {
+    for n in [UPRIGHT, TURNED, SWITCHED, COUPLED] {
         let body = body(&q, n);
         let texts = texts(&q, n);
         assert!(
