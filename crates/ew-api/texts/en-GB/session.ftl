@@ -671,6 +671,12 @@ via-gland-hole-on-page = on page { $p0 }
 via-gland-hole-placed = placed
 via-gland-hole-not-placed = not placed
 
+## What made a hole of a surface, its Made row (doc 12-3d §10.6), and the row's link
+hole-made-by-hand = By hand
+hole-made-for-cable = For the gland of { $p0 }
+hole-made-for-gone-cable = For a cable's gland; the cable is gone
+hole-cable-select = Select the cable
+
 ## How a value beside its derived row is had (doc 16 §2.2): the provenance chip's words
 via-joined = { $p0 } · { $p1 }
 via-connectivity = connectivity

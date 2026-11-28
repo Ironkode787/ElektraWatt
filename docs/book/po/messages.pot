@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-28T02:31:18Z\n"
+"POT-Creation-Date: 2026-11-28T03:48:51Z\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4104,8 +4104,9 @@ msgstr ""
 
 #: src/how-to/cabinet-surfaces.md:49
 msgid ""
-"A hole of your own is dragged with Select, its rows are Kind, Size, X, Y and "
-"For in Properties, and `Delete` removes it."
+"A hole of your own is dragged with Select, or moved by typing its X and Y in "
+"Properties, whose rows are Kind, Size, X, Y and For, and **Made**, which "
+"says \"By hand\"; `Delete` removes it."
 msgstr ""
 
 #: src/how-to/cabinet-surfaces.md:51
@@ -4149,10 +4150,11 @@ msgid ""
 "part with the chip \"proposed for 12.5 mm\", and **Gland hole** names its "
 "hole, \"H2\" with \"on page 905\", or says \"not placed\". Type another "
 "gland part of the project into Gland to choose it; an empty Gland takes the "
-"proposal back."
+"proposal back. Select a placed gland itself: its Properties are a hole's, "
+"and **Made** says \"For the gland of -101W1\" with **Select the cable**."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:71
+#: src/how-to/cabinet-surfaces.md:72
 msgid ""
 "Check project names a gland that waits (**Cable gland**, EW-LAY-018, an "
 "error when you release) with **Place on the bottom**. A cable whose gland "
@@ -4162,11 +4164,11 @@ msgid ""
 "choose **Keep it as a hole**."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:76
+#: src/how-to/cabinet-surfaces.md:77
 msgid "The hole table"
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:78
+#: src/how-to/cabinet-surfaces.md:79
 msgid ""
 "Choose **Output ▸ Workshop ▸ Hole tables**. The hole table page lists every "
 "hole and cut-out of each surface, surface by surface, numbered in the order "
@@ -4176,7 +4178,7 @@ msgid ""
 "for. A project without a hole table opens **Report block…** on it."
 msgstr ""
 
-#: src/how-to/cabinet-surfaces.md:83
+#: src/how-to/cabinet-surfaces.md:84
 msgid ""
 "The drawings for drilling, the template to print at full size and the DXF, "
 "are in [Export the labels, the drilling drawings and the "

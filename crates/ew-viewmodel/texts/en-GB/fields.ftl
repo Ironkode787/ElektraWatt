@@ -1355,6 +1355,7 @@ field-surface-feature-derived-size = Size
 field-surface-feature-derived-x = X (mm)
 field-surface-feature-derived-y = Y (mm)
 field-surface-feature-derived-purpose = For
+field-surface-feature-derived-made = Made
 choice-surface-feature-derived-kind-round = Hole
 choice-surface-feature-derived-kind-fixing = Fixing
 choice-surface-feature-derived-kind-cutout = Cut-out

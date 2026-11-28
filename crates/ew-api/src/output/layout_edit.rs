@@ -642,7 +642,7 @@ fn surface_rows(q: &Q, id: Id<MountingSurface>) -> Option<Vec<PropRow>> {
 }
 
 /// A hole by hand's rows (doc 12-3d §10.6): Kind, Size, X and Y from the surface's datum and For, through
-/// `layout.feature.edit`.
+/// `layout.feature.edit`, and Made, read-only: by hand, or for the gland of its cable, with Select the cable.
 fn feature_rows(q: &Q, id: Id<ew_schema::SurfaceFeature>) -> Option<Vec<PropRow>> {
     let f = q.table::<ew_schema::SurfaceFeature>().get(id)?;
     let s = q.table::<MountingSurface>().get(f.surface)?;
@@ -659,12 +659,24 @@ fn feature_rows(q: &Q, id: Id<ew_schema::SurfaceFeature>) -> Option<Vec<PropRow>
         .neutral_or_first()
         .map(str::to_owned)
         .unwrap_or_default();
+    let cable = f.cable.filter(|c| q.devices().get(*c).is_some());
+    let made_words = match cable {
+        Some(c) => text!("hole-made-for-cable", tag(q, c)),
+        None if f.for_cable => text!("hole-made-for-gone-cable"),
+        None => text!("hole-made-by-hand"),
+    };
+    let mut made = phrase_row(k, "made", vec![made_words], Provenance::Authored);
+    made.link = cable.map(|c| super::properties::RowLink {
+        label: text!("hole-cable-select"),
+        actions: vec![("select.set", json!({ "ids": [c.as_uuid().to_string()] }))],
+    });
     Some(vec![
         choice_row(k, "kind", kind.to_owned(), kinds, cmd),
         text_row(k, "size", f.hole.to_string(), Provenance::Authored, cmd),
         text_row(k, "x", mm_with_unit(x, comma(q)), Provenance::Authored, cmd),
         text_row(k, "y", mm_with_unit(y, comma(q)), Provenance::Authored, cmd),
         text_row(k, "purpose", purpose, Provenance::Authored, cmd),
+        made,
     ])
 }
 

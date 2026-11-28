@@ -1345,6 +1345,7 @@ field-surface-feature-derived-size = Grootte
 field-surface-feature-derived-x = X (mm)
 field-surface-feature-derived-y = Y (mm)
 field-surface-feature-derived-purpose = Voor
+field-surface-feature-derived-made = Gemaakt
 choice-surface-feature-derived-kind-round = Gat
 choice-surface-feature-derived-kind-fixing = Bevestiging
 choice-surface-feature-derived-kind-cutout = Uitsparing

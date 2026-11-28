@@ -5313,11 +5313,13 @@ msgstr ""
 
 #: src/how-to/cabinet-surfaces.md:49
 msgid ""
-"A hole of your own is dragged with Select, its rows are Kind, Size, X, Y and "
-"For in Properties, and `Delete` removes it."
+"A hole of your own is dragged with Select, or moved by typing its X and Y in "
+"Properties, whose rows are Kind, Size, X, Y and For, and **Made**, which "
+"says \"By hand\"; `Delete` removes it."
 msgstr ""
-"Een eigen gat sleept u met Selecteren, zijn rijen in Eigenschappen zijn "
-"Soort, Grootte, X, Y en Voor, en `Delete` verwijdert het."
+"Een eigen gat sleept u met Selecteren, of verschuift u door zijn X en Y te "
+"typen in Eigenschappen, waar zijn rijen Soort, Grootte, X, Y en Voor zijn, en "
+"**Gemaakt**, dat \"Met de hand\" zegt; `Delete` verwijdert het."
 
 #: src/how-to/cabinet-surfaces.md:51
 msgid ""
@@ -5382,15 +5384,18 @@ msgid ""
 "part with the chip \"proposed for 12.5 mm\", and **Gland hole** names its "
 "hole, \"H2\" with \"on page 905\", or says \"not placed\". Type another "
 "gland part of the project into Gland to choose it; an empty Gland takes the "
-"proposal back."
+"proposal back. Select a placed gland itself: its Properties are a hole's, "
+"and **Made** says \"For the gland of -101W1\" with **Select the cable**."
 msgstr ""
 "Selecteer de kabel: in Eigenschappen, onder zijn artikel, noemt **Wartel** "
 "het wartelartikel met de chip \"voorgesteld voor 12.5 mm\", en **Wartelgat** "
 "noemt zijn gat, \"H2\" met \"op pagina 905\", of zegt \"niet geplaatst\". "
 "Typ een ander wartelartikel van het project in Wartel om het te kiezen; een "
-"lege Wartel neemt het voorstel terug."
+"lege Wartel neemt het voorstel terug. Selecteer een geplaatste wartel zelf: "
+"zijn Eigenschappen zijn die van een gat, en **Gemaakt** zegt \"Voor de "
+"wartel van -101W1\" met **Selecteer de kabel**."
 
-#: src/how-to/cabinet-surfaces.md:71
+#: src/how-to/cabinet-surfaces.md:72
 msgid ""
 "Check project names a gland that waits (**Cable gland**, EW-LAY-018, an "
 "error when you release) with **Place on the bottom**. A cable whose gland "
@@ -5407,11 +5412,11 @@ msgstr ""
 "te houden, klikt u met de rechtermuisknop op het gat en kiest u **Als gat "
 "houden**."
 
-#: src/how-to/cabinet-surfaces.md:76
+#: src/how-to/cabinet-surfaces.md:77
 msgid "The hole table"
 msgstr "De gatentabel"
 
-#: src/how-to/cabinet-surfaces.md:78
+#: src/how-to/cabinet-surfaces.md:79
 msgid ""
 "Choose **Output ▸ Workshop ▸ Hole tables**. The hole table page lists every "
 "hole and cut-out of each surface, surface by surface, numbered in the order "
@@ -5428,7 +5433,7 @@ msgstr ""
 "(\"Ø 4.2, tap M5\", \"Ø 22.3\") en waarvoor het is. Een project zonder "
 "gatentabel opent **Rapportblok…** op de gatentabel."
 
-#: src/how-to/cabinet-surfaces.md:83
+#: src/how-to/cabinet-surfaces.md:84
 msgid ""
 "The drawings for drilling, the template to print at full size and the DXF, "
 "are in [Export the labels, the drilling drawings and the "

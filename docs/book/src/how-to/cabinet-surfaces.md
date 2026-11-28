@@ -46,8 +46,8 @@ The sample project has its mounting plate on page 902, its door on page 904 and 
    **Y (mm)** from the corner the surface is measured from (the point you clicked) and what it is **For**, such as
    "Earth stud". Choose **Add**. A size that does not read is refused in words: "Give the hole's size: a diameter for a
    hole, M3 to M8 for a fixing, 16, 22 or 30 for a cut-out, M12 to M63 for a gland, width × height for a rectangle."
-9. A hole of your own is dragged with Select, its rows are Kind, Size, X, Y and For in Properties, and `Delete`
-   removes it.
+9. A hole of your own is dragged with Select, or moved by typing its X and Y in Properties, whose rows are Kind,
+   Size, X, Y and For, and **Made**, which says "By hand"; `Delete` removes it.
 10. Choose **Check ▸ Check project**. **Holes too close** (EW-LAY-012) names both holes and how far apart they are,
     such as "… is 3 mm from … on …: keep at least 5 mm between holes", a hole inside a door's edge margin ("… lies
     12 mm from the edge of …, inside its 30 mm margin and the 5 mm web; move it inward"), and a hole off the sheet.
@@ -67,7 +67,8 @@ The sample project has its mounting plate on page 902, its door on page 904 and 
     it.
 13. Select the cable: in Properties, under its part, **Gland** names the gland part with the chip "proposed for
     12.5 mm", and **Gland hole** names its hole, "H2" with "on page 905", or says "not placed". Type another gland part
-    of the project into Gland to choose it; an empty Gland takes the proposal back.
+    of the project into Gland to choose it; an empty Gland takes the proposal back. Select a placed gland itself: its
+    Properties are a hole's, and **Made** says "For the gland of -101W1" with **Select the cable**.
 14. Check project names a gland that waits (**Cable gland**, EW-LAY-018, an error when you release) with **Place on
     the bottom**. A cable whose gland changes keeps the hole you made, and the finding offers **Take** with the new
     size, such as **Take M32**. A gland hole whose cable is gone offers **Remove the hole**; to keep it as a spare

@@ -656,6 +656,12 @@ via-gland-hole-on-page = op pagina { $p0 }
 via-gland-hole-placed = geplaatst
 via-gland-hole-not-placed = niet geplaatst
 
+## Wat een gat van een vlak maakte, zijn rij Gemaakt (doc 12-3d §10.6), en de koppeling van de rij
+hole-made-by-hand = Met de hand
+hole-made-for-cable = Voor de wartel van { $p0 }
+hole-made-for-gone-cable = Voor de wartel van een kabel; de kabel is er niet meer
+hole-cable-select = Selecteer de kabel
+
 ## How a value beside its derived row is had (doc 16 §2.2): the provenance chip's words
 via-joined = { $p0 } · { $p1 }
 via-connectivity = verbindingen

@@ -456,6 +456,8 @@ fn lookup(q: &Q, id: Uuid) -> Option<(Kind, Value)> {
         MountingSurface => ew_schema::MountingSurface,
         Enclosure => ew_schema::Enclosure,
         LayoutSpace => ew_schema::LayoutSpace,
+        // A hole by hand and a cable's gland, which Select picks on a surface.
+        SurfaceFeature => ew_schema::SurfaceFeature,
         // The bus navigator's nets and the medium table's media: named by their names.
         LogicalNet => ew_schema::LogicalNet,
         PhysicalNet => ew_schema::PhysicalNet,

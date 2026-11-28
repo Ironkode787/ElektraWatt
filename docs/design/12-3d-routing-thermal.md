@@ -548,7 +548,9 @@ hand by its purpose ("Earth stud"), a gland by its cable ("-103W1"), else by its
   height and a corner radius for a rectangle), X and Y from the datum (the click's point, on whole millimetres) and For.
   Add is one `layout.feature.add`. A hole by hand drags with Select (1 mm steps, 5 mm with the coarse grid, free with
   Shift; its outline follows the pointer, and the drop is one `layout.feature.edit` of its centre, the rules of a hole
-  running as after typing X and Y), shows Kind, Size, X, Y and For in Properties, and Delete removes it.
+  running as after typing X and Y), shows Kind, Size, X, Y and For in Properties, each typed through
+  `layout.feature.edit`, and Made, read-only: "By hand", or "For the gland of -103W1" with Select the cable for a
+  cable's gland. Delete removes it.
 - **Properties of a surface** (a click on its outline or its free area): Width, Height, Hinge, Edge margin, Measured
   from (Bottom left, Bottom right, Top left, Top right, or "The project's: Bottom left"; the project's is Project
   properties ▸ Workshop ▸ Measured from), the count of its holes with Hole table, and its page.

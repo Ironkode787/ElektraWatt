@@ -1165,6 +1165,71 @@ fn a_hole_by_hand_is_refused_in_words_or_made() {
     assert_eq!(plate_holes(&s).len(), before + 1);
 }
 
+/// A hole by hand and a cable's gland, which Select picks on their surface, each have their sheet: Kind, Size, X and Y
+/// from the datum and For through `layout.feature.edit`, and Made in words, the gland's with the way to its cable.
+#[test]
+fn a_hole_by_hand_and_a_gland_have_their_sheet() {
+    let s = common::sample();
+    let q = s.query();
+    let feature = |by: &dyn Fn(&ew_schema::SurfaceFeature) -> bool| {
+        q.table::<ew_schema::SurfaceFeature>()
+            .iter()
+            .find(|(_, f)| by(f))
+            .map(|(id, _)| id.as_uuid())
+            .expect("the hole")
+    };
+    let stud = feature(&|f| f.purpose.neutral_or_first() == Some("Earth stud"));
+    let cable = q
+        .devices()
+        .iter()
+        .find(|(id, _)| ew_derive::short_tag(&q, *id) == "-101W1")
+        .map(|(id, _)| id)
+        .expect("-101W1");
+    let gland = feature(&|f| f.cable == Some(cable));
+    drop(q);
+    for id in [stud, gland] {
+        let sheet = s.property_sheet(&[id]);
+        assert_eq!(sheet.missing, 0, "the hole resolves");
+        assert!(sheet.header.title.starts_with('H'), "{}", sheet.header.title);
+    }
+    let stud_rows = rows(&s, stud);
+    let edited: Vec<&str> = stud_rows
+        .iter()
+        .filter(|r| r.2.as_deref() == Some("layout.feature.edit"))
+        .map(|r| r.0.as_str())
+        .collect();
+    assert_eq!(
+        edited,
+        [
+            "surface_feature/derived.kind",
+            "surface_feature/derived.size",
+            "surface_feature/derived.x",
+            "surface_feature/derived.y",
+            "surface_feature/derived.purpose"
+        ]
+    );
+    assert_eq!(text_of(&s, stud, "surface_feature/derived.made"), "By hand");
+    assert_eq!(
+        text_of(&s, gland, "surface_feature/derived.made"),
+        "For the gland of -101W1"
+    );
+    let made = s
+        .property_sheet(&[gland])
+        .sections
+        .iter()
+        .flat_map(|x| &x.rows)
+        .find(|r| r.key == "surface_feature/derived.made")
+        .and_then(|r| r.link.clone())
+        .expect("the way to the cable");
+    assert_eq!(
+        made.actions,
+        [("select.set", json!({"ids": [cable.as_uuid().to_string()]}))]
+    );
+    // Typing X runs the command a drag runs.
+    let x = edit(&s, "surface_feature", stud, "x", "480").expect("X compiles");
+    assert_eq!(x.name, "layout.feature.edit");
+}
+
 /// The sample's two glands stand in a row on the bottom, 35 mm apart (their nuts of 27 and 33 mm and the 5 mm web,
 /// doc 12 §3.9); placing one again, or a gland on the door, is refused in words.
 #[test]

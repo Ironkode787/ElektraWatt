@@ -1409,3 +1409,43 @@ fn a_changed_fixing_lists_the_reset_holes_on_its_card_before_apply() {
     );
     shell.shutdown();
 }
+
+/// Every thing a page offers to Select has its sheet: on each page of the sample, one entity of each kind the page
+/// draws (a symbol, a wire, a placement, a rail, a hole by hand, a gland, a legend, …), clicked alone, shows its rows,
+/// never "Object no longer exists".
+#[test]
+fn every_thing_a_page_offers_to_select_has_its_sheet() {
+    let tmp = Tmp::new("sheet-of-every-pick");
+    let mut s = tmp.sample_in(Mode::Headless, false, "101");
+    let folios: Vec<String> = s.page_rows().iter().map(|r| r.folio.clone()).collect();
+    let mut gone = Vec::new();
+    for folio in folios {
+        done(&mut s, "page.goto", json!({ "folio": folio }));
+        let Some(c) = s.canvas() else { continue };
+        let page = c.page();
+        let mut kinds = Vec::new();
+        let picks: Vec<_> = common::entity_points(c)
+            .into_iter()
+            .filter_map(|(e, p)| {
+                let kind = ew_viewmodel::tools::page_entity_kind(page, e);
+                (!kinds.contains(&kind)).then(|| {
+                    kinds.push(kind);
+                    (kind, p)
+                })
+            })
+            .collect();
+        for (kind, p) in picks {
+            done(&mut s, "select.set", json!({"ids": []}));
+            common::click(&mut s, p, json!({}));
+            if s.selection().items.is_empty() {
+                continue;
+            }
+            let sheet = s.properties().sheet().expect("a sheet");
+            if sheet.missing > 0 {
+                gone.push(format!("{folio}: {kind:?}"));
+            }
+        }
+    }
+    assert!(gone.is_empty(), "selected without a sheet: {gone:?}");
+    s.shutdown();
+}
