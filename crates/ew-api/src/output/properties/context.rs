@@ -21,8 +21,11 @@ pub(crate) struct SheetCx<'q> {
     pub(super) source: Option<String>,
     /// The libraries' parts the project does not hold, listed after its copies (the Parts row).
     library: Vec<crate::output::fields::PartCopyText>,
-    /// The copies and the items a list of parts leaves out (`Session::not_offered`).
-    not_offered: crate::parts::NotOffered,
+    /// The session whose libraries the rule of offered parts reads.
+    session: &'q crate::Session,
+    /// The copies and the items a list of parts leaves out (`Session::not_offered`), worked out when a row first
+    /// resolves a part: a sheet that resolves none opens no library.
+    not_offered: std::cell::OnceCell<crate::parts::NotOffered>,
 }
 
 /// The project's source language, as a sheet's texts read it.
@@ -49,23 +52,30 @@ pub(crate) fn node_path(q: &Q, node: Id<StructureNode>) -> Option<String> {
 impl<'q> SheetCx<'q> {
     /// The context of `q` in `session`: a part named by its number is resolved among the parts offered, by the one rule
     /// of every list that offers parts (`Session::not_offered`), so no copy a part was kept from is a second choice.
-    pub(crate) fn new(q: &'q Q, session: &crate::Session) -> SheetCx<'q> {
+    pub(crate) fn new(q: &'q Q, session: &'q crate::Session) -> SheetCx<'q> {
         SheetCx {
             q,
             source: source_language(q),
             library: Vec::new(),
-            not_offered: session.not_offered(),
+            session,
+            not_offered: std::cell::OnceCell::new(),
         }
     }
 
+    /// The rule of offered parts, worked out on first use.
+    fn not_offered(&self) -> &crate::parts::NotOffered {
+        self.not_offered.get_or_init(|| self.session.not_offered())
+    }
+
     /// The context with the libraries' parts that `q` does not hold among the part copies.
-    pub(super) fn with_library_parts(mut self, session: &crate::Session) -> SheetCx<'q> {
+    pub(super) fn with_library_parts(mut self) -> SheetCx<'q> {
+        let session = self.session;
         // A part's description in the sheet's language, else English, else the first.
         let lang = self.q.project().languages.as_ref().map(|l| l.source.clone());
         self.library = session
             .library_parts()
             .into_iter()
-            .filter(|c| !self.q.parts().contains(c.id) && !self.not_offered.item(c.item_id.as_uuid()))
+            .filter(|c| !self.q.parts().contains(c.id) && !self.not_offered().item(c.item_id.as_uuid()))
             .map(|c| crate::output::fields::PartCopyText {
                 id: c.id.as_uuid().hyphenated().to_string(),
                 number: c.item.part_number.as_str().to_owned(),
@@ -198,7 +208,7 @@ impl ParseCx for SheetCx<'_> {
         self.q
             .parts()
             .iter()
-            .filter(|(id, _)| !self.not_offered.copy(id.as_uuid()))
+            .filter(|(id, _)| !self.not_offered().copy(id.as_uuid()))
             .map(|(id, p)| crate::output::fields::PartCopyText {
                 id: id.as_uuid().hyphenated().to_string(),
                 number: p.item.part_number.as_str().to_owned(),
