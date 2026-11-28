@@ -484,8 +484,8 @@ fn the_labels_for_the_changes_hold_a_new_strips_marker() {
     assert_eq!(added.count, terminals.len(), "the new terminals' markers");
 }
 
-/// A row a person did not make by name says why (doc 13 §3.5): 101.16 made 1.5 mm² on its own connection, as its
-/// Size cell would, is a Replace without a reason, and 104.8, its twin ferrule's partner at -104A1:L+, is re-made
+/// A row a person did not make by name says why (doc 13 §3.5): 101.15 made 1.5 mm² on its own connection, as its
+/// Size cell would, is a Replace without a reason, and 101.14, its twin ferrule's partner at -101G1:+#1, is re-made
 /// because of it. 104.8 has no connection of its own: set on the one it shares with 104.4, the size reaches both, and
 /// 104.8's row says so.
 #[test]
@@ -498,9 +498,9 @@ fn a_consequence_says_why_it_is_there() {
         .query()
         .get::<ew_derive::WireRecordSet>(())
         .iter()
-        .find(|r| r.number.as_deref() == Some("101.16"))
+        .find(|r| r.number.as_deref() == Some("101.15"))
         .and_then(|r| r.own().first().copied())
-        .expect("101.16 has a connection of its own");
+        .expect("101.15 has a connection of its own");
     drop(sample);
     let (now, csv) = resized(&dir, thicker);
     drop(now);
@@ -510,15 +510,15 @@ fn a_consequence_says_why_it_is_there() {
             .unwrap_or_else(|| panic!("no row of {no}: {csv}"))
             .to_owned()
     };
-    let by_hand = row(&csv, "101.16");
+    let by_hand = row(&csv, "101.15");
     assert!(
-        by_hand.starts_with("data,Replace,101.16,") && by_hand.ends_with(','),
+        by_hand.starts_with("data,Replace,101.15,") && by_hand.ends_with(','),
         "{by_hand}"
     );
-    let partner = row(&csv, "104.8");
+    let partner = row(&csv, "101.14");
     assert!(
-        partner.starts_with("data,Re-make end,104.8,")
-            && partner.ends_with(",its twin ferrule's partner 101.16 at -104A1:L+ changed size"),
+        partner.starts_with("data,Re-make end,101.14,")
+            && partner.ends_with(",its twin ferrule's partner 101.15 at -101G1:+#1 changed size"),
         "{partner}"
     );
     let (_, csv) = resized(&dir, shared);

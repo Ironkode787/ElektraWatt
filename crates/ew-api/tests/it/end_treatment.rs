@@ -732,5 +732,8 @@ fn a_shop_wire_and_a_site_wire_share_no_twin_ferrule() {
     );
     let field = cells(&s, "104.8", &["from_end", "to_end"]);
     assert!(field.contains(&"ferrule 0.75 GY".to_owned()), "{field:?}");
-    assert!(field.iter().any(|e| e.starts_with("twin 0.75 GY · 104.4")), "{field:?}");
+    assert!(
+        field.iter().any(|e| e.starts_with("twin 0.75 GY · 104.4")),
+        "{field:?}"
+    );
 }

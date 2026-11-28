@@ -51,12 +51,14 @@ fn the_project_decimal_separator_prints_in_the_tables_of_the_generated_pages() {
     assert_eq!(point, none, "no setting prints as `point` does");
     // Only the decimals differ: the same cells, each equal or equal after the separator (a strip's heading in the
     // assembly list holds two measured lengths); a twin ferrule's partner after " · " is a wire number and keeps its
-    // point ("twin 2,5 BU · 101.6").
+    // point ("twin 2,5 BU · 101.6"), as does a wire that joins a clamp on site ("ferrule 0,75 GY · 104.8 joins it on
+    // site").
     assert_eq!(comma.len(), point.len());
     let differing: Vec<(&String, &String)> = point.iter().zip(&comma).filter(|(a, b)| a != b).collect();
     assert!(!differing.is_empty());
     for (a, b) in differing {
-        let (size, partner) = match a.strip_prefix("twin ").and(a.split_once(" · ")) {
+        let named = a.starts_with("twin ") || a.ends_with(" joins it on site");
+        let (size, partner) = match a.split_once(" · ").filter(|_| named) {
             Some((s, p)) => (s, Some(p)),
             None => (a.as_str(), None),
         };

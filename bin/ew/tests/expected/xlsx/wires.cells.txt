@@ -20,7 +20,7 @@ e:<id 17>	101.12	-101F1	2	-101G1	L	1L1/101F1:2	BK	2.5	rule/built-in			101	245	ro
 e:<id 18>	101.13	-101F1	4	-101G1	N	N/101F1:4	BU	2.5	rule/built-in			101	250	routed	ferrule 2.5 BU	ferrule 2.5 BU	EW-GEN-FER-2.5	EW-GEN-FER-2.5	10	10	-101G1:N	-101F1:4
 e:<id 19>	101.14	-101G1	+#1	-101G1	+#2	24V	DBU	0.75	rule	101-H8 chain on -101G1:+#1		101	115	routed	twin 0.75 GY · 101.15	ferrule 0.75 GY	EW-GEN-FER-2X0.75	EW-GEN-FER-0.75	8	8		
 e:<id 20>	101.15	-101G1	+#1	-102F1	1	24V	DBU	0.75	rule	101-H8 chain on -101G1:+#1; IP 24V		101, 102	180	routed	twin 0.75 GY · 101.14	ferrule 0.75 GY	EW-GEN-FER-2X0.75	EW-GEN-FER-0.75	8	8	-102F1:1	-101G1:+#1
-e:<id 21>	101.16	-101G1	+#1	-104A1	L+	24V	DBU	0.75	rule	101-H8 chain on -101G1:+#1; IP 24V		101, 104	495	routed	ferrule 0.75 GY	twin 0.75 GY · 104.8	EW-GEN-FER-0.75	EW-GEN-FER-2X0.75	8	8	-104A1:L+	-101G1:+#1
+e:<id 21>	101.16	-101G1	+#1	-104A1	L+	24V	DBU	0.75	rule	101-H8 chain on -101G1:+#1; IP 24V		101, 104	495	routed	ferrule 0.75 GY	ferrule 0.75 GY · 104.8 joins it on site	EW-GEN-FER-0.75	EW-GEN-FER-0.75	8	8	-104A1:L+	-101G1:+#1
 e:<id 22>	101.17	-101G1	-#1	-101G1	-#2	0V	BU	0.75	rule/built-in	101-H9 chain on -101G1:-#1		101	115	routed	twin 0.75 GY · 101.18	ferrule 0.75 GY	EW-GEN-FER-2X0.75	EW-GEN-FER-0.75	8	8		
 e:<id 23>	101.18	-101G1	-#1	-X1021:5	a	0V	BU	0.75	rule/built-in	101-H9 chain on -101G1:-#1; IP 0V		101, 102	425	routed	twin 0.75 GY · 101.17	ferrule 0.75 GY	EW-GEN-FER-2X0.75	EW-GEN-FER-0.75	8	8	-X1021:5	-101G1:-#1
 e:<id 24>	101.19	-101G1	-#1	-104A1	M	0V	BU	0.75	rule/built-in	101-H9 chain on -101G1:-#1; IP 0V		101, 104	630	routed	ferrule 0.75 GY	twin 0.75 GY · 104.9	EW-GEN-FER-0.75	EW-GEN-FER-2X0.75	8	8	-104A1:M	-101G1:-#1
@@ -52,7 +52,7 @@ e:<id 49>	104.4	+FLD-104B1	13	+CAB-104A1-A2	L+	24V	DBU	0.75	rule	104-E2 chain on
 e:<id 50>	104.5	+FLD-104B1	14	+CAB-104A1-A1	2	24V/104B1:14	DBU	0.75	rule			104	—	site	ferrule 0.75 GY	ferrule 0.75 GY	EW-GEN-FER-0.75	EW-GEN-FER-0.75	8	8	+CAB-104A1- / A1:2	+FLD-104B1: / 14
 e:<id 51>	104.6	-104A1-A2	3	-104E2 (door)	X1	-104A1-A2:3	BK	0.75	rule/built-in			104	1255	routed	ferrule 0.75 GY	ferrule 0.75 GY	EW-GEN-FER-0.75	EW-GEN-FER-0.75	8	8	-104E2:X1	-104A1-A2:3
 e:<id 52>	104.7	-104E2 (door)	X2	-104E1 (door)	X2	0V	BU	0.75	rule/built-in	104-D4 chain on -104E2:X2		104	160	routed	twin 0.75 GY · 104.9	twin 0.75 GY · 104.3	EW-GEN-FER-2X0.75	EW-GEN-FER-2X0.75	8	8	-104E1:X2	-104E2:X2
-e:<id 53>	104.8	+CAB-104A1	L+	+FLD-104B1	13	24V	DBU	0.75	rule	104-E2 chain on -104A1:L+, -104B1:13		104	—	site	twin 0.75 GY · 101.16	twin 0.75 GY · 104.4	EW-GEN-FER-2X0.75	EW-GEN-FER-2X0.75	8	8	+FLD-104B1: / 13	+CAB-104A1: / L+
+e:<id 53>	104.8	+CAB-104A1	L+	+FLD-104B1	13	24V	DBU	0.75	rule	104-E2 chain on -104A1:L+, -104B1:13		104	—	site	ferrule 0.75 GY	twin 0.75 GY · 104.4	EW-GEN-FER-0.75	EW-GEN-FER-2X0.75	8	8	+FLD-104B1: / 13	+CAB-104A1: / L+
 e:<id 54>	104.9	-104A1	M	-104E2 (door)	X2	0V	BU	0.75	rule/built-in	104-D4 chain on -104A1:M, -104E2:X2		104	1135	routed	twin 0.75 GY · 101.19	twin 0.75 GY · 104.7	EW-GEN-FER-2X0.75	EW-GEN-FER-2X0.75	8	8	-104E2:X2	-104A1:M
 	Bridges																					
 e:<id 55>/n:bridge/i:1	BR1	-X1021:1		-X1021:4		24V/102F1:2					EW-GEN-BRG-4				plug-in bridge, terminals 1–4							
