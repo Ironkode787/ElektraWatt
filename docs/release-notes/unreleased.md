@@ -892,3 +892,6 @@ change here.
 - text-change: the package's Contents.txt of a project that carries no date says so ("revision V1.0; the project
   carries no date"), where it said "made on 1980-01-01"; its members keep the fixed date, the same bytes on every
   machine
+- behaviour-change: Save of a parts table in Parts whose map of the columns cannot be kept says that the parts are
+  saved to My parts and the map is not, and shows them in My parts; it said the save failed and kept the set shown as
+  unsaved, though the parts were written

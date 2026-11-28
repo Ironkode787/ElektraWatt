@@ -797,28 +797,34 @@ impl ShellModel {
                 return failed(key!("error-parts-import"), &[&e.to_string()]);
             }
         };
-        // The map is saved with the set it read, not before.
-        if let (Some(map), Some(dir)) = (&map, self.config.config_dir.as_deref())
-            && let Ok(columns) = map.column_map()
-            && let Err(e) = catalog::save_column_map(dir, &map.source, &columns)
-        {
-            return Outcome::Failed {
-                message: e.to_string(),
-            };
-        }
+        // The map is saved with the set it read, not before. The parts are in My parts by now, so a map that cannot
+        // be kept is said beside them, and the list shows them saved all the same.
+        let map_kept = match (&map, self.config.config_dir.as_deref()) {
+            (Some(map), Some(dir)) => match map.column_map() {
+                Ok(columns) => catalog::save_column_map(dir, &map.source, &columns)
+                    .map(|_| ())
+                    .map_err(|e| e.to_string()),
+                Err(_) => Ok(()),
+            },
+            _ => Ok(()),
+        };
         self.libraries_changed();
         if let Some(place) = self.parts.as_deref_mut() {
             place.set = None;
             place.scope = ew_api::parts::PartScope::Mine;
         }
         self.parts_refresh();
-        self.notify(
-            strings::format(
+        let saved = match &map_kept {
+            Ok(()) => strings::format(
                 key!("toast-parts-set-saved"),
                 &[&set.file, &new.to_string(), &changed.to_string()],
             ),
-            false,
-        );
+            Err(why) => strings::format(
+                key!("toast-parts-set-saved-map-not"),
+                &[&set.file, &new.to_string(), &changed.to_string(), why],
+            ),
+        };
+        self.notify(saved, false);
         Outcome::Done
     }
 

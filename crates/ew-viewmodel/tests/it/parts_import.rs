@@ -401,3 +401,43 @@ fn a_set_whose_write_fails_saves_no_map() {
     assert!(shell.import_set().is_some(), "the set stays");
     shell.shutdown();
 }
+
+/// The parts are written, then the map of the columns cannot be kept (its folder is a file): the toast says both, the
+/// set leaves the list for My parts as on any Save, and the parts are found there.
+#[test]
+fn a_map_that_cannot_be_kept_after_the_parts_were_saved_is_said_beside_them() {
+    let tmp = Tmp::new("parts-set-map-fails");
+    let file = table(&tmp);
+    let mut shell = with_my_parts(&tmp, Mode::Headless);
+    common::make_project(&mut shell, &tmp.0.join("proj.ew"), &[]);
+    let config = tmp.0.join("config");
+    std::fs::create_dir_all(&config).unwrap();
+    std::fs::write(config.join(ew_api::catalog::MAPS_DIR), "not a folder").unwrap();
+    done(
+        &mut shell,
+        "parts.import",
+        json!({"path": file.to_string_lossy()}),
+    );
+    done(
+        &mut shell,
+        "parts.map",
+        json!({"column": "Article", "member": "part_number"}),
+    );
+    done(&mut shell, "parts.save", json!({}));
+    assert!(shell.import_set().is_none(), "the set went into My parts");
+    let toast = common::state(&shell)["toast"]["text"]
+        .as_str()
+        .unwrap_or_default()
+        .to_owned();
+    assert!(
+        toast.starts_with(
+            "example-parts.csv saved to My parts: 2 new, 0 changed. Its map of the columns was not kept"
+        ),
+        "{toast}"
+    );
+    assert_eq!(
+        shell.parts_place().map(|p| p.scope),
+        Some(ew_viewmodel::ew_api::parts::PartScope::Mine)
+    );
+    shell.shutdown();
+}
