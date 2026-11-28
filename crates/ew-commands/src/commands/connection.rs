@@ -1187,7 +1187,7 @@ impl Command for CreateBond {
             tx.require::<Connection>(via)?;
             // The wire that realises the bond runs between its two ends, in either direction.
             if let Some(c) = tx.get::<Connection>(via)
-                && !((c.a == a && c.b == b) || (c.a == b && c.b == a))
+                && !crate::normalise::bond_wires::joins(&c, &a, &b)
             {
                 return tx.reject(text!(
                     "refusal-bond-via-ends",

@@ -1560,3 +1560,36 @@ fn set_anchor_policy_parses_from_json() {
     e.execute(&cmd).unwrap();
     assert_eq!(anchor_of(&e, REP_102F2), None);
 }
+
+/// A device placed on a bond's wire cuts it, so its end moves to the device's pin and it no longer joins the bond's
+/// two ends: the bond loses its wire in the placing's step, with the notice that says to choose its conductor again.
+#[test]
+fn a_device_placed_on_a_bond_s_wire_leaves_the_bond_without_a_wire() {
+    let wire: ew_ids::Id<Connection> = id(0x4100);
+    let bond: ew_ids::Id<ew_schema::Bond> = id(0x4180);
+    let mut original = connection(wire, Some(PAGE_102), cp(FN_102G1, 0), cp(FN_T1, 1));
+    original.route = vec![pt(0, -MM10), pt(0, 2 * MM10)];
+    let model = mini_model_with(|r| {
+        r.push(Record::Connection(original.clone()));
+        r.push(Record::Bond(ew_schema::Bond {
+            id: bond,
+            v: 1,
+            a: cp(FN_102G1, 0),
+            b: cp(FN_T1, 1),
+            kind: ew_schema::BondKind::Equipotential,
+            via: Some(wire),
+            source_ref: None,
+            extra: ew_schema::Extra::new(),
+        }));
+    });
+    let mut e = engine(model);
+    let r = e.execute(&place(PAGE_102, pt(0, 0), new_device("F"))).unwrap();
+    let f: ew_ids::Id<Function> = created(&r, Kind::Function)[0];
+    assert_eq!(row(&e, wire).b, cp(f, 0), "the wire's end moved to the device's pin");
+    assert_eq!(row(&e, bond).via, None);
+    assert!(
+        r.outcome.notices.iter().any(|n| n.to_string().ends_with("choose its conductor again")),
+        "{:?}",
+        r.outcome.notices
+    );
+}

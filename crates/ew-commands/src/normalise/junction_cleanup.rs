@@ -23,8 +23,8 @@
 //! - **one**: the junction is removed together with that connection;
 //! - **none**: the junction is removed.
 //!
-//! Potential definitions and bonds at a removed junction are dropped, and bonds realised by a removed
-//! connection lose their `via`, as the delete policies prescribe (doc 03 §4.2). The removals are written
+//! Potential definitions and bonds at a removed junction are dropped (doc 03 §4.2); a bond realised by a removed or
+//! merged connection loses its `via` in `bond_wires`, with its notice. The removals are written
 //! directly rather than through `Model::delete_plan`, because the transaction is in a transient state
 //! here; `TxBuilder::remove_row` takes every removed record out of the macro instances that list it (the unlink of
 //! `macro_instance.members[][1]`). Wire-number transfer to the kept member is normaliser #11 (not in v0).
@@ -33,7 +33,7 @@ use std::collections::BTreeSet;
 
 use ew_ids::Id;
 use ew_model::{AnyRow, EndpointKey};
-use ew_schema::{Bond, CommittedRoute, Connection, Endpoint, Junction, Kind, NumberSpec};
+use ew_schema::{CommittedRoute, Connection, Endpoint, Junction, Kind, NumberSpec};
 use ew_units::Pt2;
 
 use crate::error::CmdError;
@@ -88,11 +88,6 @@ fn remove_connection(
             if tx.exists::<Junction>(*j) {
                 tx.update::<Junction>(*j, |j| j.sequence.retain(|m| *m != id))?;
             }
-        }
-    }
-    for b in tx.iter::<Bond>() {
-        if b.via == Some(id) {
-            tx.update::<Bond>(b.id, |b| b.via = None)?;
         }
     }
     tx.unlink_markers(id, carrier, None);

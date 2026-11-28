@@ -1434,3 +1434,59 @@ fn a_bond_through_a_chains_member_rewires_it_and_the_wires_keep_their_values() {
         Some((None, colour("BU"), [Some("ring_lug".into()), Some("bare".into())]))
     );
 }
+
+/// Bond B between -102F2:4 and -102F2:5 with W, the wire between them, as its wire.
+fn bond_on_w(e: &mut Engine) -> Id<Bond> {
+    let r = e
+        .execute(&CreateBond {
+            a: cp_param(FN_102F2, 4),
+            b: cp_param(FN_102F2, 5),
+            kind: BondKind::Equipotential,
+            via: Some(W),
+        })
+        .expect("the bond");
+    typed(r.outcome.primary.unwrap())
+}
+
+/// Whether a notice of `notices` says that a bond lost its wire.
+fn says_bond_lost_its_wire(notices: &[impl std::fmt::Display]) -> bool {
+    notices.iter().any(|n| {
+        let n = n.to_string();
+        n.contains("no longer has its wire") && n.ends_with("choose its conductor again")
+    })
+}
+
+/// A bond's wire runs between the bond's two ends (`bond.create` refuses another). A wire drawn onto that wire after
+/// the bond was made splits it, so no piece of it runs between the bond's ends: the bond loses its wire in the same
+/// step and the notice says so; one undo gives it back.
+#[test]
+fn a_bond_s_wire_split_after_bond_create_leaves_the_bond_without_a_wire() {
+    let mut e = engine(model_with_wire());
+    let bond = bond_on_w(&mut e);
+    let r = e
+        .execute(&draw(on_w(2), cp_param(FN_T2, 1), Some(PAGE_102)))
+        .expect("a wire drawn onto the bond's wire");
+    assert_eq!(row(&e, bond).via, None, "no piece of W joins the bond's ends");
+    assert!(says_bond_lost_its_wire(&r.outcome.notices), "{:?}", r.outcome.notices);
+    e.undo(&ew_commands::Origin::Gui).expect("undo");
+    assert_eq!(row(&e, bond).via, Some(W));
+}
+
+/// A bond's wire only re-routed still joins the bond's ends: the bond keeps it, without a notice. A bond the
+/// transaction does not touch keeps its wire as it stands, even one off its ends (the fixture's PE bond, whose wire
+/// W27 runs from J5 to T2): a project is not changed until a command changes that wire.
+#[test]
+fn a_re_routed_bond_wire_and_an_untouched_bond_keep_their_wires() {
+    let mut e = engine(model_with_wire());
+    let bond = bond_on_w(&mut e);
+    let r = e
+        .execute(&RouteConnection {
+            connection: W,
+            route: vec![pt(0, 0), pt(0, G), pt(4 * G, G), pt(4 * G, 0)],
+        })
+        .expect("W re-routed");
+    assert_eq!(row(&e, bond).via, Some(W));
+    assert!(!says_bond_lost_its_wire(&r.outcome.notices), "{:?}", r.outcome.notices);
+    let pe: Bond = row(&e, BOND_PE);
+    assert_eq!(pe.via, Some(CON_W27), "the fixture's PE bond, untouched");
+}

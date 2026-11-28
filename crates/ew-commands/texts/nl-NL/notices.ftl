@@ -9,6 +9,7 @@
 notice-words-and = { $p0 } en { $p1 }
 notice-none = geen
 notice-nothing = niets
+notice-bond-wire-lost = de potentiaalverbinding tussen { $p0 } en { $p1 } heeft haar draad niet meer: die draad loopt niet meer tussen haar twee uiteinden; kies haar geleider opnieuw
 notice-box-cp-to-vertex = aansluitpunt { $p0 } is verplaatst naar het eerste hoekpunt van rand { $p1 }, die niet horizontaal of verticaal is
 notice-box-cp-edge-gone = aansluitpunt { $p0 } is verplaatst naar rand { $p1 }: zijn rand { $p2 } bestaat niet meer
 notice-box-cp-off-edge = aansluitpunt { $p0 } is verplaatst naar rand { $p1 }: het lag op geen rand van de omtrek

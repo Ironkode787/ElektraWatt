@@ -27,6 +27,7 @@
 //! | 16 | `drives_link` | N-FL-4: a new fluid line whose fluid net holds a valve's working port and the consumer port of exactly one other device outside the valve's parent chain links the valve to that device (`drives`), unless the valve has a `drives` link |
 //! | 18 (doc 06) | `ip_form` | An interruption point drawn with one of EW's arrow forms whose direction changed takes the twin form of its new direction, unturned; a project without the twin refuses the change |
 //! | 18a | `bound_texts` | A text of a symbol (`of`, doc 06 §3.8) that the transaction did not change takes the displacement and the page of its representation when the transaction moved it |
+//! | 18b | `bond_wires` | A bond whose wire ran between its two ends before the transaction and no longer does after it (a split, an end moved or reconnected, a join) loses its wire, with a notice that says to choose its conductor again; a re-routed wire keeps it |
 //! | 18 | `revision_ensure_open` | `revision.ensure_open`: a content edit in a project with a released revision and no open one adds the open revision with the next label and the ID `v5(latest released, "next")` (doc 15 §5.3) |
 //!
 //! A pass runs every normaliser in order; a normaliser whose input another one creates later in the same
@@ -36,6 +37,7 @@
 //! ([`crate::CmdError::Internal`]). Every normaliser breaks ties by ID and is idempotent on its own
 //! output.
 
+pub(crate) mod bond_wires;
 mod bound_texts;
 mod bus_nets;
 pub(crate) mod bus_ports;
@@ -57,6 +59,7 @@ mod tube_tags;
 mod valve_functions;
 mod wire_numbering;
 
+pub use bond_wires::BondWires;
 pub use bound_texts::BoundTexts;
 pub use bus_nets::BusNets;
 pub use bus_ports::BusPorts;
@@ -120,6 +123,7 @@ pub fn registry() -> Vec<Box<dyn Normaliser>> {
         Box::new(DrivesLink),
         Box::new(IpForm),
         Box::new(BoundTexts),
+        Box::new(BondWires),
         Box::new(RevisionEnsureOpen),
     ]
 }

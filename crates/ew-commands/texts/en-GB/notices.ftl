@@ -9,6 +9,7 @@
 notice-words-and = { $p0 } and { $p1 }
 notice-none = none
 notice-nothing = nothing
+notice-bond-wire-lost = the bond between { $p0 } and { $p1 } no longer has its wire: the wire does not run between its two ends any more; choose its conductor again
 notice-box-cp-to-vertex = connection point { $p0 } moved to the first vertex of edge { $p1 }, which is not horizontal or vertical
 notice-box-cp-edge-gone = connection point { $p0 } moved to edge { $p1 }: its edge { $p2 } no longer exists
 notice-box-cp-off-edge = connection point { $p0 } moved to edge { $p1 }: it lay on no edge of the outline

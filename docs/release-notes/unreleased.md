@@ -687,7 +687,10 @@ change here.
   "varies" over the numbers of the stretches it shares with other wires
 - behaviour-change: `bond.create` refuses a `via` wire that does not run between the bond's two ends, in words that
   name the two points it joins; such a wire dropped out of the wiring and the wires around it formed anew. A bond a
-  saved project holds is read as before
+  saved project holds is read as before. A command that leaves a bond's wire no longer running between the bond's
+  ends (a wire drawn onto it, a device placed on it, its end moved, the wire joined into another) takes the wire off
+  the bond in the same step and says so: "the bond between … no longer has its wire: …; choose its conductor again";
+  a wire only re-routed keeps it
 - behaviour-change: the Address row of a PROFIBUS DP port offers Next free address in its menu, by the rule EW-BUS-001's
   quick fix uses (the part's address range, else 1–125), whatever address the port holds; it was offered only as the
   quick fix of an open port's finding
