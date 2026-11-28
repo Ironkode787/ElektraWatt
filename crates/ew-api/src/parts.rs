@@ -350,8 +350,7 @@ impl Session {
                 .collect::<Option<_>>()
                 .ok_or(PartDraftError::Refused(key!("reason-part-keep")))?
         };
-        let lib = crate::eplan::user_parts_library(self.libraries_mut())
-            .map_err(|_| PartDraftError::Field(message("part", key!("error-part-keep-no-my-parts"), &[])))?;
+        let lib = self.my_parts_to_keep().map_err(PartDraftError::Field)?;
         // A part My parts holds already (kept before, the project's step taken back since) is not refused: the project
         // takes My parts' copy of it, as Keep does for a part it names.
         let mut kept = Kept::default();
@@ -603,6 +602,25 @@ impl Session {
                 Err(PartDraftError::Field(self.save_error_words(&name, &e)))
             }
         }
+    }
+
+    /// My parts, made where it is not there yet, to keep a part in: else why not, each case in its own words: a window
+    /// with no folder of its own for it, or a folder where it cannot be made (a drive that is not there, a folder that
+    /// cannot be written), with the folder and the reason.
+    pub(crate) fn my_parts_to_keep(&mut self) -> Result<Uuid, crate::part_editor::DraftMessage> {
+        let dir = self.libraries().tiers().user.clone();
+        crate::eplan::user_parts_library(self.libraries_mut()).map_err(|e| {
+            if dir.as_os_str().is_empty() {
+                message("part", key!("error-part-keep-no-my-parts"), &[])
+            } else {
+                let at = dir.join(format!("{}.ewlib", crate::eplan::USER_PARTS_KEY));
+                message(
+                    "part",
+                    key!("error-part-keep-not-made"),
+                    &[&at.display().to_string(), &e.to_string()],
+                )
+            }
+        })
     }
 
     /// Why a Save of a part could not read what it brings into the project, in words that name a part by its maker

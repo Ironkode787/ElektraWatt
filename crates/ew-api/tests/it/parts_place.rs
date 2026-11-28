@@ -792,3 +792,30 @@ fn a_save_that_meets_another_version_names_the_part() {
         "{m:?}"
     );
 }
+
+/// Keep in my parts where the user folder exists in the settings but My parts cannot be made there (here a file stands
+/// where its folder would be, as a drive that is not there or a folder that cannot be written does): refused with
+/// that folder and the reason, not as a window that has no folder of its own.
+#[test]
+fn keep_where_my_parts_cannot_be_made_says_where_and_why() {
+    let tmp = ew_testdir::Tmp::new("parts-place-keep-not-made");
+    let blocked = tmp.0.join("blocked");
+    std::fs::write(&blocked, b"not a folder").expect("a file");
+    let mut tiers = common::tiers(&tmp.0);
+    tiers.user = blocked.join("libraries");
+    let mut s = Session::new_project(
+        ew_api::ProjectTemplate::Builtin,
+        ew_api::NewProjectKind::Schematic,
+        SessionOptions {
+            libraries: Some(tiers),
+            ..SessionOptions::default()
+        },
+    )
+    .expect("a new project");
+    terminal(&mut s, "DL-2.5", false);
+    let Err(ew_api::PartDraftError::Field(m)) = s.keep_in_my_parts(&[copy_of(&s, "DL-2.5")]) else {
+        panic!("refused")
+    };
+    assert_eq!(m.key, "error-part-keep-not-made", "{m:?}");
+    assert!(m.args[0].contains("blocked"), "{m:?}");
+}

@@ -152,18 +152,10 @@ impl Session {
             if let Some(h) = held.as_ref().filter(|h| self.only_here(h.library_id.as_uuid())) {
                 let lib = match mine {
                     Some(l) => l,
-                    None => *mine.insert(crate::eplan::user_parts_library(self.libraries_mut()).map_err(
-                        |_| {
-                            (
-                                i,
-                                PartDraftError::Field(message(
-                                    "part",
-                                    key!("error-part-keep-no-my-parts"),
-                                    &[],
-                                )),
-                            )
-                        },
-                    )?),
+                    None => *mine.insert(
+                        self.my_parts_to_keep()
+                            .map_err(|m| (i, PartDraftError::Field(m)))?,
+                    ),
                 };
                 let typed = LibCopy { item, ..h.clone() };
                 self.keep_part(&typed, lib, &mut kept).map_err(|e| (i, e))?;
