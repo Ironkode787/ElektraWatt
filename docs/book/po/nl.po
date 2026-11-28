@@ -5361,15 +5361,6 @@ msgstr ""
 
 #: src/how-to/cabinet-surfaces.md:55
 msgid ""
-#| "Choose **Check ▸ Check project**. **Holes too close** (EW-LAY-012) names "
-#| "both holes and how far apart they are, such as \"… is 3 mm from … on …: keep "
-#| "at least 5 mm between holes\", a hole inside a door's edge margin (\"… lies "
-#| "12 mm from the edge of …, inside its 30 mm margin and the 5 mm web; move it "
-#| "inward\"), and a hole off the sheet. Move one of the holes, or set the web "
-#| "your shop keeps (step 7). **Holes not known** (EW-LAY-017) names a part in a "
-#| "cut-out that has no holes: **Edit part…** opens it in Parts, where you give "
-#| "it its holes under **In the cabinet** ([Make your own parts](own-parts.md))."
-msgid ""
 "Choose **Check ▸ Check project**. **Holes too close** (EW-LAY-012) names "
 "both holes and how far apart they are, such as \"… is 3 mm from … on …: keep "
 "at least 5 mm between holes\", a hole inside a door's edge margin (\"… lies "
@@ -6089,13 +6080,20 @@ msgstr ""
 
 #: src/how-to/workshop-package.md:16
 msgid ""
+#| "Under **Labels**, choose **Every label**, or, after a release, only those "
+#| "changed since it (**Changed since V1.0**)."
+msgid ""
 "Under **Labels**, choose **Every label**, or, after a release, only those "
-"changed since it (**Changed since V1.0**)."
+"changed since it (**Changed since V1.0**). Before the first release that "
+"choice says so: \"Changed since a release: none yet, the project has no "
+"released revision\"."
 msgstr ""
 "Kies onder **Labels** **Alle labels**, of, na een vrijgave, alleen de labels "
-"die sinds die vrijgave zijn gewijzigd (**Gewijzigd sinds V1.0**)."
+"die sinds die vrijgave zijn gewijzigd (**Gewijzigd sinds V1.0**). Voor de "
+"eerste vrijgave zegt die keuze dat: \"Gewijzigd sinds een vrijgave: nog "
+"geen, het project heeft geen vrijgegeven revisie\"."
 
-#: src/how-to/workshop-package.md:18
+#: src/how-to/workshop-package.md:19
 msgid ""
 "The line **Label file** says the form of the files and their columns, such "
 "as \"Excel · Text 1, Text 2, Text 3, Copies, For\". **Change…** sets, for "
@@ -6111,7 +6109,7 @@ msgstr ""
 "kolommen** zet de algemene terug. Uw labelprogramma importeert het "
 "Excel-bestand en koppelt zijn kolommen één keer."
 
-#: src/how-to/workshop-package.md:22
+#: src/how-to/workshop-package.md:23
 msgid ""
 "A line such as \"1 label does not fit its marker part\" counts the labels "
 "too long for their marker; **Show** lists them."
@@ -6119,7 +6117,7 @@ msgstr ""
 "Een regel zoals \"1 label past niet op zijn merkerartikel\" telt de labels "
 "die te lang zijn voor hun merker; **Tonen** noemt ze."
 
-#: src/how-to/workshop-package.md:24
+#: src/how-to/workshop-package.md:25
 msgid ""
 "Untick the files you do not need and choose **Export…**, then the folder. "
 "The toast says, for example, \"Wrote 6 label files to …\". A CSV writes each "
@@ -6133,11 +6131,11 @@ msgstr ""
 "spreadsheet geopend, wordt een waarde die begint met `-`, `+` of `=` als "
 "formule gelezen, dus open daar het Excel-bestand."
 
-#: src/how-to/workshop-package.md:28
+#: src/how-to/workshop-package.md:29
 msgid "The drawings for drilling"
 msgstr "De boortekeningen"
 
-#: src/how-to/workshop-package.md:30
+#: src/how-to/workshop-package.md:31
 msgid ""
 "Choose **Output ▸ Workshop ▸ Drilling…** (greyed with \"No surface of this "
 "project has holes yet.\" while no surface has any). The form \"Export the "
@@ -6151,7 +6149,7 @@ msgstr ""
 "pagina, zijn gaten en de bladen die zijn boormal nodig heeft, zoals \"Deur · "
 "pagina 904 · 8 gaten · 5 bladen\", met een vinkje."
 
-#: src/how-to/workshop-package.md:33
+#: src/how-to/workshop-package.md:34
 msgid ""
 "Choose **Template to print at full size (PDF)**, **DXF for a machine** or "
 "both, the **Paper** (A4 or A3) and the **Folder** (Drilling, beside the "
@@ -6165,7 +6163,7 @@ msgstr ""
 "zoals `+CAB Door template.pdf` en `+CAB Door.dxf` in het Engelse "
 "voorbeeldproject; de toast zegt \"6 bestanden geschreven naar …\"."
 
-#: src/how-to/workshop-package.md:36
+#: src/how-to/workshop-package.md:37
 msgid ""
 "Print a template at actual size, not fitted to the page, and measure its 100 "
 "mm bar. Tape the sheets together at their crosses, lay the template's two "
@@ -6179,11 +6177,11 @@ msgstr ""
 "elk gat. De DXF heeft zijn 0,0 in de hoek waarvandaan de gaten van het vlak "
 "worden gemeten, en een laag voor elke manier om een gat te maken."
 
-#: src/how-to/workshop-package.md:40
+#: src/how-to/workshop-package.md:41
 msgid "The package"
 msgstr "Het pakket"
 
-#: src/how-to/workshop-package.md:42
+#: src/how-to/workshop-package.md:43
 msgid ""
 "Choose **Output ▸ Workshop ▸ Package…** (the command bar's button reads "
 "Package). The dialog \"Package for the workshop\" has two panes."
@@ -6191,7 +6189,7 @@ msgstr ""
 "Kies **Uitvoer ▸ Werkplaats ▸ Pakket…** (op de knop in de opdrachtbalk staat "
 "Pakket). Het venster \"Pakket voor de werkplaats\" heeft twee delen."
 
-#: src/how-to/workshop-package.md:44
+#: src/how-to/workshop-package.md:45
 msgid ""
 "On the left, **What goes in**: the drawings, the wire list, the assembly "
 "lists, the cut list, the consumables, the hole table, the label files and "
@@ -6216,14 +6214,23 @@ msgstr ""
 "adereindhuls, met **Artikel bewerken…**, dat dat artikel in Artikelen bij "
 "het veld opent; **Wijzigen…** wijzigt de vorm van het labelbestand."
 
-#: src/how-to/workshop-package.md:51
+#: src/how-to/workshop-package.md:52
+msgid ""
+#| "On the right, always in view, **Before it goes to the workshop** shows the "
+#| "release check: \"Ready: nothing stands in the way.\", or what stands, such "
+#| "as \"3 things: 1 stops a release, 2 are warnings.\". An error stops only a "
+#| "package of a released revision; a warning or an info is shown and stops "
+#| "nothing. **Show** lists a finding's wires or devices, its button mends it, "
+#| "and **Open Messages** shows them all."
 msgid ""
 "On the right, always in view, **Before it goes to the workshop** shows the "
 "release check: \"Ready: nothing stands in the way.\", or what stands, such "
 "as \"3 things: 1 stops a release, 2 are warnings.\". An error stops only a "
 "package of a released revision; a warning or an info is shown and stops "
 "nothing. **Show** lists a finding's wires or devices, its button mends it, "
-"and **Open Messages** shows them all."
+"and **Open Messages** shows them all. A fix with a preview of its own, such "
+"as **Mark not used**, shows it in front of the dialog; apply it, and the "
+"dialog is back with the finding mended."
 msgstr ""
 "Rechts, altijd in beeld, toont **Voordat het naar de werkplaats gaat** de "
 "vrijgavecontrole: \"Klaar: niets staat in de weg.\", of wat in de weg staat, "
@@ -6231,9 +6238,11 @@ msgstr ""
 "fout houdt alleen een pakket van een vrijgegeven revisie tegen; een "
 "waarschuwing of een melding wordt getoond en houdt niets tegen. **Tonen** "
 "noemt de draden of apparaten van een bevinding, haar knop herstelt haar, en "
-"**Meldingen openen** toont ze allemaal."
+"**Meldingen openen** toont ze allemaal. Een herstel met een eigen "
+"voorbeeld, zoals **Markeren als niet gebruikt**, toont dat voor het "
+"venster; pas het toe, en het venster is terug met de bevinding hersteld."
 
-#: src/how-to/workshop-package.md:55
+#: src/how-to/workshop-package.md:57
 msgid ""
 "A wire without a length stops nothing. The right pane and the package's "
 "contents name the wires without a length and say why, such as \"3 wires have "
@@ -6245,7 +6254,7 @@ msgstr ""
 "hebben geen lengte: van elk wordt één einde ter plaatse gemaakt\", of dat "
 "Routeren een draad van de kast er een geeft."
 
-#: src/how-to/workshop-package.md:58
+#: src/how-to/workshop-package.md:60
 msgid ""
 "Below, the revision decides draft or release. While a revision is open, such "
 "as \"V1.0 is open, not released.\", the package is a draft: \"The package is "
@@ -6260,7 +6269,7 @@ msgstr ""
 "manifest en het inhoudsbestand.\" Het pakket van een vrijgegeven revisie "
 "draagt geen markering, en een tweede pakket ervan is hetzelfde bestand."
 
-#: src/how-to/workshop-package.md:62
+#: src/how-to/workshop-package.md:64
 msgid ""
 "To hand the package to someone outside the company, tick **Without personal "
 "data**: it leaves out the name and the address of each party marked as "
@@ -6273,7 +6282,7 @@ msgstr ""
 "zonder zo'n partij zegt \"Geen partij van dit project is gemarkeerd als "
 "persoonsgegevens (Projecteigenschappen ▸ Partijen)\"."
 
-#: src/how-to/workshop-package.md:65
+#: src/how-to/workshop-package.md:67
 msgid ""
 "Under **File**, **Choose…** sets where the ZIP goes, such as `SAMPLE-E V1.0 "
 "draft package.zip`. Choose **Write draft package** (or **Write package** for "
@@ -6287,11 +6296,11 @@ msgstr ""
 "wordt eerst gevraagd (\"… bestaat al. Vervangen?\"). Het pakket wordt "
 "geschreven als taak, en de toast noemt het bestand met **In map tonen**."
 
-#: src/how-to/workshop-package.md:69
+#: src/how-to/workshop-package.md:71
 msgid "What the shop finds in the ZIP"
 msgstr "Wat de werkplaats in het ZIP-bestand vindt"
 
-#: src/how-to/workshop-package.md:71
+#: src/how-to/workshop-package.md:73
 msgid ""
 "At the top, `Contents.txt`, which says the revision, whether it is a draft, "
 "what the release check found, which wires have no length and why, what the "
@@ -6304,7 +6313,7 @@ msgstr ""
 "van haar artikelen, en wat elk bestand is; en de tekeningen als één PDF, "
 "elke pagina in paginavolgorde."
 
-#: src/how-to/workshop-package.md:74
+#: src/how-to/workshop-package.md:76
 msgid ""
 "In `Lists`, each workshop list as an Excel file; in `Labels`, the label "
 "files; in `Drilling`, the template and the DXF of each surface with holes; "
@@ -6316,7 +6325,7 @@ msgstr ""
 "DXF. Daarnaast `manifest.json`, dezelfde lijst voor een programma, met een "
 "SHA-256 van elk bestand."
 
-#: src/how-to/workshop-package.md:77
+#: src/how-to/workshop-package.md:79
 msgid ""
 "The same three exports run on the command line: `ew export labels`, `ew "
 "export drilling` and `ew export package` ([Use the command line on the "
@@ -9572,9 +9581,9 @@ msgid ""
 "standard puts it (`Ctrl+I`). **Save and place on** the page saves it with "
 "your parts and arms Place with it; **Back without it** keeps it in hand. Its "
 "menu: **Like the last one**, a copy of the symbol you saved last; **Like the "
-"selected one** (also **Draw one like it…** on a symbol's right-click), which "
-"Save puts in place of the selected symbol; **Go on with the drawing in "
-"hand**. See [Drawing a symbol](../symbol-editor.md)."
+"selected one** (also **Draw a symbol like this one…** on a symbol's "
+"right-click), which Save puts in place of the selected symbol; **Go on with "
+"the drawing in hand**. See [Drawing a symbol](../symbol-editor.md)."
 msgstr ""
 
 #: src/reference/window/command-bar.md:134
@@ -11390,8 +11399,8 @@ msgstr ""
 #: src/reference/symbol-editor.md:5
 msgid ""
 "**Draw ▸ Place ▸ New symbol** (`Ctrl+I`), the symbol picker's foot (**Nobody "
-"has it? New symbol…**) and a placed symbol's **Draw one like it…**: a new "
-"drawing for the page in front, at once, with no question first."
+"has it? New symbol…**) and a placed symbol's **Draw a symbol like this "
+"one…**: a new drawing for the page in front, at once, with no question first."
 msgstr ""
 
 #: src/reference/symbol-editor.md:7

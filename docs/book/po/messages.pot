@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-28T05:02:02Z\n"
+"POT-Creation-Date: 2026-11-28T05:25:41Z\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4611,10 +4611,12 @@ msgstr ""
 #: src/how-to/workshop-package.md:16
 msgid ""
 "Under **Labels**, choose **Every label**, or, after a release, only those "
-"changed since it (**Changed since V1.0**)."
+"changed since it (**Changed since V1.0**). Before the first release that "
+"choice says so: \"Changed since a release: none yet, the project has no "
+"released revision\"."
 msgstr ""
 
-#: src/how-to/workshop-package.md:18
+#: src/how-to/workshop-package.md:19
 msgid ""
 "The line **Label file** says the form of the files and their columns, such "
 "as \"Excel · Text 1, Text 2, Text 3, Copies, For\". **Change…** sets, for "
@@ -4624,13 +4626,13 @@ msgid ""
 "once."
 msgstr ""
 
-#: src/how-to/workshop-package.md:22
+#: src/how-to/workshop-package.md:23
 msgid ""
 "A line such as \"1 label does not fit its marker part\" counts the labels "
 "too long for their marker; **Show** lists them."
 msgstr ""
 
-#: src/how-to/workshop-package.md:24
+#: src/how-to/workshop-package.md:25
 msgid ""
 "Untick the files you do not need and choose **Export…**, then the folder. "
 "The toast says, for example, \"Wrote 6 label files to …\". A CSV writes each "
@@ -4639,11 +4641,11 @@ msgid ""
 "there."
 msgstr ""
 
-#: src/how-to/workshop-package.md:28
+#: src/how-to/workshop-package.md:29
 msgid "The drawings for drilling"
 msgstr ""
 
-#: src/how-to/workshop-package.md:30
+#: src/how-to/workshop-package.md:31
 msgid ""
 "Choose **Output ▸ Workshop ▸ Drilling…** (greyed with \"No surface of this "
 "project has holes yet.\" while no surface has any). The form \"Export the "
@@ -4652,7 +4654,7 @@ msgid ""
 "· 8 holes · 5 sheets\", with a tick."
 msgstr ""
 
-#: src/how-to/workshop-package.md:33
+#: src/how-to/workshop-package.md:34
 msgid ""
 "Choose **Template to print at full size (PDF)**, **DXF for a machine** or "
 "both, the **Paper** (A4 or A3) and the **Folder** (Drilling, beside the "
@@ -4661,7 +4663,7 @@ msgid ""
 "…\"."
 msgstr ""
 
-#: src/how-to/workshop-package.md:36
+#: src/how-to/workshop-package.md:37
 msgid ""
 "Print a template at actual size, not fitted to the page, and measure its 100 "
 "mm bar. Tape the sheets together at their crosses, lay the template's two "
@@ -4670,17 +4672,17 @@ msgid ""
 "for each way of making a hole."
 msgstr ""
 
-#: src/how-to/workshop-package.md:40
+#: src/how-to/workshop-package.md:41
 msgid "The package"
 msgstr ""
 
-#: src/how-to/workshop-package.md:42
+#: src/how-to/workshop-package.md:43
 msgid ""
 "Choose **Output ▸ Workshop ▸ Package…** (the command bar's button reads "
 "Package). The dialog \"Package for the workshop\" has two panes."
 msgstr ""
 
-#: src/how-to/workshop-package.md:44
+#: src/how-to/workshop-package.md:45
 msgid ""
 "On the left, **What goes in**: the drawings, the wire list, the assembly "
 "lists, the cut list, the consumables, the hole table, the label files and "
@@ -4694,17 +4696,19 @@ msgid ""
 "at the field; **Change…** changes the label file's form."
 msgstr ""
 
-#: src/how-to/workshop-package.md:51
+#: src/how-to/workshop-package.md:52
 msgid ""
 "On the right, always in view, **Before it goes to the workshop** shows the "
 "release check: \"Ready: nothing stands in the way.\", or what stands, such "
 "as \"3 things: 1 stops a release, 2 are warnings.\". An error stops only a "
 "package of a released revision; a warning or an info is shown and stops "
 "nothing. **Show** lists a finding's wires or devices, its button mends it, "
-"and **Open Messages** shows them all."
+"and **Open Messages** shows them all. A fix with a preview of its own, such "
+"as **Mark not used**, shows it in front of the dialog; apply it, and the "
+"dialog is back with the finding mended."
 msgstr ""
 
-#: src/how-to/workshop-package.md:55
+#: src/how-to/workshop-package.md:57
 msgid ""
 "A wire without a length stops nothing. The right pane and the package's "
 "contents name the wires without a length and say why, such as \"3 wires have "
@@ -4712,7 +4716,7 @@ msgid ""
 "the cabinet one."
 msgstr ""
 
-#: src/how-to/workshop-package.md:58
+#: src/how-to/workshop-package.md:60
 msgid ""
 "Below, the revision decides draft or release. While a revision is open, such "
 "as \"V1.0 is open, not released.\", the package is a draft: \"The package is "
@@ -4721,7 +4725,7 @@ msgid ""
 "carries no mark, and a second package of it is the same file."
 msgstr ""
 
-#: src/how-to/workshop-package.md:62
+#: src/how-to/workshop-package.md:64
 msgid ""
 "To hand the package to someone outside the company, tick **Without personal "
 "data**: it leaves out the name and the address of each party marked as "
@@ -4729,7 +4733,7 @@ msgid ""
 "project is marked as personal data (Project properties ▸ Parties)\"."
 msgstr ""
 
-#: src/how-to/workshop-package.md:65
+#: src/how-to/workshop-package.md:67
 msgid ""
 "Under **File**, **Choose…** sets where the ZIP goes, such as `SAMPLE-E V1.0 "
 "draft package.zip`. Choose **Write draft package** (or **Write package** for "
@@ -4738,11 +4742,11 @@ msgid ""
 "**Show in folder**."
 msgstr ""
 
-#: src/how-to/workshop-package.md:69
+#: src/how-to/workshop-package.md:71
 msgid "What the shop finds in the ZIP"
 msgstr ""
 
-#: src/how-to/workshop-package.md:71
+#: src/how-to/workshop-package.md:73
 msgid ""
 "At the top, `Contents.txt`, which says the revision, whether it is a draft, "
 "what the release check found, which wires have no length and why, what the "
@@ -4750,7 +4754,7 @@ msgid ""
 "is; and the drawings as one PDF, every page in page order."
 msgstr ""
 
-#: src/how-to/workshop-package.md:74
+#: src/how-to/workshop-package.md:76
 msgid ""
 "In `Lists`, each workshop list as an Excel file; in `Labels`, the label "
 "files; in `Drilling`, the template and the DXF of each surface with holes; "
@@ -4758,7 +4762,7 @@ msgid ""
 "file."
 msgstr ""
 
-#: src/how-to/workshop-package.md:77
+#: src/how-to/workshop-package.md:79
 msgid ""
 "The same three exports run on the command line: `ew export labels`, `ew "
 "export drilling` and `ew export package` ([Use the command line on the "
@@ -7724,9 +7728,9 @@ msgid ""
 "standard puts it (`Ctrl+I`). **Save and place on** the page saves it with "
 "your parts and arms Place with it; **Back without it** keeps it in hand. Its "
 "menu: **Like the last one**, a copy of the symbol you saved last; **Like the "
-"selected one** (also **Draw one like it…** on a symbol's right-click), which "
-"Save puts in place of the selected symbol; **Go on with the drawing in "
-"hand**. See [Drawing a symbol](../symbol-editor.md)."
+"selected one** (also **Draw a symbol like this one…** on a symbol's "
+"right-click), which Save puts in place of the selected symbol; **Go on with "
+"the drawing in hand**. See [Drawing a symbol](../symbol-editor.md)."
 msgstr ""
 
 #: src/reference/window/command-bar.md:134
@@ -9534,8 +9538,8 @@ msgstr ""
 #: src/reference/symbol-editor.md:5
 msgid ""
 "**Draw ▸ Place ▸ New symbol** (`Ctrl+I`), the symbol picker's foot (**Nobody "
-"has it? New symbol…**) and a placed symbol's **Draw one like it…**: a new "
-"drawing for the page in front, at once, with no question first."
+"has it? New symbol…**) and a placed symbol's **Draw a symbol like this "
+"one…**: a new drawing for the page in front, at once, with no question first."
 msgstr ""
 
 #: src/reference/symbol-editor.md:7
