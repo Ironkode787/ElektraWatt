@@ -729,15 +729,15 @@ impl Session {
     ///
     /// # Errors
     ///
-    /// In words: the section is not the person's to change, the file cannot be read, the front door's refusal, a
-    /// drawing without a line.
+    /// In words a window renders in its language: the section is not the person's to change, the file cannot be read,
+    /// the front door's refusal, a drawing without a line.
     pub fn draft_outline_import(
         &self,
         draft: &mut PartSheet,
         path: &std::path::Path,
-    ) -> Result<usize, String> {
+    ) -> Result<usize, crate::Text> {
         if !draft.section_editable(Group::Cabinet) {
-            return Err(text!("error-part-outline-locked").to_string());
+            return Err(text!("error-part-outline-locked"));
         }
         let name = path
             .file_name()
@@ -758,10 +758,14 @@ impl Session {
                     what: "input size".to_owned(),
                     limit,
                 });
-                return Err(crate::dxf::DxfError::from(refusal).to_string());
+                return Err(crate::dxf::DxfError::from(refusal).text());
             }
             Err(e) => {
-                return Err(text!("error-part-outline-unreadable", name.as_str(), e.to_string()).to_string());
+                return Err(text!(
+                    "error-part-outline-unreadable",
+                    name.as_str(),
+                    e.to_string()
+                ));
             }
         };
         let lines = crate::dxf::read_outline(&name, &bytes, Some(ew_import_dxf::Unit::Millimetre))?;

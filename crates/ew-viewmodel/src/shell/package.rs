@@ -400,7 +400,7 @@ impl ShellModel {
             Ok(j) => j,
             Err(e) => {
                 return Outcome::Failed {
-                    message: e.to_string(),
+                    message: e.words(strings::rule_language()),
                 };
             }
         };

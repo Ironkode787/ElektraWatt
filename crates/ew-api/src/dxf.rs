@@ -33,15 +33,23 @@ pub enum DxfError {
     Cache(String),
 }
 
+impl DxfError {
+    /// Its words as a text a window renders in its language: the missing unit and the missing page by key, a refusal
+    /// of the front door or of the transaction and the cache's words as they come (the importer's English).
+    pub fn text(&self) -> crate::Text {
+        match self {
+            DxfError::NoUnit => text!("dxf-no-unit"),
+            DxfError::NoPage(folio) => text!("dxf-no-page", folio.as_str()),
+            DxfError::Refused(r) => crate::Text::bare(r.to_string()),
+            DxfError::Apply(e) => crate::Text::bare(e.to_string()),
+            DxfError::Cache(words) => crate::Text::bare(words.clone()),
+        }
+    }
+}
+
 impl std::fmt::Display for DxfError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            DxfError::NoUnit => write!(f, "{}", text!("dxf-no-unit")),
-            DxfError::Refused(r) => write!(f, "{r}"),
-            DxfError::Apply(e) => write!(f, "{e}"),
-            DxfError::NoPage(folio) => write!(f, "{}", text!("dxf-no-page", folio.as_str())),
-            DxfError::Cache(words) => f.write_str(words),
-        }
+        write!(f, "{}", self.text())
     }
 }
 
@@ -346,7 +354,7 @@ pub fn import_part_outline(
     bytes: &[u8],
     unit: Option<Unit>,
 ) -> Result<PartOutline, String> {
-    let lines = read_outline(name, bytes, unit)?;
+    let lines = read_outline(name, bytes, unit).map_err(|t| t.to_string())?;
     let mut tiers = crate::library::LibraryTiers::for_user(vec![], vec![])
         .ok_or("No user library directory is configured.")?;
     tiers.company.push(library.to_path_buf());
@@ -382,20 +390,20 @@ pub fn import_part_outline(
 ///
 /// # Errors
 ///
-/// In words: the front door's refusal, a missing unit, a drawing without a line.
+/// In words a window renders in its language: the front door's refusal, a missing unit, a drawing without a line.
 pub(crate) fn read_outline(
     name: &str,
     bytes: &[u8],
     unit: Option<Unit>,
-) -> Result<Vec<Vec<ew_units::Pt2>>, String> {
+) -> Result<Vec<Vec<ew_units::Pt2>>, crate::Text> {
     let limits = Limits::default();
     let lines = front_door(name, &[bytes.len() as u64], &limits, None, || {
         ew_import_dxf::outline(bytes, &limits, unit).map(Outline)
     })
-    .map_err(|r| DxfError::from(r).to_string())?
+    .map_err(|r| DxfError::from(r).text())?
     .0;
     if lines.is_empty() {
-        return Err(text!("dxf-outline-empty", name).to_string());
+        return Err(text!("dxf-outline-empty", name));
     }
     Ok(lines)
 }

@@ -110,3 +110,47 @@ fn a_part_of_my_parts_changes_its_front_view_and_holes() {
     assert_eq!(lines, 0);
     s.shutdown();
 }
+
+/// Import outline…'s refusal in the Dutch window is Dutch: a drawing without a line makes no outline of a new part.
+#[test]
+fn import_outlines_refusal_reads_in_the_windows_language() {
+    let tmp = Tmp::new("outline-nl");
+    let mut s = tmp.sample_in(Mode::Gui, true, "101");
+    done(&mut s, "view.language", json!({"value": "nl"}));
+    let empty = tmp.0.join("empty.dxf");
+    let square = "0
+LWPOLYLINE
+8
+0
+90
+4
+70
+1
+10
+0
+20
+0
+10
+30
+20
+0
+10
+30
+20
+30
+10
+0
+20
+30
+";
+    std::fs::write(&empty, SQUARE_DXF.replace(square, "")).unwrap();
+    done(&mut s, "parts.open", json!({}));
+    done(&mut s, "parts.new", json!({"start": "door"}));
+    match s.dispatch("parts.outline", &json!({"path": empty.to_string_lossy()})) {
+        ew_viewmodel::shell::Outcome::Failed { message } => {
+            assert_eq!(message, "empty.dxf bevat geen lijn om een contour van te maken.");
+        }
+        other => panic!("{other:?}"),
+    }
+    s.shutdown();
+}

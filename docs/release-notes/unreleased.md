@@ -235,6 +235,9 @@ change here.
 - behaviour-change: the drawings for drilling and the label files are written only into the folder chosen for them: a
   file name made from the project's codes that holds a `/`, a `\` or a drive is refused in words and nothing is
   written
+- behaviour-change: the Dutch window says in Dutch what it said in English: a duct's Fill and Inner area, a
+  placement's Ways and Behind the door in Properties, the refusals of Import outline…, and a release package refused
+  for its errors (the command line keeps English)
 - behaviour-change: A wire list page whose block chooses no columns prints other columns now, the fitter's: No.,
   From, CP, To, CP, Colour, mm², Length, From end, To end, From marker, To marker and Pages. It gains Length, From end,
   To end, From marker and To marker, and no longer prints Potential, Source, Via and Wire part unless they are ticked

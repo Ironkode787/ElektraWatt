@@ -488,6 +488,16 @@ impl ShellModel {
                 .layout_words(id.parse().ok()?)
                 .map(|w| strings::render(&w))
         });
+        crate::properties::phrases_in_words(&mut sheet, |key, id| {
+            let phrases = p.session.layout_row_phrases(key, id)?;
+            Some(
+                phrases
+                    .iter()
+                    .map(strings::render)
+                    .collect::<Vec<_>>()
+                    .join(" · "),
+            )
+        });
         crate::properties::report_source_in_words(&mut sheet);
         self.wire_numbers_in_row(&mut sheet);
         crate::properties::values_in_words(&mut sheet);

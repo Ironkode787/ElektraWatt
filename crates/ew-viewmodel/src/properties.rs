@@ -1945,6 +1945,27 @@ pub fn command_choice_text(path: &str, option: &str) -> String {
     }
 }
 
+/// Writes the rows whose value is a phrase in the UI language's words, as `words` gives a row's value by its key and its
+/// section's first target (`Session::layout_row_phrases`, rendered and joined): a value equal on every target is the
+/// first one's. A row `words` does not know keeps its text.
+pub fn phrases_in_words(
+    sheet: &mut PropertySheet,
+    words: impl Fn(&str, ew_api::output::Uuid) -> Option<String>,
+) {
+    for section in &mut sheet.sections {
+        let Some(first) = section.targets.first().copied() else {
+            continue;
+        };
+        for row in &mut section.rows {
+            if let RowValue::One { text, .. } = &mut row.value
+                && let Some(w) = words(&row.key, first)
+            {
+                *text = w;
+            }
+        }
+    }
+}
+
 /// Writes the surfaces and carriers of a sheet in the UI language's words, as `words` names a surface's or a carrier's
 /// ID (`Session::layout_words`, "-UC1 deur", "Rail 1"): a panel page's Surface row and a placement's Carrier row,
 /// whose values are those IDs, and the header of one selected surface or carrier.

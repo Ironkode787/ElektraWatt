@@ -315,15 +315,21 @@ fn without_personal_data_no_entry_names_the_personal_parties() {
 }
 
 /// A release package is refused while an error of the release check stands, naming it: -X1031 moved after its wires
-/// were laid, so their ways no longer hold (EW-LAY-011).
+/// were laid, so their ways no longer hold (EW-LAY-011). The refusal carries the findings, so a Dutch window says it in
+/// Dutch and the command line in English.
 #[test]
 fn a_release_package_with_an_open_error_is_refused_naming_it() {
     let s = released(|probe, records| move_x1031(probe, records), false);
     let plan = s.package_plan(&ask());
     assert!(plan.refused());
     match s.package_job(&ask()) {
-        Err(PackageError::Refused(errors)) => {
-            assert!(errors.iter().any(|e| e.contains("no longer hold")), "{errors:?}");
+        Err(e @ PackageError::Refused(_)) => {
+            let english = e.to_string();
+            assert!(english.contains("no longer hold"), "{english}");
+            assert!(english.contains("stop a release package") || english.contains("stops a release package"));
+            let dutch = e.words("nl-NL");
+            assert!(dutch.contains("houd") && dutch.contains("vrijgavepakket tegen: "), "{dutch}");
+            assert!(!dutch.contains("no longer hold"), "{dutch}");
         }
         other => panic!("refused: {other:?}"),
     }

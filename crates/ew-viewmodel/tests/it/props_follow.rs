@@ -218,3 +218,68 @@ fn the_project_sheet_reads_in_words_and_a_filter_keeps_the_parents() {
 
     s.shutdown();
 }
+
+/// The value of the row `key` of the first section of the sheet on show.
+fn row_value(s: &ShellModel, key: &str) -> String {
+    let sheet = s.properties().sheet().expect("a sheet");
+    match sheet.sections[0].rows.iter().find(|r| r.key == key).map(|r| &r.value) {
+        Some(RowValue::One { text, .. }) => text.clone(),
+        other => panic!("{key}: {other:?}"),
+    }
+}
+
+/// The phrases of the layout rows in the Dutch window (architecture §18): on 902 a duct's Fill and Inner area and a
+/// placement's Ways, and on the door 904 the Behind the door row of a door device of his own without a depth, each in
+/// Dutch where it was English.
+#[test]
+fn the_layout_rows_phrases_read_in_the_windows_language() {
+    let tmp = Tmp::new("phrases-nl");
+    let mut s = tmp.sample_in(Mode::Gui, true, "902");
+    // His own door device without a depth, given to -102E1 in the door.
+    done(&mut s, "parts.open", json!({}));
+    done(&mut s, "parts.new", json!({"start": "door"}));
+    for (field, value) in [("manufacturer", "Example"), ("part_number", "MY-LMP")] {
+        done(&mut s, "parts.field", json!({"field": field, "value": value}));
+    }
+    done(&mut s, "parts.save", json!({}));
+    done(&mut s, "parts.back", json!({}));
+    done(&mut s, "select.set", json!({"refs": ["tag:-102E1"]}));
+    done(&mut s, "part.choose", json!({"use": 0}));
+    done(&mut s, "part.pick", json!({"part": "MY-LMP"}));
+    done(&mut s, "view.language", json!({"value": "nl"}));
+    done(&mut s, "props.show", json!({"on": true}));
+    done(&mut s, "page.goto", json!({"folio": "902"}));
+    let duct = panel(&s)
+        .carriers
+        .iter()
+        .find(|c| c.kind == "duct")
+        .expect("a duct on 902")
+        .id;
+    done(&mut s, "select.set", json!({"ids": [duct.to_string()]}));
+    let fill = row_value(&s, "carrier/derived.fill");
+    assert!(fill.starts_with("vulgraad ") && fill.contains(" % waar ze het volst is"), "{fill}");
+    let inner = row_value(&s, "carrier/derived.inner_area");
+    assert!(inner.contains("binnenmaat"), "{inner}");
+    let f1 = panel(&s)
+        .placements
+        .iter()
+        .find(|p| p.tag == "-102F1")
+        .expect("-102F1")
+        .id;
+    done(&mut s, "select.set", json!({"ids": [f1.to_string()]}));
+    let ways = row_value(&s, "placement/derived.ways");
+    assert!(ways.contains("klopt") || ways.contains("kloppen"), "{ways}");
+    done(&mut s, "page.goto", json!({"folio": "904"}));
+    let e1 = panel(&s)
+        .placements
+        .iter()
+        .find(|p| p.tag == "-102E1")
+        .expect("-102E1 in the door")
+        .id;
+    done(&mut s, "select.set", json!({"ids": [e1.to_string()]}));
+    assert_eq!(
+        row_value(&s, "placement/derived.behind_door"),
+        "diepte niet bekend: de gesloten deur wordt er niet op gecontroleerd"
+    );
+    s.shutdown();
+}

@@ -1321,7 +1321,8 @@ impl ShellModel {
                 self.sheet_changed();
                 Outcome::Done
             }
-            Err(message) => {
+            Err(why) => {
+                let message = strings::render(&why);
                 open.error = Some(message.clone());
                 Outcome::Failed { message }
             }

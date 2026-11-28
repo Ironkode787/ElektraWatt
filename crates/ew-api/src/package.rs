@@ -279,25 +279,36 @@ pub struct Package {
 /// Why no package was made.
 #[derive(Debug)]
 pub enum PackageError {
-    /// A release package with open errors of the release check: their messages.
-    Refused(Vec<String>),
+    /// A release package with open errors of the release check: those findings, which a window says in its language
+    /// ([`PackageError::words`]).
+    Refused(Vec<checks::Finding>),
     /// A member's export failed, in words.
     Member(String),
     /// The job was cancelled.
     Cancelled,
 }
 
-impl std::fmt::Display for PackageError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl PackageError {
+    /// Why no package was made, in the language `lang` (a BCP 47 tag), as a window says it: a refusal's count and its
+    /// findings' messages in that language; a member's failure in its export's words. [`Display`](std::fmt::Display)
+    /// is the command line's English.
+    pub fn words(&self, lang: &str) -> String {
         match self {
             PackageError::Refused(errors) => {
-                let n = errors.len();
-                let words = in_print_language(&counted(key!("package-refused"), n), None);
-                write!(f, "{words}: {}", errors.join("; "))
+                let tag: Option<LangTag> = lang.parse().ok();
+                let head = in_print_language(&counted(key!("package-refused"), errors.len()), tag.as_ref());
+                let messages: Vec<String> = errors.iter().map(|f| checks::render(f, lang)).collect();
+                format!("{head}: {}", messages.join("; "))
             }
-            PackageError::Member(why) => f.write_str(why),
-            PackageError::Cancelled => f.write_str("cancelled"),
+            PackageError::Member(why) => why.clone(),
+            PackageError::Cancelled => "cancelled".to_owned(),
         }
+    }
+}
+
+impl std::fmt::Display for PackageError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.words(checks::messages::DEFAULT_LANGUAGE))
     }
 }
 
@@ -673,15 +684,12 @@ impl Session {
     ///
     /// # Errors
     ///
-    /// [`PackageError::Refused`] with the errors' messages.
+    /// [`PackageError::Refused`] with the errors.
     pub fn package_job(&self, ask: &PackageAsk) -> Result<PackageJob, PackageError> {
         let plan = self.package_plan(ask);
         if plan.refused() {
-            let q = self.query();
-            let lang = print_language(&q).map(|l| l.to_string());
-            let lang = lang.as_deref().unwrap_or(checks::messages::DEFAULT_LANGUAGE);
             return Err(PackageError::Refused(
-                plan.errors().iter().map(|f| checks::render(f, lang)).collect(),
+                plan.errors().into_iter().cloned().collect(),
             ));
         }
         Ok(PackageJob {
