@@ -112,7 +112,16 @@ impl ShellModel {
     /// `edit.copy` (Ctrl+C): the selection's fragment to the clipboard.
     pub(crate) fn act_copy(&mut self) -> Outcome {
         let copied = or_return!(self.copy_selection());
+        let records = copied.records;
         self.write_copied_fragment(copied);
+        // Seen, not only heard: a copy changes nothing on the page, and its paste hangs on the pointer, over the
+        // original where the pointer still stands; the toast says what was copied and how it is put down.
+        let paste = crate::command_bar::key_name(self, "edit.paste_clip");
+        self.notify_with(
+            strings::format_counted(crate::count_key!("toast-copied"), records, &[&paste]),
+            "copy",
+            false,
+        );
         Outcome::Done
     }
 

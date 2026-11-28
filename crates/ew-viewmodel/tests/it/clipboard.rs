@@ -192,6 +192,11 @@ fn a_device_selected_by_tag_is_copied_as_its_representation() {
         state(&shell)["clipboard"],
         json!({"kind": "fragment", "records": 3, "copies": 4})
     );
+    // A copy changes nothing on the page: its toast says what was copied and how it is put down.
+    assert_eq!(
+        shell.toast().map(|t| t.text.clone()).as_deref(),
+        Some("Copied 3 items. Ctrl+V hangs the copy on the pointer; a click puts it down.")
+    );
     let reps = shell.canvas().unwrap().page().tables.reps.len();
     done(&mut shell, "edit.cut", json!({}));
     assert_eq!(shell.canvas().unwrap().page().tables.reps.len(), reps - 1);

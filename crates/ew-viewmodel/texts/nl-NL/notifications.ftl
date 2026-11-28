@@ -293,6 +293,10 @@ recovery-failed = Herstellen mislukt: { $p0 }
 toast-dismiss = Sluiten
 toast-name = Notificatie
 announce-copied = { $p0 } records gekopieerd
+toast-copied = { $p0 ->
+        [one] 1 onderdeel gekopieerd. { $p1 } hangt de kopie aan de aanwijzer; een klik zet hem neer.
+       *[other] { $p0 } onderdelen gekopieerd. { $p1 } hangt de kopie aan de aanwijzer; een klik zet hem neer.
+    }
 banner-paste-refused = Niet geplakt: { $p0 }
 notices-title = Kennisgevingen van derden
 notices-generated-missing = De kennisgevingen van de Rust-crates worden voor elke release gegenereerd (THIRD-PARTY-NOTICES.txt naast de applicatie); deze build heeft er geen.
