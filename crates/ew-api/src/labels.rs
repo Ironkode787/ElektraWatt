@@ -41,8 +41,23 @@ pub struct LabelFile {
     pub count: usize,
     /// The texts of the labels that do not fit the marker part, each its lines joined by ` / `, in the file's order.
     pub misfits: Vec<String>,
+    /// Each label the file holds, in its order and in every language: what it is for and what it says ("101.1 at
+    /// -X1011:L1 · -101Q1:1"), which `ew export labels --since` prints and Labels… can list before a person prints.
+    pub named: Vec<ew_mltext::MlText>,
     /// The file's bytes.
     pub bytes: Vec<u8>,
+}
+
+impl LabelFile {
+    /// [`LabelFile::named`] in the language `lang` (a BCP 47 tag; `None`: English): one line per label, in the file's
+    /// order.
+    pub fn names(&self, lang: Option<&str>) -> Vec<String> {
+        let lang: Option<ew_mltext::LangTag> = lang.and_then(|l| l.parse().ok());
+        self.named
+            .iter()
+            .map(|m| ew_derive::text_in(m, lang.as_ref()).to_owned())
+            .collect()
+    }
 }
 
 /// Why the label files could not be made.
@@ -319,6 +334,7 @@ impl Session {
                 marker_part: number,
                 count,
                 misfits,
+                named: file.named.clone(),
                 bytes,
             });
         }

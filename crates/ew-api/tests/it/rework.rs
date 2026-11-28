@@ -546,3 +546,33 @@ fn resized(dir: &Path, thicker: Id<Connection>) -> (Session, String) {
     let csv = now.rework_csv(&rework);
     (now, csv)
 }
+
+/// Labels for these changes name each label they hold, what it is for and what it says (doc 13 §5.4), so that a person
+/// reads them before he prints: the device label of the new pushbutton -102S3 and the wire markers of its new wires.
+#[test]
+fn the_labels_for_the_changes_are_named() {
+    let base = ew_testdir::Tmp::new("ew-rework-named");
+    let dir = released_copy(&base);
+    let now = changed_sample();
+    let files = now
+        .label_files(
+            &ew_api::LabelScope::Changes(ReworkBase::File(archive_of(&dir))),
+            Some(ew_api::FileForm::Csv),
+            None,
+        )
+        .expect("the label files");
+    let names = |set: ew_derive::LabelSet| {
+        files
+            .iter()
+            .find(|f| f.set == set)
+            .map(|f| f.names(None))
+            .unwrap_or_default()
+    };
+    let devices = names(ew_derive::LabelSet::DeviceLabels);
+    assert!(devices.iter().any(|n| n == "-102S3 · -102S3"), "{devices:?}");
+    let wires = names(ew_derive::LabelSet::WireMarkers);
+    assert!(
+        wires.iter().any(|n| n == "102.10 at -X1021:3/a · -102S3:13"),
+        "{wires:?}"
+    );
+}

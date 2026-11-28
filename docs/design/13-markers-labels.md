@@ -125,4 +125,7 @@ record of an export by profile; a file for a wire machine would be its second ki
 **Labels for changes.** From the Rework list…, Labels for these changes… writes the same files with only the labels the
 rework list names: the markers of new, replaced and changed wire ends, the labels of mounted or changed devices,
 terminals, strips and cables, and the marker of a new strip (the rework list adds each of its terminals and has no row
-for the strip itself).
+for the strip itself). So that a person reads which labels they are before he prints them, each file names its labels by the rows it
+holds (`LabelFile::named`, one line per label: what it is for and what it says, "102.10 at -X1021:3/a · -102S3:13",
+in every language): `ew export labels --since` and `--archive` print them under each file, and Labels… lists them
+for "Changed since".

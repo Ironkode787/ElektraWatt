@@ -347,6 +347,7 @@ report-kind-unknown = Unknown kind
 ## The labels list (doc 13 §5.3)
 
 cell-label-for = { $p0 } at { $p1 }
+cell-label-named = { $p0 } · { $p1 }
 cell-label-does-not-fit = does not fit its marker part
 
 ## The workshop lists (doc 13 §3.6, §6, §9.3)

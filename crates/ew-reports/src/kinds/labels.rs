@@ -171,6 +171,9 @@ pub struct LabelFile {
     pub header: Vec<String>,
     /// One row per label, its cells in the profile's columns as the list prints them in the project's language.
     pub rows: Vec<Vec<String>>,
+    /// One line per row, in every language: what the label is for and what it says ("101.1 at -X1011:L1 · -101Q1:1"),
+    /// so that a person reads which labels the file holds before he prints it.
+    pub named: Vec<ew_mltext::MlText>,
 }
 
 /// The label files of the labels `keep` keeps, one per label set and marker part, in the order of their first label;
@@ -187,6 +190,11 @@ pub fn label_files(q: &Q, profile: &ExportProfile, keep: impl Fn(&LabelRecord) -
         .map(|c| set.columns.iter().position(|d| d.key == c.key))
         .collect();
     let header: Vec<String> = profile.columns.iter().map(|c| c.heading.clone()).collect();
+    let column = |key: &str| set.columns.iter().position(|c| c.key == key);
+    let (what_for, texts) = (
+        column("for"),
+        ["text_1", "text_2", "text_3"].map(|k| column(k)),
+    );
     let mut files: Vec<LabelFile> = Vec::new();
     for (label, row) in q.get::<LabelRows>(()).iter().zip(&set.rows) {
         if !keep(label) {
@@ -196,16 +204,33 @@ pub fn label_files(q: &Q, profile: &ExportProfile, keep: impl Fn(&LabelRecord) -
             .iter()
             .map(|i| i.map(|i| render(q, &row.cells[i], &options)).unwrap_or_default())
             .collect();
+        // What it is for and what it says, in each language of the list texts.
+        let catalogue = crate::catalogue();
+        let named = ew_mltext::MlText::from_langs(catalogue.tags().into_iter().filter_map(|tag| {
+            let lang: ew_mltext::LangTag = tag.parse().ok()?;
+            let options = RenderOptions {
+                lang: Some(lang.clone()),
+                ..RenderOptions::default()
+            };
+            let cell = |i: Option<usize>| i.map(|i| render(q, &row.cells[i], &options)).unwrap_or_default();
+            let lines: Vec<String> = texts.iter().map(|i| cell(*i)).filter(|t| !t.is_empty()).collect();
+            let words = text!("cell-label-named", cell(what_for), lines.join(" / "));
+            Some((lang, catalogue.text_or_english(&words, tag)))
+        }));
         match files
             .iter_mut()
             .find(|f| f.set == label.set && f.marker_part == label.marker_part)
         {
-            Some(f) => f.rows.push(cells),
+            Some(f) => {
+                f.rows.push(cells);
+                f.named.push(named);
+            }
             None => files.push(LabelFile {
                 set: label.set,
                 marker_part: label.marker_part,
                 header: header.clone(),
                 rows: vec![cells],
+                named: vec![named],
             }),
         }
     }

@@ -1062,3 +1062,6 @@ change here.
 - api-add: `ew_api::output::list_output` and `ListFormat`, `ew_reports::xlsx::list_xlsx`, `ew_reports::per_end`,
   `ew_reports::printed`, `ew_reports::page_head` and `ReportKindDef::head`, `ColumnDef::other_end`
 - api-break: `ew_reports::PageLayout` gains `data_lines` and `Layouts` gains `head`
+- behaviour-change: `ew export labels --since` and `--archive` print under each file the labels it holds, what each is
+  for and what it says ("102.10 at -X1021:3/a · -102S3:13")
+- api-add: `ew_api::LabelFile` gains `named` and `names`, its labels by name, for Labels… to list

@@ -764,8 +764,15 @@ pub(super) fn run_export_labels(a: &LabelsCli, io: &mut Io<'_>) -> i32 {
         io.error(format_args!("{}: {e}", folder.display()));
         return 2;
     }
+    let changes = matches!(scope, ew_api::LabelScope::Changes(_));
     for f in &files {
         outln!(io, "{}: {}", f.name, plural(f.count, "label", "labels"));
+        // The labels of the changes by name, so that they can be read before they are printed.
+        if changes {
+            for n in f.names(None) {
+                outln!(io, "  {n}");
+            }
+        }
     }
     outln!(
         io,
