@@ -486,6 +486,7 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `parts.new` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_new` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-new`, `parts-new`, `parts-new-accessory`, `parts-new-part-with-it`, `parts-new-plate`, `parts-new-title` |
 | `parts.field` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_field` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-field` |
 | `parts.row` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_row` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-row` |
+| `parts.piece_filter` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_piece_filter` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-piece-filter` |
 | `parts.export` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_export` `crates/ew-viewmodel/src/shell/parts_many.rs` | `action-parts-export`, `parts-export` |
 | `parts.outline` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_outline` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-outline` |
 | `parts.save` | `crates/ew-viewmodel/src/actions/table/controls.rs` | `act_parts_save` `crates/ew-viewmodel/src/shell/parts_place.rs` | `action-parts-save`, `parts-save`, `parts-save-keep`, `parts-save-place`, `parts-save-use` |

@@ -692,6 +692,7 @@ action-parts-find = Find parts
 action-parts-new = New part…
 action-parts-field = Change a field of the part
 action-parts-row = Add or remove a row of the part
+action-parts-piece-filter = Narrow the list of what a piece is
 action-parts-outline = Import outline…
 action-parts-save = Save the part
 action-parts-discard = Discard the part's changes

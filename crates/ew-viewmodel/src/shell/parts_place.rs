@@ -173,6 +173,9 @@ pub struct OpenSheet {
     pub piece_symbols: Vec<Vec<(String, String)>>,
     /// The refusal of the last Save, in words.
     pub error: Option<String>,
+    /// What is typed at the top of a piece's What it is (`parts.piece_filter`): the piece (from 0) and the text that
+    /// narrows its list ([`OpenSheet::piece_choices`]).
+    pub piece_filter: Option<(usize, String)>,
     /// New bus cable… or New plug… of a bus line's Cable form: what the part is made as.
     pub bus_part: Option<BusPart>,
     /// The group the place shows first: the one the field it was opened at stands in.
@@ -189,6 +192,20 @@ pub struct OpenSheet {
 }
 
 impl OpenSheet {
+    /// The choices of What it is of piece `piece` (from 0), each by its key and its words: every piece kind, narrowed
+    /// to those whose words hold what is typed at the list's top for that piece (case aside).
+    pub fn piece_choices(&self, piece: usize) -> Vec<(String, String)> {
+        let needle = (self.piece_filter.as_ref())
+            .filter(|(p, _)| *p == piece)
+            .map(|(_, t)| t.trim().to_lowercase())
+            .unwrap_or_default();
+        ew_api::part_pieces::piece_kinds()
+            .into_iter()
+            .map(|k| (k.key.to_owned(), strings::render(&k.words)))
+            .filter(|(_, w)| w.to_lowercase().contains(&needle))
+            .collect()
+    }
+
     /// Whether the person may change the part's fields: his own, or new, in a project he can write.
     pub fn editable(&self) -> bool {
         !self.read_only && matches!(self.lives, Lives::Mine | Lives::OnlyHere | Lives::New)
@@ -748,6 +765,7 @@ impl ShellModel {
                 manufacturers,
                 piece_symbols,
                 error: None,
+                piece_filter: None,
                 bus_part,
                 group: None,
                 field: None,
@@ -1186,6 +1204,28 @@ impl ShellModel {
 
     /// `parts.field {field, value}`: sets one field of the open sheet; a message shows under the field. A part that is
     /// not the person's own refuses in words: he makes his own from it.
+    /// `parts.piece_filter {piece, text}`: what is typed at the top of What it is of piece `piece` (from 1) narrows its
+    /// list ([`OpenSheet::piece_choices`]), as the picker's filter narrows the picker; an empty text makes it whole.
+    pub(crate) fn act_parts_piece_filter(&mut self, p: &Map<String, Value>) -> Outcome {
+        let piece = match super::bulk::uint_param(p, "piece") {
+            Ok(Some(n)) if n >= 1 => usize::try_from(n - 1).unwrap_or(usize::MAX),
+            Ok(_) => return failed(key!("error-bad-param"), &["piece"]),
+            Err(e) => return e,
+        };
+        let text = match string_param(p, "text") {
+            Ok(t) => t.unwrap_or_default().to_owned(),
+            Err(e) => return e,
+        };
+        let Some(open) = self.open_mut() else {
+            return Outcome::refused(key!("reason-no-part-open"));
+        };
+        if piece >= open.sheet.pieces.len() {
+            return failed(key!("error-bad-param"), &["piece"]);
+        }
+        open.piece_filter = (!text.is_empty()).then_some((piece, text));
+        Outcome::Done
+    }
+
     pub(crate) fn act_parts_field(&mut self, p: &Map<String, Value>) -> Outcome {
         let (field, value) = match (string_param(p, "field"), string_param(p, "value")) {
             (Ok(Some(f)), Ok(Some(v))) => (f.to_owned(), v.to_owned()),
@@ -1215,6 +1255,10 @@ impl ShellModel {
         };
         if !open.editable() {
             return Outcome::refused(key!("reason-part-not-yours"));
+        }
+        // A piece's What it is chosen: its list is whole again.
+        if field.starts_with("pieces[") && field.ends_with("].what") {
+            open.piece_filter = None;
         }
         // A new plug's cable outlet and programming socket are words of its description, which follows them, its
         // bus and its terminating resistor.

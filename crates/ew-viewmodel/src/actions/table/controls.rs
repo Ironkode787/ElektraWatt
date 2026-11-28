@@ -962,6 +962,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_parts_row(p),
         )),
     ),
+    // What it is of a piece narrows as it is typed at its top (doc 07 §5.4), as the picker's filter does.
+    with_params(
+        "piece:uint, text?:text",
+        hidden(act(
+            "parts.piece_filter",
+            View,
+            Menu::Edit,
+            &[],
+            part_editable,
+            None,
+            |s, p| s.act_parts_piece_filter(p),
+        )),
+    ),
     // Export as a table… of Parts (doc 07 §5.9): the selected parts, or the open one, with their declared fields.
     with_params(
         "path?:path, replace?:bool",

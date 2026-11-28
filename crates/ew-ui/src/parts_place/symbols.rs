@@ -108,16 +108,16 @@ pub(super) fn pieces_section(ui: &mut Ui, open: &OpenSheet, editable: bool, even
                     if editable {
                         let mut picked = None;
                         let name = strings::format(key!("parts-piece-what-of"), &[&n]);
-                        // A long list: what is typed at its top narrows it, and Enter takes the first left.
-                        let typed_id = ui.make_persistent_id(("part-piece-what-typed", i));
+                        // A long list: what is typed at its top narrows it (`parts.piece_filter`, the view model's
+                        // list), and Enter takes the first left.
+                        let filtered = (open.piece_filter.as_ref()).filter(|(p, _)| *p == i);
                         let shown = components::choice(
                             ui,
                             egui::ComboBox::from_id_salt(("part-piece-what", i))
                                 .selected_text(words(&row.what))
                                 .width(t.size_control * 7.0),
                             |ui| {
-                                let mut typed: String =
-                                    ui.memory(|m| m.data.get_temp(typed_id)).unwrap_or_default();
+                                let mut typed = filtered.map(|(_, t)| t.clone()).unwrap_or_default();
                                 let edit = ui.add(
                                     egui::TextEdit::singleline(&mut typed)
                                         .hint_text(strings::text(key!("parts-piece-what-type"))),
@@ -125,26 +125,31 @@ pub(super) fn pieces_section(ui: &mut Ui, open: &OpenSheet, editable: bool, even
                                 if !edit.has_focus() && typed.is_empty() {
                                     edit.request_focus();
                                 }
+                                if edit.changed() {
+                                    events.push(Event::Action(
+                                        "parts.piece_filter",
+                                        json!({ "piece": i + 1, "text": typed }),
+                                    ));
+                                }
                                 let enter =
                                     edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
-                                let needle = typed.to_lowercase();
-                                ui.memory_mut(|m| m.data.insert_temp(typed_id, typed));
-                                let mut first = None;
-                                for (k, w) in kinds.iter().filter(|(_, w)| w.to_lowercase().contains(&needle))
-                                {
-                                    first.get_or_insert_with(|| k.clone());
+                                let choices = open.piece_choices(i);
+                                for (k, w) in &choices {
                                     if ui.selectable_label(*k == row.what, w).clicked() {
                                         picked = Some(k.clone());
                                     }
                                 }
                                 if enter && picked.is_none() {
-                                    picked = first;
+                                    picked = choices.first().map(|(k, _)| k.clone());
                                     ui.close();
                                 }
                             },
                         );
-                        if !egui::ComboBox::is_open(ui.ctx(), shown.response.id) {
-                            ui.memory_mut(|m| m.data.remove::<String>(typed_id));
+                        if filtered.is_some() && !egui::ComboBox::is_open(ui.ctx(), shown.response.id) {
+                            events.push(Event::Action(
+                                "parts.piece_filter",
+                                json!({ "piece": i + 1, "text": "" }),
+                            ));
                         }
                         shown
                             .response

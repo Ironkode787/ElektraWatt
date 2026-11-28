@@ -1183,3 +1183,28 @@ fn an_enclosure_takes_his_cabinet_with_its_plate_in_one_step() {
     assert!(!parts_of(&mut s, "-UC1").contains("EX-CAB-8"), "-UC1 as it was");
     s.shutdown();
 }
+
+/// What it is of a piece narrows as it is typed at its top, through the view model's action (`parts.piece_filter`),
+/// as the picker's filter does, so that a script drives it as a click does; choosing a piece makes the list whole.
+#[test]
+fn what_it_is_narrows_as_it_is_typed() {
+    let tmp = Tmp::new("life-what-typed");
+    let mut s = sample(&tmp);
+    done(&mut s, "parts.new", json!({"start": "device"}));
+    fill(&mut s, &[("+pieces", "")]);
+    let choices = |s: &ShellModel| {
+        let o = s.parts_place().and_then(|p| p.sheet.as_ref()).expect("the sheet");
+        o.piece_choices(0)
+    };
+    let all = choices(&s).len();
+    done(&mut s, "parts.piece_filter", json!({"piece": 1, "text": "COIL"}));
+    let narrowed = choices(&s);
+    assert!(!narrowed.is_empty() && narrowed.len() < all, "{narrowed:?}");
+    assert!(
+        narrowed.iter().all(|(_, w)| w.to_lowercase().contains("coil")),
+        "{narrowed:?}"
+    );
+    fill(&mut s, &[("pieces[0].what", narrowed[0].0.as_str())]);
+    assert_eq!(choices(&s).len(), all, "the list is whole again");
+    s.shutdown();
+}

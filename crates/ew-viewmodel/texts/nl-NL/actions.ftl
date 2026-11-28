@@ -677,6 +677,7 @@ action-parts-find = Artikelen zoeken
 action-parts-new = Nieuw artikel…
 action-parts-field = Een veld van het artikel wijzigen
 action-parts-row = Een rij van het artikel toevoegen of verwijderen
+action-parts-piece-filter = De lijst van wat een deel is inkorten
 action-parts-outline = Contour importeren…
 action-parts-save = Het artikel opslaan
 action-parts-discard = De wijzigingen van het artikel verwerpen
