@@ -712,7 +712,7 @@ msgstr ""
 "Kies **Bestand ▸ Opslaan** (`Ctrl+S`). De titelbalk markeert het project "
 "niet meer als gewijzigd, en de statusbalk zegt Opgeslagen."
 
-#: src/tutorials/first-page.md:45 src/tutorials/terminal-strip-and-cable.md:57 src/tutorials/reports-and-pdf.md:41 src/tutorials/import-qet.md:56 src/tutorials/symbol-editor.md:43 src/tutorials/plc-station.md:78 src/tutorials/bus-network.md:78 src/tutorials/pneumatic-circuit.md:121
+#: src/tutorials/first-page.md:45 src/tutorials/terminal-strip-and-cable.md:57 src/tutorials/reports-and-pdf.md:41 src/tutorials/import-qet.md:56 src/tutorials/symbol-editor.md:43 src/tutorials/plc-station.md:78 src/tutorials/bus-network.md:79 src/tutorials/pneumatic-circuit.md:121
 msgid "What you learnt"
 msgstr "Wat u hebt geleerd"
 
@@ -916,7 +916,7 @@ msgstr ""
 "een kabeltype…**: het artikelvenster toont eerst de kabelartikelen die "
 "passen, en de andere grijs met de reden."
 
-#: src/tutorials/terminal-strip-and-cable.md:54 src/tutorials/reports-and-pdf.md:38 src/tutorials/import-qet.md:53 src/tutorials/symbol-editor.md:40 src/tutorials/plc-station.md:75 src/tutorials/bus-network.md:75 src/tutorials/pneumatic-circuit.md:112
+#: src/tutorials/terminal-strip-and-cable.md:54 src/tutorials/reports-and-pdf.md:38 src/tutorials/import-qet.md:53 src/tutorials/symbol-editor.md:40 src/tutorials/plc-station.md:75 src/tutorials/bus-network.md:76 src/tutorials/pneumatic-circuit.md:112
 msgid ""
 "Choose **File ▸ Save** (`Ctrl+S`). The title bar no longer marks the project "
 "as changed."
@@ -2026,42 +2026,44 @@ msgid ""
 "choose **PLC CPU with PROFINET and PROFIBUS DP interfaces** (EW-GEN-CPU-2). "
 "Click near the top left of the page. The CPU -2A1 stands there as its bus "
 "symbol: its tag and part on top, and under them a compartment for DP and one "
-"for X1, each with its socket. Its rack opens in a tab beside the page's, "
-"because a CPU is a station; press `Esc` to go back to the page (the tab "
-"stays, for later)."
+"for X1, each with its socket. A CPU is a station: a message says so and "
+"offers **Rack…**, which fills its slots; the view stays on the page. Press "
+"`Esc`."
 msgstr ""
 "Kies **Tekenen ▸ Plaatsen ▸ Apparaat uit artikel…** (`Shift+I`), typ `CPU` "
 "en kies **PLC CPU with PROFINET and PROFIBUS DP interfaces** (EW-GEN-CPU-2). "
 "Klik linksboven op de pagina. De CPU -2A1 staat er als zijn bussymbool: "
 "bovenaan zijn kenmerk en artikel, en daaronder een vak voor DP en een voor "
-"X1, elk met zijn aansluiting. Zijn rek opent in een tabblad naast dat van de "
-"pagina, omdat een CPU een station is; druk op `Esc` om terug te gaan naar de "
-"pagina (het tabblad blijft, voor later)."
+"X1, elk met zijn aansluiting. Een CPU is een station: een melding zegt dat "
+"en biedt **Rek…** aan, dat zijn sloten vult; het beeld blijft op de pagina. "
+"Druk op `Esc`."
 
 #: src/tutorials/bus-network.md:29
 msgid ""
 "Choose **Draw ▸ Place ▸ Device from part…** again and choose **Remote I/O "
 "head with PROFINET and PROFIBUS DP interfaces** (EW-GEN-RIO-1). Click low on "
 "the page, under the CPU. The remote I/O station -2A2 stands with its DP and "
-"X1 compartments, and its rack opens in a tab."
+"X1 compartments, and its message offers **Rack…**."
 msgstr ""
 "Kies opnieuw **Tekenen ▸ Plaatsen ▸ Apparaat uit artikel…** en kies **Remote "
 "I/O head with PROFINET and PROFIBUS DP interfaces** (EW-GEN-RIO-1). Klik "
 "laag op de pagina, onder de CPU. Het decentrale I/O-station -2A2 staat er "
-"met zijn vakken DP en X1, en zijn rek opent in een tabblad."
+"met zijn vakken DP en X1, en zijn melding biedt **Rek…** aan."
 
 #: src/tutorials/bus-network.md:32
 msgid ""
-"In the rack's **Catalogue**, double-click **PLC digital input card, 8 "
-"channels** (EW-GEN-DI-1), then press `Esc` to go back to the page. The "
-"station carries an input module, -2A2-A1, drawn on no page yet."
+"Choose **Rack…** on the message: the station's rack opens in a tab beside "
+"the page's. In the rack's **Catalogue**, double-click **PLC digital input "
+"card, 8 channels** (EW-GEN-DI-1), then press `Esc` to go back to the page. "
+"The station carries an input module, -2A2-A1, drawn on no page yet."
 msgstr ""
-"Dubbelklik in de **Catalogus** van het rek op **PLC digital input card, 8 "
-"channels** (EW-GEN-DI-1) en druk dan op `Esc` om terug te gaan naar de "
-"pagina. Het station draagt een ingangsmodule, -2A2-A1, die nog op geen "
-"pagina getekend is."
+"Kies **Rek…** op de melding: het rek van het station opent in een tabblad "
+"naast dat van de pagina. Dubbelklik in de **Catalogus** van het rek op **PLC "
+"digital input card, 8 channels** (EW-GEN-DI-1) en druk dan op `Esc` om terug "
+"te gaan naar de pagina. Het station draagt een ingangsmodule, -2A2-A1, die "
+"nog op geen pagina getekend is."
 
-#: src/tutorials/bus-network.md:35
+#: src/tutorials/bus-network.md:36
 msgid ""
 "Choose **Draw ▸ Place ▸ Device from part…**, choose **Industrial Ethernet "
 "switch, unmanaged, 5 ports** (EW-GEN-ESW-5) and click between the CPU and "
@@ -2075,7 +2077,7 @@ msgstr ""
 "Selecteren**. De switch -2K1 staat er als zijn symbool, één vak met zijn "
 "aansluitingen P1 tot en met P3 boven en P4 en P5 onder."
 
-#: src/tutorials/bus-network.md:39
+#: src/tutorials/bus-network.md:40
 msgid ""
 "Choose **Draw ▸ Wire** (`W`). Click the socket of the CPU's X1, then P1 of "
 "the switch; click P4 of the switch, then the socket of the remote I/O "
@@ -2088,7 +2090,7 @@ msgstr ""
 "twee buslijnen maken van de CPU, de switch en het decentrale I/O-station één "
 "PROFINET-netwerk."
 
-#: src/tutorials/bus-network.md:42
+#: src/tutorials/bus-network.md:43
 msgid ""
 "Choose **View ▸ Panels ▸ Navigators ▸ PLC** (the PLC button on the rail at "
 "the left). The PLC panel lists the PLC PLC1 with the CPU -2A1 and the remote "
@@ -2100,7 +2102,7 @@ msgstr ""
 "I/O-station -2A2, een kopstation, met zijn ingangsmodule: beide zijn "
 "stations van dezelfde PLC."
 
-#: src/tutorials/bus-network.md:45
+#: src/tutorials/bus-network.md:46
 msgid ""
 "Choose **Bus panel** on the PLC tab (**PLC ▸ Bus panel**) and switch it to "
 "its table with the table button left of its filter. Type `plc1 192.168.0.1` "
@@ -2115,7 +2117,7 @@ msgstr ""
 "X1. Elk vak X1 op de pagina drukt zijn apparaatnaam af met het IP-adres "
 "eronder. De switch geeft het netwerk door en krijgt geen adres."
 
-#: src/tutorials/bus-network.md:50
+#: src/tutorials/bus-network.md:51
 msgid ""
 "Click the bus line between the CPU and the switch and choose **Cable** on "
 "the Draw tab. The Cable form opens with **EW-GEN-CBL-3 · Industrial Ethernet "
@@ -2143,7 +2145,7 @@ msgstr ""
 "opent in Artikelen (de aders van een kabel komen zoals de bus ze heeft) en "
 "wordt meteen gekozen."
 
-#: src/tutorials/bus-network.md:58
+#: src/tutorials/bus-network.md:59
 msgid ""
 "Choose **Edit ▸ New part…** and, under **What is it?**, **Device drawn as a "
 "box**. Type the **Maker** `Example`, the **Part number** `FC-PN-2` and the "
@@ -2161,7 +2163,7 @@ msgstr ""
 "Kies **Opslaan**. De notificatie zegt \"Artikel FC-PN-2 staat in het project "
 "en in Mijn artikelen.\": uw volgende project heeft het ook. Kies **Terug**."
 
-#: src/tutorials/bus-network.md:63
+#: src/tutorials/bus-network.md:64
 msgid ""
 "Choose **Draw ▸ Place ▸ Device from part…**, type `FC-PN-2` and click to the "
 "right of the remote I/O station. Press `Esc`, then choose **Draw ▸ Select**. "
@@ -2172,7 +2174,7 @@ msgstr ""
 "Selecteren**. De regelaar -2K2 staat er als zijn symbool met de "
 "aansluitingen P1 en P2 van X1."
 
-#: src/tutorials/bus-network.md:66
+#: src/tutorials/bus-network.md:67
 msgid ""
 "Choose **Draw ▸ Wire** (`W`), click P5 of the switch, then P1 of -2K2, and "
 "choose **Draw ▸ Select**. In the Bus panel's table, type `drive1 "
@@ -2184,7 +2186,7 @@ msgstr ""
 "`drive1 192.168.0.3` in de cel **Adres** van -2K2 X1. De regelaar is een "
 "knooppunt van hetzelfde netwerk:"
 
-#: src/tutorials/bus-network.md:70
+#: src/tutorials/bus-network.md:71
 msgid ""
 "![The bus page: the CPU, the switch, the remote I/O station and the "
 "converter, joined by their bus lines](images/bus-network.png)"
@@ -2192,7 +2194,7 @@ msgstr ""
 "![De buspagina: de CPU, de switch, het decentrale I/O-station en de "
 "regelaar, verbonden door hun buslijnen](images/bus-network.png)"
 
-#: src/tutorials/bus-network.md:72
+#: src/tutorials/bus-network.md:73
 msgid ""
 "Choose **Check ▸ Check project** (`F7`). The toast says \"Check: 0 errors, 0 "
 "warnings, 5 infos.\" The infos say that the DP addresses are still TBD (this "
@@ -2204,7 +2206,7 @@ msgstr ""
 "DP-adressen nog TBD zijn (dit netwerk gebruikt alleen PROFINET) en dat nog "
 "geen rapport de stations en de kabel opsomt."
 
-#: src/tutorials/bus-network.md:80
+#: src/tutorials/bus-network.md:81
 msgid ""
 "A bus-topology page holds the network: a device stands as its bus symbol, a "
 "compartment per bus interface, and **Draw ▸ Wire** draws the bus lines "
@@ -2216,7 +2218,7 @@ msgstr ""
 "buslijnen tussen hun aansluitingen. Een CPU of een decentrale I/O-kop is een "
 "station, met zijn rek."
 
-#: src/tutorials/bus-network.md:82
+#: src/tutorials/bus-network.md:83
 msgid ""
 "The Bus panel's table takes each node's address; its compartment prints it, "
 "inside the symbol, clear of the lines."
@@ -2224,13 +2226,13 @@ msgstr ""
 "De tabel van het buspaneel neemt het adres van elk knooppunt; zijn vak drukt "
 "het af, binnen het symbool, vrij van de lijnen."
 
-#: src/tutorials/bus-network.md:83
+#: src/tutorials/bus-network.md:84
 msgid "**Cable** on a bus line sets its cable, length and plugs in one form."
 msgstr ""
 "**Kabel** op een buslijn legt in één formulier de kabel, de lengte en de "
 "stekkers vast."
 
-#: src/tutorials/bus-network.md:84
+#: src/tutorials/bus-network.md:85
 msgid ""
 "A device of your own with its ports is typed from its data sheet in Parts; "
 "[Make your own parts](../how-to/own-parts.md) has the whole of it."
@@ -2239,7 +2241,7 @@ msgstr ""
 "Artikelen in; [Eigen artikelen maken](../how-to/own-parts.md) beschrijft het "
 "helemaal."
 
-#: src/tutorials/bus-network.md:87
+#: src/tutorials/bus-network.md:88
 msgid ""
 "To look up these jobs later, see [Bus ports and "
 "nets](../how-to/plc-workspace.md#bus-ports-and-nets) in the PLC guide. The "
@@ -6080,9 +6082,6 @@ msgstr ""
 
 #: src/how-to/workshop-package.md:16
 msgid ""
-#| "Under **Labels**, choose **Every label**, or, after a release, only those "
-#| "changed since it (**Changed since V1.0**)."
-msgid ""
 "Under **Labels**, choose **Every label**, or, after a release, only those "
 "changed since it (**Changed since V1.0**). Before the first release that "
 "choice says so: \"Changed since a release: none yet, the project has no "
@@ -6216,13 +6215,6 @@ msgstr ""
 
 #: src/how-to/workshop-package.md:52
 msgid ""
-#| "On the right, always in view, **Before it goes to the workshop** shows the "
-#| "release check: \"Ready: nothing stands in the way.\", or what stands, such "
-#| "as \"3 things: 1 stops a release, 2 are warnings.\". An error stops only a "
-#| "package of a released revision; a warning or an info is shown and stops "
-#| "nothing. **Show** lists a finding's wires or devices, its button mends it, "
-#| "and **Open Messages** shows them all."
-msgid ""
 "On the right, always in view, **Before it goes to the workshop** shows the "
 "release check: \"Ready: nothing stands in the way.\", or what stands, such "
 "as \"3 things: 1 stops a release, 2 are warnings.\". An error stops only a "
@@ -6238,9 +6230,9 @@ msgstr ""
 "fout houdt alleen een pakket van een vrijgegeven revisie tegen; een "
 "waarschuwing of een melding wordt getoond en houdt niets tegen. **Tonen** "
 "noemt de draden of apparaten van een bevinding, haar knop herstelt haar, en "
-"**Meldingen openen** toont ze allemaal. Een herstel met een eigen "
-"voorbeeld, zoals **Markeren als niet gebruikt**, toont dat voor het "
-"venster; pas het toe, en het venster is terug met de bevinding hersteld."
+"**Meldingen openen** toont ze allemaal. Een herstel met een eigen voorbeeld, "
+"zoals **Markeren als niet gebruikt**, toont dat voor het venster; pas het "
+"toe, en het venster is terug met de bevinding hersteld."
 
 #: src/how-to/workshop-package.md:57
 msgid ""
@@ -9779,7 +9771,7 @@ msgid ""
 "workspace](../../how-to/plc-workspace.md)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:224 src/reference/window/panels.md:149
+#: src/reference/window/command-bar.md:224 src/reference/window/panels.md:150
 msgid "Fluid"
 msgstr ""
 
@@ -9862,7 +9854,7 @@ msgid ""
 "pattern. See [The medium](../../how-to/fluid-workspace.md#the-medium)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:262 src/reference/window/panels.md:164
+#: src/reference/window/command-bar.md:262 src/reference/window/panels.md:165
 msgid "Medium table"
 msgstr ""
 
@@ -9872,7 +9864,7 @@ msgid ""
 "table](panels.md#medium-table)."
 msgstr ""
 
-#: src/reference/window/command-bar.md:266 src/reference/window/panels.md:157
+#: src/reference/window/command-bar.md:266 src/reference/window/panels.md:158
 msgid "Tube table"
 msgstr ""
 
@@ -10858,15 +10850,18 @@ msgstr ""
 
 #: src/reference/window/panels.md:144
 msgid ""
-"As a table each port is a row: device, interface, address, termination, bus, "
-"role and nets. Type an address into its cell as the row shows it: a number "
-"for a PROFIBUS station, a PROFINET device name with its IP address (`cpx-1 "
+"As a table each port is a row: device, interface, address, termination, "
+"listed in, bus, role and nets. A port on a drawn bus line stands twice, "
+"under its logical net and again under its physical net's segment, and "
+"**Listed in** says which row is which (_logical net_, _physical net_ or _no "
+"net_). Type an address into its cell as the row shows it: a number for a "
+"PROFIBUS station, a PROFINET device name with its IP address (`cpx-1 "
 "192.168.0.10`, then `mask` and `gateway` with theirs), `pos 2` and `alias "
 "1001` for EtherCAT, `port 3` for an IO-Link port, or `TBD`; an empty cell is "
 "a port without an address. The termination cell takes on or off."
 msgstr ""
 
-#: src/reference/window/panels.md:151
+#: src/reference/window/panels.md:152
 msgid ""
 "The fluid side of the project, on the rail as **Fluid**: **Valve "
 "terminals**, each with its modules in position order and their valves, then "
@@ -10878,7 +10873,7 @@ msgid ""
 "default tube and tube tags) and **New medium…**."
 msgstr ""
 
-#: src/reference/window/panels.md:159
+#: src/reference/window/panels.md:160
 msgid ""
 "The tube list as a table, in the bottom dock of the [Fluid "
 "workspace](../../how-to/fluid-workspace.md): one row per tube with its ends "
@@ -10889,7 +10884,7 @@ msgid ""
 "derived value."
 msgstr ""
 
-#: src/reference/window/panels.md:166
+#: src/reference/window/panels.md:167
 msgid ""
 "The project's media, one row per medium, with the ports that feed it, its "
 "pressure, quality, the devices it reaches and its default tube. With a row "
@@ -10898,85 +10893,85 @@ msgid ""
 "them."
 msgstr ""
 
-#: src/reference/window/panels.md:170
+#: src/reference/window/panels.md:171
 msgid "Potentials"
 msgstr ""
 
-#: src/reference/window/panels.md:172
+#: src/reference/window/panels.md:173
 msgid ""
 "The potentials with their definitions and members. See [Define a supply "
 "potential](../../how-to/define-supply-potential.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:175 src/reference/window/things.md:70
+#: src/reference/window/panels.md:176 src/reference/window/things.md:70
 msgid "Interruption points"
 msgstr ""
 
-#: src/reference/window/panels.md:177
+#: src/reference/window/panels.md:178
 msgid "The interruption points grouped by name, with their partners."
 msgstr ""
 
-#: src/reference/window/panels.md:179
+#: src/reference/window/panels.md:180
 msgid "Structure identifiers"
 msgstr ""
 
-#: src/reference/window/panels.md:181
+#: src/reference/window/panels.md:182
 msgid "The function and location nodes of the project's structure."
 msgstr ""
 
-#: src/reference/window/panels.md:183
+#: src/reference/window/panels.md:184
 msgid "Parts in use"
 msgstr ""
 
-#: src/reference/window/panels.md:185
+#: src/reference/window/panels.md:186
 msgid ""
 "The parts the project uses, with their devices. See [Choose "
 "parts](../../how-to/choose-parts.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:187
+#: src/reference/window/panels.md:188
 msgid "Report blocks"
 msgstr ""
 
-#: src/reference/window/panels.md:189
+#: src/reference/window/panels.md:190
 msgid ""
 "The report blocks: the generated pages such as the terminal diagram, the "
 "cable list and the parts list. See [Reports and "
 "PDF](../../tutorials/reports-and-pdf.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:192
+#: src/reference/window/panels.md:193
 msgid "Unplaced devices"
 msgstr ""
 
-#: src/reference/window/panels.md:194
+#: src/reference/window/panels.md:195
 msgid ""
 "The devices of each layout space that have no place on a rail or the plate "
 "yet."
 msgstr ""
 
-#: src/reference/window/panels.md:196
+#: src/reference/window/panels.md:197
 msgid "Macros"
 msgstr ""
 
-#: src/reference/window/panels.md:198
+#: src/reference/window/panels.md:199
 msgid "The macros of every library tier and of the project."
 msgstr ""
 
-#: src/reference/window/panels.md:200
+#: src/reference/window/panels.md:201
 msgid "Libraries"
 msgstr ""
 
-#: src/reference/window/panels.md:202
+#: src/reference/window/panels.md:203
 msgid ""
 "The installed libraries and the project's library copies with their state."
 msgstr ""
 
-#: src/reference/window/panels.md:204
+#: src/reference/window/panels.md:205
 msgid "Messages"
 msgstr ""
 
-#: src/reference/window/panels.md:206
+#: src/reference/window/panels.md:207
 msgid ""
 "The findings of the project's checks, by severity and rule. Check ▸ Next "
 "finding and Check ▸ Previous finding walk them; `F1` on a finding opens its "

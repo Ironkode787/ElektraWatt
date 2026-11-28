@@ -141,8 +141,9 @@ segment's members in order from its start (a port at an end marked *end*, a conn
 or *not terminated*, the cables between them), and **Ports without a net**. Selecting a net shows its name, bus, rate
 and master in Properties; selecting a port shows its interface, role, address, termination and nets.
 
-As a table each port is a row: device, interface, address, termination, bus, role and nets. Type an address into its
-cell as the row shows it: a number for a PROFIBUS station, a PROFINET device name with its IP address (`cpx-1
+As a table each port is a row: device, interface, address, termination, listed in, bus, role and nets. A port on a
+drawn bus line stands twice, under its logical net and again under its physical net's segment, and **Listed in** says
+which row is which (*logical net*, *physical net* or *no net*). Type an address into its cell as the row shows it: a number for a PROFIBUS station, a PROFINET device name with its IP address (`cpx-1
 192.168.0.10`, then `mask` and `gateway` with theirs), `pos 2` and `alias 1001` for EtherCAT, `port 3` for an IO-Link
 port, or `TBD`; an empty cell is a port without an address. The termination cell takes on or off.
 

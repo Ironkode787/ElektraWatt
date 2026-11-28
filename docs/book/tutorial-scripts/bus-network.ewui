@@ -11,6 +11,7 @@
 {"action":"place.pick","params":{"part":"EW-GEN-RIO-1"}}
 {"action":"cursor.set","params":{"x_mm":85.734,"y_mm":142.938}}
 {"action":"canvas.activate"}
+{"action":"notifications.run","params":{"action":"rack"}}
 {"action":"plc.rack_add","params":{"part":"EW-GEN-DI-1"}}
 {"action":"ui.dismiss"}
 {"action":"tool.place_part"}

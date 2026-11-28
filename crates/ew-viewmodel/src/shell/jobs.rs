@@ -391,17 +391,27 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `notifications.run {entry, action}`: a log entry's action while it is valid.
+    /// `notifications.run {entry?, action}`: a log entry's action while it is valid; without `entry`, the newest
+    /// entry's that offers `action`.
     pub(crate) fn act_notifications_run(&mut self, p: &Map<String, Value>) -> Outcome {
-        let serial = match uint_param(p, "entry") {
-            Err(e) => return e,
-            Ok(Some(n)) => n,
-            Ok(None) => return failed(key!("error-missing-param"), &["entry"]),
-        };
         let word = match string_param(p, "action") {
             Err(e) => return e,
             Ok(Some(word)) => word.to_owned(),
             Ok(None) => return failed(key!("error-missing-param"), &["action"]),
+        };
+        // Without `entry`, the newest message that offers `action`: the button a person presses on the toast in
+        // front, which a script cannot name by its serial.
+        let serial = match uint_param(p, "entry") {
+            Err(e) => return e,
+            Ok(Some(n)) => n,
+            Ok(None) => match self.notes.serials().into_iter().rev().find(|s| {
+                self.notes
+                    .get(*s)
+                    .is_some_and(|n| n.offer(&word).is_some())
+            }) {
+                Some(s) => s,
+                None => return failed(key!("error-no-such-action"), &[&word]),
+            },
         };
         let Some(entry) = self.notes.get(serial).cloned() else {
             return failed(

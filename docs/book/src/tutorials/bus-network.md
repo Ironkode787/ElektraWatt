@@ -24,12 +24,13 @@ and the bus lines between the sockets. The power and the I/O wiring of the same 
 3. Choose **Draw ▸ Place ▸ Device from part…** (`Shift+I`), type `CPU` and choose **PLC CPU with PROFINET and
    PROFIBUS DP interfaces** (EW-GEN-CPU-2). Click near the top left of the page.
    The CPU -2A1 stands there as its bus symbol: its tag and part on top, and under them a compartment for DP and one
-   for X1, each with its socket. Its rack opens in a tab beside the page's, because a CPU is a station; press `Esc` to
-   go back to the page (the tab stays, for later).
+   for X1, each with its socket. A CPU is a station: a message says so and offers **Rack…**, which fills its slots;
+   the view stays on the page. Press `Esc`.
 4. Choose **Draw ▸ Place ▸ Device from part…** again and choose **Remote I/O head with PROFINET and PROFIBUS DP
    interfaces** (EW-GEN-RIO-1). Click low on the page, under the CPU.
-   The remote I/O station -2A2 stands with its DP and X1 compartments, and its rack opens in a tab.
-5. In the rack's **Catalogue**, double-click **PLC digital input card, 8 channels** (EW-GEN-DI-1), then press `Esc`
+   The remote I/O station -2A2 stands with its DP and X1 compartments, and its message offers **Rack…**.
+5. Choose **Rack…** on the message: the station's rack opens in a tab beside the page's. In the rack's
+   **Catalogue**, double-click **PLC digital input card, 8 channels** (EW-GEN-DI-1), then press `Esc`
    to go back to the page.
    The station carries an input module, -2A2-A1, drawn on no page yet.
 6. Choose **Draw ▸ Place ▸ Device from part…**, choose **Industrial Ethernet switch, unmanaged, 5 ports**

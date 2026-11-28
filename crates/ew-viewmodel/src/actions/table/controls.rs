@@ -643,7 +643,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     )),
     // A toast's action, which goes while the symbol editor shows too.
     keeps_banner(with_params(
-        "entry:uint, action:text",
+        "entry?:uint, action:text",
         in_symbol_editor(hidden(act(
             "notifications.run",
             Command,

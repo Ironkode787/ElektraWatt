@@ -801,22 +801,20 @@ fn tutorial_a_plc_with_its_modules_runs_as_its_page_says() {
     );
 }
 
-/// The bus tutorial: a bus-topology page with the generic CPU, remote I/O station and switch, the bus
-/// lines, the node addresses, a bus cable, a PROFINET device of one's own made in Parts, the check and the
-/// save: every step done, the end state the page names, and the page passes the lint. The plugs of step 10 are chosen
+/// The bus tutorial: a bus-topology page with the generic CPU, remote I/O station (its rack opened from its toast)
+/// and switch, the bus lines, the node addresses, a bus cable, a PROFINET device of one's own made in Parts, the check
+/// and the save: every step done, the end state the page names, and the page passes the lint. The plugs of step 10 are chosen
 /// in the window only (a script names a plug by its record, not its part number).
 #[test]
 fn tutorial_a_bus_network_runs_as_its_page_says() {
     let tmp = Tmp::new();
     let transcript = all_done(&run_tutorial(&tmp, "bus-network"));
     let [cpu, stations, cable, end] = <[String; 4]>::try_from(describes(&transcript)).unwrap();
-    // Step 3: the CPU as its bus symbol, and its rack in a tab beside the page.
-    assert_eq!(
-        lines_of(&cpu, &["toast", "tab station", "station \""]),
-        [
-            "tab station \"-2A1 · rack\" selected history back 0 forward 0",
-            "station \"-2A1\" \"EW-GEN-CPU-2 · PLC CPU with PROFINET and PROFIBUS DP interfaces, without on-board I/O\"",
-        ]
+    // Step 3: the CPU as its bus symbol; the view stays on the page, and a message offers the station's rack.
+    let cpu = lines_of(&cpu, &["toast", "tab station"]);
+    assert!(
+        matches!(cpu.as_slice(), [toast] if toast.starts_with("toast \"-2A1 ") && toast.ends_with(" rack")),
+        "{cpu:?}"
     );
     // Step 8: both stations belong to the one PLC; the remote one carries its module.
     assert_eq!(
@@ -838,18 +836,20 @@ fn tutorial_a_bus_network_runs_as_its_page_says() {
         lines_of(&end, &["row \"-2", "toast", "title:"]),
         [
             "title: bus-network.ew - ElektraWatt",
-            "row \"-2A1\" \"DP\" \"TBD\" \"\" \"PROFIBUS DP\" \"master\" \"\" \"\"",
+            "row \"-2A1\" \"DP\" \"TBD\" \"\" \"no net\" \"PROFIBUS DP\" \"master\" \"\" \"\"",
             // A drawn line gives its ports the physical net too: each X1 port is listed under its logical
-            // net and again under the physical net's segment.
-            "row \"-2A1\" \"X1\" \"plc1 192.168.0.1\" \"\" \"PROFINET\" \"controller\" \"PROFINET\" \"PROFINET\"",
-            "row \"-2A1\" \"X1\" \"plc1 192.168.0.1\" \"\" \"PROFINET\" \"controller\" \"PROFINET\" \"PROFINET\"",
-            "row \"-2A2\" \"DP\" \"TBD\" \"\" \"PROFIBUS DP\" \"slave\" \"\" \"\"",
-            "row \"-2A2\" \"X1\" \"rio1 192.168.0.2\" \"\" \"PROFINET\" \"device\" \"PROFINET\" \"PROFINET\"",
-            "row \"-2A2\" \"X1\" \"rio1 192.168.0.2\" \"\" \"PROFINET\" \"device\" \"PROFINET\" \"PROFINET\"",
-            "row \"-2K1\" \"X1\" \"\" \"\" \"PROFINET\" \"passive\" \"\" \"PROFINET\"",
-            "row \"-2K1\" \"X1\" \"\" \"\" \"PROFINET\" \"passive\" \"\" \"PROFINET\"",
-            "row \"-2K2\" \"X1\" \"drive1 192.168.0.3\" \"\" \"PROFINET\" \"device\" \"PROFINET\" \"PROFINET\" cursor \"Address\"",
-            "row \"-2K2\" \"X1\" \"drive1 192.168.0.3\" \"\" \"PROFINET\" \"device\" \"PROFINET\" \"PROFINET\"",
+            // net and again under the physical net's segment, and its Listed in column says which row is which.
+            "row \"-2A1\" \"X1\" \"plc1 192.168.0.1\" \"\" \"logical net\" \"PROFINET\" \"controller\" \"PROFINET\" \"PROFINET\"",
+            "row \"-2A1\" \"X1\" \"plc1 192.168.0.1\" \"\" \"physical net\" \"PROFINET\" \"controller\" \"PROFINET\" \"PROFINET\"",
+            "row \"-2A2\" \"DP\" \"TBD\" \"\" \"no net\" \"PROFIBUS DP\" \"slave\" \"\" \"\"",
+            "row \"-2A2\" \"X1\" \"rio1 192.168.0.2\" \"\" \"logical net\" \"PROFINET\" \"device\" \"PROFINET\" \"PROFINET\"",
+            "row \"-2A2\" \"X1\" \"rio1 192.168.0.2\" \"\" \"physical net\" \"PROFINET\" \"device\" \"PROFINET\" \"PROFINET\"",
+            "row \"-2K1\" \"X1\" \"\" \"\" \"logical net\" \"PROFINET\" \"passive\" \"\" \"PROFINET\"",
+            "row \"-2K1\" \"X1\" \"\" \"\" \"physical net\" \"PROFINET\" \"passive\" \"\" \"PROFINET\"",
+            "row \"-2K2\" \"X1\" \"drive1 192.168.0.3\" \"\" \"logical net\" \"PROFINET\" \"device\" \"PROFINET\" \"PROFINET\" cursor \"Address\"",
+            "row \"-2K2\" \"X1\" \"drive1 192.168.0.3\" \"\" \"physical net\" \"PROFINET\" \"device\" \"PROFINET\" \"PROFINET\"",
+            // The line to the drive was drawn before its address was typed: a notice said what was still to be given.
+            "toast \"Still to be given: -2K2:X1: the station address is TBD; enter it before release.\"",
             // The lines to the drive have no cable yet, which a toast offers to choose.
             "toast \"Bus line drawn: it has no cable yet.\" choose_cable",
             "toast \"Check: 0 errors, 0 warnings, 5 infos.\" show_messages",
