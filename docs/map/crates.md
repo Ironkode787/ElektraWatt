@@ -348,6 +348,7 @@ Rule engine, rule packs, the `RuleImpl` trait and registry, online checks as que
 | `src/lib.rs` |  | `Command`, `DynCommand`, `TxBuilder`, normalisers, validators, numbering engine, `History`, previews, macros and `ApplyImport`. |
 | `src/limits.rs` |  | The size limits of an untrusted parameter document ([`check_limits`]): its bytes, its nesting, the length of an array and of a string. |
 | `src/meta.rs` |  | Command metadata (doc 17 §2.1, §2.3): cost, exposure class, confirmation and the origin of a transaction. |
+| `src/normalise/bond_wires.rs` |  | Normaliser `bond_wires`: a bond's wire (`Bond.via`) runs between the bond's two ends (`bond.create` refuses another), whichever command changes the wire afterwards. |
 | `src/normalise/bound_texts.rs` |  | Normaliser `bound_texts` (doc 06 §3.2, §3.8): a text of a symbol moves with it. |
 | `src/normalise/bus_nets.rs` |  | Normaliser #14b, bus nets from drawn bus lines (N6; doc 10 §2.7 "nets from drawn lines"; doc 06 §3.2 after row 14a). |
 | `src/normalise/bus_ports.rs` |  | Normaliser #14a, bus ports from the part (N5; .2, D16; doc 06 §3.2 between rows 14 and 15). |

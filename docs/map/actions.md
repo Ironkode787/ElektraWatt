@@ -131,7 +131,7 @@ Every key stands in a file of the `texts/en-GB/` folder of the crate that says i
 | `package.messages` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_package_messages` `crates/ew-viewmodel/src/shell/package.rs` | `action-package-messages` |
 | `package.file` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_package_file` `crates/ew-viewmodel/src/shell/package.rs` | `action-package-file`, `package-file`, `package-file-name`, `package-file-name-draft` |
 | `workshop.settings` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_workshop_settings` `crates/ew-viewmodel/src/shell/labels.rs` | `action-workshop-settings` |
-| `rework.archive` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_rework_archive` `crates/ew-viewmodel/src/shell/rework.rs` | `action-rework-archive`, `rework-archive-file` |
+| `rework.archive` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_rework_archive` `crates/ew-viewmodel/src/shell/rework.rs` | `action-rework-archive`, `rework-archive-file`, `rework-archive-name`, `rework-archive-too-large` |
 | `rework.export` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_rework_export` `crates/ew-viewmodel/src/shell/rework.rs` | `action-rework-export`, `rework-export` |
 | `notifications.show` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_notifications_show` `crates/ew-viewmodel/src/shell/jobs.rs` | `action-notifications-show` |
 | `messages.migration` | `crates/ew-viewmodel/src/actions/table/view.rs` | `act_messages_migration` `crates/ew-viewmodel/src/shell/messages.rs` | `action-messages-migration` |
