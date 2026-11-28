@@ -35,7 +35,8 @@ change here.
   lines follow their sockets; the Save's card names it. A page drawn by an earlier version keeps its boxes until
   **Draw as one symbol** in a box's menu on that page puts the device's symbol in their place, in one undo step
 - api-break: `bus.place_ports` draws the device's bus symbol: it takes `pos` and `replace` (the device's boxes it takes
-  the place of) instead of `boxes`, and finds the port functions' definition among the project's bus ports
+  the place of) instead of `boxes`, and finds the port functions' definition among the project's bus ports;
+  `device.place` refuses the bus symbol's copy, naming `bus.place_ports`
 - api-break: the Properties rows of a bus symbol that draws two or more network ports are keyed by their port's
   section, `function@X1/bus_port.address` where a box's were `function/bus_port.address`; a script that sets such a
   port's row (`props.set`) names its port

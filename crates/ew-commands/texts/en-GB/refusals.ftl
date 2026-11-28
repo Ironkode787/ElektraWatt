@@ -442,6 +442,7 @@ refusal-move-route-out-of-range = { $p0 } moves the route of { $p1 } outside the
 refusal-arrange-few-ips = arrange at least two interruption points
 # device.place, box.black and a device from a part.
 refusal-device-place-no-cp = the symbol has no connection point { $p0 }; pick one of its CPs
+refusal-device-place-bus-symbol = { $p0 } is the bus symbol, which a device's part draws on a bus page; place the device there with `bus.place_ports`
 refusal-device-place-ip = an interruption point is placed with `ip.place`; pick another function
 refusal-device-place-out-of-range = the position puts a connection point of the symbol outside the drawable range; place it nearer the page origin
 refusal-device-place-lost-cp = the symbol lost a connection point

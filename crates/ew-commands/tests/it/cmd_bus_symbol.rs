@@ -581,3 +581,20 @@ fn a_text_style_change_moves_the_lines_with_the_sockets() {
     assert_ne!(after, before, "the bottom edge moved down");
     assert_eq!(row(&e, line).route.first(), Some(&after), "its line follows");
 }
+
+/// `device.place` refuses the bus symbol's copy in words that name the way: a device is drawn with it by
+/// `bus.place_ports` alone, from its part.
+#[test]
+fn device_place_refuses_the_bus_symbol_and_names_bus_place_ports() {
+    let mut e = engine(model(false));
+    let place: ew_commands::commands::PlaceSymbol = serde_json::from_value(json!({
+        "page": BUS_PAGE.to_string(),
+        "symbol": BUS_SYMBOL.to_string(),
+        "pos": [g(10).0, g(20).0],
+        "target": {"existing_function": {"function": X1.to_string()}},
+    }))
+    .expect("device.place");
+    let why = reason(e.execute(&place));
+    assert!(why.contains("bus.place_ports"), "{why}");
+    assert!(symbols(&e).is_empty(), "nothing placed");
+}

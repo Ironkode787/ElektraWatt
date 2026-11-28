@@ -255,7 +255,8 @@ pub struct ConnectHint {
 ///   project holds with the same hash is skipped, one it holds with another hash is refused ("update from library
 ///   first", naming the item and the held version), the others are inserted. So a placement from a library is one
 ///   undo step and the command replays without a library.
-/// - The page and the symbol copy must exist. The representation is `{functions: [f], page, symbol,
+/// - The page and the symbol copy must exist, the copy not the bus symbol `ew.gen.bus` (`bus.place_ports` draws a
+///   device with it). The representation is `{functions: [f], page, symbol,
 ///   variant, pos, orient, rep_type}`; `rep_type` defaults to the symbol's.
 /// - `new_device`: a device `{tag: {letter, counter: none}, kind}` and a main function `{def}`; `def` is
 ///   `fndef` or the FnDef copy `v5(NS_LIBCOPY, library ‖ item)` of the symbol's `fndef` reference, which
@@ -352,6 +353,13 @@ impl Command for PlaceSymbol {
         embed_closure(Self::NAME, tx, &self.copies)?;
         let page = tx.require::<Page>(self.page)?;
         let symbol = tx.require::<LibCopy<SymbolDef>>(self.symbol)?;
+        // The bus symbol is drawn from a device's part on a bus page, by `bus.place_ports` alone (doc 10 §2.7).
+        if ew_derive::is_bus_copy(&symbol.item) {
+            return tx.reject(text!(
+                "refusal-device-place-bus-symbol",
+                crate::words::symbol_copy(tx, self.symbol)
+            ));
+        }
         require_on_grid(tx, self.page, self.pos, "/pos")?;
         let rep_type = self
             .rep_type

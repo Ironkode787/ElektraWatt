@@ -443,6 +443,7 @@ refusal-move-route-out-of-range = { $p0 } verplaatst het verloop van { $p1 } bui
 refusal-arrange-few-ips = schik ten minste twee onderbrekingspunten
 # device.place, box.black and a device from a part.
 refusal-device-place-no-cp = het symbool heeft geen aansluitpunt { $p0 }; kies een van zijn aansluitpunten
+refusal-device-place-bus-symbol = { $p0 } is het bussymbool, dat het artikel van een apparaat op een buspagina tekent; plaats het apparaat daar met `bus.place_ports`
 refusal-device-place-ip = een onderbrekingspunt wordt geplaatst met `ip.place`; kies een andere functie
 refusal-device-place-out-of-range = de positie zet een aansluitpunt van het symbool buiten het tekenbereik; plaats het dichter bij de oorsprong van de pagina
 refusal-device-place-lost-cp = het symbool is een aansluitpunt kwijtgeraakt
