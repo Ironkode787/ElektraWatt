@@ -20,6 +20,7 @@ use ew_derive::layout::{
     Fit, LabelMode, LayoutLabel, PlacementGeometry, Quarter, RailAxis, brackets, carrier_labels, fits_rail,
     free_length, path_length, rail_items,
 };
+use ew_derive::text::{mm_with_unit, mm_words};
 use ew_derive::{DeviceTag, DrawnPageOrder, PageRef, Q};
 use ew_ids::{Id, Uuid};
 use ew_rds::Aspect;
@@ -142,19 +143,6 @@ fn kind_word(kind: &ew_schema::SurfaceKind) -> &'static str {
 /// Millimetres as the project prints them: the shortest decimal, the project's separator.
 pub(crate) fn mm_text(q: &Q, nm: i128) -> String {
     mm_words(nm, comma(q))
-}
-
-/// Millimetres as the shortest decimal, with a decimal comma where `comma` (`7.5`, `7,5`): the one text of a length in
-/// millimetres, Properties' and the window's (with its unit, [`mm_with_unit`]).
-pub fn mm_words(nm: i128, comma: bool) -> String {
-    let text = ew_derive::mm_exact(nm);
-    if comma { text.replace('.', ",") } else { text }
-}
-
-/// A length in words, with its unit (`250 mm`, `7,5 mm` where `comma`): the one text of a length a Properties row
-/// shows, set or unset, which its parser ([`parse_mm`]) reads back.
-pub fn mm_with_unit(nm: i128, comma: bool) -> String {
-    format!("{} mm", mm_words(nm, comma))
 }
 
 /// Whether the project prints a decimal comma ([`ew_derive::text::decimal_comma`] in its print language).

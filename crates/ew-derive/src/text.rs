@@ -151,6 +151,19 @@ pub fn mm_exact(nm: i128) -> String {
     }
 }
 
+/// Millimetres as the shortest decimal, with a decimal comma where `comma` (`7.5`, `7,5`): the one text of a length in
+/// millimetres, Properties' and the window's (with its unit, [`mm_with_unit`]).
+pub fn mm_words(nm: i128, comma: bool) -> String {
+    let text = mm_exact(nm);
+    if comma { text.replace('.', ",") } else { text }
+}
+
+/// A length in words, with its unit (`250 mm`, `7,5 mm` where `comma`): the one text of a length a Properties row
+/// shows, set or unset, and a finding prints (with a point).
+pub fn mm_with_unit(nm: i128, comma: bool) -> String {
+    format!("{} mm", mm_words(nm, comma))
+}
+
 /// A length in millimetres cut toward zero at the micrometre, whole millimetres plain, else three decimals at most
 /// (`6`, `2.7`): the fluid media's sizes.
 pub fn mm_micro(nm: Nm) -> String {

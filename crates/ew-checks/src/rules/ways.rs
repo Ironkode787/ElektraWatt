@@ -22,7 +22,7 @@ use serde_json::json;
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::layout::device_name;
-use crate::rules::term::mm;
+use ew_derive::text::mm_with_unit;
 
 /// A duct inside a sentence: its label ("duct 1"); `None` for a carrier that is gone or of a newer kind.
 fn duct_name(q: &Q, c: Id<Carrier>) -> Option<TextArg> {
@@ -224,11 +224,11 @@ impl Rule for Clearance {
                     name.clone(),
                 )
                 .arg("device", name.clone())
-                .arg("need", mm(need))
+                .arg("need", mm_with_unit(need, false))
                 .arg("side", side.word())
                 .arg("other", other)
-                .arg("at", mm(need - short))
-                .arg("short", mm(short));
+                .arg("at", mm_with_unit(need - short, false))
+                .arg("short", mm_with_unit(short, false));
                 out.push(f);
             }
         }

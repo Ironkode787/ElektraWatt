@@ -131,6 +131,8 @@ pub(crate) use editing::{
     starter_pinned_fndefs, starter_symbol_name,
 };
 pub use ew_derive::ValvePort;
+/// The one text of a length in millimetres (`ew_derive::text`), which the shell's lengths read.
+pub use ew_derive::text::{mm_with_unit, mm_words};
 pub use ew_export::{
     DXF_SET_EXTENSIONS, DxfFile, DxfLayers, Parallelism, PdfDate, PdfReport, SvgFile, dxf_file_name,
     svg_file_name,
@@ -148,8 +150,7 @@ pub use layers::{
 };
 pub(crate) use layout_edit::LayoutPartOffer;
 pub use layout_edit::{
-    GlandSnap, LayoutEdit, LayoutEditError, SurfaceOffer, corner_choice_words, hinge_choice_words,
-    mm_with_unit, mm_words, parse_mm,
+    GlandSnap, LayoutEdit, LayoutEditError, SurfaceOffer, corner_choice_words, hinge_choice_words, parse_mm,
 };
 pub use navigation::{
     CellLabel, GotoError, LinkTarget, PageCells, PageCp, PageListTable, PageRow, page_kind_name,

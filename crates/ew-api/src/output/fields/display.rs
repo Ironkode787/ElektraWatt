@@ -122,7 +122,7 @@ pub(crate) fn format_with(cx: &dyn DisplayCx, ty: &FieldType, value: &Value) -> 
         FieldType::Csa => csa_text(value),
         FieldType::Nm => value.as_i64().map_or_else(
             || compact_json(value),
-            |nm| crate::output::layout_edit::mm_with_unit(i128::from(nm), cx.decimal_comma()),
+            |nm| ew_derive::text::mm_with_unit(i128::from(nm), cx.decimal_comma()),
         ),
         FieldType::Date => match value.as_str().map(str::parse::<ew_schema::Date>) {
             Some(Ok(d)) => cx.date_format().format(d),

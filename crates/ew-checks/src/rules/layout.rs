@@ -50,7 +50,8 @@ use ew_units::{Pt2, Rect};
 use crate::finding::{Finding, QuickFix, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::Named;
-use crate::rules::term::{full_tag, location_text, mm};
+use crate::rules::term::{full_tag, location_text};
+use ew_derive::text::mm_with_unit;
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared helpers
@@ -893,8 +894,8 @@ fn closed_door(q: &Q) -> Vec<Finding> {
                 let f = Finding::new(&COLLISION, targets.clone(), "door_reach", name.clone())
                     .arg("form", "door_reach")
                     .arg("device", name.clone())
-                    .arg("take", mm(i128::from(take.0)))
-                    .arg("room", mm(i128::from(room.0)));
+                    .arg("take", mm_with_unit(i128::from(take.0), false))
+                    .arg("room", mm_with_unit(i128::from(room.0), false));
                 out.push(shown(f, q, Some(*s)));
             }
         }
@@ -929,9 +930,9 @@ fn closed_door(q: &Q) -> Vec<Finding> {
                     .arg("form", "door_meet")
                     .arg("device", name.clone())
                     .arg("other", other)
-                    .arg("a", mm(i128::from(take.0)))
-                    .arg("b", mm(i128::from(behind.0)))
-                    .arg("room", mm(i128::from(room.0)));
+                    .arg("a", mm_with_unit(i128::from(take.0), false))
+                    .arg("b", mm_with_unit(i128::from(behind.0), false))
+                    .arg("room", mm_with_unit(i128::from(room.0), false));
                     out.push(shown(f, q, Some(*s)));
                 }
             }

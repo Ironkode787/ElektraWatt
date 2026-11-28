@@ -51,11 +51,6 @@ pub(crate) fn location_text(q: &Q, node: Id<StructureNode>) -> Named {
     text.into()
 }
 
-/// A length in millimetres as a finding prints it: exact, without trailing zeros, with its unit.
-pub(crate) fn mm(nm: i128) -> String {
-    format!("{} mm", ew_derive::mm_exact(nm))
-}
-
 /// The `end` argument of EW-TERM-002's pattern: `named` for a strip with a printed designation, `untagged`
 /// for one without, which each language words itself ("the strip", "de klemmenstrook").
 fn strip_end(q: &Q, strip: Id<Device>) -> &'static str {
