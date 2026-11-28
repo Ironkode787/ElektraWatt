@@ -187,8 +187,10 @@ Two more ways start a part, and both end on the same sheet:
   opens with everything the other has but its number, "New, not saved".
 - **What the maker gives.** A table, an EPLAN parts file, an outline drawing for the open part (§3.6, §5.9).
 
-A new part needs a maker and a part number to be saved and nothing more. It is saved to My parts (§3.1); the open
-project takes it when a device uses it.
+A new part needs a maker and a part number to be saved and nothing more. It is saved to My parts (§3.1), and the open
+project takes it at the same Save, in one undo step (the toast says "in the project and in My parts"); with no project
+open it is in My parts alone. A part brought in from a file goes to My parts, and a project takes it when a device
+uses it (§5.9).
 
 A part of another part is made in passing: where a field takes a part that is not there yet (a cabinet's mounting
 plate, a terminal's end plate), New… beside the field opens that part's sheet over the first, and Save returns to

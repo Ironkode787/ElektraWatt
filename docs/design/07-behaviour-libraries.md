@@ -54,8 +54,9 @@ window says no more (§5.8). The same holds for a symbol.
    it (a reference into a project's own library) is still offered: its closure leaves that reference out, and its row
    and its sheet say what it names and no one holds, with the way (keep that part from the project that holds it, or
    name another).
-2. **A project carries the parts it uses.** A project takes a part when a device uses it (the embed above), so it
-   opens, prints and checks on a PC that has none of his parts. A part the project holds that no library the reader
+2. **A project carries the parts it uses.** A project takes a part when a device uses it (the embed above), and a
+   part he makes in Parts while it is open at that part's Save (rule 1), so it opens, prints and checks on a PC that
+   has none of his parts. A part the project holds that no library the reader
    can read has is **only in this project**: it is the project's own (its `library_id` is the project's), it is
    changed in place by `part.edit_copy`, any member, and **Keep in my parts** writes it into My parts, with the parts
    only in this project that it names (rule 1), and moves every use of the project's copies to the kept ones
