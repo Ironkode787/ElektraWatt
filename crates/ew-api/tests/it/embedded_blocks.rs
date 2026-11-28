@@ -214,7 +214,13 @@ fn a_kind_without_a_layout_draws_its_printed_columns_and_reports_the_rows_it_can
         "the wire list has more rows than the rect holds"
     );
     let (texts, findings) = tables(&q, "101");
-    assert_eq!(texts[..labels.len()], labels[..]);
+    // The header's texts are the labels, a long one cut as a cell is.
+    let cut = |drawn: &str, full: &str| {
+        drawn == full || (drawn.ends_with('…') && full.starts_with(drawn.trim_end_matches('…')))
+    };
+    for (drawn, label) in texts.iter().zip(&labels) {
+        assert!(cut(drawn, label), "{drawn} for {label}");
+    }
     assert_eq!(
         findings[0],
         PageFinding::Table(TableFinding::TooManyRows {
@@ -223,13 +229,12 @@ fn a_kind_without_a_layout_draws_its_printed_columns_and_reports_the_rows_it_can
         })
     );
     // The printed columns at weight 1 leave the longest wire-list texts too wide: they shrink, are cut with an ellipsis at
-    // the smallest size and reported (never printed over the next cell), and only the nine drawn rows report.
+    // the smallest size and reported (never printed over the next cell), and only the header and the nine drawn rows
+    // report.
     for f in &findings[1..] {
         match f {
-            PageFinding::Table(TableFinding::Overflow {
-                row: Some(r), text, ..
-            }) => {
-                assert!(*r < 9, "{f:?}");
+            PageFinding::Table(TableFinding::Overflow { row, text, .. }) => {
+                assert!(row.is_none_or(|r| r < 9), "{f:?}");
                 assert!(
                     texts
                         .iter()

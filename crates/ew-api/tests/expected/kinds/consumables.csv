@@ -18,9 +18,7 @@ data,EW-GEN-FER-2X0.75,"Twin ferrule 2 × 0.75 mm², insulated",2 × 0.75 mm²,7
 data,EW-GEN-FER-2X2.5,"Twin ferrule 2 × 2.5 mm², insulated",2 × 2.5 mm²,5,pc
 data,,no ring lug found,2.5 mm²,1,pc
 heading,Markers,,,,
-data,EW-GEN-MRK-1,"Wire marker, 2 lines of 12 characters",Wire markers,82,pc
-data,EW-GEN-MRK-2,Terminal marker for 5.2 mm terminals,Terminal markers,18,pc
-data,EW-GEN-MRK-2,Terminal marker for 5.2 mm terminals,Strip markers,3,pc
+data,EW-GEN-MRK-1,"Wire marker, 2 lines of 12 characters","Wire markers 82, Tube markers 14",96,pc
+data,EW-GEN-MRK-2,Terminal marker for 5.2 mm terminals,"Terminal markers 18, Strip markers 3",21,pc
 data,,no marker found,Cable markers,6,pc
 data,EW-GEN-MRK-3,"Device label, 1 line of 12 characters",Device labels,26,pc
-data,EW-GEN-MRK-1,"Wire marker, 2 lines of 12 characters",Tube markers,14,pc

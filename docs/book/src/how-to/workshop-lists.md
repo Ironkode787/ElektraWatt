@@ -12,13 +12,15 @@ the Output tab.
 
 ## The wire list
 
-1. Choose **Output ▸ Workshop ▸ Open wire list**. The first page of the project's wire list opens (907 on the sample): per
-   wire its number, its two ends with their pins or clamps, its colour, its size, its length, what goes on each end
-   (such as "ferrule 1.5 BK", or "twin 2.5 BU · 101.6" where two wires share a twin ferrule), the marker of each end
-   and its pages. A device in the door prints "(door)" after its tag, a cable's core prints its cable and core (such
-   as "-101W1 BN") and "cable" for its length, and a wire without a length prints "—".
+1. Choose **Output ▸ Workshop ▸ Open wire list**. The first page of the project's wire list opens (907 on the sample)
+   with a few lines on how to read the papers: what the length holds, what a marker says, which side of a terminal is
+   the field, where each label goes and in which order to work. Then each wire on two lines, its From end above its
+   To end: its number, colour, size and length, and for each end its device or terminal with its pin or clamp, what
+   goes on it (such as "ferrule 1.5 BK", or "twin 2.5 BU · 101.6" where two wires share a twin ferrule), that
+   ferrule's part, the strip length and the marker. A device in the door prints "(door)" after its tag, a cable's core
+   prints its cable and core (such as "-101W1 BN") and "cable" for its length, and a wire without a length prints "—".
 2. To print the engineering columns as well, choose **Output ▸ List columns…** on the list's page and tick them:
-   Potential, Source, Via, Wire part, Length from, and the parts and strip lengths of the ends.
+   Potential, Source, Via, Wire part and Length from. A list with columns of its own prints each wire on one line.
 3. A project without a wire list opens **Report block…** on the wire list instead; **Create** makes it.
 
 ## The assembly lists, the cut list and the consumables
@@ -64,12 +66,13 @@ the Output tab.
 ## Print the lists, or hand them over as files
 
 12. To print a list, choose **Output ▸ Print…**, set **Range** to **Pages** and type the list's folios, such as
-    `907-907.2`; or open the list's page and choose **Current page**. **Export PDF…** writes every page, the lists
+    `907-907.5`; or open the list's page and choose **Current page**. **Export PDF…** writes every page, the lists
     among them.
 13. To hand one list over as a file, open its page and choose **Output ▸ Workshop ▸ Export list…** (also in the
-    menu of the list's page). It writes the list on show as an Excel file in the project's language, or, for a file
-    name that ends in `.csv`, a CSV in English for a program. A size or a length is a number under a heading that
-    carries its unit, such as "Length mm". The package holds every workshop list as an Excel file
+    menu of the list's page). It writes the columns the page prints, one row per wire, as an Excel file in the project's
+    language, or, for a file name that ends in `.csv`, a CSV in English for a program. A size or a length is a number
+    under a heading that carries its unit, such as "Length mm". The package holds every workshop list as such an Excel
+    file
     ([Export the labels, the drilling drawings and the package](workshop-package.md)), and on the command line
     `ew export wires` and `ew export report` write one list
     ([Use the command line on the sample project](headless-workflow.md)).

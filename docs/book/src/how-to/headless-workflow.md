@@ -86,8 +86,8 @@ cross-reference links:
 
 ```console
 $ ew export pdf fixtures/sample/sample.ew --out out/sample.pdf
-PDF written to out/sample.pdf: 42 pages, 209 links
-223 page findings: 223 empty fields in a frame or title block
+PDF written to out/sample.pdf: 44 pages, 211 links
+233 page findings: 233 empty fields in a frame or title block
 ```
 
 The second line, on the standard error stream, counts remarks about the rendering of single pages and says what

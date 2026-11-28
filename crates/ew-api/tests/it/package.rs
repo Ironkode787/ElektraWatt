@@ -10,7 +10,7 @@ use crate::common;
 
 use std::sync::Arc;
 
-use ew_api::output::{PdfDate, RowExport, RowsFormat, RowsOutput, row_output, workbook_dump};
+use ew_api::output::{ListFormat, PdfDate, RowExport, RowsOutput, list_output, workbook_dump};
 use ew_api::{PackageAsk, PackageError, PackageMember, Session};
 use ew_schema::{Date, Record, RevisionState};
 use ew_zip::{Entry, ZipLimits};
@@ -189,24 +189,21 @@ fn the_package_is_the_same_bytes_twice_and_its_manifest_names_each_entry() {
     ew_testdir::compare_or_bless(&expected, contents.as_bytes());
 }
 
-/// Each list of the package is the list's Excel export: the wire list's file is the one `ew export report --kind
-/// wire_list --format xlsx` writes, byte for byte, its hidden sheet `_ew` with the session's revision and store
-/// generation too (the package is made on a copy of the snapshot); every strip of the sample has its rows in the
-/// assembly lists; Contents counts the field wires without a length, with their reason.
+/// Each list of the package is the list as Export list… writes it, for people: the wire list's file is the one
+/// `list_output` writes, byte for byte, with the columns its page prints (the ends' parts and strip lengths among them,
+/// not the engineering columns), no `id` column and no hidden sheet of the round trip; every strip of the sample has
+/// its rows in the assembly lists; Contents counts the field wires without a length, with their reason.
 #[test]
 fn the_lists_are_the_lists_exports_and_contents_counts_the_wires_without_a_length() {
     let s = common::sample();
     let (_, entries) = package(&s, &ask());
-    let sheet = |bytes: &[u8]| {
-        let dump = workbook_dump(bytes).expect("a workbook");
-        dump.split("\n[_ew").next().unwrap_or_default().to_owned()
-    };
+    let sheet = |bytes: &[u8]| workbook_dump(bytes).expect("a workbook");
     let q = s.query();
-    let RowsOutput::Xlsx(wires) = row_output(
+    let RowsOutput::Xlsx(wires) = list_output(
         &q,
         &RowExport::Kind("wire_list".to_owned()),
         None,
-        &RowsFormat::Xlsx(s.workbook_meta(Some(DATE))),
+        &ListFormat::Xlsx(s.workbook_meta(Some(DATE)).date),
     )
     .expect("the wire list")
     .output
@@ -220,6 +217,18 @@ fn the_lists_are_the_lists_exports_and_contents_counts_the_wires_without_a_lengt
         "the wire list's file:\n{}\n---\n{}",
         workbook_dump(&member.data).unwrap_or_default(),
         workbook_dump(&wires).unwrap_or_default()
+    );
+    let dump = sheet(&member.data);
+    let header = dump.lines().nth(1).unwrap_or_default();
+    assert!(!dump.contains("[_ew"), "no sheet of the round trip: {dump}");
+    assert!(
+        header.starts_with("No.\tFrom\tCP\tTo\tCP\t")
+            && header.contains("\tFrom part\tFrom strip length mm\t"),
+        "the page's columns, no id: {header}"
+    );
+    assert!(
+        !header.contains("Potential") && !header.contains("Via"),
+        "{header}"
     );
     let assembly = sheet(&one_of_kind(&entries, "assembly_list").data);
     for strip in ["-X1011", "-X1021", "-X1031"] {

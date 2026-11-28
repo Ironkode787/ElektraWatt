@@ -297,14 +297,38 @@ treatment or marker: it is mounted with its strip ([the workshop lists](13-works
 | `length` | Length mm | the length in mm, a number; `cable` for a core; `—` without one; a stale length after `≈` (§3.3) | yes |
 | `length_source` | Length from | typed, cable, routed, stale or missing; site for a field wire without a length of a cabinet Route has laid | |
 | `from_end`, `to_end` | From end, To end | the end's treatment (§4.4): `ferrule 1.5 BK`, `twin 2.5 BU · 102.8`, `ring lug M6`, `bare` | yes |
-| `from_part`, `to_part` | From part, To part | the part number of the end's ferrule or ring lug | |
-| `from_strip`, `to_strip` | From strip length mm, To strip length mm | the strip length in mm, a number: the ferrule's sleeve | |
+| `from_part`, `to_part` | From part, To part | the part number of the end's ferrule or ring lug | yes |
+| `from_strip`, `to_strip` | From strip length mm, To strip length mm | the strip length in mm, a number: the ferrule's sleeve | yes |
 | `from_marker`, `to_marker` | From marker, To marker | the end's marker text (§5.2), its lines joined by ` / `; empty where the end carries none | yes |
 
 A block without columns of its own prints the fitter's columns, those marked "printed", in this order: No., From, CP,
-To, CP, Colour, mm², Length mm, From end, To end, From marker, To marker, Pages (`ReportKindDef::printed`,
-[09](09-reports-forms-output.md) §3.8); Output ▸ List columns… ticks the
-engineering columns (Potential, Source, Via, Wire part) and the ends' parts and strip lengths into a block's print. The CSV and the XLSX of the list hold every column in the order of the table. The Connections
+To, CP, Colour, mm², Length mm, From end, From part, From strip length mm, From marker, To end, To part, To strip
+length mm, To marker, Pages (`ReportKindDef::printed`, [09](09-reports-forms-output.md) §3.8); Output ▸ List columns…
+ticks the engineering columns (Potential, Source, Via, Wire part, Length from) into a block's print.
+
+**Each end on a line of its own.** The fitter's columns do not fit one line of a sheet at a size a person reads, so
+the page of a block without columns of its own prints each wire on two lines, the From end above the To end
+(`ew_reports::per_end`): No., an End column ("From", "To"), Device and CP, then Colour, mm² and Length on the first
+line, then the end's Treatment, Part, Strip length mm and Marker, then Pages on the first line. A From column names its
+To column (`ColumnDef::other_end`) and the heading both print under; a row takes two of the sheet's rows, so a page
+never splits a wire. The fitter makes one end, then the other, each from one line; laid out as two lines per wire, the
+wire above and its two ends' work under it, a column meant two things by its line, and was the slower to read. A block
+with columns of its own prints a wire on one line.
+
+**How to read it, where the fitter starts.** The first page of a block without columns of its own prints above its
+first wire, a line each, how to read the papers (`ReportKindDef::head`, the wire list's `reading_notes`): what Length
+holds (the way, the reserve at each end and the door loop, from the project's settings, [12-3d](12-3d-routing-thermal.md)
+§9), what `≈` and `—` mean, what a marker says by the project's marking and which ends carry none (§5.1), which side of
+a terminal is the cabinet's and which the field's in the terminal diagram's words (a strip whose field side is side 1
+by its tag), where each kind of label goes (a device's label beside it too where the shop sets so), what is made on
+site and what the cut list and the consumables count of it, and the order of the papers (drill, mount, cut, wire,
+mark). The package's Contents holds the same lines ([13-package](13-package.md) §8.2). Every sentence holds for every
+project; none names a thing of one.
+
+**The files.** Export list… and the package write the columns the page prints, one row per wire, for people: the Excel
+file in the project's language without the round trip's `id` column and hidden sheets
+(`ew_api::output::list_output`, `ew_reports::xlsx::list_xlsx`), the CSV in English. `ew export report --kind wire_list`
+and Export table… hold every column in the order of the table, with the IDs a table read back needs. The Connections
 navigator in table mode has every column; it opens with No., From, CP, To, CP, Colour, mm², Length, From end and To
 end, the left column of the window widening to show them, and its column chooser adds the others. Length, From end, To end, From marker and
 To marker are editable there (§12).

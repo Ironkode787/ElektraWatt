@@ -22,7 +22,7 @@ use serde::Serialize;
 
 use crate::labels::drawing_stem;
 use crate::output::print::{PrintOptions, in_print_language, print_set_hooked};
-use crate::output::{DrillingAsk, PdfDate, RowExport, RowsFormat, RowsOutput, row_output};
+use crate::output::{DrillingAsk, ListFormat, PdfDate, RowExport, RowsOutput, list_output};
 use crate::{LabelScope, Session, checks};
 
 /// One member of the package (doc 13-package §8.2), declared once: the dialog's rows, the manifest's kinds, the lines
@@ -683,7 +683,6 @@ impl Session {
         }
         Ok(PackageJob {
             model: self.world().model,
-            generation: self.store().map(ew_store::Store::generation),
             ask: ask.clone(),
             plan,
         })
@@ -707,8 +706,6 @@ fn marks_words(set: LabelSet) -> Text {
 /// asked and the plan it was asked on. It is `Send`; the `Session` is not.
 pub struct PackageJob {
     model: ew_model::Model,
-    /// The session's store generation, which a workbook's metadata names as `ew export report` does.
-    generation: Option<u64>,
     ask: PackageAsk,
     plan: PackagePlan,
 }
@@ -752,8 +749,6 @@ impl PackageJob {
     ///
     /// [`PackageError::Member`] when an export fails; [`PackageError::Cancelled`] at a checkpoint after a cancel.
     pub fn run(self, ctl: Option<&ew_jobs::JobCtl>) -> Result<Package, PackageError> {
-        // The snapshot's revision, which a workbook's metadata names whatever the copy below is.
-        let rev = self.model.rev().0;
         let model = if self.ask.omit_personal {
             without_personal(self.model)?
         } else {
@@ -802,11 +797,8 @@ impl PackageJob {
                 about: words(&text!("package-about-pages")),
             });
         }
-        // The workshop lists, each as `ew export report --kind <kind> --format xlsx` writes it: the session's revision
-        // and store generation in the hidden sheet `_ew`, not the copy's.
-        let mut meta = s.workbook_meta(Some(plan.date));
-        meta.rev = rev;
-        meta.generation = self.generation;
+        // The workshop lists, each as Export list… writes it: the columns its page prints, for people.
+        let date = s.workbook_meta(Some(plan.date)).date;
         for m in &plan.members {
             let PackageMember::List(kind) = m.member else {
                 continue;
@@ -815,11 +807,11 @@ impl PackageJob {
                 continue;
             }
             checkpoint("list")?;
-            let file = row_output(
+            let file = list_output(
                 &q,
                 &RowExport::Kind(kind.to_owned()),
                 None,
-                &RowsFormat::Xlsx(meta.clone()),
+                &ListFormat::Xlsx(date),
             )
             .map_err(|e| PackageError::Member(e.to_string()))?;
             let RowsOutput::Xlsx(bytes) = file.output else {
@@ -1051,6 +1043,13 @@ fn contents_txt(
     if !lacks.is_empty() {
         lines.push(words(&text!("package-contents-lacks")));
         lines.extend(lacks.into_iter().map(|l| format!("  {}", words(l))));
+        lines.push(String::new());
+    }
+    // How to read the papers, as the wire list's first page says it (doc 13 §3.1).
+    let notes = ew_reports::kinds::reading_notes(q);
+    if let Some((head, rest)) = notes.split_first() {
+        lines.push(words(head));
+        lines.extend(rest.iter().map(|n| format!("  {}", words(n))));
         lines.push(String::new());
     }
     lines.push(words(&text!("package-contents-what")));

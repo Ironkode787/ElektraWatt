@@ -267,10 +267,12 @@ fn fill(
                     }
                 }
             }
+            // The first page holds the block's head above its rows.
+            let head = if out.is_empty() { layouts.head } else { 0 };
             let room = short
                 .iter()
                 .filter(|(p, _)| *p == out.len())
-                .fold(layout.rows, |c, (_, s)| c.saturating_sub(*s));
+                .fold(layout.rows.saturating_sub(head), |c, (_, s)| c.saturating_sub(*s));
             if page.used.saturating_add(need) > room && page.has_rows() {
                 page = page.close_into(&mut out, Next::Page, i);
                 ends.resize(out.len(), false);

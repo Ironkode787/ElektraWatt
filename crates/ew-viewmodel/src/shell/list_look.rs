@@ -17,13 +17,13 @@
 //! not a list's, and a table of contents takes no rows of its own.
 //!
 //! **Export list…** (`lists.export`, doc 13-workshop-lists) writes the list on show as a file, Excel or CSV by its name,
-//! by the one writer of `ew export report --block` and the package (`ew_api::output::row_output`): the Excel file in
-//! the project's language, the CSV in English.
+//! by the one writer of the package's lists (`ew_api::output::list_output`): the columns its page prints, the Excel
+//! file in the project's language, the CSV in English.
 
 use std::path::PathBuf;
 
 use ew_api::AnyCommand;
-use ew_api::output::{CsvOptions, ListLook, Preset, RowExport, RowsFormat, RowsOutput, row_output};
+use ew_api::output::{CsvOptions, ListFormat, ListLook, Preset, RowExport, RowsOutput, list_output};
 use serde_json::{Map, Value, json};
 
 use super::jobs::{absolute_target, bool_param, inside};
@@ -187,13 +187,13 @@ impl ShellModel {
         }
         let csv = path.extension().is_some_and(|e| e.eq_ignore_ascii_case("csv"));
         let format = if csv {
-            RowsFormat::Csv(CsvOptions::preset(Preset::ExcelEn))
+            ListFormat::Csv(CsvOptions::preset(Preset::ExcelEn))
         } else {
-            RowsFormat::Xlsx(project.session.workbook_meta(None))
+            ListFormat::Xlsx(project.session.workbook_meta(None).date)
         };
         let q = project.session.query();
         let block = block.to_string();
-        let file = match row_output(&q, &RowExport::Report, Some(&block), &format) {
+        let file = match list_output(&q, &RowExport::Report, Some(&block), &format) {
             Ok(f) => f,
             Err(e) => return failed(key!("error-export"), &[&e.to_string()]),
         };

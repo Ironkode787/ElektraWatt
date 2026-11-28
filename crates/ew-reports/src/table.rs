@@ -121,6 +121,44 @@ impl Table {
         }
     }
 
+    /// [`Table::from_rowset`] of the columns `printed` only ([`crate::printed()`]), in their order and under their
+    /// headings: the list as its page prints it, one row per row of the set.
+    pub fn printed(
+        q: &Q,
+        set: &RowSet,
+        printed: &[crate::printed::Printed<'_>],
+        name: &str,
+        key: &str,
+        lang: Option<&LangTag>,
+    ) -> Table {
+        let mut whole = Table::from_rowset(q, set, name, key, lang);
+        whole.columns = printed
+            .iter()
+            .filter_map(|&(i, _, heading)| {
+                let mut c = whole.columns.get(i)?.clone();
+                c.label = match lang {
+                    Some(lang) => ew_derive::text_in(heading, Some(lang)).to_owned(),
+                    None => ew_derive::text_in(heading, "en-GB".parse().ok().as_ref()).to_owned(),
+                };
+                Some(c)
+            })
+            .collect();
+        for row in &mut whole.rows {
+            let cells = std::mem::take(&mut row.cells);
+            // A heading's words stand in its first cell, which leads the printed row as a page prints it across.
+            row.cells = printed
+                .iter()
+                .enumerate()
+                .filter_map(|(n, &(i, _, _))| match (row.heading, n) {
+                    (true, 0) => cells.first().cloned(),
+                    (true, _) => Some(TableCell::Text(String::new())),
+                    (false, _) => cells.get(i).cloned(),
+                })
+                .collect();
+        }
+        whole
+    }
+
     /// The number of data rows (headings excluded).
     pub fn data_rows(&self) -> usize {
         self.rows.iter().filter(|r| !r.heading).count()

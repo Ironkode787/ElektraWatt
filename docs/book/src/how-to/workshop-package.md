@@ -72,9 +72,9 @@ holes of the cabinet's surfaces ([Place devices in the door, and make holes and 
 ## What the shop finds in the ZIP
 
 16. At the top, `Contents.txt`, which says the revision, whether it is a draft, what the release check found, which
-    wires have no length and why, what the files lack of the workshop stock and of its parts' data, and what each
-    file is; and the drawings as one PDF, every page in page order.
-17. In `Lists`, each workshop list as an Excel file; in `Labels`, the label files; in `Drilling`, the template and the
+    wires have no length and why, what the files lack of the workshop stock and of its parts' data, how to read the
+    papers, and what each file is; and the drawings as one PDF, every page in page order.
+17. In `Lists`, each workshop list as an Excel file with the columns its page prints; in `Labels`, the label files; in `Drilling`, the template and the
     DXF of each surface with holes; and `manifest.json`, the same list for a program, with a SHA-256 of each file.
 
 The same three exports run on the command line: `ew export labels`, `ew export drilling` and `ew export package`

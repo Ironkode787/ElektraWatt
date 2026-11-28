@@ -168,8 +168,8 @@ const WORDS: &[(&str, &str, &str)] = &[
     // The derivation's words, printed through the lists' catalogue, which does not hold them (their home renders them).
     ("assembly_list", "End plate", "Eindplaat"),
     ("assembly_list", "End bracket", "Eindsteun"),
-    ("consumables", "Wire markers", "Draadmerkers"),
-    ("consumables", "Tube markers", "Slangmerkers"),
+    ("consumables", "Device labels", "Apparaatlabels"),
+    ("consumables", "Cable markers", "Kabelmerkers"),
 ];
 
 /// A Dutch project's lists hold the Dutch word in each cell where the English one stood, and none of the English; the

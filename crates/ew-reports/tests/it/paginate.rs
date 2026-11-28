@@ -368,6 +368,7 @@ fn an_empty_group_range_is_skipped() {
 fn the_form_chain_gives_each_page_of_a_run_its_form() {
     let layouts = Layouts {
         chain: vec![small(form(11), 10), small(form(12), 20)],
+        head: 0,
     };
     let pages = paginate(&data_set(45), &spec(901), &layouts);
     assert_eq!(ranges(&pages), [(0, 10), (10, 30), (30, 45)]);
@@ -381,6 +382,7 @@ fn the_form_chain_gives_each_page_of_a_run_its_form() {
 fn a_new_folio_restarts_the_form_chain() {
     let layouts = Layouts {
         chain: vec![small(form(11), 10), small(form(12), 20)],
+        head: 0,
     };
     let set = grouped_set(&[25, 5], false);
     let mut s = spec(901);
@@ -447,7 +449,7 @@ mod properties {
     use proptest::prelude::*;
 
     fn arb_layout(form_id: Id<FormDef>) -> impl Strategy<Value = PageLayout> {
-        (1i64..=30).prop_map(move |rows| PageLayout { form: form_id, rows })
+        (1i64..=30).prop_map(move |rows| PageLayout::listed(form_id, rows))
     }
 
     /// Groups of items; an item is `true` for a heading row, `false` for a data row.
@@ -491,7 +493,7 @@ mod properties {
             next_folio in any::<bool>(),
         ) {
             let set = build(&groups, grouped, headers);
-            let layouts = Layouts { chain: vec![first, second] };
+            let layouts = Layouts { chain: vec![first, second], head: 0 };
             let mut s = spec(901);
             s.group_break = [Break::None, Break::NewPage, Break::NewFolio][brk];
             if next_folio {

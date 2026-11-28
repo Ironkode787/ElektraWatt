@@ -84,9 +84,9 @@ In the project's language, in a folder per kind; the sample's names (drawing num
 
 | Member (kind) | Path | What it is | The same as |
 |---|---|---|---|
-| Contents (`contents`) | `Contents.txt` | what the package is for, the revision, whether it is a draft and why, what stood in the check (§8.6), how many wires have no length and why, what the files lack of the workshop stock and of its parts' data (§8.5), and each file with what it is for | — |
+| Contents (`contents`) | `Contents.txt` | what the package is for, the revision, whether it is a draft and why, what the check found (§8.6), how many wires have no length and why, apart from the check what the files lack of the workshop stock and of its parts' data (§8.5), how to read the papers (the wire list's first page's lines, [13](13-manufacturing-outputs.md) §3.1), and each file with what it is for | — |
 | Drawings (`pages`) | `SAMPLE-E V1.0 drawings.pdf` | every page in page order as one PDF, the list pages among them; a draft's pages carry the draft mark (§8.4) | Export PDF |
-| Wire list (`wire_list`) | `Lists/SAMPLE-E Wire list.xlsx` | every wire with every column ([13](13-manufacturing-outputs.md) §3.1); a wire without a length prints "—" as on the page | the list's Excel export |
+| Wire list (`wire_list`) | `Lists/SAMPLE-E Wire list.xlsx` | every wire with the columns its page prints ([13](13-manufacturing-outputs.md) §3.1): each end's treatment, part, strip length and marker among them; a wire without a length prints "—" as on the page | the list's Excel export |
 | Assembly lists (`assembly_list`) | `Lists/SAMPLE-E Assembly lists.xlsx` | per strip, what to mount in order | the list's Excel export |
 | Cut list (`cut_list`) | `Lists/SAMPLE-E Cut list.xlsx` | rails, ducts, cables, wires and tubes to cut | the list's Excel export |
 | Consumables (`consumables`) | `Lists/SAMPLE-E Consumables.xlsx` | wire, ferrules and markers to order | the list's Excel export |
@@ -96,10 +96,12 @@ In the project's language, in a folder per kind; the sample's names (drawing num
 | Manifest | `manifest.json` | §8.3 | — |
 
 - **The lists** are those whose kind is a workshop list: `ReportKindDef::workshop`, declared with the kind, which the
-  package and nothing else reads. Each list is the whole project's rows in the kind's order and every column, as
-  `ew export report --kind <kind> --format xlsx` writes it: its headings and the program's words in its cells in the
-  project's language, as its page prints them, its numbers numbers ([09](09-reports-forms.md) §3.8); a project
-  without a page of that kind still gets the file. The cut list's Tubes group is the tube cut list of the package ([11](11-fluid-power.md) §8.2).
+  package and nothing else reads. Each list is the whole project's rows in the kind's order with the columns its page
+  prints, one row per row, as Export list… writes it (`list_output`): its headings and the program's words in its cells
+  in the project's language, as its page prints them, its numbers numbers ([09](09-reports-forms.md) §3.8), and
+  nothing of the round trip: no `id` column and no hidden sheet, which a list for people does not need and Export
+  table… and `ew export report --format xlsx` keep. The engineering columns stay one tick away on the list's page (List
+  columns…). A project without a page of that kind still gets the file. The cut list's Tubes group is the tube cut list of the package ([11](11-fluid-power.md) §8.2).
 - **A member without content** is not written, and the dialog says why on its row: the drawings for drilling and the
   hole table of a project whose surfaces have no holes ("No surface of this project has holes yet"), label files
   without labels.

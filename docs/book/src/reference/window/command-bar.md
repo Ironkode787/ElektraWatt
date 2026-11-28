@@ -322,9 +322,10 @@ hold such a set already, which the new one replaces. For a DWG, open the files i
 
 ### Open wire list
 
-In the Workshop group. Shows the first page of the project's wire list, the fitter's sheet: per wire its ends, its
-colour, its cross-section, its length and what goes on each end; List columns… adds the potential, the source, the
-joins and the wire part. A project without a wire list opens Report block… on the wire list.
+In the Workshop group. Shows the first page of the project's wire list, the fitter's sheet: how to read it, then per
+wire its colour, its cross-section, its length and each end on a line of its own, with what goes on it, its part, its
+strip length and its marker; List columns… adds the potential, the source, the joins and the wire part. A project
+without a wire list opens Report block… on the wire list.
 
 ### Open assembly lists
 

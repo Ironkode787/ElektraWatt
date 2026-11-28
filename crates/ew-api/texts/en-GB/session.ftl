@@ -925,7 +925,7 @@ package-contents-undated-none = Package for the workshop; the project carries no
 package-contents-draft = DRAFT: revision { $p0 } is open, not released. Every page of the drawings says "{ $p1 }".
 package-contents-draft-none = DRAFT: the project has no revision. Every page of the drawings says "{ $p0 }".
 package-contents-release = The package of the release: its pages carry no mark.
-package-contents-ready = Before it went to the workshop the project was checked: nothing stood in the way.
+package-contents-ready = Before it went to the workshop the project was checked: the release check found no error, no warning and no info.
 package-contents-stood = Before it went to the workshop the project was checked: { $count ->
         [one] 1 thing stood
        *[many] { $n } things stood
@@ -954,7 +954,7 @@ package-contents-no-length = { $p0 } ({ $p1 }).
 package-no-length-line = { $p0 }.
 package-contents-every-length = Every wire has its length in the wire list; a cable core has its cable's.
 package-contents-other-lengths = Every other wire has its length in the wire list; a cable core has its cable's.
-package-contents-lacks = What the files lack of the workshop stock and of its parts' data:
+package-contents-lacks = The check does not judge the workshop stock. What the files lack of the stock and of its parts' data:
 package-contents-what = What is in it
 package-about-labels-folder = One file per kind of label and marker, for the label program: { $count ->
         [one] 1 label.

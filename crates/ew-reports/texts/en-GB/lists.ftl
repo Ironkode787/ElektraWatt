@@ -108,6 +108,8 @@ column-page = Page
 column-pages = Pages
 column-pair = Pair
 column-part = Part
+column-treatment = Treatment
+column-strip-mm = Strip length mm
 column-part-number = Part number
 column-parts = Parts
 column-pieces = Pieces
@@ -195,6 +197,24 @@ title-sizes-mains = STANDARD SIZES MAINS
 cell-sizes-note = If size or sign is not indicated in diagram, standard size or sign is to be used.
 cell-cable-overview = Cable overview
 cell-bridges = Bridges
+read-head = How to read these papers
+read-length = Length mm is the length to cut: the way along the ducts, { $p0 } mm at each end and { $p1 } mm across a door's hinge are in it.
+read-length-marks = A length after ≈ was laid along a way that has changed since: check it. A length of — is none: the fitter measures the wire.
+read-marker-destination = A wire's marker names its far end, the end it does not sit on; a marker on two lines is written here with / between them.
+read-marker-number = A wire's marker carries the wire's number.
+read-marker-both = A wire's marker names the end it sits on, then its far end, on two lines, written here with / between them.
+read-marker-potential = A wire's marker carries the name of its potential.
+read-unmarked-cores-jumpers = A cable's cores carry no marker, nor does a wire with both its ends on one device.
+read-unmarked-cores = A cable's cores carry no marker: their colours or numbers name them.
+read-unmarked-jumpers = A wire with both its ends on one device carries no marker.
+read-sides = On a terminal, { $p0 } is the cabinet's wiring and { $p1 } the field, as the terminal diagrams name them.
+read-sides-turned = On { $p0 } it is the other way round: side 1 is the field.
+read-labels-ends = Labels: a wire marker on each end of its wire, a cable marker on each end of its cable, a tube marker on each end of its tube.
+read-labels-devices = A terminal marker on its terminal, a strip marker on its strip, a device label on its device.
+read-labels-beside = A terminal marker on its terminal, a strip marker on its strip, a device label on its device and a second one beside it.
+read-site = A wire with an end in another location is cut and finished on site; the shop makes only its cabinet end.
+read-site-counted = The cut list leaves such a wire out, and the consumables count of it only the ferrule and the marker of that end.
+read-order = Work in this order: drill (drawings for drilling, hole table), mount (assembly lists), cut (cut list), wire (wire list), mark (label files).
 cell-structure = Structure
 cell-device = Device
 
@@ -400,6 +420,7 @@ cell-carrier = { $kind ->
        *[duct] Duct
     } { $n }
 cell-list-comma = {", "}
+cell-set-labels = { $p0 } { $p1 }
 # A twin ferrule's size, as the consumables print it ("2 × 0.75 mm²").
 cell-twin-size = 2 × { $p0 }
 cell-wires-count = { $count ->

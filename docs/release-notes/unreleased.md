@@ -1047,3 +1047,18 @@ change here.
   removed device, a way that Route laid again
 - api-break: `ew_derive::ReworkItem` gains `reasons` and `places`; `OnRail::from` and `to` measure from the rail's end
   nearest its surface's datum corner
+- behaviour-change: the wire list's page is the fitter's one paper: its default columns gain each end's part and strip
+  length, and as they do not fit one line of a sheet each wire prints on two lines, its From end above its To end
+  (an existing wire list page without columns of its own takes about twice the pages); its first page opens with how
+  to read the papers (what the length holds, what a marker says, which terminal side is the field, where each label
+  goes, what is made on site, the order of the work), from the project's settings, which the package's Contents
+  holds too
+- behaviour-change: Export list… and the package's lists write the columns the list's page prints, one row per row,
+  without the `id` column and the hidden sheets of the round trip (`ew export report` and Export table… keep them)
+- behaviour-change: the consumables name a marker part once with its total, and where it marks several label sets
+  each with its labels ("Wire markers 82, Tube markers 14")
+- text-change: Contents says what the release check found and, apart from it, what the files lack of the workshop
+  stock ("The check does not judge the workshop stock. …")
+- api-add: `ew_api::output::list_output` and `ListFormat`, `ew_reports::xlsx::list_xlsx`, `ew_reports::per_end`,
+  `ew_reports::printed`, `ew_reports::page_head` and `ReportKindDef::head`, `ColumnDef::other_end`
+- api-break: `ew_reports::PageLayout` gains `data_lines` and `Layouts` gains `head`

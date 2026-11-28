@@ -20,6 +20,9 @@ pub struct PageLayout {
     pub form: Id<FormDef>,
     /// The rows a page of the form holds.
     pub rows: i64,
+    /// The rows a data row takes: 2 on a page that prints each end of a wire on a line of its own
+    /// ([`crate::per_end`]), else 1.
+    pub data_lines: i64,
 }
 
 impl PageLayout {
@@ -31,14 +34,19 @@ impl PageLayout {
 
     /// The geometry of a frame's list area: `rows` rows of 6.52 mm (doc 09 §3.8).
     pub fn listed(form: Id<FormDef>, rows: i64) -> PageLayout {
-        PageLayout { form, rows }
+        PageLayout {
+            form,
+            rows,
+            data_lines: 1,
+        }
     }
 
     /// The rows a row of `kind` takes: a data row and a heading one; a group row (the title or caption of a profile
     /// table) none.
     pub fn takes(&self, kind: RowKind) -> i64 {
         match kind {
-            RowKind::Data | RowKind::Heading => 1,
+            RowKind::Data => self.data_lines,
+            RowKind::Heading => 1,
             RowKind::GroupHeader | RowKind::GroupFooter => 0,
         }
     }
@@ -49,12 +57,17 @@ impl PageLayout {
 pub struct Layouts {
     /// The chain, never empty.
     pub chain: Vec<PageLayout>,
+    /// The rows the block's first page prints above its rows ([`crate::page_head`]), which its rows do not take.
+    pub head: i64,
 }
 
 impl Layouts {
     /// One layout for every page.
     pub fn single(layout: PageLayout) -> Layouts {
-        Layouts { chain: vec![layout] }
+        Layouts {
+            chain: vec![layout],
+            head: 0,
+        }
     }
 
     /// The layout of the `k`-th page of a folio run (0 = the first page).
@@ -68,14 +81,22 @@ impl Layouts {
     }
 
     /// The chain of the pages of `block`: [`Layouts::of_form`] of the frame its pages print on ([`list_frame`]), the
-    /// rows of its list area less a row for the block's caption and one for its legend (doc 09 §3.8).
+    /// rows of its list area less a row for the block's caption and one for its legend (doc 09 §3.8); a data row takes
+    /// two where the page prints each end of a wire on a line of its own ([`crate::per_end`]).
     pub fn of_block(q: &Q, block: &ReportBlock) -> Layouts {
-        Layouts::chain(
+        let mut layouts = Layouts::chain(
             q,
             list_frame(q, block.form),
             !block.caption.is_empty(),
             !block.legend.is_empty(),
-        )
+        );
+        if crate::per_end(block).is_some() {
+            for layout in &mut layouts.chain {
+                layout.data_lines = 2;
+            }
+        }
+        layouts.head = i64::try_from(crate::page_head(q, block).len()).unwrap_or(i64::MAX);
+        layouts
     }
 
     /// The chain of `form` in `q`'s snapshot, without a caption or a legend. A form holds the rows of its list area
@@ -107,7 +128,7 @@ impl Layouts {
             chain.push(layout);
             next = copy.and_then(|c| c.item.continuation);
         }
-        Layouts { chain }
+        Layouts { chain, head: 0 }
     }
 }
 

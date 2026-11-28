@@ -108,6 +108,8 @@ column-page = Pagina
 column-pages = Pagina's
 column-pair = Paar
 column-part = Artikel
+column-treatment = Afwerking
+column-strip-mm = Striplengte mm
 column-part-number = Artikelnummer
 column-parts = Artikelen
 column-pieces = Stuks
@@ -195,6 +197,24 @@ title-sizes-mains = STANDAARDDOORSNEDEN NET
 cell-sizes-note = Staat in het schema geen doorsnede of markering, dan geldt de standaarddoorsnede of -markering.
 cell-cable-overview = Kabeloverzicht
 cell-bridges = Bruggen
+read-head = Zo leest u deze papieren
+read-length = Lengte mm is de lengte om af te knippen: de weg door de kabelgoten, { $p0 } mm aan elk eind en { $p1 } mm over het scharnier van een deur zitten erin.
+read-length-marks = Een lengte na ≈ is gelegd langs een weg die sindsdien veranderd is: controleer hem. Bij — is er geen lengte: de monteur meet de draad.
+read-marker-destination = De merker van een draad noemt zijn andere eind, het eind waar hij niet op zit; een merker op twee regels staat hier met / ertussen.
+read-marker-number = De merker van een draad draagt het draadnummer.
+read-marker-both = De merker van een draad noemt het eind waar hij op zit en daarna het andere eind, op twee regels, hier met / ertussen.
+read-marker-potential = De merker van een draad draagt de naam van zijn potentiaal.
+read-unmarked-cores-jumpers = De aders van een kabel krijgen geen merker, net zo min als een draad met beide einden op één apparaat.
+read-unmarked-cores = De aders van een kabel krijgen geen merker: hun kleur of nummer noemt ze.
+read-unmarked-jumpers = Een draad met beide einden op één apparaat krijgt geen merker.
+read-sides = Op een klem is { $p0 } de bedrading van de kast en { $p1 } het veld, zoals de klemmenschema's ze noemen.
+read-sides-turned = Op { $p0 } is het andersom: zijde 1 is het veld.
+read-labels-ends = Labels: een draadmerker op elk eind van zijn draad, een kabelmerker op elk eind van zijn kabel, een slangmerker op elk eind van zijn slang.
+read-labels-devices = Een klemmerker op zijn klem, een klemmenstrookmerker op zijn klemmenstrook, een apparaatlabel op zijn apparaat.
+read-labels-beside = Een klemmerker op zijn klem, een klemmenstrookmerker op zijn klemmenstrook, een apparaatlabel op zijn apparaat en een tweede ernaast.
+read-site = Een draad met een eind in een andere locatie wordt ter plaatse geknipt en afgewerkt; de werkplaats maakt alleen zijn eind in de kast.
+read-site-counted = De afkortlijst laat zo'n draad weg, en de verbruiksmaterialen tellen ervan alleen de huls en de merker van dat eind.
+read-order = Werk in deze volgorde: boren (boortekeningen, gatentabel), monteren (montagelijsten), knippen (afkortlijst), bedraden (draadlijst), merken (labelbestanden).
 cell-structure = Structuur
 cell-device = Apparaat
 
@@ -393,6 +413,7 @@ cell-carrier = { $kind ->
        *[duct] Kabelgoot
     } { $n }
 cell-list-comma = {", "}
+cell-set-labels = { $p0 } { $p1 }
 cell-twin-size = 2 × { $p0 }
 cell-wires-count = { $count ->
         [one] 1 draad

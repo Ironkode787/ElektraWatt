@@ -62,7 +62,7 @@ pub use structure_overview::StructureOverview;
 pub use terminal_diagram::TerminalDiagram;
 pub use terminal_overview::TerminalOverview;
 pub use toc::Toc;
-pub use wire_list::WireList;
+pub use wire_list::{WireList, reading_notes};
 
 /// How many bridges the project has, as the wire list lists them under its own heading (doc 08 §6.5).
 pub fn bridge_count(q: &ew_derive::Q) -> usize {

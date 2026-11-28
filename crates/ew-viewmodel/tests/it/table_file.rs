@@ -901,10 +901,10 @@ fn a_file_of_another_project_is_refused() {
     other.shutdown();
 }
 
-/// Output ▸ Workshop ▸ Export list… writes the list on show by the one writer the command line and the package call:
-/// greyed with its reason on a schematic page; on the wire list's page an Excel file equal to `ew export report --block`'s
-/// workbook of that block, in Dutch for a Dutch project, and a CSV in English; a file that exists is replaced only
-/// when asked; a list page's menu offers it.
+/// Output ▸ Workshop ▸ Export list… writes the list on show by the one writer the package calls (`list_output`):
+/// greyed with its reason on a schematic page; on the wire list's page an Excel file of the columns its page prints,
+/// in Dutch for a Dutch project, and a CSV in English; a file that exists is replaced only when asked; a list page's
+/// menu offers it.
 #[test]
 fn export_list_writes_the_list_on_show() {
     let tmp = Tmp::new("export-list");
@@ -929,20 +929,20 @@ fn export_list_writes_the_list_on_show() {
         .find(|(_, b)| ew_api::output::block_kind(b) == "wire_list")
         .map(|(id, _)| id.to_string())
         .expect("the wire list's block");
-    let format = ew_api::output::RowsFormat::Xlsx(reader.workbook_meta(None));
-    let cli = ew_api::output::row_output(
+    let format = ew_api::output::ListFormat::Xlsx(reader.workbook_meta(None).date);
+    let list = ew_api::output::list_output(
         &reader.query(),
         &ew_api::output::RowExport::Report,
         Some(&block),
         &format,
     )
     .unwrap();
-    let ew_api::output::RowsOutput::Xlsx(cli) = cli.output else {
+    let ew_api::output::RowsOutput::Xlsx(list) = list.output else {
         panic!("a workbook");
     };
     assert!(
-        std::fs::read(&xlsx).unwrap() == cli,
-        "the window's file is the command line's"
+        std::fs::read(&xlsx).unwrap() == list,
+        "the window's file is the package's list"
     );
     assert_eq!(
         refused(&mut shell, "lists.export", json!({"path": text(&xlsx)})),

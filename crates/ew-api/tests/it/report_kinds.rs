@@ -482,7 +482,8 @@ fn folios_but(q: &Q, but: &[&str]) -> Vec<String> {
 #[test]
 fn the_list_kinds_paginate_on_the_house_table() {
     let mut s = common::sample();
-    let before = folios_but(&s.query(), &[]);
+    // The table of contents grows by the pages it lists, so its own folios are not compared.
+    let before = folios_but(&s.query(), &["2"]);
     let (form, section) = form_of_910(&s);
     for (kind, folio, title) in [
         ("device_list", 915, "Device List {n}"),
@@ -496,7 +497,7 @@ fn the_list_kinds_paginate_on_the_house_table() {
         );
     }
     let q = s.query();
-    assert_eq!(folios_but(&q, &["915", "916"]), before);
+    assert_eq!(folios_but(&q, &["915", "916", "2"]), before);
     let order = q.get::<PageOrder>(());
     let pages: Vec<(String, PageRef)> = order
         .entries

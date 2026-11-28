@@ -756,6 +756,84 @@ pub fn row_output(
     })
 }
 
+/// The form of a list for people ([`list_output`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum ListFormat {
+    /// A CSV in a preset, in English.
+    Csv(CsvOptions),
+    /// An Excel file in the project's language, dated by this date.
+    Xlsx(DateTime),
+}
+
+/// A list for people (Export list…, the package's lists; doc 13-package §8.2): the rows [`row_output`] chooses, with
+/// the columns their page prints (`ew_reports::printed`: the block's own, else the kind's printed ones) under the
+/// page's headings, one row per row; a CSV in its preset, or an Excel file in the project's language without the round
+/// trip's `id` column and sheets (`ew_reports::xlsx::list_xlsx`), which Export table… and `ew export report --format
+/// xlsx` keep.
+///
+/// # Errors
+///
+/// As [`row_output`].
+pub fn list_output(
+    q: &Q,
+    what: &RowExport,
+    block: Option<&str>,
+    format: &ListFormat,
+) -> Result<RowsFile, RowsError> {
+    let chosen = choose(q, what, block)?;
+    let record = chosen
+        .blocks
+        .first()
+        .and_then(|b| b.parse::<ew_ids::Uuid>().ok())
+        .and_then(|u| q.report_blocks().get(Id::from_uuid(u)));
+    let own = record.map(|b| b.columns.clone()).unwrap_or_default();
+    let kind = ReportKind::from_name(&chosen.kind);
+    let lang = match format {
+        ListFormat::Csv(_) => None,
+        ListFormat::Xlsx(_) => ew_derive::print_language(q),
+    };
+    let table = |set: &RowSet, name: &str| {
+        let printed = ew_reports::printed(&own, kind.as_ref(), set);
+        Table::printed(q, set, &printed, name, &chosen.key, lang.as_ref())
+    };
+    let tables: Vec<Table> = match (&chosen.body, format) {
+        (Body::Whole(set), _) => vec![table(set, &chosen.kind)],
+        (Body::Strip(set, tag), _) => vec![table(set, tag)],
+        (Body::Strips(template, strips), ListFormat::Csv(_)) => {
+            vec![table(&strips_rows(template, strips), &chosen.kind)]
+        }
+        (Body::Strips(template, strips), ListFormat::Xlsx(_)) => strips
+            .iter()
+            .map(|(tag, rows)| table(&with_rows(template, rows.clone()), tag))
+            .collect(),
+    };
+    let rows = tables.iter().map(|t| t.rows.len()).sum();
+    let output = match format {
+        ListFormat::Csv(options) => RowsOutput::Csv(
+            tables
+                .first()
+                .map_or_else(String::new, |t| ew_reports::csv::table_csv(t, options)),
+        ),
+        ListFormat::Xlsx(date) => RowsOutput::Xlsx(
+            ew_reports::xlsx::list_xlsx(&tables, *date).map_err(|e| RowsError::Xlsx(e.to_string()))?,
+        ),
+    };
+    let strips = match &chosen.body {
+        Body::Whole(_) => Vec::new(),
+        Body::Strip(_, tag) => vec![tag.clone()],
+        Body::Strips(_, strips) => strips.iter().map(|(tag, _)| tag.clone()).collect(),
+    };
+    Ok(RowsFile {
+        output,
+        rows,
+        blocks: chosen.blocks,
+        kind: chosen.kind,
+        strips,
+        notices: chosen.notices,
+        table: chosen.key,
+    })
+}
+
 /// `meta` with the digest of the first table's `_ew_base` sheet when it has an editable column (
 /// the writer takes no hash), on a clone.
 pub fn with_base_digest(meta: &WorkbookMeta, tables: &[Table]) -> WorkbookMeta {

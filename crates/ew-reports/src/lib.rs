@@ -53,6 +53,8 @@ mod kind;
 pub mod kinds;
 pub mod layout;
 pub mod paginate;
+pub mod per_end;
+pub mod printed;
 mod queries;
 pub mod render;
 mod rowset;
@@ -63,10 +65,13 @@ pub mod xlsx;
 pub use arrange::{Arrangement, arrange};
 pub use kind::{
     EmbeddedLayout, KindParams, ParamDef, ParamKind, ParamValue, Registry, ReportKindDef, kind_params,
+    page_head,
 };
 pub use kinds::{cable_length_words, hole_owner_words, length_source_cell};
 pub use layout::{Layouts, PageLayout};
 pub use paginate::{BlockSpec, Break, Continuation, Slice, paginate};
+pub use per_end::{EndColumn, EndLine, per_end};
+pub use printed::printed;
 pub use queries::{BlockPages, BlockRows, ReportEngine, arranged, engine, project_rows, rows_of};
 pub use render::TagClassMembers;
 pub use rowset::{

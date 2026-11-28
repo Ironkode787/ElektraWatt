@@ -65,6 +65,12 @@ pub trait ReportKindDef: Send + Sync {
         None
     }
 
+    /// What a page block of this kind prints above its rows on its first page, a line each, where the block prints
+    /// the kind's own columns ([`page_head`]); none by default. Not rows: the exports and the window's tables leave it.
+    fn head(&self, _q: &Q) -> Vec<ew_l10n::Text> {
+        Vec::new()
+    }
+
     /// The block parameters this kind declares: the keys of a block's `params` object it reads, each
     /// with its type and default, in declaration order. Read through [`kind_params`]. None by default.
     fn params(&self) -> &'static [ParamDef] {
@@ -144,6 +150,17 @@ impl KindParams {
                 _ => None,
             })
             .unwrap_or("")
+    }
+}
+
+/// What the first page of `block` prints above its rows ([`ReportKindDef::head`]): its kind's head where the block
+/// prints the kind's own columns, else nothing.
+pub fn page_head(q: &Q, block: &ReportBlock) -> Vec<ew_l10n::Text> {
+    match &block.source {
+        ew_schema::ReportSource::Kind(kind) if block.columns.is_empty() => {
+            Registry::builtin().get(kind).map_or_else(Vec::new, |k| k.head(q))
+        }
+        _ => Vec::new(),
     }
 }
 

@@ -22,7 +22,8 @@ use crate::words::selecting;
 ///   length too.
 /// - Ferrules and lugs: per part the ends it is crimped on (a twin ferrule once), For the wires' sizes ("2 × 0.75 mm²"
 ///   for a twin ferrule); ends the stock has no part for under their size, "no ferrule found".
-/// - Markers: per label set and marker part the labels, For the set ("Wire markers").
+/// - Markers: per marker part the labels it prints, For the set ("Wire markers"), or each set with its labels where the
+///   part marks several ("Wire markers 82, Tube markers 14"); per label set without a part its labels.
 ///
 /// Row IDs: a heading `("consumables", group)`, a row `("consumables", group, n)`.
 #[derive(Clone, Copy, Debug)]
@@ -133,21 +134,50 @@ impl ReportKindDef for Consumables {
             })
             .collect();
         groups.push((text!("cell-group-ferrules"), ends));
-        let markers = c
-            .markers
+        // A marker part once, with its total; where it marks several label sets, For names each with its labels. A set
+        // without a part is a row of its own: each is chosen in the label program.
+        let mut uses: Vec<Vec<&ew_derive::MarkerUse>> = Vec::new();
+        for m in &c.markers {
+            match uses
+                .iter_mut()
+                .find(|u| m.part.is_some() && u.first().is_some_and(|f| f.part == m.part))
+            {
+                Some(u) => u.push(m),
+                None => uses.push(vec![m]),
+            }
+        }
+        let markers = uses
             .iter()
-            .map(|m| {
-                let (number, description) = match m.part {
+            .map(|u| {
+                let first = u[0];
+                let (number, description) = match first.part {
                     Some(p) => part_cells(q, &PartRef::new(p)),
                     None => (Cell::Empty, words_cell(&text!("cell-no-marker"))),
                 };
-                let labels = i64::try_from(m.labels).unwrap_or(i64::MAX);
+                let count = |n: usize| i64::try_from(n).unwrap_or(i64::MAX);
+                let what_for = match u.as_slice() {
+                    [one] => ew_derive::text::label_set(one.set),
+                    several => Text::bare(List::new(
+                        several
+                            .iter()
+                            .map(|m| {
+                                TextArg::Text(text!(
+                                    "cell-set-labels",
+                                    ew_derive::text::label_set(m.set),
+                                    TextArg::Number(count(m.labels))
+                                ))
+                            })
+                            .collect(),
+                        text!("cell-list-comma"),
+                        text!("cell-list-comma"),
+                    )),
+                };
                 cells(
                     &columns,
                     number,
                     description,
-                    words_cell(&ew_derive::text::label_set(m.set)),
-                    Cell::Number(labels),
+                    words_cell(&what_for),
+                    Cell::Number(count(u.iter().map(|m| m.labels).sum())),
                     OrderUnit::Piece,
                 )
             })

@@ -25,6 +25,9 @@ data,906,Cable Overview and Diagrams,,+CAB
 data,907,Wire List 1,,+CAB
 data,907.1,Wire List 2,,+CAB
 data,907.2,Wire List 3,,+CAB
+data,907.3,Wire List 4,,+CAB
+data,907.4,Wire List 5,,+CAB
+data,907.5,Wire List 6,,+CAB
 data,908,PLC Overview 1,,+CAB
 data,908.1,PLC Overview 2,,+CAB
 data,909,Potential Overview,,+CAB
@@ -39,5 +42,4 @@ data,913,Cut list,,+CAB
 data,913.1,Cut list,,+CAB
 data,913.2,Cut list,,+CAB
 data,914,Consumables,,+CAB
-data,914.1,Consumables,,+CAB
 data,925,Hole table,,+CAB

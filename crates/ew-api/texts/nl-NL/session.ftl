@@ -910,7 +910,7 @@ package-contents-undated-none = Pakket voor de werkplaats; het project heeft gee
 package-contents-draft = CONCEPT: revisie { $p0 } is open, niet vrijgegeven. Op elke pagina van de tekeningen staat "{ $p1 }".
 package-contents-draft-none = CONCEPT: het project heeft geen revisie. Op elke pagina van de tekeningen staat "{ $p0 }".
 package-contents-release = Het pakket van de vrijgave: de pagina's dragen geen merkteken.
-package-contents-ready = Voordat het naar de werkplaats ging, is het project gecontroleerd: niets stond in de weg.
+package-contents-ready = Voordat het naar de werkplaats ging, is het project gecontroleerd: de controle voor de vrijgave vond geen fout, geen waarschuwing en geen melding.
 package-contents-stood = Voordat het naar de werkplaats ging, is het project gecontroleerd: { $count ->
         [one] 1 punt stond open
        *[many] { $n } punten stonden open
@@ -939,7 +939,7 @@ package-contents-no-length = { $p0 } ({ $p1 }).
 package-no-length-line = { $p0 }.
 package-contents-every-length = Elke draad heeft zijn lengte in de draadlijst; een kabelader heeft die van zijn kabel.
 package-contents-other-lengths = Elke andere draad heeft zijn lengte in de draadlijst; een kabelader heeft die van zijn kabel.
-package-contents-lacks = Wat de bestanden missen van de werkplaatsvoorraad en van de gegevens van zijn artikelen:
+package-contents-lacks = De controle beoordeelt de werkplaatsvoorraad niet. Wat de bestanden missen van de voorraad en van de gegevens van zijn artikelen:
 package-contents-what = Wat erin zit
 package-about-labels-folder = Eén bestand per soort label en merker, voor het labelprogramma: { $count ->
         [one] 1 label.

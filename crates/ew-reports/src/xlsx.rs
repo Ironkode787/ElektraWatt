@@ -21,6 +21,9 @@
 //! table's with `[]:*?/\`, control characters and an apostrophe at either end replaced by `_`, cut to 31 characters; a
 //! name a sheet already has (ignoring case, `_ew` and `_ew_base` included) gets " (2)", " (3)", ….
 //!
+//! **A list for people** ([`list_xlsx()`], Export list… and the package) is the same sheets without the `id` column and
+//! without the `_ew` and `_ew_base` sheets below: it is read by people and never read back.
+//!
 //! **The `_ew` sheet**, hidden: key/value rows `format` `ew-table/1`, `project`, `table` (the first table's key),
 //! `rev`, `generation` (empty without a store), `locale` `neutral`, `ew` (the program version), then one row per column
 //! of the first table: `column`, key, label, type ([`CellType`] name), editable (`true`/`false`).
@@ -192,7 +195,7 @@ pub fn xlsx(tables: &[Table], meta: &WorkbookMeta) -> Result<Vec<u8>, XlsxError>
         if columns > MAX_SHEET_COLUMNS {
             return Err(XlsxError::TooManyColumns(name.clone(), columns));
         }
-        sheets.push(table_sheet(table, i == 0));
+        sheets.push(table_sheet(table, i == 0, true));
     }
     sheets.push(ew_sheet(&tables[0], meta));
     let mut all_names: Vec<&str> = names.iter().map(String::as_str).collect();
@@ -205,7 +208,43 @@ pub fn xlsx(tables: &[Table], meta: &WorkbookMeta) -> Result<Vec<u8>, XlsxError>
         all_names.push(BASE_SHEET);
     }
 
-    package(&workbook_xml(tables, &all_names), &sheets, meta.date)
+    package(&workbook_xml(tables, &all_names, true), &sheets, meta.date)
+}
+
+/// A list for people (doc 13-package §8.2, Export list…): the tables' sheets as [`xlsx()`] writes them, without the
+/// `id` column in front and without the round trip's `_ew` and `_ew_base` sheets, which belong to a table that is read
+/// back (Export table…). Same container, metadata and text rules.
+///
+/// # Errors
+///
+/// As [`xlsx()`], without [`XlsxError::NoBaseDigest`]: a list for people is never read back.
+pub fn list_xlsx(tables: &[Table], date: DateTime) -> Result<Vec<u8>, XlsxError> {
+    let empty;
+    let tables = if tables.is_empty() {
+        empty = [Table {
+            name: "Table".to_owned(),
+            key: String::new(),
+            columns: Vec::new(),
+            rows: Vec::new(),
+        }];
+        &empty[..]
+    } else {
+        tables
+    };
+    let names = sheet_names(tables);
+    let mut sheets: Vec<String> = Vec::with_capacity(tables.len());
+    for (i, (table, name)) in tables.iter().zip(&names).enumerate() {
+        let rows = table.rows.len() + 1;
+        if rows > MAX_SHEET_ROWS {
+            return Err(XlsxError::TooManyRows(name.clone(), rows));
+        }
+        if table.columns.len() > MAX_SHEET_COLUMNS {
+            return Err(XlsxError::TooManyColumns(name.clone(), table.columns.len()));
+        }
+        sheets.push(table_sheet(table, i == 0, false));
+    }
+    let names: Vec<&str> = names.iter().map(String::as_str).collect();
+    package(&workbook_xml(tables, &names, false), &sheets, date)
 }
 
 /// The workbook's container: the fixed parts, the workbook part `workbook` and the `sheets` in order, its
@@ -393,7 +432,7 @@ fn core_xml(d: DateTime) -> String {
     s
 }
 
-fn workbook_xml(tables: &[Table], names: &[&str]) -> String {
+fn workbook_xml(tables: &[Table], names: &[&str], id: bool) -> String {
     let mut s = String::from(XML_DECL);
     let _ = write!(s, "<workbook xmlns=\"{MAIN_NS}\" xmlns:r=\"{REL_NS}\">");
     s.push_str("<bookViews><workbookView activeTab=\"0\"/></bookViews><sheets>");
@@ -418,7 +457,7 @@ fn workbook_xml(tables: &[Table], names: &[&str]) -> String {
             escape(&format!(
                 "'{}'!$A$1:${}${}",
                 names[i].replace('\'', "''"),
-                column_name(table.columns.len()),
+                column_name((table.columns.len() + usize::from(id)).saturating_sub(1)),
                 table.rows.len() + 1
             ))
         );
@@ -446,8 +485,14 @@ fn workbook_rels(sheets: usize) -> String {
 }
 
 /// The sheet of a table; `first`: the selected sheet.
-fn table_sheet(table: &Table, first: bool) -> String {
-    let last = format!("{}{}", column_name(table.columns.len()), table.rows.len() + 1);
+fn table_sheet(table: &Table, first: bool, id: bool) -> String {
+    // The `id` column leads a table that is read back; a list for people has none.
+    let lead = usize::from(id);
+    let last = format!(
+        "{}{}",
+        column_name((table.columns.len() + lead).saturating_sub(1)),
+        table.rows.len() + 1
+    );
     let mut s = String::from(XML_DECL);
     let _ = write!(s, "<worksheet xmlns=\"{MAIN_NS}\" xmlns:r=\"{REL_NS}\">");
     let _ = write!(s, "<dimension ref=\"A1:{last}\"/>");
@@ -459,7 +504,10 @@ fn table_sheet(table: &Table, first: bool) -> String {
          <selection pane=\"bottomLeft\" activeCell=\"A2\" sqref=\"A2\"/></sheetView></sheetViews>"
     );
     s.push_str("<sheetFormatPr defaultRowHeight=\"15\"/>");
-    s.push_str("<cols><col min=\"1\" max=\"1\" width=\"0\" hidden=\"1\" customWidth=\"1\"/>");
+    s.push_str("<cols>");
+    if id {
+        s.push_str("<col min=\"1\" max=\"1\" width=\"0\" hidden=\"1\" customWidth=\"1\"/>");
+    }
     for (i, column) in table.columns.iter().enumerate() {
         let longest = table
             .rows
@@ -468,7 +516,7 @@ fn table_sheet(table: &Table, first: bool) -> String {
             .map(|c| c.text().chars().count())
             .fold(column.label.chars().count(), usize::max);
         let width = longest.clamp(MIN_WIDTH, MAX_WIDTH);
-        let n = i + 2;
+        let n = i + 1 + lead;
         let _ = write!(
             s,
             "<col min=\"{n}\" max=\"{n}\" width=\"{width}\" customWidth=\"1\"/>"
@@ -476,11 +524,13 @@ fn table_sheet(table: &Table, first: bool) -> String {
     }
     s.push_str("</cols><sheetData>");
     s.push_str("<row r=\"1\">");
-    inline(&mut s, "A1", "id", Some(BOLD));
+    if id {
+        inline(&mut s, "A1", "id", Some(BOLD));
+    }
     for (i, column) in table.columns.iter().enumerate() {
         inline(
             &mut s,
-            &format!("{}1", column_name(i + 1)),
+            &format!("{}1", column_name(i + lead)),
             &column.label,
             Some(BOLD),
         );
@@ -489,11 +539,11 @@ fn table_sheet(table: &Table, first: bool) -> String {
     for (r, row) in table.rows.iter().enumerate() {
         let n = r + 2;
         let _ = write!(s, "<row r=\"{n}\">");
-        if let Some(id) = row.id.as_deref().filter(|id| !id.is_empty()) {
-            inline(&mut s, &format!("A{n}"), id, None);
+        if let Some(row_id) = row.id.as_deref().filter(|r| id && !r.is_empty()) {
+            inline(&mut s, &format!("A{n}"), row_id, None);
         }
         for (i, cell) in row.cells.iter().enumerate() {
-            let at = format!("{}{n}", column_name(i + 1));
+            let at = format!("{}{n}", column_name(i + lead));
             match cell {
                 TableCell::Text(t) if t.is_empty() => {}
                 TableCell::Number(t) if is_number(t) && significant_digits(t) <= MAX_NUMBER_DIGITS => {
@@ -896,7 +946,7 @@ mod tests {
             heading: false,
             cells: vec![TableCell::Number("-0.001500".into())],
         });
-        let sheet = table_sheet(&t, true);
+        let sheet = table_sheet(&t, true, true);
         assert!(
             sheet.contains("<c r=\"B2\" t=\"inlineStr\"><is><t>9007199254740993</t></is></c>"),
             "{sheet}"
@@ -1019,7 +1069,7 @@ mod tests {
     fn a_formula_text_stays_an_inline_string() {
         let mut t = table("Formula");
         t.rows[0].cells[0] = TableCell::Text("=HYPERLINK(\"x\")".into());
-        let sheet = table_sheet(&t, true);
+        let sheet = table_sheet(&t, true, true);
         assert!(
             sheet.contains("<c r=\"B2\" t=\"inlineStr\"><is><t>=HYPERLINK(&quot;x&quot;)</t></is></c>"),
             "{sheet}"

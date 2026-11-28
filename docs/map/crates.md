@@ -953,6 +953,8 @@ Built-in report row queries (a user SQL report gives an empty row set marked not
 | `src/layout.rs` |  | The pagination geometry of report forms: the rows a form's list area holds (doc 09 §3.2, §3.8), the set's own frame a new list starts on and the frame a list's pages print on (§3.8). |
 | `src/lib.rs` |  | Built-in report row queries (a user SQL report gives an empty row set marked not derived until 1.0), pagination into virtual pages, and the table writers: CSV presets and an own XLSX writer (doc 09 §1.3, ADR-0018; [`table`], [`csv`], [`xlsx`]). |
 | `src/paginate.rs` |  | Pagination of an arranged row set into generated pages (doc 09 §3.2, FR-REP-002, FR-PAG-011, FR-PAG-030). |
+| `src/per_end.rs` |  | A page that prints each data row on two lines, one per end of a wire (doc 13 §3.1): the wire list's page, whose fitter's columns do not fit one line of the sheet. |
+| `src/printed.rs` |  | The columns a list prints (doc 09 §3.8): what its page shows and what Export list… and the package write of it. |
 | `src/queries.rs` |  | The query families of the report engine: a block's arranged rows and its generated pages. |
 | `src/render.rs` |  | Value rendering rules (doc 09 §3.6): the display formatting of typed cells, applied late (FR-I18N-009), so the same [`Cell`] prints "0.75 mm²" in an English PDF and "0,75 mm²" in an nl-NL one while XLSX keeps the number. |
 | `src/rowset.rs` |  | `RowSet`: one row source for every consumer (doc 09 §2.3, ADR-0018). |

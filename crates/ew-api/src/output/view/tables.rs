@@ -300,58 +300,34 @@ fn table_view(q: &Q, g: &GeneratedPage, page: PageRef) -> TableView {
         ..RenderOptions::default()
     };
     let block = q.report_blocks().get(g.block);
-    // The printed columns (doc 09 §3.8): the block's own, those its rows have, in its order, each with its width and
-    // its heading or the kind's; else the columns its kind prints ([`ew_reports::ReportKindDef::printed`]), else every
-    // column of the rows.
-    let kind_printed = block
-        .and_then(|b| match &b.source {
-            ReportSource::Kind(kind) => Registry::builtin().get(kind),
-            _ => None,
-        })
-        .and_then(|k| k.printed());
-    let printed: Vec<(usize, u32, &MlText)> = match block.filter(|b| !b.columns.is_empty()) {
-        // A key of an earlier version of the kind is read as the column it became (`ColumnDef::former`); several former
-        // keys of one column print it once, as wide as they were together.
-        Some(b) => b.columns.iter().fold(Vec::new(), |mut out, c| {
-            let Some(i) = set.column(&c.key) else {
-                return out;
-            };
-            // A heading of one's own stays where one key became one column; keys that became one take its heading.
-            let merged = set.columns[i].key != c.key && set.columns[i].former.len() > 1;
-            let heading = if c.heading.is_empty() || merged {
-                &set.columns[i].label
-            } else {
-                &c.heading
-            };
-            match out.iter_mut().find(|(at, _, _)| *at == i) {
-                Some((_, weight, _)) => *weight = weight.saturating_add(c.weight),
-                None => out.push((i, c.weight, heading)),
-            }
-            out
-        }),
-        None => match kind_printed {
-            Some(keys) => keys
-                .iter()
-                .filter_map(|key| {
-                    let i = set.column(key)?;
-                    Some((i, set.columns[i].weight, &set.columns[i].label))
-                })
-                .collect(),
-            None => set
-                .columns
-                .iter()
-                .enumerate()
-                .map(|(i, c)| (i, c.weight, &c.label))
-                .collect(),
-        },
+    // The printed columns (doc 09 §3.8), as Export list… writes them.
+    let kind = block.and_then(|b| match &b.source {
+        ReportSource::Kind(kind) => Some(kind.clone()),
+        _ => None,
+    });
+    let printed = ew_reports::printed(
+        block.map(|b| b.columns.as_slice()).unwrap_or_default(),
+        kind.as_ref(),
+        &set,
+    );
+    // A page that prints each end of a wire on a line of its own (doc 13 §3.1): its columns, a pair as one.
+    let per_end = block.and_then(|b| ew_reports::per_end(b));
+    let columns = match &per_end {
+        Some(form) => form
+            .iter()
+            .map(|c| TableColumn {
+                header: in_lang(&c.heading),
+                weight: c.weight,
+            })
+            .collect(),
+        None => printed
+            .iter()
+            .map(|&(_, weight, heading)| TableColumn {
+                header: in_lang(heading),
+                weight,
+            })
+            .collect(),
     };
-    let columns = printed
-        .iter()
-        .map(|&(_, weight, heading)| TableColumn {
-            header: in_lang(heading),
-            weight,
-        })
-        .collect();
     let line = |m: Option<&MlText>| m.filter(|m| !m.is_empty()).map(in_lang);
     let caption = line(block.map(|b| &b.caption));
     let legend = line(block.map(|b| &b.legend));
@@ -376,9 +352,38 @@ fn table_view(q: &Q, g: &GeneratedPage, page: PageRef) -> TableView {
         Some(pages) => render(q, &pages, &opts),
         None => r.cells.get(i).map(|c| render(q, c, &opts)).unwrap_or_default(),
     };
-    let rows = set.rows[start..end]
+    // The block's head, above the rows of its first page (`ew_reports::page_head`): what the pagination left room for.
+    let head: Vec<TableRow> = block
+        .filter(|_| start == 0)
+        .map(|b| ew_reports::page_head(q, b))
+        .unwrap_or_default()
         .iter()
-        .map(|r| {
+        .map(|t| TableRow {
+            kind: TableRowKind::Heading,
+            cells: vec![ew_derive::text_in(&ew_reports::words::in_languages(t), lang.as_ref()).to_owned()],
+            links: Vec::new(),
+        })
+        .collect();
+    if let Some(form) = &per_end {
+        let rows = head
+            .into_iter()
+            .chain(
+                set.rows[start..end]
+                    .iter()
+                    .flat_map(|r| per_end_rows(q, r, form, &cell, &in_lang)),
+            )
+            .collect();
+        return TableView {
+            columns,
+            rows,
+            note: None,
+            caption,
+            legend,
+        };
+    }
+    let rows = head
+        .into_iter()
+        .chain(set.rows[start..end].iter().map(|r| {
             let kind = match r.kind {
                 RowKind::Data => TableRowKind::Data,
                 RowKind::Heading | RowKind::GroupHeader | RowKind::GroupFooter => TableRowKind::Heading,
@@ -412,7 +417,7 @@ fn table_view(q: &Q, g: &GeneratedPage, page: PageRef) -> TableView {
                 });
             }
             TableRow { kind, cells, links }
-        })
+        }))
         .collect();
     TableView {
         columns,
@@ -421,6 +426,51 @@ fn table_view(q: &Q, g: &GeneratedPage, page: PageRef) -> TableView {
         caption,
         legend,
     }
+}
+
+/// The printed rows of `r` on a page that prints each end of a wire on a line of its own (`ew_reports::per_end`): a
+/// heading across the row, a data row as two lines, the From end above the To end, each cell's links on the line and in
+/// the column that prints it.
+fn per_end_rows(
+    q: &Q,
+    r: &Row,
+    form: &[ew_reports::EndColumn],
+    cell: &impl Fn(&Row, usize) -> String,
+    in_lang: &impl Fn(&MlText) -> String,
+) -> Vec<TableRow> {
+    use ew_reports::EndLine;
+    if r.kind != RowKind::Data {
+        return vec![TableRow {
+            kind: TableRowKind::Heading,
+            cells: vec![cell(r, 0)],
+            links: Vec::new(),
+        }];
+    }
+    let links = row_links(q, r);
+    (0..2)
+        .map(|k| {
+            let cells = form
+                .iter()
+                .map(|c| match &c.lines[k] {
+                    EndLine::Cell(i) => cell(r, *i),
+                    EndLine::Words(m) => in_lang(m),
+                    EndLine::Empty => String::new(),
+                })
+                .collect();
+            let links = links
+                .iter()
+                .filter_map(|l| {
+                    let column = form.iter().position(|c| c.lines[k] == EndLine::Cell(l.column))?;
+                    Some(TableLink { column, ..l.clone() })
+                })
+                .collect();
+            TableRow {
+                kind: TableRowKind::Data,
+                cells,
+                links,
+            }
+        })
+        .collect()
 }
 
 /// The `pages` cell of a revision overview row at draw time: the revision's `changed_pages`, which

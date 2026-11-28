@@ -151,6 +151,10 @@ pub struct ColumnDef {
     /// choice, sort key, grouping or row of one's own that names one of them is read as this column ([`column_of`],
     /// [`ColumnDef::stored_text`]). Empty for most columns.
     pub former: &'static [&'static str],
+    /// The column of a wire's other end that pairs with this one (the To end's beside the From end's), and the heading
+    /// both print under where a page prints each end on a line of its own ([`crate::per_end`]); `None` for most
+    /// columns.
+    pub other_end: Option<(String, MlText)>,
 }
 
 /// The column of `columns` a key stored on a block names: the column of that key, else the column that names it among
@@ -175,6 +179,7 @@ impl ColumnDef {
             label: crate::words::in_languages(&label),
             weight: ColumnDef::DEFAULT_WEIGHT,
             former: &[],
+            other_end: None,
         }
     }
 
@@ -191,6 +196,14 @@ impl ColumnDef {
     #[must_use]
     pub fn weighted(mut self, weight: u32) -> ColumnDef {
         self.weight = weight;
+        self
+    }
+
+    /// This column of a wire's From end, whose To end's column is `key`; a page that prints each end on a line of its
+    /// own prints both under `heading`.
+    #[must_use]
+    pub fn other_end(mut self, key: &str, heading: Text) -> ColumnDef {
+        self.other_end = Some((key.to_owned(), crate::words::in_languages(&heading)));
         self
     }
 

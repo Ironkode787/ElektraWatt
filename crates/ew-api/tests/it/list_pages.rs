@@ -155,24 +155,21 @@ fn a_dutch_project_prints_its_list_heads_and_title_block_labels_in_dutch() {
     let nl: LangTag = "nl-NL".parse().expect("a tag");
     let page = pages_of(&s, 907)[0];
     let heads: Vec<String> = table(&s, page).columns.into_iter().map(|c| c.header).collect();
+    // The page prints each end of a wire on a line of its own (doc 13 §3.1): its heads are that form's.
     let def = Registry::builtin().by_name("wire_list").expect("the kind");
-    let columns = def.columns();
-    let kind: Vec<_> = def
-        .printed()
-        .expect("the wire list names its printed columns")
+    let form = ew_reports::per_end::per_end_of(
+        &def.columns(),
+        def.printed().expect("the wire list names its printed columns"),
+    )
+    .expect("the wire list pairs its ends");
+    let dutch: Vec<String> = form
         .iter()
-        .map(|key| {
-            columns
-                .iter()
-                .find(|c| c.key == *key)
-                .expect("a column of the list")
-        })
+        .map(|c| text_in(&c.heading, Some(&nl)).to_owned())
         .collect();
-    let dutch: Vec<String> = kind
+    let english: Vec<String> = form
         .iter()
-        .map(|c| text_in(&c.label, Some(&nl)).to_owned())
+        .map(|c| text_in(&c.heading, None).to_owned())
         .collect();
-    let english: Vec<String> = kind.iter().map(|c| c.english().to_owned()).collect();
     assert_eq!(heads, dutch);
     assert_ne!(heads, english);
     let texts = frame_texts(&s, page);
@@ -409,8 +406,7 @@ fn a_set_on_a3_prints_its_lists_on_a3() {
         .list_area(frame.title_block.as_deref(), false, false)
         .rows;
     assert!(a3_rows > ew_schema::HOUSE_ROWS_PER_PAGE, "{a3_rows}");
-    let id = ew_ids::Id::from_uuid(block_at(&s, 907).parse().expect("a UUID"));
-    let all = q.get::<BlockRows>(id).rows.len();
-    let first = table(&s, page).rows.len();
-    assert_eq!(first, all.min(usize::try_from(a3_rows).expect("rows")));
+    // The first page is full: its head and each wire's two lines, short by less than a wire.
+    let first = i64::try_from(table(&s, page).rows.len()).expect("rows");
+    assert!(first <= a3_rows && a3_rows - first < 2, "{first} of {a3_rows}");
 }

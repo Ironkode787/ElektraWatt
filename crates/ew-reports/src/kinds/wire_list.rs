@@ -5,7 +5,7 @@
 
 use ew_derive::{CpRef, EndTreatment, Q, WireLength, WireRecord, short_tag};
 use ew_ids::Id;
-use ew_l10n::{List, TextArg};
+use ew_l10n::{List, Text, TextArg};
 use ew_schema::{Device, ReportBlock, ReportKind};
 use ew_units::Dec3;
 
@@ -59,8 +59,12 @@ impl ReportKindDef for WireList {
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
             ColumnDef::new("no", CellType::Ident, text!("column-no")).weighted(7),
-            ColumnDef::new("from", CellType::Tag, text!("column-from")).weighted(13),
-            ColumnDef::new("from_cp", CellType::Ident, text!("column-cp")).weighted(6),
+            ColumnDef::new("from", CellType::Tag, text!("column-from"))
+                .weighted(13)
+                .other_end("to", text!("column-device")),
+            ColumnDef::new("from_cp", CellType::Ident, text!("column-cp"))
+                .weighted(6)
+                .other_end("to_cp", text!("column-cp")),
             ColumnDef::new("to", CellType::Tag, text!("column-to")).weighted(13),
             ColumnDef::new("to_cp", CellType::Ident, text!("column-cp")).weighted(6),
             ColumnDef::new("potential", CellType::Ident, text!("column-potential")).weighted(11),
@@ -72,13 +76,21 @@ impl ReportKindDef for WireList {
             ColumnDef::new("pages", CellType::Folios, text!("column-pages")).weighted(8),
             ColumnDef::new("length", CellType::Qty, text!("column-length-mm")).weighted(9),
             ColumnDef::new("length_source", CellType::Text, text!("column-length-from")).weighted(7),
-            ColumnDef::new("from_end", CellType::Text, text!("column-from-end")).weighted(12),
+            ColumnDef::new("from_end", CellType::Text, text!("column-from-end"))
+                .weighted(12)
+                .other_end("to_end", text!("column-treatment")),
             ColumnDef::new("to_end", CellType::Text, text!("column-to-end")).weighted(12),
-            ColumnDef::new("from_part", CellType::Ident, text!("column-from-part")).weighted(9),
+            ColumnDef::new("from_part", CellType::Ident, text!("column-from-part"))
+                .weighted(9)
+                .other_end("to_part", text!("column-part")),
             ColumnDef::new("to_part", CellType::Ident, text!("column-to-part")).weighted(9),
-            ColumnDef::new("from_strip", CellType::Qty, text!("column-from-strip")).weighted(6),
+            ColumnDef::new("from_strip", CellType::Qty, text!("column-from-strip"))
+                .weighted(6)
+                .other_end("to_strip", text!("column-strip-mm")),
             ColumnDef::new("to_strip", CellType::Qty, text!("column-to-strip")).weighted(6),
-            ColumnDef::new("from_marker", CellType::Ident, text!("column-from-marker")).weighted(11),
+            ColumnDef::new("from_marker", CellType::Ident, text!("column-from-marker"))
+                .weighted(11)
+                .other_end("to_marker", text!("column-marker")),
             ColumnDef::new("to_marker", CellType::Ident, text!("column-to-marker")).weighted(11),
         ]
     }
@@ -97,11 +109,20 @@ impl ReportKindDef for WireList {
             "cross_section",
             "length",
             "from_end",
-            "to_end",
+            "from_part",
+            "from_strip",
             "from_marker",
+            "to_end",
+            "to_part",
+            "to_strip",
             "to_marker",
             "pages",
         ])
+    }
+
+    /// How to read it, where the fitter starts (doc 13 §3.1): [`reading_notes`] above the first wire.
+    fn head(&self, q: &Q) -> Vec<Text> {
+        reading_notes(q)
     }
 
     fn rows(&self, q: &Q, _block: &ReportBlock) -> RowSet {
@@ -334,4 +355,70 @@ fn bridge_potential(q: &Q, b: &Bridge) -> Cell {
         }
     }
     Cell::Empty
+}
+
+/// How to read the fitter's papers (doc 13 §3.1): one short block in the project's language, printed once where the
+/// fitter starts, before the wire list's first wire and in the package's Contents. What a length holds, what a marker
+/// says, which side of a terminal is which, where each kind of label goes, what is made on site and the order of the
+/// papers; each sentence follows the project's settings where a setting decides it (the reserve and the door loop, the
+/// marking, cores and jumpers, a strip whose field is on side 1, labels beside a device), none names a thing of one
+/// project.
+pub fn reading_notes(q: &Q) -> Vec<Text> {
+    use ew_schema::{DeviceLabels, Marking, Side};
+    let ws = &q.project().settings.workshop;
+    let mm = |n: ew_units::Nm| ew_derive::mm_exact(i128::from(n.0));
+    let mut out = vec![
+        text!("read-head"),
+        text!(
+            "read-length",
+            mm(ew_derive::layout::reserve(q)),
+            mm(ew_derive::layout::door_loop(q))
+        ),
+        text!("read-length-marks"),
+        match ws.marking {
+            Marking::WireNumber => text!("read-marker-number"),
+            Marking::BothEnds => text!("read-marker-both"),
+            Marking::Potential => text!("read-marker-potential"),
+            Marking::Destination | Marking::Unknown(_) => text!("read-marker-destination"),
+        },
+    ];
+    out.extend(match (ws.mark_cores, ws.mark_jumpers) {
+        (false, false) => Some(text!("read-unmarked-cores-jumpers")),
+        (false, true) => Some(text!("read-unmarked-cores")),
+        (true, false) => Some(text!("read-unmarked-jumpers")),
+        (true, true) => None,
+    });
+    out.push(text!(
+        "read-sides",
+        text!("column-side-1-clamp-a"),
+        text!("column-side-2-clamp-b")
+    ));
+    let mut turned: Vec<(ew_mltext::NaturalKey, String)> = q
+        .devices()
+        .iter()
+        .filter(|(_, d)| {
+            d.aspects
+                .strip
+                .as_ref()
+                .is_some_and(|s| s.field_side == Side::Side1)
+        })
+        .map(|(id, _)| {
+            let tag = short_tag(q, id);
+            (ew_mltext::natural_key(&tag), tag)
+        })
+        .collect();
+    turned.sort();
+    if !turned.is_empty() {
+        let tags: Vec<String> = turned.into_iter().map(|(_, t)| t).collect();
+        out.push(text!("read-sides-turned", tags.join(", ")));
+    }
+    out.push(text!("read-labels-ends"));
+    out.push(match ws.device_labels {
+        DeviceLabels::OnDeviceAndBeside => text!("read-labels-beside"),
+        DeviceLabels::OnDevice | DeviceLabels::Unknown(_) => text!("read-labels-devices"),
+    });
+    out.push(text!("read-site"));
+    out.push(text!("read-site-counted"));
+    out.push(text!("read-order"));
+    out
 }

@@ -212,9 +212,9 @@ pub use route_measures::{
     LayoutThrough, LayoutTouch, PageLayout,
 };
 pub use rows::{
-    RowExport, RowsCsv, RowsError, RowsFormat, RowsOutput, block_kind, find_block, page_report_kinds,
-    report_folios, report_kinds, row_export, row_output, sql_table, unlisted_devices, with_base_digest,
-    workbook_dump,
+    ListFormat, RowExport, RowsCsv, RowsError, RowsFormat, RowsOutput, block_kind, find_block, list_output,
+    page_report_kinds, report_folios, report_kinds, row_export, row_output, sql_table, unlisted_devices,
+    with_base_digest, workbook_dump,
 };
 // The table round trip.
 /// The names of the starter content that the shell refers to, re-exported so that it names them without naming

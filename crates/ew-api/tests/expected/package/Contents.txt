@@ -3,15 +3,27 @@ Package for the workshop, revision V1.0, made on 2026-11-27
 
 DRAFT: revision V1.0 is open, not released. Every page of the drawings says "Draft V1.0: not released".
 
-Before it went to the workshop the project was checked: nothing stood in the way.
+Before it went to the workshop the project was checked: the release check found no error, no warning and no info.
 
 3 wires have no length: one end of each is made on site (104.4, 104.5, 104.8).
 Every other wire has its length in the wire list; a cable core has its cable's.
 
-What the files lack of the workshop stock and of its parts' data:
+The check does not judge the workshop stock. What the files lack of the stock and of its parts' data:
   No ring lug of the workshop stock takes 2.5 mm²: those ends are listed without a part.
   No wire part of the workshop stock matches 0.75 mm² BK, 0.75 mm² BU, 0.75 mm² DBU, 0.75 mm² GNYE, 1.5 mm² BK, 1.5 mm² BU, 2.5 mm² BK, 2.5 mm² BU, 2.5 mm² DBU, 2.5 mm² GNYE: the lists name no part for those wires.
   Cable markers: no marker part in the stock marks cables; the label program asks which to print on.
+
+How to read these papers
+  Length mm is the length to cut: the way along the ducts, 50 mm at each end and 300 mm across a door's hinge are in it.
+  A length after ≈ was laid along a way that has changed since: check it. A length of — is none: the fitter measures the wire.
+  A wire's marker names its far end, the end it does not sit on; a marker on two lines is written here with / between them.
+  A cable's cores carry no marker, nor does a wire with both its ends on one device.
+  On a terminal, Side 1 (clamp a) is the cabinet's wiring and Side 2 (clamp b) the field, as the terminal diagrams name them.
+  Labels: a wire marker on each end of its wire, a cable marker on each end of its cable, a tube marker on each end of its tube.
+  A terminal marker on its terminal, a strip marker on its strip, a device label on its device.
+  A wire with an end in another location is cut and finished on site; the shop makes only its cabinet end.
+  The cut list leaves such a wire out, and the consumables count of it only the ferrule and the marker of that end.
+  Work in this order: drill (drawings for drilling, hole table), mount (assembly lists), cut (cut list), wire (wire list), mark (label files).
 
 What is in it
 
